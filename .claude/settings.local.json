@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(ls \"E:\\\\Programación\\\\quota\\\\src\\\\views\" -R | Select-Object Name)",
+      "PowerShell(Get-Content *)"
+    ]
+  }
+}

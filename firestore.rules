@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticat() {
+      return request.auth != null;
+    }
+
+    function rolUsuari() {
+      return get(/databases/$(database)/documents/usuaris/$(request.auth.uid)).data.rol;
+    }
+
+    function esAdmin() {
+      return autenticat() && rolUsuari() == 'admin';
+    }
+
+    function esCap() {
+      return autenticat() && rolUsuari() in ['admin', 'cap_departament', 'departament'];
+    }
+
+    // Classes: llegir per a tothom autenticat, escriure només caps i admin
+    match /classes/{id} {
+      allow read: if autenticat();
+      allow write: if esCap();
+    }
+
+    // Professors: llegir per a tothom autenticat, escriure només admin
+    match /professors/{id} {
+      allow read: if autenticat();
+      allow write: if esAdmin();
+    }
+
+    // Departaments: llegir per a tothom autenticat, escriure només admin
+    match /departaments/{id} {
+      allow read: if autenticat();
+      allow write: if esAdmin();
+    }
+
+    // Cursos: llegir per a tothom autenticat, escriure (crear/bloquejar/eliminar) només admin
+    match /cursos/{cursId} {
+      allow read: if autenticat();
+      allow write: if esAdmin();
+
+      // Classes del curs: caps assignen professors
+      match /classes/{id} {
+        allow read: if autenticat();
+        allow write: if esCap();
+      }
+
+      // Professors del curs: caps actualitzen gpAssignades, palicAssignades, preferencia...
+      match /professors/{id} {
+        allow read: if autenticat();
+        allow write: if esCap();
+      }
+
+      // Departaments del curs: admin gestiona tot; caps poden tancar el seu departament
+      match /departaments/{id} {
+        allow read: if autenticat();
+        allow create, delete: if esAdmin();
+        allow update: if esAdmin()
+                      || (esCap() && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['tancat', 'tancatPer', 'tancatAt']));
+      }
+    }
+
+    // Usuaris: cadascú llegeix el seu, admin llegeix/escriu tot.
+    // Ningú no es pot pujar el rol ni el departament a si mateix.
+    match /usuaris/{uid} {
+      allow read: if autenticat() && (request.auth.uid == uid || esAdmin());
+      allow create: if autenticat() && request.auth.uid == uid
+                    && !('rol' in request.resource.data)
+                    && !('departament' in request.resource.data);
+      allow update: if esAdmin()
+                    || (autenticat() && request.auth.uid == uid
+                        && !request.resource.data.diff(resource.data).affectedKeys()
+                            .hasAny(['rol', 'departament']));
+      allow delete: if esAdmin();
+    }
+
+    // Preautoritzats: llegir autenticat (per al login automàtic), escriure només admin
+    match /preautoritzats/{id} {
+      allow read: if autenticat();
+      allow write: if esAdmin();
+    }
+
+    // Config: tots els autenticats llegeixen (app_settings, missatgeTancament...);
+    // escriure només admin
+    match /config/{id} {
+      allow read: if autenticat();
+      allow write: if esAdmin();
+    }
+
+    // Presència en temps real (/departament)
+    match /presence/{id} {
+      allow read, write: if autenticat();
+    }
+  }
+}
