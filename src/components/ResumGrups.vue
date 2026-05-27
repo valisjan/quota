@@ -431,7 +431,7 @@ function getCursCategoria(curs) {
   return 'fp';
 }
 
-const TIPUS_NO_COMPTEN_GRUP = ['D', 'S', 'F', 'PALIC', 'GP', 'C'];
+const TIPUS_NO_COMPTEN_GRUP = ['D', 'F', 'PALIC', 'GP', 'C'];
 
 function updateLastUpdate() {
   lastUpdate.value = new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });

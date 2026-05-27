@@ -23,6 +23,14 @@ export function calcularHoresLectives(classes, nomProfessor) {
     .reduce((sum, c) => sum + horesComputablesClasse(c), 0);
 }
 
+export function esMajorDe55Classe(classe) {
+  const original = (classe?.materia || '').toString().trim();
+  if (original.includes('>55')) return true;
+  const normalized = original.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+  const words = normalized.replace(/[^a-z0-9]/g, ' ').trim();
+  return words.includes('majors') && words.includes('55');
+}
+
 export function normalitzarJornada(jornada) {
   const value = (jornada || '').toString().trim().toUpperCase();
   return value === 'M' || value === 'T' ? value : '';

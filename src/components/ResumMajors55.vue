@@ -65,7 +65,7 @@
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { onSnapshot, query } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
-import { classeAssignadaA, horesComputablesClasse } from '../utils/horesProfessor';
+import { classeAssignadaA, horesComputablesClasse, esMajorDe55Classe } from '../utils/horesProfessor';
 import { exclosaDelRepartiment } from '../utils/tipus';
 
 const cursStore = useCursStore();
@@ -89,9 +89,7 @@ const professorsMajors55 = computed(() =>
 
 function esMajor55(professor) {
   return professor.major55 === true ||
-    classes.value.some(
-      (c) => classeAssignadaA(c, professor.nom) && (c.materia || '').includes('>55')
-    );
+    classes.value.some((c) => classeAssignadaA(c, professor.nom) && esMajorDe55Classe(c));
 }
 
 function calcularHoresProfessor(nomProfessor) {

@@ -163,13 +163,16 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { limitsHoresProfessor, professorsClasse } from '../../utils/horesProfessor';
+import { limitsHoresProfessor, professorsClasse, esMajorDe55Classe } from '../../utils/horesProfessor';
 import {
   esTutoriaPrincipal,
   teTutoriaPrincipalParellada,
   trobarTutoriaAsterisc,
   trobarAssignaturesParelladesTutoria,
+  esDedicacioPrefacturaClasse,
 } from '../../utils/tutories';
+import { esGP, esPALIC, esCoordinacio, getTipusText } from '../../utils/tipus';
+import { trobarGermanesBloc } from '../../utils/grups';
 
 const props = defineProps({
   professors: { type: Array, default: () => [] },
@@ -181,7 +184,7 @@ const NUM_ITERACIONS = 300;
 const proposta = ref(null);
 const classesDesbordades = ref([]);
 const errorProposta = ref('');
-const partirActual = ref(false);
+const partirActual = ref(true);
 
 // All professors of a class, including participants[] for C-type
 function professorsDeClasse(classe) {
@@ -196,22 +199,32 @@ function professorsDeClasse(classe) {
   return fromProfessors;
 }
 
-// Assignable classes: all except GP, PALIC, C (C is fixed separately)
+// Assignable classes: all except GP, PALIC, C, *Majors de 55, and *Dedicació a prefactura (all fixed)
 const assignables = computed(() =>
-  props.classes.filter((c) => {
-    const tipus = (c.tipus || '').toString().toUpperCase().trim();
-    return (
-      tipus !== 'GP' &&
-      tipus !== 'PALIC' &&
-      tipus !== 'C' &&
+  props.classes.filter(
+    (c) =>
+      !esGP(c.tipus) &&
+      !esPALIC(c.tipus) &&
+      !esCoordinacio(c.tipus) &&
+      !esMajorDe55Classe(c) &&
+      !esDedicacioPrefacturaClasse(c) &&
       !teTutoriaPrincipalParellada(c, props.classes)
-    );
-  })
+  )
 );
 
 // Coordination classes: always fixed, always count toward hours
 const classesCoordinacio = computed(() =>
-  props.classes.filter((c) => (c.tipus || '').toString().toUpperCase().trim() === 'C')
+  props.classes.filter((c) => esCoordinacio(c.tipus))
+);
+
+// Majors de 55 classes: always fixed, count toward the assigned teacher's hours
+const classesMajors55 = computed(() =>
+  props.classes.filter((c) => esMajorDe55Classe(c))
+);
+
+// *Dedicació a prefactura classes: always fixed (paired with cap d'estudis)
+const classesDedicacioPrefactura = computed(() =>
+  props.classes.filter((c) => esDedicacioPrefacturaClasse(c))
 );
 
 // Already-assigned non-C classes (only relevant when partirActual = true)
@@ -273,23 +286,6 @@ function sortClasses(classes) {
   });
 }
 
-function getTipusText(tipus) {
-  const normal = (tipus || '').toString().toUpperCase().trim();
-  if (normal.startsWith('T')) return `Optativa compartida ${normal}`;
-  if (normal.startsWith('O')) return `Optativa ${normal}`;
-
-  const labels = {
-    D: 'Desdoblament',
-    S: 'Suport',
-    F: 'Flexible',
-    GP: 'Guardia de pati',
-    PALIC: 'PALIC',
-    C: 'Coordinacio',
-  };
-
-  if (/^A\d*$/.test(normal)) return `Autodesdoble ${normal}`;
-  return labels[normal] || normal;
-}
 
 function getTipusBadgeClass(tipus) {
   const normal = (tipus || '').toString().toUpperCase().trim();
@@ -330,6 +326,11 @@ function paquetClasses(classe) {
       afegirClasseUnica(paquet, assignatura)
     );
   }
+
+  // Bloc siblings must always go to the same professor
+  trobarGermanesBloc(classe, assignables.value).forEach((germana) =>
+    afegirClasseUnica(paquet, germana)
+  );
 
   return paquet;
 }
@@ -385,16 +386,42 @@ function generar() {
     }
   }
 
+  // 1b. Majors de 55 classes — always fixed, count toward assigned teacher's hours
+  for (const classe of classesMajors55.value) {
+    const profs = professorsDeClasse(classe);
+    const h = Number(classe.hores) || 0;
+    for (const nom of profs) {
+      if (!fixatMap.has(nom)) continue;
+      const entry = fixatMap.get(nom);
+      entry.hores += h;
+      entry.classesFixades.push(classe);
+    }
+  }
+
+  // 1c. *Dedicació a prefactura — always fixed, paired with cap d'estudis
+  for (const classe of classesDedicacioPrefactura.value) {
+    const profs = professorsDeClasse(classe);
+    const h = Number(classe.hores) || 0;
+    for (const nom of profs) {
+      if (!fixatMap.has(nom)) continue;
+      const entry = fixatMap.get(nom);
+      entry.hores += h;
+      entry.classesFixades.push(classe);
+    }
+  }
+
   // 2. Already-assigned non-C classes (only when partirActual)
   const classesFixadesIds = new Set();
   for (const classe of classesJaAssignades.value) {
     if (classesFixadesIds.has(classe.id)) continue;
     const profs = professorsDeClasse(classe);
+    const eligibleProfs = profs.filter((nom) => fixatMap.has(nom));
+    // If all assigned professors are excluded (e.g. part-time), let the class be distributed
+    if (eligibleProfs.length === 0) continue;
     const paquet = paquetClasses(classe);
     const h = horesPaquetClasse(classe);
     paquet.forEach((item) => classesFixadesIds.add(item.id));
-    for (const nom of profs) {
-      if (!fixatMap.has(nom)) continue;
+    for (const nom of eligibleProfs) {
       const entry = fixatMap.get(nom);
       entry.hores += h;
       entry.classesFixades.push(...paquet);
@@ -483,6 +510,36 @@ function generar() {
               otherSlot.classes.splice(idx, 1);
               otherSlot.hores -= h;
               slot.classes.push(assignatura);
+              slot.hores += h;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Safety net: ensure bloc siblings are still together after random distribution
+  if (millor) {
+    const processed = new Set();
+    for (const slot of millor) {
+      for (const classe of [...slot.classes]) {
+        if (processed.has(classe.id)) continue;
+        const germanes = trobarGermanesBloc(classe, props.classes);
+        if (germanes.length === 0) continue;
+        processed.add(classe.id);
+        for (const germana of germanes) {
+          processed.add(germana.id);
+          if (slot.classes.some((c) => c.id === germana.id)) continue;
+          if (slot.classesFixades.some((c) => c.id === germana.id)) continue;
+          for (const otherSlot of millor) {
+            const idx = otherSlot.classes.findIndex((c) => c.id === germana.id);
+            if (idx !== -1) {
+              const h = Number(germana.hores) || 0;
+              if (slot.hores + h > slot.maxim) continue;
+              otherSlot.classes.splice(idx, 1);
+              otherSlot.hores -= h;
+              slot.classes.push(germana);
               slot.hores += h;
               break;
             }

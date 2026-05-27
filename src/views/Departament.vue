@@ -22,6 +22,14 @@
         <span v-if="settings.missatgeTancament" class="ml-1 font-normal">{{ settings.missatgeTancament }}</span>
       </div>
 
+      <div
+        v-if="errorMsg"
+        class="mb-4 flex items-center justify-between rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800"
+      >
+        {{ errorMsg }}
+        <button type="button" class="ml-3 font-semibold hover:underline" @click="errorMsg = null">×</button>
+      </div>
+
       <!-- Indicador de connexió -->
       <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex flex-wrap items-center gap-2">
@@ -297,6 +305,7 @@ import { db } from '../firebase';
 import {
   collection,
   doc,
+  writeBatch,
   updateDoc,
   deleteDoc,
   onSnapshot,
@@ -312,8 +321,10 @@ import DepartamentFulla from '../components/departament/DepartamentFulla.vue';
 import DepartamentAleatori from '../components/departament/DepartamentAleatori.vue';
 import ProfessorCard from '../components/departament/ProfessorCard.vue';
 import DepartamentPrintModal from '../components/departament/DepartamentPrintModal.vue';
-import { limitsHoresProfessor, professorsClasse, classeAssignadaA, horesComputablesClasse } from '../utils/horesProfessor';
-import { esTutoriaPrincipal, esTutoriaAsterisc, trobarTutoriaAsterisc, trobarTutoriaPrincipal, trobarAssignaturesParelladesTutoria } from '../utils/tutories';
+import { limitsHoresProfessor, professorsClasse, classeAssignadaA, horesComputablesClasse, calcularHoresLectives } from '../utils/horesProfessor';
+import { esTutoriaPrincipal, esTutoriaAsterisc, trobarTutoriaAsterisc, trobarTutoriaPrincipal, trobarAssignaturesParelladesTutoria, esCapsEstudisClasse, trobarDedicacioPerCapEstudis } from '../utils/tutories';
+import { esGP, esPALIC, esOptativaCompartida, exclosaDelRepartiment } from '../utils/tipus';
+import { trobarGermanesBloc } from '../utils/grups';
 import { quotaGuardiesPatiDepartament } from '../utils/guardiesPati';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
 import { useAuthStore } from '../stores/auth';
@@ -326,6 +337,7 @@ const solsLectura = computed(() => authStore.rol === 'professor');
 const departaments = ref([]);
 const classes = ref([]);
 const professors = ref([]);
+const errorMsg = ref(null);
 const isConnected = ref(true);
 const activeUsers = ref(1);
 const usuarisActius = ref([]);
@@ -338,7 +350,7 @@ const totalGuardiesPatiConfigurades = computed(() =>
 );
 const totalHoresAssignades = computed(() => {
   return classesDepartament.value
-    .filter((c) => c.tipus !== 'GP' && c.tipus !== 'PALIC')
+    .filter((c) => !exclosaDelRepartiment(c.tipus))
     .reduce((total, c) => total + horesAssignadesClasse(c), 0);
 });
 
@@ -383,7 +395,7 @@ const classesDepartament = computed(() => {
 
 const totalHoresDepartament = computed(() => {
   return classesDepartament.value
-    .filter((c) => c.tipus !== 'GP' && c.tipus !== 'PALIC')
+    .filter((c) => !exclosaDelRepartiment(c.tipus))
     .reduce((total, c) => total + c.hores, 0);
 });
 
@@ -409,7 +421,7 @@ const totalPALICDepartament = computed(() => {
   return classes.value
     .filter(
       (c) =>
-        c.tipus === 'PALIC' &&
+        esPALIC(c.tipus) &&
         c.departaments?.[0] === departamentSeleccionat.value &&
         (!c.curs || c.curs === '') &&
         (!c.grup || c.grup === '')
@@ -450,7 +462,7 @@ function formatProfessorsNecessaris() {
 }
 
 function esOptativaCompartidaClasse(classe) {
-  return (classe.tipus || '').toString().trim().toUpperCase().startsWith('T');
+  return esOptativaCompartida(classe.tipus);
 }
 
 function horesAssignadesClasse(classe) {
@@ -464,12 +476,7 @@ function horesAssignadesClasse(classe) {
 
 function getClassesProfessor(nomProfessor) {
   return classes.value
-    .filter(
-      (c) =>
-        classeAssignadaA(c, nomProfessor) &&
-        c.tipus !== 'GP' &&
-        c.tipus !== 'PALIC'
-    )
+    .filter((c) => classeAssignadaA(c, nomProfessor) && !esGP(c.tipus) && !esPALIC(c.tipus))
     .sort((a, b) => {
       if (a.curs !== b.curs) return (a.curs || '').localeCompare(b.curs || '');
       if (a.materia !== b.materia) return a.materia.localeCompare(b.materia);
@@ -478,28 +485,21 @@ function getClassesProfessor(nomProfessor) {
 }
 
 function calcularHoresProfessor(nomProfessor) {
-  return classes.value
-    .filter(
-      (c) =>
-        classeAssignadaA(c, nomProfessor) &&
-        c.tipus !== 'GP' &&
-        c.tipus !== 'PALIC'
-    )
-    .reduce((total, c) => total + horesComputablesClasse(c), 0);
+  return calcularHoresLectives(classes.value, nomProfessor);
+}
+
+const professorsMap = computed(() => new Map(professors.value.map((p) => [p.nom, p])));
+
+function getProfessor(nomProfessor) {
+  return professorsMap.value.get(nomProfessor) || {};
 }
 
 function getHoresGP(nomProfessor) {
-  const professor = professors.value.find((p) => p.nom === nomProfessor);
-  return professor?.gpAssignades || 0;
+  return getProfessor(nomProfessor).gpAssignades || 0;
 }
 
 function getHoresPALIC(nomProfessor) {
-  const professor = professors.value.find((p) => p.nom === nomProfessor);
-  return professor?.palicAssignades || 0;
-}
-
-function getProfessor(nomProfessor) {
-  return professors.value.find((p) => p.nom === nomProfessor) || {};
+  return getProfessor(nomProfessor).palicAssignades || 0;
 }
 
 function calcularHoresComputablesProfessor(nomProfessor) {
@@ -649,25 +649,38 @@ async function desassignarClasseProfessor({ professor, classe }) {
       }
     }
 
-    await Promise.all(
-      classesPerActualitzar.map((item) => {
-        const professorsItem = (item.professors || [item.professorAssignat].filter(Boolean)).filter(
-          (nom) => nom && nom !== professor.nom
-        );
+    for (const germana of trobarGermanesBloc(classe, classes.value)) {
+      if (!classesPerActualitzar.some((c) => c.id === germana.id)) {
+        classesPerActualitzar.push(germana);
+      }
+    }
+    if (esCapsEstudisClasse(classe)) {
+      for (const dedicacio of trobarDedicacioPerCapEstudis(classe, classes.value)) {
+        if (!classesPerActualitzar.some((c) => c.id === dedicacio.id)) {
+          classesPerActualitzar.push(dedicacio);
+        }
+      }
+    }
 
-        return updateDoc(cursStore.docRef('classes', item.id), {
-          professors: professorsItem,
-          professorAssignat:
-            item.professorAssignat === professor.nom
-              ? professorsItem[0] || ''
-              : item.professorAssignat || '',
-          lastModified: serverTimestamp(),
-        });
-      })
-    );
+    const batch = writeBatch(db);
+    for (const item of classesPerActualitzar) {
+      const professorsItem = (item.professors || [item.professorAssignat].filter(Boolean)).filter(
+        (nom) => nom && nom !== professor.nom
+      );
+      batch.update(cursStore.docRef('classes', item.id), {
+        professors: professorsItem,
+        professorAssignat:
+          item.professorAssignat === professor.nom
+            ? professorsItem[0] || ''
+            : item.professorAssignat || '',
+        lastModified: serverTimestamp(),
+      });
+    }
+    await batch.commit();
     updateLastUpdate();
   } catch (e) {
     console.error('Error desassignant classe:', e);
+    errorMsg.value = 'Error al desassignar. Torna-ho a intentar.';
   }
 }
 

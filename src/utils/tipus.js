@@ -61,6 +61,22 @@ export function clauFranjaOptativa(tipus) {
   return normal || 'O';
 }
 
+export function getTipusText(tipus) {
+  const normal = normalitzarTipus(tipus);
+  if (normal.startsWith('T')) return 'Optativa compartida';
+  if (normal.startsWith('O')) return 'Optativa';
+  if (esAutodesdoble(normal)) return 'Autodesdoble';
+  const map = {
+    D: 'Desdoblament',
+    S: 'Suport',
+    F: 'Flexible',
+    GP: 'Guàrdies de pati',
+    PALIC: 'PALIC',
+    C: 'Coordinació',
+  };
+  return map[normal] || tipus || '';
+}
+
 export function exclosaDelRepartiment(tipus) {
   const normal = normalitzarTipus(tipus);
   return normal === TIPUS.GP || normal === TIPUS.PALIC;

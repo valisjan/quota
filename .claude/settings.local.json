@@ -9,7 +9,10 @@
       "Bash(Select-Object -First 50)",
       "Bash(npx vite *)",
       "Bash(python -c ' *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(Get-Content \"E:\\\\Programación\\\\quota\\\\src\\\\views\\\\Departament.vue\")",
+      "Bash(Measure-Object -Line)",
+      "Bash(Select-Object -ExpandProperty Lines)"
     ]
   }
 }

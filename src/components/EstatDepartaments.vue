@@ -82,7 +82,7 @@
           <div>
             <h3 class="text-xl font-semibold text-slate-950">Departaments</h3>
             <p class="mt-1 text-sm text-slate-500">
-              Prioritzat per pendent. Obre el detall per veure les classes sense assignació.
+              Ordenat per classes sense assignar. Clica un departament per veure el detall.
             </p>
           </div>
           <div class="flex gap-1 border border-slate-200 bg-white p-1">
@@ -278,10 +278,10 @@ const pctGlobal = computed(() => {
 
 const titularEstat = computed(() => {
   if (!stats.value.classesTotal) return 'Encara no hi ha quota importada.';
-  if (stats.value.senseAssignar === 0) return 'La quota està preparada per al tram final.';
-  if (pctGlobal.value >= 75) return 'Ja queda poca feina pendent.';
-  if (pctGlobal.value >= 35) return 'El repartiment està en marxa.';
-  return 'El repartiment necessita atenció.';
+  if (stats.value.senseAssignar === 0) return 'Totes les classes estan assignades.';
+  if (pctGlobal.value >= 75) return 'Queda poca feina per fer.';
+  if (pctGlobal.value >= 35) return 'El repartiment va avançant.';
+  return 'Moltes classes encara sense assignar.';
 });
 
 const cards = computed(() => [

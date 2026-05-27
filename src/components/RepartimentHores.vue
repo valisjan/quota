@@ -9,6 +9,14 @@
       </p>
     </div>
 
+    <div
+      v-if="error"
+      class="flex items-center justify-between rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800"
+    >
+      {{ error }}
+      <button type="button" class="ml-3 font-semibold hover:underline" @click="error = null">×</button>
+    </div>
+
     <!-- Pendents -->
     <div
       v-if="classesSenseAssignar.length > 0"
@@ -182,22 +190,25 @@
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue';
 import {
-  updateDoc,
+  writeBatch,
   onSnapshot,
   query,
   serverTimestamp,
 } from 'firebase/firestore';
+import { db } from '../firebase';
 import { useCursStore } from '../stores/curs';
-import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
-import { classeCompletamentAssignada, professorPrincipalClasse, professorSecundariClasse } from '../utils/assignacions';
-import { esOptativaCompartida, exclosaDelRepartiment } from '../utils/tipus';
+import { limitsHoresProfessor, professorsClasse, calcularHoresLectives } from '../utils/horesProfessor';
+import { classeCompletamentAssignada, professorPrincipalClasse, professorSecundariClasse, normalitzarProfessorsAssignats } from '../utils/assignacions';
+import { esOptativaCompartida, exclosaDelRepartiment, getTipusText } from '../utils/tipus';
 import {
   esTutoriaPrincipal,
   teTutoriaPrincipalParellada,
   trobarTutoriaAsterisc,
   trobarAssignaturesParelladesTutoria,
+  esCapsEstudisClasse,
+  trobarDedicacioPerCapEstudis,
 } from '../utils/tutories';
-import { normalitzarGrup } from '../utils/grups';
+import { trobarGermanesBloc, normalitzarGrup } from '../utils/grups';
 
 const emit = defineEmits(['assignacionsActualitzades']);
 
@@ -275,34 +286,6 @@ function formatGrup(classe) {
   return text || 'Sense grup';
 }
 
-function getTipusText(tipus) {
-  const normal = (tipus || '').toString().toUpperCase();
-  if (normal.startsWith('T')) return 'Optativa compartida';
-  if (normal.startsWith('O')) return 'Optativa';
-
-  const tipusMap = {
-    O: 'Optativa',
-    D: 'Desdoblament',
-    S: 'Suport',
-    A: 'Autodesdoble',
-    A1: 'Autodesdoble',
-    A2: 'Autodesdoble',
-    A3: 'Autodesdoble',
-    F: 'Flexible',
-    GP: 'Guàrdies de pati',
-    PALIC: 'PALIC',
-    C: 'Coordinació',
-  };
-  return tipusMap[tipus] || tipus;
-}
-
-function normalitzarProfessorsClasse(classe) {
-  if (!Array.isArray(classe.professors)) {
-    classe.professors = [classe.professorAssignat].filter(Boolean);
-  }
-  return classe.professors;
-}
-
 function esOptativaCompartidaClasse(classe) {
   return esOptativaCompartida(classe.tipus);
 }
@@ -322,14 +305,7 @@ function esConflicteSuport(classe, nomProfessor) {
 }
 
 function calcularHoresProfessor(nomProfessor) {
-  if (!nomProfessor) return 0;
-
-  return classes.value
-    .filter(
-      (classe) =>
-        classe.professors?.includes(nomProfessor) && classe.tipus !== 'GP'
-    )
-    .reduce((total, classe) => total + horesComputablesClasse(classe), 0);
+  return calcularHoresLectives(classes.value, nomProfessor);
 }
 
 function getProfessor(nomProfessor) {
@@ -351,7 +327,7 @@ function isOverLimit(nomProfessor) {
 }
 
 function avisosHores(classe) {
-  return normalitzarProfessorsClasse(classe)
+  return professorsClasse(classe)
     .filter(Boolean)
     .map((nom) => {
       if (isOverLimit(nom)) return { nom, tipus: 'limit' };
@@ -364,9 +340,7 @@ function avisosHores(classe) {
 async function assignarProfessors(classe) {
   if (props.bloquejat) return;
   try {
-    classe.professors = [
-      ...new Set(normalitzarProfessorsClasse(classe).filter(Boolean)),
-    ];
+    classe.professors = normalitzarProfessorsAssignats(classe);
 
     const classesPerActualitzar = [classe];
     const tutoriaAsterisc = trobarTutoriaAsterisc(classe, classes.value);
@@ -381,29 +355,42 @@ async function assignarProfessors(classe) {
         }
       }
     }
-    await Promise.all(
-      classesPerActualitzar.map((item) =>
-        updateDoc(cursStore.docRef('classes', item.id), {
-          professors: [...classe.professors],
-          professorAssignat: classe.professors[0] || '',
-          lastModified: serverTimestamp(),
-        })
-      )
-    );
+    for (const germana of trobarGermanesBloc(classe, classes.value)) {
+      if (!classesPerActualitzar.some((c) => c.id === germana.id)) {
+        classesPerActualitzar.push(germana);
+      }
+    }
+    if (esCapsEstudisClasse(classe)) {
+      for (const dedicacio of trobarDedicacioPerCapEstudis(classe, classes.value)) {
+        if (!classesPerActualitzar.some((c) => c.id === dedicacio.id)) {
+          classesPerActualitzar.push(dedicacio);
+        }
+      }
+    }
+
+    const batch = writeBatch(db);
+    for (const item of classesPerActualitzar) {
+      batch.update(cursStore.docRef('classes', item.id), {
+        professors: [...classe.professors],
+        professorAssignat: classe.professors[0] || '',
+        lastModified: serverTimestamp(),
+      });
+    }
+    await batch.commit();
     emit('assignacionsActualitzades');
   } catch (err) {
     console.error('Error assignant professors:', err);
-    error.value = 'Error assignant professors';
+    error.value = 'Error al guardar. Torna-ho a intentar.';
   }
 }
 
 async function assignarProfessor(classe, nomProfessor, index = 0) {
-  const professorsClasse = normalitzarProfessorsClasse(classe);
   if (index === 0 && !esOptativaCompartidaClasse(classe)) {
     classe.professors = nomProfessor ? [nomProfessor] : [];
   } else {
-    professorsClasse[index] = nomProfessor;
-    classe.professors = professorsClasse;
+    const profs = professorsClasse(classe);
+    profs[index] = nomProfessor;
+    classe.professors = profs;
   }
   await assignarProfessors(classe);
 }

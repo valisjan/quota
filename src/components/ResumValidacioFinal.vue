@@ -104,7 +104,7 @@
     >
       <p class="text-xl font-bold">Tot sembla a punt</p>
       <p class="mt-2 text-sm">
-        No hi ha incidències crítiques ni avisos pendents amb les regles actuals.
+        Tot en ordre. Res per revisar.
       </p>
     </div>
   </div>
@@ -254,10 +254,10 @@ const estatFinal = computed(() => {
 const resumEstat = computed(() => {
   const totalCritiques = critiques.value.length + critiquesProfessorat.value.length;
   const totalAvisos = avisosProfessorat.value.length + avisosOrganitzacio.value.length;
-  if (totalCritiques > 0) return `${totalCritiques} incidències crítiques pendents.`;
-  if (totalAvisos > 0) return `${totalAvisos} avisos pendents.`;
-  if (dadesProblematiques.value.length > 0) return `${dadesProblematiques.value.length} files convindria revisar.`;
-  return "No s'han detectat problemes amb les regles actuals.";
+  if (totalCritiques > 0) return `${totalCritiques} ${totalCritiques === 1 ? 'incidència crítica' : 'incidències crítiques'}.`;
+  if (totalAvisos > 0) return `${totalAvisos} ${totalAvisos === 1 ? 'avís pendent' : 'avisos pendents'}.`;
+  if (dadesProblematiques.value.length > 0) return `${dadesProblematiques.value.length} ${dadesProblematiques.value.length === 1 ? 'fila' : 'files'} a revisar.`;
+  return 'Cap incidència.';
 });
 
 function toggleBloc(id) {

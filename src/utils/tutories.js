@@ -109,6 +109,35 @@ function normalitzarGrupBloc(grup) {
   return value;
 }
 
+export function esCapsEstudisClasse(classe) {
+  const original = (classe?.materia || '').toString().trim();
+  if (original.startsWith('*')) return false;
+  const words = original.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().replace(/[^a-z0-9]/g, ' ').trim();
+  return words.includes('cap') && words.includes('estudis');
+}
+
+export function esDedicacioPrefacturaClasse(classe) {
+  const original = (classe?.materia || '').toString().trim();
+  if (!original.startsWith('*')) return false;
+  const materia = normalitzarMateria(original);
+  return materia.includes('dedicaci') && (materia.includes('prefactura') || materia.includes('prefectura'));
+}
+
+export function trobarDedicacioPerCapEstudis(classe, classes = []) {
+  if (!esCapsEstudisClasse(classe)) return [];
+  const departaments = classe?.departaments || [];
+  return classes.filter(
+    (c) =>
+      c.id !== classe.id &&
+      esDedicacioPrefacturaClasse(c) &&
+      (
+        departaments.length === 0 ||
+        (c.departaments || []).length === 0 ||
+        (c.departaments || []).some((d) => departaments.includes(d))
+      )
+  );
+}
+
 // Returns the tutor's regular subject in the same department+curs whose group contains the tutoria's group.
 // Used to auto-sync the paired subject when a tutoria is assigned.
 export function trobarAssignaturesParelladesTutoria(tutoria, classes = []) {

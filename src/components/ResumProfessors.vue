@@ -104,7 +104,7 @@
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { onSnapshot, query } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
-import { limitsHoresProfessor, textJornada, professorsClasse, classeAssignadaA, horesComputablesClasse } from '../utils/horesProfessor';
+import { limitsHoresProfessor, textJornada, professorsClasse, classeAssignadaA, horesComputablesClasse, esMajorDe55Classe } from '../utils/horesProfessor';
 import { descarregarExcel } from '../utils/exportExcel';
 
 const cursStore = useCursStore();
@@ -177,7 +177,7 @@ function getHoresPALIC(nom) {
 function esMajor55(nom) {
   const prof = professors.value.find((p) => p.nom === nom);
   return prof?.major55 === true ||
-    getClassesProfessor(nom).some((c) => (c.materia || '').includes('>55'));
+    getClassesProfessor(nom).some((c) => esMajorDe55Classe(c));
 }
 
 function getPreferenciaText(pref) {

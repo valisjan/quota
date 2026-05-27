@@ -232,8 +232,8 @@ export function calcularValidacioFinal({ classes = [], professors = [], departam
     .map((departament) => ({
       key: `dept-obert-${departament.id || departament.nom}`,
       title: departament.nom || 'Departament sense nom',
-      detail: 'El departament encara no ha tancat el repartiment.',
-      context: 'Tancament pendent',
+      detail: 'El departament no ha tancat el repartiment.',
+      context: 'No tancat',
     }));
 
   const dadesProblematiques = classes
