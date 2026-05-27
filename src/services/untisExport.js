@@ -9,4 +9,5 @@ export {
   clauOverride,
   trobarCandidatsGestib,
   previsualitzarMapeigGestib,
+  totesMateriesGestib,
 } from './gestibMapper';

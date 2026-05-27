@@ -119,6 +119,7 @@
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { onSnapshot, query } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
+import { esTutoriaPrincipal, trobarTutoriaAsterisc } from '../utils/tutories';
 
 const cursStore = useCursStore();
 
@@ -129,76 +130,12 @@ const lastUpdate = ref(new Date().toLocaleString('ca-ES', { day: '2-digit', mont
 
 let classesUnsubscribe = null;
 
-function normalitzarText(text) {
-  return (text || '')
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/^\*/, '')
-    .trim()
-    .toLowerCase();
-}
-
-function materiaNormalitzada(classe) {
-  return normalitzarText(classe.materia);
-}
-
-function esTutoria(classe) {
-  return materiaNormalitzada(classe).includes('tutoria');
-}
-
-function esTutoriaAsterisc(classe) {
-  return (classe.materia || '').toString().trim().startsWith('*') && esTutoria(classe);
-}
-
-function normalitzarCodi(text) {
-  return (text || '')
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, '');
-}
-
-function extreureCursGrupDeMateria(materia) {
-  const compact = normalitzarCodi(materia);
-  const patrons = [
-    /([1-4]ESO)([A-Z])$/,
-    /([12]BATX?)([A-Z])$/,
-    /([1-2]BAT)([A-Z])$/,
-  ];
-
-  for (const patro of patrons) {
-    const match = compact.match(patro);
-    if (match) {
-      return {
-        curs: match[1].replace('BATX', 'BAT'),
-        grup: match[2],
-      };
-    }
-  }
-
-  return null;
-}
-
-function clauCursGrup(classe) {
-  const curs = normalitzarCodi(classe.curs);
-  const grup = normalitzarCodi(classe.grup);
-  if (curs && grup) return `${curs}|${grup}`;
-
-  const extret = extreureCursGrupDeMateria(classe.materia);
-  if (!extret) return '';
-  return `${normalitzarCodi(extret.curs)}|${normalitzarCodi(extret.grup)}`;
-}
-
 function updateLastUpdate() {
   lastUpdate.value = new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 const tutories = computed(() => {
-  return classes.value.filter(
-    (classe) => esTutoria(classe) && !esTutoriaAsterisc(classe)
-  );
+  return classes.value.filter(esTutoriaPrincipal);
 });
 
 const tutoriesOrdenades = computed(() => {
@@ -219,14 +156,7 @@ const tutoriesOrdenades = computed(() => {
 });
 
 function tutoriaAsterisc(tutoria) {
-  const clauTutoria = clauCursGrup(tutoria);
-  if (!clauTutoria) return null;
-
-  return classes.value.find(
-    (classe) =>
-      esTutoriaAsterisc(classe) &&
-      clauCursGrup(classe) === clauTutoria
-  );
+  return trobarTutoriaAsterisc(tutoria, classes.value);
 }
 
 function tutoriaAsteriscAssignada(tutoria) {

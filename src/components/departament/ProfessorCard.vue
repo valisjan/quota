@@ -1,6 +1,6 @@
 <template>
   <div
-    class="overflow-hidden rounded-lg border border-l-4 bg-white shadow-sm transition-colors duration-200 hover:bg-slate-50"
+    class="overflow-hidden rounded-lg border border-l-4 shadow-sm transition-colors duration-200"
     :class="cardClass"
   >
     <div class="px-4 pb-3 pt-4" :class="headerClass">
@@ -30,14 +30,14 @@
       </div>
     </div>
 
-    <div class="space-y-4 bg-white p-4">
-      <div class="grid gap-2 text-center" :class="totalPalicDepartament > 0 ? 'grid-cols-3' : 'grid-cols-2'">
+    <div class="space-y-4 p-4" :class="bodyClass">
+      <div class="grid gap-2 text-center" :class="resumGridClass">
         <div class="rounded-md bg-slate-100 px-3 py-2">
           <div class="text-xs font-medium text-slate-500">Lectives</div>
           <div class="text-xl font-semibold text-slate-900">{{ horesLectives }}</div>
         </div>
 
-        <div class="rounded-md bg-slate-100 px-3 py-2">
+        <div v-if="mostraGp" class="rounded-md bg-slate-100 px-3 py-2">
           <div class="text-xs font-medium text-slate-500">GP</div>
           <div class="mt-1 flex items-center justify-center gap-1.5">
             <button
@@ -243,7 +243,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import { limitsHoresProfessor, textJornada } from '../../utils/horesProfessor';
+import { horesComputablesClasse, limitsHoresProfessor, textJornada } from '../../utils/horesProfessor';
 
 const props = defineProps({
   professor: { type: Object, required: true },
@@ -251,6 +251,7 @@ const props = defineProps({
   horesLectives: { type: Number, default: 0 },
   horesGp: { type: Number, default: 0 },
   horesPalic: { type: Number, default: 0 },
+  mostraGp: { type: Boolean, default: true },
   totalGpDepartament: { type: Number, default: 0 },
   totalGpAssignades: { type: Number, default: 0 },
   totalPalicDepartament: { type: Number, default: 0 },
@@ -272,6 +273,15 @@ const emit = defineEmits([
 const coordinacionsSeleccionades = ref([]);
 const bloquejat = computed(() => props.bloquejat);
 
+const resumGridClass = computed(() => {
+  const columnes = 1 + (props.mostraGp ? 1 : 0) + (props.totalPalicDepartament > 0 ? 1 : 0);
+  return {
+    1: 'grid-cols-1',
+    2: 'grid-cols-2',
+    3: 'grid-cols-3',
+  }[columnes];
+});
+
 const totalHoresProfessor = computed(
   () => props.horesLectives + props.horesPalic
 );
@@ -289,16 +299,27 @@ const isOverRecommended = computed(
 const isOverLimit = computed(
   () => totalHoresProfessor.value > limits.value.maxim
 );
+const isOver18 = computed(() => totalHoresProfessor.value > 18);
 
 const cardClass = computed(() => {
-  if (isOverLimit.value) return 'border-l-[#CC5020] border-slate-200';
-  if (isOverRecommended.value) return 'border-l-[#FF8040] border-slate-200';
-  if (isPerfectHours.value) return 'border-l-[#00BF33] border-slate-200';
-  return 'border-l-[#0024B6] border-slate-200';
+  if (isOverLimit.value || isOver18.value) return 'border-l-[#CC5020] border-amber-200 bg-amber-50/70';
+  if (isOverRecommended.value) return 'border-l-[#FF8040] border-amber-200 bg-amber-50/50';
+  if (isPerfectHours.value) return 'border-l-[#00BF33] border-emerald-200 bg-emerald-50/70';
+  return 'border-l-[#0024B6] border-slate-200 bg-white';
 });
 
 const headerClass = computed(() => {
+  if (isOverLimit.value || isOver18.value) return 'bg-amber-50/80 border-b border-amber-100';
+  if (isOverRecommended.value) return 'bg-amber-50/60 border-b border-amber-100';
+  if (isPerfectHours.value) return 'bg-emerald-50/80 border-b border-emerald-100';
   return 'bg-white border-b border-slate-100';
+});
+
+const bodyClass = computed(() => {
+  if (isOverLimit.value || isOver18.value) return 'bg-amber-50/35';
+  if (isOverRecommended.value) return 'bg-amber-50/25';
+  if (isPerfectHours.value) return 'bg-emerald-50/35';
+  return 'bg-white';
 });
 
 const horesBadgeClass = computed(() => 'bg-slate-100 text-slate-800');
@@ -329,21 +350,6 @@ function rolClasse(classe) {
   if (classe.professorAssignat === props.professor.nom) return 'principal';
   if ((classe.professors || []).includes(props.professor.nom)) return 'codocent';
   return '';
-}
-
-function professorsClasse(classe) {
-  if (Array.isArray(classe.professors) && classe.professors.length > 0) {
-    return classe.professors.filter(Boolean);
-  }
-  return [classe.professorAssignat].filter(Boolean);
-}
-
-function horesComputablesClasse(classe) {
-  const tipus = (classe.tipus || '').toString().trim().toUpperCase();
-  if (tipus.startsWith('T') && professorsClasse(classe).length > 1) {
-    return (Number(classe.hores) || 0) / professorsClasse(classe).length;
-  }
-  return Number(classe.hores) || 0;
 }
 
 function afegirCoordinacions() {

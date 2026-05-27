@@ -44,19 +44,37 @@
         </div>
       </div>
 
-      <div class="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-gray-900">
-        <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200">
-          Referència de GestIB/Untis
-        </label>
-        <input
-          type="file"
-          accept=".txt,.xml,text/plain,text/xml,application/xml"
-          class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-[#0024B6] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-[#001A8A] dark:text-slate-300 dark:file:bg-[#3355CC]"
-          @change="carregarReferencia"
-        />
-        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
-          {{ referenciaNom ? `Referència carregada: ${referenciaNom}` : 'Carrega l’XML exportacioDadesHoraris de GestIB. El GPU002 anterior queda només per comparar.' }}
-        </p>
+      <div class="mt-5 grid gap-3 sm:grid-cols-2">
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-gray-900">
+          <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+            XML de GestIB <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="file"
+            accept=".xml,text/xml,application/xml"
+            class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-[#0024B6] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-[#001A8A] dark:text-slate-300 dark:file:bg-[#3355CC]"
+            @change="carregarGestibXml"
+          />
+          <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            <span v-if="gestibXmlNom">{{ gestibXmlNom }}</span>
+            <span v-else>exportacioDadesHoraris de GestIB</span>
+          </p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-gray-900">
+          <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+            GPU002.TXT de referència
+          </label>
+          <input
+            type="file"
+            accept=".txt,text/plain"
+            class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-slate-700 dark:text-slate-300 dark:file:bg-slate-500"
+            @change="carregarGpu002Referencia"
+          />
+          <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            <span v-if="gpu002ReferenciaNom">{{ gpu002ReferenciaNom }}</span>
+            <span v-else>GPU002 anterior (opcional, per numeració i resolució automàtica)</span>
+          </p>
+        </div>
       </div>
 
       <!-- Mapeig manual de matèries -->
@@ -65,63 +83,83 @@
       </div>
 
       <div
-        v-else-if="materiesProblematiques.length > 0"
-        class="mt-4 rounded-lg border border-amber-200 bg-amber-50"
+        v-else-if="totes.length > 0"
+        class="mt-4 rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-900"
       >
-        <div class="flex items-center justify-between border-b border-amber-200 px-4 py-3">
+        <div class="flex flex-col gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p class="text-sm font-semibold text-amber-900">
-              {{ materiesProblematiquesNoResoltes.length > 0
-                ? `${materiesProblematiquesNoResoltes.length} matèria${materiesProblematiquesNoResoltes.length > 1 ? 'es' : ''} sense correspondència GestIB`
-                : 'Totes les matèries resoltes' }}
+            <p class="text-sm font-semibold text-slate-900 dark:text-white">
+              Correspondències GestIB
+              <span
+                v-if="pendentsCount > 0"
+                class="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900 dark:bg-amber-900/30 dark:text-amber-300"
+              >{{ pendentsCount }} pendents</span>
             </p>
-            <p class="mt-0.5 text-xs text-amber-700">
-              Selecciona la matèria de GestIB correcta per a cada entrada. Es guarda automàticament.
-            </p>
+            <div class="mt-0.5 flex items-center gap-3">
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                Selecciona la matèria de GestIB per a les pendents. Es guarda automàticament.
+              </p>
+              <button
+                @click="confirmarEsborra = true"
+                class="shrink-0 text-xs text-red-500 underline-offset-2 hover:text-red-700 hover:underline dark:text-red-400 dark:hover:text-red-300"
+              >Esborra mapeig</button>
+            </div>
           </div>
-          <span
-            class="rounded-full px-2 py-0.5 text-xs font-bold"
-            :class="materiesProblematiquesNoResoltes.length === 0
-              ? 'bg-green-100 text-green-800'
-              : 'bg-amber-200 text-amber-900'"
-          >
-            {{ materiesProblematiques.length - materiesProblematiquesNoResoltes.length }}/{{ materiesProblematiques.length }}
-          </span>
+          <div class="flex gap-1">
+            <button
+              v-for="tab in [{ valor: 'totes', etiqueta: 'Totes', count: totes.length }, { valor: 'resoltes', etiqueta: 'Resoltes', count: resoltesCount }, { valor: 'pendents', etiqueta: 'Pendents', count: pendentsCount }]"
+              :key="tab.valor"
+              @click="filtreMapateg = tab.valor"
+              class="rounded px-2.5 py-1 text-xs font-medium transition"
+              :class="filtreMapateg === tab.valor
+                ? (tab.valor === 'pendents' && pendentsCount > 0 ? 'bg-amber-500 text-white' : 'bg-[#0024B6] text-white')
+                : (tab.valor === 'pendents' && pendentsCount > 0
+                    ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-300'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700')"
+            >
+              {{ tab.etiqueta }}
+              <span class="ml-1 opacity-80">{{ tab.count }}</span>
+            </button>
+          </div>
         </div>
 
-        <div class="divide-y divide-amber-100">
+        <div class="divide-y divide-slate-100 dark:divide-slate-800">
           <div
-            v-for="m in materiesProblematiques"
+            v-for="m in classesFiltrades"
             :key="m.clau"
-            class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
+            class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-3"
           >
+            <span
+              class="shrink-0 self-start rounded px-1.5 py-0.5 text-xs font-semibold sm:self-auto"
+              :class="estatMapeigBadgeClass(m)"
+            >{{ estatMapeigEtiqueta(m) }}</span>
             <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-slate-900">{{ m.materia }}</p>
-              <p class="text-xs text-slate-500">{{ m.curs }}</p>
+              <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ m.materia }}</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                <span v-if="m.curs">{{ m.curs }}</span>
+                <span v-if="m.grup" class="ml-1 font-medium text-slate-700 dark:text-slate-300">· {{ m.grup }}</span>
+                <span v-else-if="m.senseAmbdos" class="ml-1 italic text-amber-600 dark:text-amber-400">· sense curs i grup</span>
+                <span v-else-if="!m.grup" class="ml-1 italic text-amber-600 dark:text-amber-400">· sense grup</span>
+              </p>
             </div>
-            <div class="flex items-center gap-2">
-              <select
-                :value="mapeigManual[m.clau] || ''"
-                @change="assignarOverride(m.clau, $event.target.value)"
-                class="form-input w-full py-1.5 text-sm sm:w-80"
-              >
-                <option value="">— Usa codi provisional —</option>
-                <optgroup v-if="m.candidats.length" label="Candidats">
-                  <option
-                    v-for="c in m.candidats"
-                    :key="c.codiUntis"
-                    :value="c.codiUntis"
-                  >
-                    {{ c.label }}
-                  </option>
-                </optgroup>
-              </select>
+            <div class="flex w-full items-center gap-2 sm:w-96">
+              <SelectBuscador
+                :modelValue="codiActualMapeig(m)"
+                :opcions="opcionsPerClau(m)"
+                placeholder="Cerca matèria de GestIB..."
+                class="flex-1"
+                @update:modelValue="assignarOverride(m.clau, $event)"
+              />
               <span
-                v-if="mapeigManual[m.clau]"
-                class="shrink-0 text-sm font-semibold text-green-700"
+                v-if="codiActualMapeig(m)"
+                class="shrink-0 text-sm font-semibold text-green-700 dark:text-green-400"
               >✓</span>
             </div>
           </div>
+          <p v-if="classesFiltrades.length === 0" class="px-4 py-6 text-center text-sm text-slate-400 dark:text-slate-500">
+            <span v-if="filtreMapateg === 'pendents'">Totes les classes estan resoltes</span>
+            <span v-else>Cap resultat</span>
+          </p>
         </div>
       </div>
 
@@ -171,8 +209,8 @@
               {{ exportacio.totals.llicons }} lliçons
               <span v-if="exportacio.totals.simulades"> · {{ exportacio.totals.simulades }} simulades</span>
             </p>
-            <p v-if="referenciaNom" class="mt-1 text-sm font-medium text-slate-600">
-              Codis generats a partir de {{ referenciaNom }}
+            <p v-if="gestibXmlNom || gpu002ReferenciaNom" class="mt-1 text-sm font-medium text-slate-600 dark:text-slate-400">
+              {{ [gestibXmlNom && `GestIB: ${gestibXmlNom}`, gpu002ReferenciaNom && `GPU002: ${gpu002ReferenciaNom}`].filter(Boolean).join(' · ') }}
             </p>
             <p v-if="exportacio.referenciaGestibStats" class="mt-1 text-sm text-slate-500 dark:text-slate-400">
               XML GestIB: {{ exportacio.referenciaGestibStats.materies }} matèries ·
@@ -530,10 +568,39 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal confirmació esborra mapeig -->
+  <div
+    v-if="confirmarEsborra"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+    @click.self="confirmarEsborra = false"
+  >
+    <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
+      <h4 class="text-lg font-semibold text-slate-900 dark:text-white">Esborra mapeig</h4>
+      <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+        S'esborrarà tot el mapeig guardat per a aquest curs. Hauràs de tornar a assignar les correspondències manualment.
+      </p>
+      <div class="mt-4 flex justify-end gap-3">
+        <button
+          @click="confirmarEsborra = false"
+          class="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-gray-800"
+        >
+          Cancel·lar
+        </button>
+        <button
+          @click="esborraMapeig"
+          class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+        >
+          Esborra
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import SelectBuscador from './SelectBuscador.vue';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import {
@@ -555,43 +622,122 @@ const error = ref('');
 const exportacio = ref(null);
 const referenciaGpu002Text = ref('');
 const referenciaGestibXmlText = ref('');
-const referenciaNom = ref('');
+const gestibXmlNom = ref('');
+const gpu002ReferenciaNom = ref('');
 const simular = ref(true);
 
-// Mapeig manual de matèries sense correspondència GestIB
-const materiesProblematiques = ref([]);
+// Mapeig GestIB
+const totes = ref([]);
 const analitzant = ref(false);
 const mapeigManual = ref({});
+const gestibActual = ref(null);
+const filtreMapateg = ref('totes');
+
+const totesMateriesOpcions = computed(() => {
+  if (!gestibActual.value?.materies) return [];
+  return gestibActual.value.materies
+    .map((m) => ({ codiUntis: m.codiUntis, label: `${m.codiUntis} · ${m.descripcio}`, cursDescripcio: m.cursDescripcio || '' }))
+    .sort((a, b) => a.codiUntis.localeCompare(b.codiUntis));
+});
+
+const totesActivitatsOpcions = computed(() => {
+  if (!gestibActual.value?.activitatsMap) return [];
+  return [...gestibActual.value.activitatsMap.values()]
+    .map((a) => ({ codiUntis: a.codiUntis, label: `${a.codiUntis} · ${a.descripcio.replace(/^\*/, '').trim()}`, cursDescripcio: '' }))
+    .sort((a, b) => a.codiUntis.localeCompare(b.codiUntis));
+});
+
+function codiActualMapeig(m) {
+  return mapeigManual.value[m.clau] || m.autoCodiUntis || '';
+}
+
+function estatMapeigActual(m) {
+  if (mapeigManual.value[m.clau]) return 'manual';
+  return m.estat;
+}
+
+function estatMapeigBadgeClass(m) {
+  const estat = estatMapeigActual(m);
+  if (estat === 'manual') return 'bg-[#0024B6]/10 text-[#0024B6] dark:bg-[#0024B6]/20 dark:text-blue-300';
+  if (estat === 'autoMatch') return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+  if (estat === 'autoGpu002') return 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300';
+  return 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300';
+}
+
+function estatMapeigEtiqueta(m) {
+  const estat = estatMapeigActual(m);
+  if (estat === 'manual') return 'Manual';
+  if (estat === 'autoMatch') return 'Auto';
+  if (estat === 'autoGpu002') return 'GPU002';
+  return 'Pendent';
+}
+
+function opcionsPerClau(m) {
+  const pool = m.esActivitat ? totesActivitatsOpcions.value : totesMateriesOpcions.value;
+  const suggeritsSet = new Set((m.candidats || []).map((c) => c.codiUntis));
+  const suggerits = (m.candidats || []).map((c) => ({
+    value: c.codiUntis,
+    nom: c.label.replace(/^[A-Z0-9-]+\s*·\s*/, '').trim(),
+    suggerit: true,
+  }));
+  const rest = pool
+    .filter((item) => !suggeritsSet.has(item.codiUntis))
+    .map((item) => ({
+      value: item.codiUntis,
+      nom: [item.label.replace(/^[A-Z0-9-]+\s*·\s*/, '').trim(), item.cursDescripcio].filter(Boolean).join(' — '),
+      suggerit: false,
+    }));
+  return [...suggerits, ...rest];
+}
+
+const pendentsCount = computed(() => totes.value.filter((m) => !codiActualMapeig(m)).length);
+const resoltesCount = computed(() => totes.value.filter((m) => codiActualMapeig(m)).length);
+
+const classesFiltrades = computed(() => {
+  if (filtreMapateg.value === 'pendents') return totes.value.filter((m) => !codiActualMapeig(m));
+  if (filtreMapateg.value === 'resoltes') return totes.value.filter((m) => codiActualMapeig(m));
+  return totes.value;
+});
 
 const MAPEIG_DOC = 'untis_mapeig';
+const mapeigRef = (cursId) => doc(db, 'cursos', cursId, 'config', MAPEIG_DOC);
 
 watch(() => cursStore.cursActiuId, async (cursId) => {
   if (!cursId) { mapeigManual.value = {}; return; }
   try {
-    const snap = await getDoc(doc(db, 'config', MAPEIG_DOC));
-    const dadesFirestore = snap.exists() ? (snap.data()[cursId] || {}) : {};
-
-    if (Object.keys(dadesFirestore).length === 0) {
-      // Migra des de localStorage si hi havia dades
-      try {
-        const saved = localStorage.getItem(`untis_mapeig_${cursId}`);
-        if (saved) {
-          const dades = JSON.parse(saved);
-          if (Object.keys(dades).length > 0) {
-            await setDoc(doc(db, 'config', MAPEIG_DOC), { [cursId]: dades }, { merge: true });
-            localStorage.removeItem(`untis_mapeig_${cursId}`);
-            mapeigManual.value = dades;
-            return;
-          }
-        }
-      } catch { /* ignora errors de migració */ }
+    const snap = await getDoc(mapeigRef(cursId));
+    if (snap.exists()) {
+      mapeigManual.value = snap.data().overrides || {};
+      return;
     }
-
-    mapeigManual.value = dadesFirestore;
+    const legacySnap = await getDoc(doc(db, 'config', MAPEIG_DOC));
+    const legacyMapeig = legacySnap.exists() ? (legacySnap.data()[cursId] || {}) : {};
+    mapeigManual.value = legacyMapeig;
+    if (Object.keys(legacyMapeig).length) {
+      await setDoc(mapeigRef(cursId), { overrides: legacyMapeig }, { merge: true });
+    }
   } catch {
     mapeigManual.value = {};
   }
 }, { immediate: true });
+
+const confirmarEsborra = ref(false);
+
+async function esborraMapeig() {
+  confirmarEsborra.value = false;
+  mapeigManual.value = {};
+  try {
+    await setDoc(
+      mapeigRef(cursStore.cursActiuId),
+      { overrides: {} },
+      { merge: true }
+    );
+    toast.ok('Mapeig esborrat.');
+  } catch (err) {
+    console.error('Error esborrant mapeig:', err);
+    toast.error('Error esborrant el mapeig.');
+  }
+}
 
 async function assignarOverride(clau, codiUntis) {
   if (codiUntis) {
@@ -602,8 +748,8 @@ async function assignarOverride(clau, codiUntis) {
   }
   try {
     await setDoc(
-      doc(db, 'config', MAPEIG_DOC),
-      { [cursStore.cursActiuId]: mapeigManual.value },
+      mapeigRef(cursStore.cursActiuId),
+      { overrides: mapeigManual.value },
       { merge: true }
     );
   } catch (err) {
@@ -612,9 +758,6 @@ async function assignarOverride(clau, codiUntis) {
   }
 }
 
-const materiesProblematiquesNoResoltes = computed(() =>
-  materiesProblematiques.value.filter((m) => !mapeigManual.value[m.clau])
-);
 const filtreVistaPrevia = ref('');
 const mostrarVistaPrevia = ref(false);
 
@@ -694,36 +837,83 @@ async function generar() {
   }
 }
 
-async function carregarReferencia(event) {
+async function carregarGestibXml(event) {
   const fitxer = event.target.files?.[0];
-  referenciaGpu002Text.value = '';
   referenciaGestibXmlText.value = '';
-  referenciaNom.value = '';
+  gestibXmlNom.value = '';
   exportacio.value = null;
   filtreVistaPrevia.value = '';
   mostrarVistaPrevia.value = false;
-  materiesProblematiques.value = [];
+  totes.value = [];
+  error.value = '';
   if (!fitxer) return;
   try {
-    const text = await fitxer.text();
-    if (fitxer.name.toLowerCase().endsWith('.xml')) {
-      referenciaGestibXmlText.value = text;
-      analitzant.value = true;
-      try {
-        const resultat = await previsualitzarMapeigGestib(cursStore.cursActiuId, text);
-        materiesProblematiques.value = resultat.problemes;
-      } catch (e) {
-        console.error('Error analitzant mapeig GestIB:', e);
-      } finally {
-        analitzant.value = false;
-      }
-    } else {
-      referenciaGpu002Text.value = text;
-    }
-    referenciaNom.value = fitxer.name;
+    referenciaGestibXmlText.value = await fitxer.text();
+    gestibXmlNom.value = fitxer.name;
+    await analitzarMapeig();
   } catch (err) {
-    console.error('Error llegint la referència GestIB/Untis:', err);
-    error.value = 'No s\'ha pogut llegir la referència GestIB/Untis.';
+    console.error('Error llegint XML de GestIB:', err);
+    error.value = 'No s\'ha pogut llegir l\'XML de GestIB.';
+  }
+}
+
+async function carregarGpu002Referencia(event) {
+  const fitxer = event.target.files?.[0];
+  referenciaGpu002Text.value = '';
+  gpu002ReferenciaNom.value = '';
+  exportacio.value = null;
+  filtreVistaPrevia.value = '';
+  mostrarVistaPrevia.value = false;
+  error.value = '';
+  if (!fitxer) return;
+  try {
+    referenciaGpu002Text.value = await fitxer.text();
+    gpu002ReferenciaNom.value = fitxer.name;
+    if (referenciaGestibXmlText.value) {
+      await analitzarMapeig();
+    }
+  } catch (err) {
+    console.error('Error llegint GPU002 de referència:', err);
+    error.value = 'No s\'ha pogut llegir el GPU002.TXT.';
+  }
+}
+
+async function analitzarMapeig() {
+  if (!referenciaGestibXmlText.value) return;
+  analitzant.value = true;
+  totes.value = [];
+  try {
+    const resultat = await previsualitzarMapeigGestib(
+      cursStore.cursActiuId,
+      referenciaGestibXmlText.value,
+      referenciaGpu002Text.value,
+    );
+    gestibActual.value = resultat.gestib;
+    totes.value = resultat.classes;
+
+    const nousMapeigs = {};
+    for (const m of resultat.classes) {
+      if (m.estat === 'autoGpu002' && !mapeigManual.value[m.clau]) {
+        nousMapeigs[m.clau] = m.autoCodiUntis;
+      }
+    }
+    if (Object.keys(nousMapeigs).length) {
+      mapeigManual.value = { ...mapeigManual.value, ...nousMapeigs };
+      try {
+        await setDoc(
+          mapeigRef(cursStore.cursActiuId),
+          { overrides: mapeigManual.value },
+          { merge: true }
+        );
+      } catch (saveErr) {
+        console.error('Error guardant mapeig automàtic:', saveErr);
+      }
+    }
+  } catch (e) {
+    console.error('Error analitzant mapeig GestIB:', e);
+    error.value = e.message || 'Error analitzant mapeig GestIB';
+  } finally {
+    analitzant.value = false;
   }
 }
 

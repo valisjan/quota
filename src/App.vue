@@ -70,7 +70,19 @@
     </nav>
 
     <main id="main-content" class="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
-      <router-view />
+      <div
+        v-if="esperantCurs"
+        class="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm font-medium text-slate-600 shadow-sm"
+      >
+        Carregant el curs actiu...
+      </div>
+      <div
+        v-else-if="senseCurs"
+        class="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center text-sm font-medium text-amber-900 shadow-sm"
+      >
+        No hi ha cap curs actiu. Ves a Administració > Cursos per crear o seleccionar un curs.
+      </div>
+      <router-view v-else />
     </main>
 
     <ToastContainer />
@@ -78,7 +90,7 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 import { useCursStore } from './stores/curs';
@@ -95,6 +107,19 @@ const links = [
   { to: '/departament', label: 'Departaments' },
   { to: '/resums', label: 'Resums' },
 ];
+
+const rutaSenseCurs = computed(() =>
+  route.path === '/' || route.path === '/admin/cursos'
+);
+const rutaNecessitaCurs = computed(() =>
+  authStore.estaAutenticat && !rutaSenseCurs.value
+);
+const esperantCurs = computed(() =>
+  rutaNecessitaCurs.value && !cursStore.cursosReady
+);
+const senseCurs = computed(() =>
+  rutaNecessitaCurs.value && cursStore.cursosReady && !cursStore.cursActiuId
+);
 
 function tancarSessio() {
   authStore.tancarSessio();

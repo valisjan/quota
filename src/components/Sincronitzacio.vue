@@ -172,8 +172,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { ref, computed, watch, onUnmounted } from 'vue';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '../firebase';
 import { sincronitzar, comprovarDiscrepancies } from '../services/sincronitzacio.js';
 import { useAuthStore } from '../stores/auth';
@@ -253,9 +253,18 @@ async function ferSync() {
   }
 }
 
-onMounted(() => {
+function setupCursSubscriptions(cursId) {
+  historialUnsubscribe?.();
+  settingsUnsubscribe?.();
+  historialUnsubscribe = null;
+  settingsUnsubscribe = null;
+  historial.value = [];
+  if (!cursId) {
+    settings.value = { ...DEFAULT_APP_SETTINGS };
+    return;
+  }
   historialUnsubscribe = onSnapshot(
-    query(collection(db, 'config'), where('type', '==', 'sync_history')),
+    query(collection(db, 'cursos', cursId, 'sync_history')),
     (snapshot) => {
       errorHistorialMsg.value = '';
       historial.value = snapshot.docs
@@ -268,10 +277,12 @@ onMounted(() => {
       errorHistorialMsg.value = `No es pot carregar l'historial: ${err.message}`;
     }
   );
-  settingsUnsubscribe = subscribeAppSettings((value) => {
+  settingsUnsubscribe = subscribeAppSettings(cursId, (value) => {
     settings.value = value;
   });
-});
+}
+
+watch(() => cursStore.cursActiuId, setupCursSubscriptions, { immediate: true });
 
 onUnmounted(() => {
   historialUnsubscribe?.();

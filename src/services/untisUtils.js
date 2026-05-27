@@ -1,4 +1,4 @@
-export const TIPUS_NO_LECTIUS = new Set(['GP', 'C']);
+export const TIPUS_NO_LECTIUS = new Set(['C']);
 
 export function netejarText(valor) {
   return (valor || '').toString().replace(/[\r\n]+/g, ' ').trim();
@@ -74,8 +74,8 @@ export function codisClasse(classe) {
 
 export function expandirClassePerGrups(classe) {
   const grup = normalitzarGrup(classe.grup);
-  const grups = grup.includes('+') ? grup.split('+') : [classe.grup];
-  return grups
+  if (!grup || !grup.includes('+')) return [classe];
+  return grup.split('+')
     .map((g) => netejarText(g))
     .filter(Boolean)
     .map((g) => ({ ...classe, grup: g }));

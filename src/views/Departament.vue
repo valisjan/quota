@@ -92,6 +92,19 @@
         >
           Full de treball
         </button>
+        <button
+          id="tab-aleatori"
+          role="tab"
+          :aria-selected="activeTab === 'aleatori'"
+          aria-controls="panel-aleatori"
+          @click="activeTab = 'aleatori'"
+          class="flex-1 rounded-sm px-4 py-2 text-sm font-medium transition-all"
+          :class="activeTab === 'aleatori'
+            ? 'bg-slate-900 text-white'
+            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'"
+        >
+          Proposta
+        </button>
       </div>
 
       <!-- Pestanya: Repartiment -->
@@ -207,6 +220,7 @@
                 :hores-lectives="calcularHoresProfessor(professor.nom)"
                 :hores-gp="getHoresGP(professor.nom)"
                 :hores-palic="getHoresPALIC(professor.nom)"
+                :mostra-gp="totalGPDepartament > 0 || totalGPAssignades > 0"
                 :total-gp-departament="totalGPDepartament"
                 :total-gp-assignades="totalGPAssignades"
                 :total-palic-departament="totalPALICDepartament"
@@ -224,6 +238,14 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Pestanya: Proposta aleatòria -->
+      <div v-show="activeTab === 'aleatori'" id="panel-aleatori" role="tabpanel" aria-labelledby="tab-aleatori">
+        <DepartamentAleatori
+          :professors="professorsDepartament"
+          :classes="classesDepartament"
+        />
       </div>
 
       <!-- Pestanya: Full de treball -->
@@ -287,9 +309,12 @@ import RepartimentHores from '../components/RepartimentHores.vue';
 import DepartamentSelector from '../components/departament/DepartamentSelector.vue';
 import DepartamentResumen from '../components/departament/DepartamentResumen.vue';
 import DepartamentFulla from '../components/departament/DepartamentFulla.vue';
+import DepartamentAleatori from '../components/departament/DepartamentAleatori.vue';
 import ProfessorCard from '../components/departament/ProfessorCard.vue';
 import DepartamentPrintModal from '../components/departament/DepartamentPrintModal.vue';
 import { limitsHoresProfessor, professorsClasse, classeAssignadaA, horesComputablesClasse } from '../utils/horesProfessor';
+import { esTutoriaPrincipal, esTutoriaAsterisc, trobarTutoriaAsterisc, trobarTutoriaPrincipal, trobarAssignaturesParelladesTutoria } from '../utils/tutories';
+import { quotaGuardiesPatiDepartament } from '../utils/guardiesPati';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
 import { useAuthStore } from '../stores/auth';
 import { useCursStore } from '../stores/curs';
@@ -308,6 +333,9 @@ const lastUpdate = ref(new Date().toLocaleString('ca-ES', { day: '2-digit', mont
 const mostrarResumen = ref(false); // col·lapsat per defecte
 const activeTab = ref('repartiment');
 const settings = ref({ ...DEFAULT_APP_SETTINGS });
+const totalGuardiesPatiConfigurades = computed(() =>
+  Math.max(0, Math.round(Number(settings.value.totalGuardiesPati ?? 30) || 0))
+);
 const totalHoresAssignades = computed(() => {
   return classesDepartament.value
     .filter((c) => c.tipus !== 'GP' && c.tipus !== 'PALIC')
@@ -319,6 +347,7 @@ let professorsUnsubscribe = null;
 let departamentsUnsubscribe = null;
 let presenceUnsubscribe = null;
 let settingsUnsubscribe = null;
+let presenceInterval = null;
 
 const sessionId = ref(
   `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -358,17 +387,13 @@ const totalHoresDepartament = computed(() => {
     .reduce((total, c) => total + c.hores, 0);
 });
 
-// GP: pool total del departament (ve de la hoja, sense curs ni grup)
+// GP: quota calculada proporcionalment al nombre de professors del curs.
 const totalGPDepartament = computed(() => {
-  return classes.value
-    .filter(
-      (c) =>
-        c.tipus === 'GP' &&
-        c.departaments?.[0] === departamentSeleccionat.value &&
-        (!c.curs || c.curs === '') &&
-        (!c.grup || c.grup === '')
-    )
-    .reduce((total, c) => total + c.hores, 0);
+  return quotaGuardiesPatiDepartament(
+    professors.value,
+    departamentSeleccionat.value,
+    totalGuardiesPatiConfigurades.value
+  );
 });
 
 // GP assignades: suma del camp gpAssignades de cada professor
@@ -598,14 +623,48 @@ async function desassignarClasseProfessor({ professor, classe }) {
       (nom) => nom && nom !== professor.nom
     );
 
-    await updateDoc(cursStore.docRef('classes', classe.id), {
-      professors: professorsActuals,
-      professorAssignat:
-        classe.professorAssignat === professor.nom
-          ? professorsActuals[0] || ''
-          : classe.professorAssignat || '',
-      lastModified: serverTimestamp(),
-    });
+    const classesPerActualitzar = [classe];
+
+    // Resolve the main tutoria regardless of whether classe is the principal or the *Tutoria
+    const tutoriaPrincipal = esTutoriaPrincipal(classe)
+      ? classe
+      : esTutoriaAsterisc(classe)
+        ? trobarTutoriaPrincipal(classe, classes.value)
+        : null;
+
+    if (tutoriaPrincipal) {
+      // Always keep principal and *Tutoria in sync
+      if (tutoriaPrincipal !== classe && !classesPerActualitzar.some((c) => c.id === tutoriaPrincipal.id)) {
+        classesPerActualitzar.push(tutoriaPrincipal);
+      }
+      const tutoriaAsterisc = trobarTutoriaAsterisc(tutoriaPrincipal, classes.value);
+      if (tutoriaAsterisc && !classesPerActualitzar.some((c) => c.id === tutoriaAsterisc.id)) {
+        classesPerActualitzar.push(tutoriaAsterisc);
+      }
+      // Also sync paired subject
+      for (const assignatura of trobarAssignaturesParelladesTutoria(tutoriaPrincipal, classes.value)) {
+        if (!classesPerActualitzar.some((c) => c.id === assignatura.id)) {
+          classesPerActualitzar.push(assignatura);
+        }
+      }
+    }
+
+    await Promise.all(
+      classesPerActualitzar.map((item) => {
+        const professorsItem = (item.professors || [item.professorAssignat].filter(Boolean)).filter(
+          (nom) => nom && nom !== professor.nom
+        );
+
+        return updateDoc(cursStore.docRef('classes', item.id), {
+          professors: professorsItem,
+          professorAssignat:
+            item.professorAssignat === professor.nom
+              ? professorsItem[0] || ''
+              : item.professorAssignat || '',
+          lastModified: serverTimestamp(),
+        });
+      })
+    );
     updateLastUpdate();
   } catch (e) {
     console.error('Error desassignant classe:', e);
@@ -639,6 +698,12 @@ async function tancarDepartament() {
 
 function setupRealtimeListeners() {
   cleanupListeners();
+  if (!cursStore.cursActiuId) {
+    classes.value = [];
+    professors.value = [];
+    departaments.value = [];
+    return;
+  }
 
   classesUnsubscribe = onSnapshot(
     query(cursStore.col('classes')),
@@ -695,16 +760,25 @@ function setupRealtimeListeners() {
     }
   );
 
-  settingsUnsubscribe = subscribeAppSettings((value) => {
+  settingsUnsubscribe = subscribeAppSettings(cursStore.cursActiuId, (value) => {
     settings.value = value;
   });
 }
 
 function setupUserPresence() {
-  if (!departamentSeleccionat.value) return;
+  if (!departamentSeleccionat.value || !cursStore.cursActiuId) return;
+
+  presenceUnsubscribe?.();
+  presenceUnsubscribe = null;
+  if (presenceInterval) {
+    clearInterval(presenceInterval);
+    presenceInterval = null;
+  }
 
   const presenceRef = doc(
     db,
+    'cursos',
+    cursStore.cursActiuId,
     'presence',
     `${departamentSeleccionat.value}_${sessionId.value}`
   );
@@ -719,7 +793,7 @@ function setupUserPresence() {
 
   presenceUnsubscribe = onSnapshot(
     query(
-      collection(db, 'presence'),
+      collection(db, 'cursos', cursStore.cursActiuId, 'presence'),
       where('departament', '==', departamentSeleccionat.value)
     ),
     (snapshot) => {
@@ -738,7 +812,7 @@ function setupUserPresence() {
     }
   );
 
-  const presenceInterval = setInterval(() => {
+  presenceInterval = setInterval(() => {
     if (departamentSeleccionat.value) {
       setDoc(
         presenceRef,
@@ -767,6 +841,10 @@ function cleanupListeners() {
   departamentsUnsubscribe = null;
   presenceUnsubscribe?.();
   presenceUnsubscribe = null;
+  if (presenceInterval) {
+    clearInterval(presenceInterval);
+    presenceInterval = null;
+  }
   settingsUnsubscribe?.();
   settingsUnsubscribe = null;
 }
@@ -799,10 +877,10 @@ function imprimirDepartament() {
 
 watch(departamentSeleccionat, (newDept, oldDept) => {
   if (newDept !== oldDept) {
-    if (oldDept && presenceUnsubscribe) {
-      deleteDoc(doc(db, 'presence', `${oldDept}_${sessionId.value}`)).catch(
-        console.error
-      );
+    if (oldDept && presenceUnsubscribe && cursStore.cursActiuId) {
+      deleteDoc(
+        doc(db, 'cursos', cursStore.cursActiuId, 'presence', `${oldDept}_${sessionId.value}`)
+      ).catch(console.error);
     }
     if (newDept) nextTick(() => setupUserPresence());
   }
@@ -816,9 +894,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   cleanupListeners();
-  if (departamentSeleccionat.value) {
+  if (departamentSeleccionat.value && cursStore.cursActiuId) {
     deleteDoc(
-      doc(db, 'presence', `${departamentSeleccionat.value}_${sessionId.value}`)
+      doc(db, 'cursos', cursStore.cursActiuId, 'presence', `${departamentSeleccionat.value}_${sessionId.value}`)
     ).catch(console.error);
   }
 });

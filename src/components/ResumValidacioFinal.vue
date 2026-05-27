@@ -111,30 +111,28 @@
 </template>
 
 <script setup>
-import { computed, watch, onUnmounted, reactive, ref } from 'vue';
+import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import { onSnapshot, query } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
-import { limitsHoresProfessor, textJornada, professorsClasse, classeAssignadaA, horesComputablesClasse } from '../utils/horesProfessor';
+import { calcularValidacioFinal } from '../services/validacioFinal';
 
 const cursStore = useCursStore();
 
 const classes = ref([]);
 const professors = ref([]);
+const departaments = ref([]);
 const isConnected = ref(true);
 const lastUpdate = ref(formatData(new Date()));
 const blocsOberts = reactive({
   critiques: true,
   professorat: true,
-  grups: true,
   organitzacio: true,
   dades: false,
 });
 
 let classesUnsubscribe = null;
 let professorsUnsubscribe = null;
-
-const TIPUS_NO_COMPTEN_GRUP = ['D', 'S', 'F', 'PALIC', 'GP', 'C'];
-const TIPUS_CONEGUTS = ['', 'D', 'S', 'F', 'PALIC', 'GP', 'C'];
+let departamentsUnsubscribe = null;
 
 function formatData(data) {
   return data.toLocaleString('ca-ES', {
@@ -146,264 +144,31 @@ function formatData(data) {
   });
 }
 
-function normalitzarTipus(tipus) {
-  return (tipus || '').toString().trim().toUpperCase();
-}
-
-function normalitzarText(text) {
-  return (text || '')
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .toLowerCase();
-}
-
-function esOptativa(tipus) {
-  const normal = normalitzarTipus(tipus);
-  return normal.startsWith('O') || normal.startsWith('T');
-}
-
-function esTutoria(classe) {
-  return normalitzarText(classe.materia).replace(/^\*/, '').includes('tutoria');
-}
-
-function esTutoriaAsterisc(classe) {
-  return (classe.materia || '').toString().trim().startsWith('*') && esTutoria(classe);
-}
-
-function esCapDepartament(classe) {
-  const materia = normalitzarText(classe.materia);
-  return materia.includes('cap') && materia.includes('departament');
-}
-
-function teAssignacio(classe) {
-  const assignats = professorsClasse(classe).length;
-  if (normalitzarTipus(classe.tipus).startsWith('T')) return assignats >= 2;
-  return assignats > 0;
-}
-
-function clauFranjaOptativa(tipus) {
-  const normal = normalitzarTipus(tipus);
-  if (normal.startsWith('T')) return `O${normal.slice(1)}`;
-  return normal || 'O';
-}
-
-function teGrup(classe) {
-  return Boolean((classe.curs || '').toString().trim() && (classe.grup || '').toString().trim());
-}
-
-function teDepartament(classe) {
-  return Boolean((classe.departament || '').toString().trim() || classe.departaments?.[0]);
-}
-
-function normalitzarGrup(grup) {
-  const value = (grup || '').toString().trim();
-  if (!value || value.includes('+') || value.length <= 1) return value;
-  if (/^[A-Za-z]+$/.test(value)) return value.split('').join('+');
-  return value;
-}
-
-function expandirGrups(classe) {
-  const grup = normalitzarGrup(classe.grup);
-  if (!grup) return [];
-  return grup.split('+').map((g) => ({ ...classe, grup: g }));
-}
-
-function comptaPerGrup(classe) {
-  const tipus = normalitzarTipus(classe.tipus);
-  if (TIPUS_NO_COMPTEN_GRUP.includes(tipus)) return false;
-  if ((classe.materia || '').startsWith('*')) return false;
-  return teGrup(classe);
-}
-
-function calcularTotalHoresGrup(classesDelGrup, nomesAssignades = false) {
-  const optativesVistes = new Set();
-  const materiesMax = {};
-  let total = 0;
-
-  classesDelGrup.forEach((classe) => {
-    const tipus = normalitzarTipus(classe.tipus);
-    if (!comptaPerGrup(classe)) return;
-    if (nomesAssignades && !teAssignacio(classe)) return;
-
-    if (esOptativa(tipus)) {
-      const clauOptativa = clauFranjaOptativa(tipus);
-      if (!optativesVistes.has(clauOptativa)) {
-        optativesVistes.add(clauOptativa);
-        total += Number(classe.hores) || 0;
-      }
-    } else if (classe.materia) {
-      materiesMax[classe.materia] = Math.max(
-        materiesMax[classe.materia] || 0,
-        Number(classe.hores) || 0
-      );
-    }
-  });
-
-  Object.values(materiesMax).forEach((hores) => {
-    total += hores;
-  });
-  return total;
-}
-
-function detallClasse(classe) {
-  return [
-    classe.departament || classe.departaments?.[0],
-    classe.curs,
-    classe.grup,
-    classe.materia,
-    classe.hores ? `${classe.hores}h` : '',
-    classe.tipus ? `Tipus ${classe.tipus}` : '',
-  ].filter(Boolean).join(' · ');
-}
-
 function updateLastUpdate() {
   lastUpdate.value = formatData(new Date());
 }
 
-const classesExpandides = computed(() => classes.value.flatMap((classe) => expandirGrups(classe)));
-
-const classesSenseAssignar = computed(() =>
-  classes.value
-    .filter((classe) => {
-      const tipus = normalitzarTipus(classe.tipus);
-      if (tipus === 'GP' && !teAssignacio(classe)) return false;
-      if (tipus === 'PALIC' && !teAssignacio(classe)) return false;
-      return Number(classe.hores) > 0 && !teAssignacio(classe);
-    })
-    .map((classe) => ({
-      key: `sense-${classe.id}`,
-      title: classe.materia || 'Matèria sense nom',
-      detail: 'No té cap professor assignat.',
-      context: detallClasse(classe),
-    }))
+const validacio = computed(() =>
+  calcularValidacioFinal({
+    classes: classes.value,
+    professors: professors.value,
+    departaments: departaments.value,
+  })
 );
 
-const grupsIncomplets = computed(() => {
-  const perGrup = new Map();
-  classesExpandides.value.forEach((classe) => {
-    if (!teGrup(classe)) return;
-    const key = `${classe.curs}|${classe.grup}`;
-    if (!perGrup.has(key)) perGrup.set(key, []);
-    perGrup.get(key).push(classe);
-  });
-
-  return [...perGrup.entries()]
-    .map(([key, llista]) => {
-      const [curs, grup] = key.split('|');
-      const total = calcularTotalHoresGrup(llista);
-      const assignades = calcularTotalHoresGrup(llista, true);
-      const pendents = llista.filter((classe) => comptaPerGrup(classe) && !teAssignacio(classe));
-      return { curs, grup, total, assignades, pendents };
-    })
-    .filter((item) => item.total > 0 && item.pendents.length > 0)
-    .map((item) => ({
-      key: `grup-${item.curs}-${item.grup}`,
-      title: `${item.curs} ${item.grup}`,
-      detail: `${item.assignades}h assignades de ${item.total}h. Pendents: ${item.pendents.map((c) => c.materia).join(', ')}`,
-      context: `${item.pendents.length} files sense professor`,
-    }));
-});
-
-const incidenciesProfessorat = computed(() =>
-  professors.value
-    .map((professor) => {
-      const horesLectives = classes.value
-        .filter((classe) => classeAssignadaA(classe, professor.nom) && normalitzarTipus(classe.tipus) !== 'GP')
-        .reduce((total, classe) => total + horesComputablesClasse(classe), 0);
-      const gp = classes.value
-        .filter((classe) => classeAssignadaA(classe, professor.nom) && normalitzarTipus(classe.tipus) === 'GP')
-        .reduce((total, classe) => total + (Number(classe.hores) || 0), 0);
-      const limits = limitsHoresProfessor(professor);
-      let tipus = '';
-      if (horesLectives < limits.ideal) tipus = 'baix';
-      if (horesLectives > limits.maxim) tipus = 'alt';
-      return { professor, horesLectives, gp, limits, tipus };
-    })
-    .filter((item) => item.tipus)
-    .map((item) => ({
-      key: `prof-${item.professor.id || item.professor.nom}`,
-      title: item.professor.nom,
-      detail:
-        item.tipus === 'baix'
-          ? `Té ${item.horesLectives}h lectives i l'objectiu de ${textJornada(item.professor)} és ${item.limits.ideal}h.`
-          : `Té ${item.horesLectives}h lectives i el màxim de ${textJornada(item.professor)} és ${item.limits.maxim}h.`,
-      context: item.gp ? `GP: ${item.gp}h` : item.professor.departament || '',
-      tipus: item.tipus,
-    }))
-);
-
-const coordinacionsSenseCoordinador = computed(() =>
-  classes.value
-    .filter((classe) => normalitzarTipus(classe.tipus) === 'C' && !teAssignacio(classe))
-    .map((classe) => ({
-      key: `coord-${classe.id}`,
-      title: classe.materia || 'Coordinació sense nom',
-      detail: 'La comissió o coordinació no té coordinador.',
-      context: `${classe.hores || 0}h`,
-    }))
-);
-
-const tutoriesSenseTutor = computed(() =>
-  classes.value
-    .filter((classe) => esTutoria(classe) && !esTutoriaAsterisc(classe) && !teAssignacio(classe))
-    .map((classe) => ({
-      key: `tut-${classe.id}`,
-      title: classe.materia || 'Tutoria',
-      detail: 'La tutoria del grup no té tutor assignat.',
-      context: `${classe.curs || ''} ${classe.grup || ''}`.trim() || 'Sense grup',
-    }))
-);
-
-const capsSenseAssignar = computed(() =>
-  classes.value
-    .filter((classe) => esCapDepartament(classe) && !teAssignacio(classe))
-    .map((classe) => ({
-      key: `cap-${classe.id}`,
-      title: classe.departament || classe.departaments?.[0] || classe.materia,
-      detail: 'El cap de departament no té professor assignat.',
-      context: `${classe.hores || 0}h`,
-    }))
-);
-
-const dadesProblematiques = computed(() =>
-  classes.value
-    .filter((classe) => {
-      const tipus = normalitzarTipus(classe.tipus);
-      if (!classe.materia || Number(classe.hores) <= 0 || !teDepartament(classe)) return true;
-      if (tipus && !TIPUS_CONEGUTS.includes(tipus) && !esOptativa(tipus) && !/^A\d+$/.test(tipus)) return true;
-      return false;
-    })
-    .map((classe) => ({
-      key: `dada-${classe.id}`,
-      title: classe.materia || 'Fila sense matèria',
-      detail: motiuDadaProblematica(classe),
-      context: detallClasse(classe),
-    }))
-);
-
-const critiques = computed(() => [
-  ...classesSenseAssignar.value,
-  ...grupsIncomplets.value,
-  ...coordinacionsSenseCoordinador.value,
-  ...tutoriesSenseTutor.value,
-  ...capsSenseAssignar.value,
-]);
-
-const avisosProfessorat = computed(() =>
-  incidenciesProfessorat.value.filter((item) => item.tipus === 'baix')
-);
-
-const critiquesProfessorat = computed(() =>
-  incidenciesProfessorat.value.filter((item) => item.tipus === 'alt')
-);
+const critiques = computed(() => validacio.value.critiques);
+const avisosOrganitzacio = computed(() => validacio.value.avisosOrganitzacio);
+const avisosProfessorat = computed(() => validacio.value.avisosProfessorat);
+const critiquesProfessorat = computed(() => validacio.value.critiquesProfessorat);
+const dadesProblematiques = computed(() => validacio.value.dadesProblematiques);
+const incidenciesProfessorat = computed(() => validacio.value.incidenciesProfessorat);
+const classesSenseAssignar = computed(() => validacio.value.classesSenseAssignar);
 
 const blocs = computed(() => [
   {
     id: 'critiques',
     title: 'Incidències crítiques',
-    description: "S’haurien de resoldre abans de tancar el repartiment.",
+    description: "S'haurien de resoldre abans de tancar el repartiment.",
     items: [...critiques.value, ...critiquesProfessorat.value],
     borderClass: 'border-red-200 dark:border-red-800',
     headerClass: 'bg-red-50 text-red-900 dark:bg-red-950/30 dark:text-red-200',
@@ -415,6 +180,14 @@ const blocs = computed(() => [
     items: avisosProfessorat.value,
     borderClass: 'border-amber-200 dark:border-amber-800',
     headerClass: 'bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200',
+  },
+  {
+    id: 'organitzacio',
+    title: "Avisos d'organització",
+    description: 'Tutories emparellades, tancaments i coherència del repartiment.',
+    items: avisosOrganitzacio.value,
+    borderClass: 'border-blue-200 dark:border-blue-800',
+    headerClass: 'bg-blue-50 text-blue-900 dark:bg-blue-950/30 dark:text-blue-200',
   },
   {
     id: 'dades',
@@ -441,7 +214,7 @@ const cards = computed(() => [
   },
   {
     label: 'Avisos',
-    value: avisosProfessorat.value.length,
+    value: avisosProfessorat.value.length + avisosOrganitzacio.value.length,
     detail: 'convé revisar',
     class: 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200',
   },
@@ -466,7 +239,7 @@ const estatFinal = computed(() => {
       class: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100',
     };
   }
-  if (avisosProfessorat.value.length || dadesProblematiques.value.length) {
+  if (avisosProfessorat.value.length || avisosOrganitzacio.value.length || dadesProblematiques.value.length) {
     return {
       text: 'Revisable',
       class: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100',
@@ -480,22 +253,12 @@ const estatFinal = computed(() => {
 
 const resumEstat = computed(() => {
   const totalCritiques = critiques.value.length + critiquesProfessorat.value.length;
+  const totalAvisos = avisosProfessorat.value.length + avisosOrganitzacio.value.length;
   if (totalCritiques > 0) return `${totalCritiques} incidències crítiques pendents.`;
-  if (avisosProfessorat.value.length > 0) return `${avisosProfessorat.value.length} avisos de professorat pendents.`;
+  if (totalAvisos > 0) return `${totalAvisos} avisos pendents.`;
   if (dadesProblematiques.value.length > 0) return `${dadesProblematiques.value.length} files convindria revisar.`;
   return "No s'han detectat problemes amb les regles actuals.";
 });
-
-function motiuDadaProblematica(classe) {
-  const tipus = normalitzarTipus(classe.tipus);
-  if (!classe.materia) return 'Falta matèria.';
-  if (Number(classe.hores) <= 0) return 'Hores buides o zero.';
-  if (!teDepartament(classe)) return 'Falta departament.';
-  if (tipus && !TIPUS_CONEGUTS.includes(tipus) && !esOptativa(tipus) && !/^A\d+$/.test(tipus)) {
-    return `Tipus no classificat: ${classe.tipus}.`;
-  }
-  return 'Cal revisar la fila.';
-}
 
 function toggleBloc(id) {
   blocsOberts[id] = !blocsOberts[id];
@@ -526,13 +289,27 @@ function setupRealtimeListeners() {
       isConnected.value = false;
     }
   );
+
+  departamentsUnsubscribe = onSnapshot(
+    query(cursStore.col('departaments')),
+    (snapshot) => {
+      departaments.value = snapshot.docs.map((docu) => ({ id: docu.id, ...docu.data() }));
+      updateLastUpdate();
+      isConnected.value = true;
+    },
+    () => {
+      isConnected.value = false;
+    }
+  );
 }
 
 function cleanupListeners() {
   classesUnsubscribe?.();
   professorsUnsubscribe?.();
+  departamentsUnsubscribe?.();
   classesUnsubscribe = null;
   professorsUnsubscribe = null;
+  departamentsUnsubscribe = null;
 }
 
 watch(() => cursStore.cursActiuId, setupRealtimeListeners, { immediate: true });

@@ -1,3 +1,5 @@
+import { esGP, esOptativaCompartida } from './tipus';
+
 export function professorsClasse(classe) {
   if (Array.isArray(classe.professors) && classe.professors.length > 0)
     return classe.professors.filter(Boolean);
@@ -9,16 +11,15 @@ export function classeAssignadaA(classe, nomProfessor) {
 }
 
 export function horesComputablesClasse(classe) {
-  const tipus = (classe.tipus || '').toString().toUpperCase().trim();
   const profs = professorsClasse(classe);
-  if (tipus.startsWith('T') && profs.length > 1)
+  if (esOptativaCompartida(classe?.tipus) && profs.length > 1)
     return (Number(classe.hores) || 0) / profs.length;
   return Number(classe.hores) || 0;
 }
 
 export function calcularHoresLectives(classes, nomProfessor) {
   return classes
-    .filter(c => c.tipus !== 'GP' && classeAssignadaA(c, nomProfessor))
+    .filter(c => !esGP(c.tipus) && classeAssignadaA(c, nomProfessor))
     .reduce((sum, c) => sum + horesComputablesClasse(c), 0);
 }
 

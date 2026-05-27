@@ -65,6 +65,8 @@
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { onSnapshot, query } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
+import { classeAssignadaA, horesComputablesClasse } from '../utils/horesProfessor';
+import { exclosaDelRepartiment } from '../utils/tipus';
 
 const cursStore = useCursStore();
 
@@ -97,29 +99,9 @@ function calcularHoresProfessor(nomProfessor) {
     .filter(
       (classe) =>
         classeAssignadaA(classe, nomProfessor) &&
-        classe.tipus !== 'GP' &&
-        classe.tipus !== 'PALIC'
+        !exclosaDelRepartiment(classe.tipus)
     )
     .reduce((total, classe) => total + horesComputablesClasse(classe), 0);
-}
-
-function professorsClasse(classe) {
-  if (Array.isArray(classe.professors) && classe.professors.length > 0) {
-    return classe.professors.filter(Boolean);
-  }
-  return [classe.professorAssignat].filter(Boolean);
-}
-
-function classeAssignadaA(classe, nomProfessor) {
-  return professorsClasse(classe).includes(nomProfessor);
-}
-
-function horesComputablesClasse(classe) {
-  const tipus = (classe.tipus || '').toString().toUpperCase().trim();
-  if (tipus.startsWith('T') && professorsClasse(classe).length > 1) {
-    return (Number(classe.hores) || 0) / professorsClasse(classe).length;
-  }
-  return Number(classe.hores) || 0;
 }
 
 function getPreferenciaText(preferencia) {

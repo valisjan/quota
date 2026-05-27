@@ -16,51 +16,12 @@
       </div>
     </div>
 
-    <div v-if="activeTab === 'estat'">
-      <EstatDepartaments />
-    </div>
-    <div v-else-if="activeTab === 'grups'">
-      <ResumGrups />
-    </div>
-    <div v-else-if="activeTab === 'departaments'">
-      <ResumDepartaments />
-    </div>
-    <div v-else-if="activeTab === 'professors'">
-      <ResumProfessors />
-    </div>
-    <div v-else-if="activeTab === 'poces-hores'">
-      <ResumPocesHores />
-    </div>
-    <div v-else-if="activeTab === 'coordinacions'">
-      <ResumCoordinacions />
-    </div>
-    <div v-else-if="activeTab === 'tutories'">
-      <ResumTutories />
-    </div>
-    <div v-else-if="activeTab === 'caps-departament'">
-      <ResumCapsDepartament />
-    </div>
-    <div v-else-if="activeTab === 'majors-55'">
-      <ResumMajors55 />
-    </div>
-    <div v-else-if="activeTab === 'validacio'">
-      <ResumValidacioFinal />
-    </div>
+    <component :is="componentActual" />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import EstatDepartaments from '../components/EstatDepartaments.vue';
-import ResumGrups from '../components/ResumGrups.vue';
-import ResumDepartaments from '../components/ResumDepartaments.vue';
-import ResumProfessors from '../components/ResumProfessors.vue';
-import ResumPocesHores from '../components/ResumPocesHores.vue';
-import ResumCoordinacions from '../components/ResumCoordinacions.vue';
-import ResumTutories from '../components/ResumTutories.vue';
-import ResumCapsDepartament from '../components/ResumCapsDepartament.vue';
-import ResumMajors55 from '../components/ResumMajors55.vue';
-import ResumValidacioFinal from '../components/ResumValidacioFinal.vue';
+import { computed, defineAsyncComponent, ref } from 'vue';
 
 const activeTab = ref('estat');
 const tabs = [
@@ -75,4 +36,19 @@ const tabs = [
   { id: 'caps-departament', name: 'Caps de departament' },
   { id: 'majors-55', name: '>55' },
 ];
+
+const components = {
+  estat: defineAsyncComponent(() => import('../components/EstatDepartaments.vue')),
+  validacio: defineAsyncComponent(() => import('../components/ResumValidacioFinal.vue')),
+  grups: defineAsyncComponent(() => import('../components/ResumGrups.vue')),
+  departaments: defineAsyncComponent(() => import('../components/ResumDepartaments.vue')),
+  professors: defineAsyncComponent(() => import('../components/ResumProfessors.vue')),
+  'poces-hores': defineAsyncComponent(() => import('../components/ResumPocesHores.vue')),
+  coordinacions: defineAsyncComponent(() => import('../components/ResumCoordinacions.vue')),
+  tutories: defineAsyncComponent(() => import('../components/ResumTutories.vue')),
+  'caps-departament': defineAsyncComponent(() => import('../components/ResumCapsDepartament.vue')),
+  'majors-55': defineAsyncComponent(() => import('../components/ResumMajors55.vue')),
+};
+
+const componentActual = computed(() => components[activeTab.value] || components.estat);
 </script>

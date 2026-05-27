@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "PowerShell(ls \"E:\\\\Programación\\\\quota\\\\src\\\\views\" -R | Select-Object Name)",
-      "PowerShell(Get-Content *)"
+      "PowerShell(Get-Content *)",
+      "Bash(Get-ChildItem -Path \"E:\\\\Programación\\\\quota\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(Select-Object -First 50)",
+      "Bash(npx vite *)",
+      "Bash(python -c ' *)",
+      "Bash(node -e ' *)"
     ]
   }
 }

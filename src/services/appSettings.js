@@ -5,13 +5,19 @@ export const DEFAULT_APP_SETTINGS = {
   tancamentAdmin: false,
   departamentsTancats: {},
   missatgeTancament: '',
+  totalGuardiesPati: 30,
 };
 
-const settingsRef = () => doc(db, 'config', 'app_settings');
+const noop = () => {};
+const settingsRef = (cursId) => doc(db, 'cursos', cursId, 'config', 'app_settings');
 
-export function subscribeAppSettings(callback, onError = console.error) {
+export function subscribeAppSettings(cursId, callback, onError = console.error) {
+  if (!cursId) {
+    callback({ ...DEFAULT_APP_SETTINGS });
+    return noop;
+  }
   return onSnapshot(
-    settingsRef(),
+    settingsRef(cursId),
     (snapshot) => {
       callback({
         ...DEFAULT_APP_SETTINGS,
@@ -22,9 +28,10 @@ export function subscribeAppSettings(callback, onError = console.error) {
   );
 }
 
-export async function updateAppSettings(settings) {
+export async function updateAppSettings(cursId, settings) {
+  if (!cursId) throw new Error('No hi ha cap curs actiu.');
   await setDoc(
-    settingsRef(),
+    settingsRef(cursId),
     {
       ...settings,
       updatedAt: serverTimestamp(),

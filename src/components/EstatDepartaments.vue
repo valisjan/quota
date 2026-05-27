@@ -177,6 +177,8 @@
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { onSnapshot } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
+import { classeCompletamentAssignada } from '../utils/assignacions';
+import { exclosaDelRepartiment } from '../utils/tipus';
 
 const cursStore = useCursStore();
 
@@ -215,34 +217,20 @@ watch(() => cursStore.cursActiuId, setupListeners, { immediate: true });
 
 onUnmounted(() => unsubs.forEach((u) => u()));
 
-function professorsClasse(classe) {
-  if (Array.isArray(classe.professors) && classe.professors.length) {
-    return classe.professors.filter(Boolean);
-  }
-  return [classe.professorAssignat].filter(Boolean);
-}
-
-function teAssignacio(classe) {
-  const tipus = (classe.tipus || '').toString().trim().toUpperCase();
-  const total = professorsClasse(classe).length;
-  if (tipus.startsWith('T')) return total >= 2;
-  return total > 0;
-}
-
 function classesDelDept(nomDept) {
   return classes.value.filter(
     (c) =>
       Number(c.hores) > 0 &&
       (c.departament === nomDept || c.departaments?.includes(nomDept)) &&
-      !['GP', 'PALIC'].includes((c.tipus || '').toString().trim().toUpperCase())
+      !exclosaDelRepartiment(c.tipus)
   );
 }
 
 const perDepartament = computed(() => {
   return departaments.value.map((dept) => {
     const totes = classesDelDept(dept.nom);
-    const assignades = totes.filter(teAssignacio);
-    const senseProfessor = totes.filter((c) => !teAssignacio(c));
+    const assignades = totes.filter(classeCompletamentAssignada);
+    const senseProfessor = totes.filter((c) => !classeCompletamentAssignada(c));
     const horesTotals = totes.reduce((s, c) => s + Number(c.hores || 0), 0);
     const horesAssignades = assignades.reduce((s, c) => s + Number(c.hores || 0), 0);
     const profsDelDept = professors.value.filter((p) => p.departament === dept.nom);

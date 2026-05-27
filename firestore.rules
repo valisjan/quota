@@ -6,8 +6,16 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function usuari() {
+      return get(/databases/$(database)/documents/usuaris/$(request.auth.uid)).data;
+    }
+
     function rolUsuari() {
-      return get(/databases/$(database)/documents/usuaris/$(request.auth.uid)).data.rol;
+      return usuari().rol;
+    }
+
+    function departamentUsuari() {
+      return usuari().departament;
     }
 
     function esAdmin() {
@@ -18,81 +26,153 @@ service cloud.firestore {
       return autenticat() && rolUsuari() in ['admin', 'cap_departament', 'departament'];
     }
 
-    // Classes: llegir per a tothom autenticat, escriure només caps i admin
+    function preautoritzat(email) {
+      return exists(/databases/$(database)/documents/preautoritzats/$(email))
+        ? get(/databases/$(database)/documents/preautoritzats/$(email)).data
+        : null;
+    }
+
+    function createUsuariValid(uid) {
+      return autenticat()
+        && request.auth.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && (
+          !('rol' in request.resource.data)
+          || (request.resource.data.rol == null && request.resource.data.departament == null)
+          || (
+            preautoritzat(request.resource.data.email) != null
+            && request.resource.data.rol == preautoritzat(request.resource.data.email).rol
+            && request.resource.data.departament == preautoritzat(request.resource.data.email).departament
+          )
+        );
+    }
+
+    function esClasseDelDepartament(data) {
+      return data.departament == departamentUsuari()
+        || (data.departaments is list && departamentUsuari() in data.departaments);
+    }
+
+    function esProfessorDelDepartament(data) {
+      return data.departament == departamentUsuari();
+    }
+
+    function canvisAssignacioClasse() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'professors',
+        'professorAssignat',
+        'participants',
+        'lastModified'
+      ]);
+    }
+
+    function canvisParticipantsCoordinacio() {
+      return resource.data.tipus == 'C'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'participants',
+          'lastModified'
+        ]);
+    }
+
+    function canvisProfessorDepartament() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'gpAssignades',
+        'palicAssignades',
+        'preferencia',
+        'motiuAllegat',
+        'comentaris',
+        'lastModified'
+      ]);
+    }
+
+    // Coleccions antigues: la dada bona viu dins de /cursos/{cursId}/...
     match /classes/{id} {
-      allow read: if autenticat();
-      allow write: if esCap();
+      allow read, write: if false;
     }
 
-    // Professors: llegir per a tothom autenticat, escriure només admin
     match /professors/{id} {
-      allow read: if autenticat();
-      allow write: if esAdmin();
+      allow read, write: if false;
     }
 
-    // Departaments: llegir per a tothom autenticat, escriure només admin
     match /departaments/{id} {
-      allow read: if autenticat();
-      allow write: if esAdmin();
+      allow read, write: if false;
     }
 
-    // Cursos: llegir per a tothom autenticat, escriure (crear/bloquejar/eliminar) només admin
     match /cursos/{cursId} {
       allow read: if autenticat();
       allow write: if esAdmin();
 
-      // Classes del curs: caps assignen professors
       match /classes/{id} {
         allow read: if autenticat();
-        allow write: if esCap();
+        allow create, delete: if esAdmin();
+        allow update: if esAdmin()
+          || (
+            esCap()
+            && (
+              (esClasseDelDepartament(resource.data) && canvisAssignacioClasse())
+              || canvisParticipantsCoordinacio()
+            )
+          );
       }
 
-      // Professors del curs: caps actualitzen gpAssignades, palicAssignades, preferencia...
       match /professors/{id} {
         allow read: if autenticat();
-        allow write: if esCap();
+        allow create, delete: if esAdmin();
+        allow update: if esAdmin()
+          || (esCap() && esProfessorDelDepartament(resource.data) && canvisProfessorDepartament());
       }
 
-      // Departaments del curs: admin gestiona tot; caps poden tancar el seu departament
       match /departaments/{id} {
         allow read: if autenticat();
         allow create, delete: if esAdmin();
         allow update: if esAdmin()
-                      || (esCap() && request.resource.data.diff(resource.data).affectedKeys()
-                          .hasOnly(['tancat', 'tancatPer', 'tancatAt']));
+          || (
+            esCap()
+            && resource.data.nom == departamentUsuari()
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['tancat', 'tancatPer', 'tancatAt'])
+          );
+      }
+
+      match /config/{id} {
+        allow read: if autenticat();
+        allow write: if esAdmin();
+      }
+
+      match /sync_history/{id} {
+        allow read, write: if esAdmin();
+      }
+
+      match /presence/{id} {
+        allow read, write: if autenticat();
       }
     }
 
-    // Usuaris: cadascú llegeix el seu, admin llegeix/escriu tot.
-    // Ningú no es pot pujar el rol ni el departament a si mateix.
     match /usuaris/{uid} {
       allow read: if autenticat() && (request.auth.uid == uid || esAdmin());
-      allow create: if autenticat() && request.auth.uid == uid
-                    && !('rol' in request.resource.data)
-                    && !('departament' in request.resource.data);
+      allow create: if createUsuariValid(uid);
       allow update: if esAdmin()
-                    || (autenticat() && request.auth.uid == uid
-                        && !request.resource.data.diff(resource.data).affectedKeys()
-                            .hasAny(['rol', 'departament']));
+        || (
+          autenticat()
+          && request.auth.uid == uid
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['rol', 'departament'])
+        );
       allow delete: if esAdmin();
     }
 
-    // Preautoritzats: llegir autenticat (per al login automàtic), escriure només admin
     match /preautoritzats/{id} {
-      allow read: if autenticat();
+      allow read: if autenticat() && (id == request.auth.token.email || esAdmin());
       allow write: if esAdmin();
     }
 
-    // Config: tots els autenticats llegeixen (app_settings, missatgeTancament...);
-    // escriure només admin
+    // Config global antiga: només lectura administrativa per migracions puntuals.
     match /config/{id} {
-      allow read: if autenticat();
-      allow write: if esAdmin();
+      allow read: if esAdmin();
+      allow write: if false;
     }
 
-    // Presència en temps real (/departament)
+    // Presencia global antiga: tancada.
     match /presence/{id} {
-      allow read, write: if autenticat();
+      allow read, write: if false;
     }
   }
 }

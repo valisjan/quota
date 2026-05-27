@@ -86,9 +86,8 @@ class BatchSplit {
   }
 }
 
-async function guardarHistorialSincronitzacio(resultat, actor) {
-  await addDoc(collection(db, 'config'), {
-    type: 'sync_history',
+async function guardarHistorialSincronitzacio(cursId, resultat, actor) {
+  await addDoc(collection(db, 'cursos', cursId, 'sync_history'), {
     ...resultat,
     actor: actor || 'admin',
     createdAt: new Date().toISOString(),
@@ -439,7 +438,7 @@ export async function sincronitzar(cursId, options = {}) {
   };
 
   try {
-    await guardarHistorialSincronitzacio(resultat, options.actor);
+    await guardarHistorialSincronitzacio(cursId, resultat, options.actor);
     resultat.historialGuardat = true;
   } catch (error) {
     console.warn("No s’ha pogut guardar l’historial de sincronització:", error);

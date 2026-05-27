@@ -250,6 +250,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { getDocs, query, where } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
+import { professorsClasse } from '../utils/horesProfessor';
 
 const tabs = [
   { id: 'classes', label: 'Classes' },
@@ -451,13 +452,6 @@ function netejarFiltresClasses() {
 
 function departamentClasse(classe) {
   return classe.departaments?.[0] || classe.departament || '';
-}
-
-function professorsClasse(classe) {
-  if (Array.isArray(classe.professors) && classe.professors.length) {
-    return classe.professors.filter(Boolean);
-  }
-  return [classe.professorAssignat].filter(Boolean);
 }
 
 function etiquetaTipus(tipus) {

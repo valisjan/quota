@@ -4,7 +4,7 @@ import {
   TIPUS_NO_LECTIUS, netejarText, senseAccents, normalitzar,
   codiBase, codiUnic, codiProfessorBase,
   codisClasse, grupsClasse, campsBuids, decimalUntis, liniaDif,
-  parseGpu002, limitsJornada, obtenirProfessorsClasse, descarregarText,
+  parseGpu002, limitsJornada, obtenirProfessorsClasse, descarregarText, expandirClassePerGrups,
 } from './untisUtils';
 import { parseGestibXml, trobarMateriaGestib, trobarMateriaGestibAmbOverride } from './gestibMapper';
 import { agruparClassesPerLlico, esOptativaCompartida } from './lessonBuilder';
@@ -50,6 +50,35 @@ function crearMapes(classes, professors) {
   return { codisProfessors, codisMateries };
 }
 
+function esGuardiaPati(classe) {
+  return netejarText(classe?.tipus).toUpperCase() === 'GP';
+}
+
+function crearClassesGuardiesPati(professors) {
+  return professors
+    .filter((professor) => Number(professor.gpAssignades || 0) > 0)
+    .map((professor) => ({
+      id: `gp-${professor.id || professor.nom}`,
+      curs: '',
+      grup: '',
+      materia: 'Guàrdia de pati',
+      hores: Number(professor.gpAssignades || 0),
+      departament: professor.departament || '',
+      departaments: professor.departament ? [professor.departament] : [],
+      tipus: 'GP',
+      professorAssignat: professor.nom,
+      professors: [professor.nom],
+      _generadaGuardiaPati: true,
+    }));
+}
+
+function afegirGuardiesPatiCalculades(classes, professors) {
+  return [
+    ...classes.filter((classe) => !esGuardiaPati(classe)),
+    ...crearClassesGuardiesPati(professors),
+  ];
+}
+
 function codisMateriaPossibles(materia) {
   const text = senseAccents(materia).toUpperCase();
   const codis = new Set();
@@ -74,6 +103,7 @@ function codisMateriaPossibles(materia) {
     [/LLATI/, 'LLAT'],
     [/GREC/, 'GREC'],
     [/PALIC/, 'PALIC'],
+    [/GUARDIA.*PATI|VIGILANCIA.*PATI|VIGILANCIA.*ESPLAI/, 'GP'],
   ];
 
   regles.forEach(([regex, codi]) => {
@@ -91,6 +121,22 @@ function codisMateriaPossibles(materia) {
 }
 
 function scoreReferencia(classe, ref) {
+  if (esGuardiaPati(classe)) {
+    const materiaRef = normalitzar(ref.materia);
+    const textRef = normalitzar(`${ref.materia} ${ref.text}`);
+    if (
+      materiaRef === 'gp' ||
+      textRef.includes('guardiadepati') ||
+      textRef.includes('vigilanciapati') ||
+      textRef.includes('vigilanciaesplai')
+    ) {
+      let score = 300;
+      if (!ref.classe) score += 40;
+      if (Number(ref.hores) === Number(classe.hores)) score += 15;
+      return score;
+    }
+  }
+
   const codisClasseNorm = new Set(codisClasse(classe).map(normalitzar));
   const esNoGrup = codisClasseNorm.size === 0;
   if (esNoGrup) {
@@ -183,9 +229,10 @@ function generarMateries(classes, codisMateries, referenciaGestib, overrides) {
 
   classes
     .filter((classe) => classe.materia)
+    .flatMap(expandirClassePerGrups)
     .forEach((classe) => {
       const materiaGestib = trobarMateriaGestibAmbOverride(classe, referenciaGestib, overrides);
-      const codi = materiaGestib?.codiUntis || codisMateries.get(classe.materia);
+      const codi = materiaGestib?.codiUntis || (esGuardiaPati(classe) ? 'GP' : codisMateries.get(classe.materia));
       const nom = materiaGestib
         ? `${materiaGestib.descripcio} (${materiaGestib.cursDescripcio})`
         : classe.materia;
@@ -280,7 +327,7 @@ function componentsLlico(classe, professors, codisProfessors, codisMateries, ref
       });
     }
 
-    const codiMateria = materiaGestib?.codiUntis || codisMateries.get(fila.materia);
+    const codiMateria = materiaGestib?.codiUntis || (esGuardiaPati(fila) ? 'GP' : codisMateries.get(fila.materia));
     const grupOriginal = classe._preservaGrupsOriginals ? fila.grup : classe.grup;
     const codiGrups = codisClasse({ ...fila, grup: grupOriginal }).join(',');
     const teGrupDefinit = Boolean((fila.curs || '').toString().trim() && (grupOriginal || '').toString().trim());
@@ -387,6 +434,7 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
         codiMateria,
         codiGrups: camps[4] || grups.join('~'),
         font: referencia ? 'referencia' : 'generat',
+        esActivitat: !classe.curs && !classe.grup,
         filesAgrupades: (classe._filesAgrupades || [classe]).map((fila) => ({
           curs: fila.curs || '',
           grup: fila.grup || '',
@@ -495,8 +543,11 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
   ]);
 
   const referenciaGestib = referenciaGestibXmlText ? parseGestibXml(referenciaGestibXmlText) : null;
-  let classes = snapClasses.docs.map((d) => ({ id: d.id, ...d.data() }));
   let professors = snapProfessors.docs.map((d) => ({ id: d.id, ...d.data() }));
+  let classes = afegirGuardiesPatiCalculades(
+    snapClasses.docs.map((d) => ({ id: d.id, ...d.data() })),
+    professors
+  );
   const professorsSimulacio = simular ? professorsPerSimulacio(professors, referenciaGestib) : [];
   if (simular) {
     professors = professorsSimulacio;

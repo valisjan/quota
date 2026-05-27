@@ -279,6 +279,8 @@
 import { computed } from 'vue';
 import { limitsHoresProfessor } from '../../utils/horesProfessor';
 import { descarregarExcel } from '../../utils/exportExcel';
+import { classeCompletamentAssignada } from '../../utils/assignacions';
+import { exclosaDelRepartiment } from '../../utils/tipus';
 
 const props = defineProps({
   departament: { type: String, required: true },
@@ -305,8 +307,7 @@ const dataAvui = new Date().toLocaleDateString('ca-ES', {
 const classesNoAssignades = computed(() =>
   props.classes.filter(
     (c) =>
-      c.tipus !== 'GP' &&
-      c.tipus !== 'PALIC' &&
+      !exclosaDelRepartiment(c.tipus) &&
       !classeCompletamentAssignada(c)
   )
 );
@@ -318,20 +319,6 @@ const professorsNecessaris = computed(() => {
 
 function totalComputable(nom) {
   return props.calcularHoresProfessor(nom) + props.getHoresPalic(nom);
-}
-
-function professorsClasse(classe) {
-  if (Array.isArray(classe.professors) && classe.professors.length > 0) {
-    return classe.professors.filter(Boolean);
-  }
-  return [classe.professorAssignat].filter(Boolean);
-}
-
-function classeCompletamentAssignada(classe) {
-  const tipus = (classe.tipus || '').toString().trim().toUpperCase();
-  const assignats = professorsClasse(classe).length;
-  if (tipus.startsWith('T')) return assignats >= 2;
-  return assignats > 0;
 }
 
 function limitsProf(professor) {

@@ -1,6 +1,7 @@
 import {
   netejarText, normalitzar, normalitzarGrup,
   grupsClasse, clauGrups, esSubconjuntGrups, obtenirProfessorsClasse,
+  expandirClassePerGrups,
 } from './untisUtils';
 
 function clauLlicoAgrupada(classe) {
@@ -258,9 +259,11 @@ export function agruparClassesPerLlico(classes) {
       return;
     }
 
-    const clau = clauLlicoAgrupada(classe);
-    if (!trams.has(clau)) trams.set(clau, []);
-    trams.get(clau).push(classe);
+    expandirClassePerGrups(classe).forEach((c) => {
+      const clau = clauLlicoAgrupada(c);
+      if (!trams.has(clau)) trams.set(clau, []);
+      trams.get(clau).push(c);
+    });
   });
 
   return [

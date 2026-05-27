@@ -6,12 +6,14 @@ import { db } from '../firebase';
 export const useCursStore = defineStore('curs', () => {
   const cursos = ref([]);
   const cursActiuId = ref(null);
+  const cursosReady = ref(false);
+  const cursosError = ref('');
   let unsubCursos = null;
 
   const cursActiu = computed(() => cursos.value.find((c) => c.id === cursActiuId.value) || null);
   const esBloqueig = computed(() => cursActiu.value?.bloqueig === true);
 
-  // Helpers per apuntar a subcol·leccions del curs actiu
+  // Helpers per apuntar a subcolleccions del curs actiu.
   function col(nom) {
     return collection(db, 'cursos', cursActiuId.value, nom);
   }
@@ -24,16 +26,26 @@ export const useCursStore = defineStore('curs', () => {
 
   function inicialitzar() {
     if (unsubCursos) return;
-    unsubCursos = onSnapshot(collection(db, 'cursos'), (snap) => {
-      cursos.value = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => b.id.localeCompare(a.id));
-      // Auto-seleccionar: el primer no bloquejat, o el més recent
-      if (!cursActiuId.value || !cursos.value.find((c) => c.id === cursActiuId.value)) {
-        const preferit = cursos.value.find((c) => !c.bloqueig) || cursos.value[0];
-        if (preferit) cursActiuId.value = preferit.id;
+    cursosReady.value = false;
+    cursosError.value = '';
+    unsubCursos = onSnapshot(
+      collection(db, 'cursos'),
+      (snap) => {
+        cursos.value = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => b.id.localeCompare(a.id));
+        // Auto-seleccionar: el primer no bloquejat, o el mes recent.
+        if (!cursActiuId.value || !cursos.value.find((c) => c.id === cursActiuId.value)) {
+          const preferit = cursos.value.find((c) => !c.bloqueig) || cursos.value[0];
+          cursActiuId.value = preferit?.id || null;
+        }
+        cursosReady.value = true;
+      },
+      (error) => {
+        cursosError.value = error?.message || "No s'han pogut carregar els cursos.";
+        cursosReady.value = true;
       }
-    });
+    );
   }
 
   async function crearCurs(nom) {
@@ -61,11 +73,25 @@ export const useCursStore = defineStore('curs', () => {
     }
     cursos.value = [];
     cursActiuId.value = null;
+    cursosReady.value = false;
+    cursosError.value = '';
   }
 
   return {
-    cursos, cursActiuId, cursActiu, esBloqueig,
-    col, docRef, nouDoc,
-    inicialitzar, aturar, crearCurs, setBloqueig, canviarCursActiu, eliminarCurs,
+    cursos,
+    cursActiuId,
+    cursActiu,
+    esBloqueig,
+    cursosReady,
+    cursosError,
+    col,
+    docRef,
+    nouDoc,
+    inicialitzar,
+    aturar,
+    crearCurs,
+    setBloqueig,
+    canviarCursActiu,
+    eliminarCurs,
   };
 });

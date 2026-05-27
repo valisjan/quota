@@ -158,16 +158,18 @@ function getClassesProfessor(nom) {
 
 function calcularHoresProfessor(nom) {
   return getClassesProfessor(nom)
-    .filter((c) => c.tipus !== 'GP')
+    .filter((c) => c.tipus !== 'GP' && c.tipus !== 'PALIC')
     .reduce((sum, c) => sum + horesComputablesClasse(c), 0);
 }
 
 function getHoresGP(nom) {
-  const c = classes.value.find((c) => classeAssignadaA(c, nom) && c.tipus === 'GP');
-  return c ? Number(c.hores) : 0;
+  const professor = professors.value.find((p) => p.nom === nom);
+  return Number(professor?.gpAssignades || 0);
 }
 
 function getHoresPALIC(nom) {
+  const professor = professors.value.find((p) => p.nom === nom);
+  if (professor?.palicAssignades) return Number(professor.palicAssignades);
   const c = classes.value.find((c) => classeAssignadaA(c, nom) && c.tipus === 'PALIC');
   return c ? Number(c.hores) : 0;
 }

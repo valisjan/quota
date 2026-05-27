@@ -1,0 +1,79 @@
+export const TIPUS = {
+  DESDOBLAMENT: 'D',
+  SUPORT: 'S',
+  FLEXIBLE: 'F',
+  GP: 'GP',
+  PALIC: 'PALIC',
+  COORDINACIO: 'C',
+};
+
+export const TIPUS_CONEGUTS = [
+  '',
+  TIPUS.DESDOBLAMENT,
+  TIPUS.SUPORT,
+  TIPUS.FLEXIBLE,
+  TIPUS.GP,
+  TIPUS.PALIC,
+  TIPUS.COORDINACIO,
+];
+
+export function normalitzarTipus(tipus) {
+  return (tipus || '').toString().trim().toUpperCase();
+}
+
+export function esTipus(tipus, expected) {
+  return normalitzarTipus(tipus) === expected;
+}
+
+export function esGP(tipus) {
+  return esTipus(tipus, TIPUS.GP);
+}
+
+export function esPALIC(tipus) {
+  return esTipus(tipus, TIPUS.PALIC);
+}
+
+export function esCoordinacio(tipus) {
+  return esTipus(tipus, TIPUS.COORDINACIO);
+}
+
+export function esOptativa(tipus) {
+  const normal = normalitzarTipus(tipus);
+  return normal.startsWith('O') || normal.startsWith('T');
+}
+
+export function esOptativaCompartida(tipus) {
+  return normalitzarTipus(tipus).startsWith('T');
+}
+
+export function esAutodesdoble(tipus) {
+  return /^A\d*$/.test(normalitzarTipus(tipus));
+}
+
+export function esTipusConegut(tipus) {
+  const normal = normalitzarTipus(tipus);
+  return TIPUS_CONEGUTS.includes(normal) || esOptativa(normal) || esAutodesdoble(normal);
+}
+
+export function clauFranjaOptativa(tipus) {
+  const normal = normalitzarTipus(tipus);
+  if (normal.startsWith('T')) return `O${normal.slice(1)}`;
+  return normal || 'O';
+}
+
+export function exclosaDelRepartiment(tipus) {
+  const normal = normalitzarTipus(tipus);
+  return normal === TIPUS.GP || normal === TIPUS.PALIC;
+}
+
+export function comptaPerGrupPerTipus(tipus) {
+  const normal = normalitzarTipus(tipus);
+  return ![
+    TIPUS.DESDOBLAMENT,
+    TIPUS.SUPORT,
+    TIPUS.FLEXIBLE,
+    TIPUS.PALIC,
+    TIPUS.GP,
+    TIPUS.COORDINACIO,
+  ].includes(normal);
+}

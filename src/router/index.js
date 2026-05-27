@@ -1,15 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import Home from '../views/Home.vue';
-import Admin from '../views/Admin.vue';
-import Departament from '../views/Departament.vue';
-import Resums from '../views/Resums.vue';
-import DadesImportades from '../components/DadesImportades.vue';
-import Sincronitzacio from '../components/Sincronitzacio.vue';
-import ExportUntis from '../components/ExportUntis.vue';
-import Tancament from '../components/Tancament.vue';
-import UsuarisAdmin from '../components/UsuarisAdmin.vue';
-import GestioCursos from '../components/GestioCursos.vue';
 import { useAuthStore } from '../stores/auth';
+
+const Home = () => import('../views/Home.vue');
+const Admin = () => import('../views/Admin.vue');
+const Departament = () => import('../views/Departament.vue');
+const Resums = () => import('../views/Resums.vue');
+const DadesImportades = () => import('../components/DadesImportades.vue');
+const Sincronitzacio = () => import('../components/Sincronitzacio.vue');
+const ExportUntis = () => import('../components/ExportUntis.vue');
+const Tancament = () => import('../components/Tancament.vue');
+const UsuarisAdmin = () => import('../components/UsuarisAdmin.vue');
+const GestioCursos = () => import('../components/GestioCursos.vue');
 
 const routes = [
   { path: '/', component: Home },
