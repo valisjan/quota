@@ -192,9 +192,7 @@ const props = defineProps({
   classes: { type: Array, default: () => [] },
 });
 
-const TEMPS_MAX_GENERACIO_MS = 4500;
-const MIN_ITERACIONS = 3000;
-const MAX_ITERACIONS = 45000;
+const MAX_ITERACIONS = 500000;
 
 const proposta = ref(null);
 const classesDesbordades = ref([]);
@@ -647,13 +645,11 @@ async function generar() {
   }
 
   const perDistribuir = classesUnicesPerPaquets(classesPerDistribuir.value);
-  const inici = performance.now();
   let millor = null;
   let millorScore = Infinity;
   let millorNoAssignades = [];
 
   for (let iter = 0; iter < MAX_ITERACIONS; iter++) {
-    if (iter >= MIN_ITERACIONS && performance.now() - inici >= TEMPS_MAX_GENERACIO_MS) break;
     if (iter > 0 && iter % 150 === 0) {
       iteracionsProvades.value = iter;
       await esperarPintat();
