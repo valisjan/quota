@@ -38,15 +38,15 @@
       {{ !teProfessors ? 'No hi ha professors al departament' : 'No hi ha classes per distribuir' }}
     </div>
 
+    <div v-else-if="calculant" class="rounded-lg border border-blue-100 bg-blue-50 p-4 text-center text-sm font-medium text-blue-900">
+        Calculant la millor proposta... {{ iteracionsProvades }} combinacions provades
+    </div>
+
     <div v-else-if="!proposta" class="rounded-lg border border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-400">
       Fes clic a "Genera proposta" per veure una distribució suggerida
     </div>
 
     <template v-else>
-      <div v-if="calculant" class="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm font-medium text-blue-900">
-        Calculant la millor proposta... {{ iteracionsProvades }} combinacions provades
-      </div>
-
       <div v-if="errorProposta" class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
         {{ errorProposta }}
       </div>
@@ -559,6 +559,10 @@ function scoreProposta(slots, classesNoAssignades) {
   }, horesNoAssignades * 100000);
 }
 
+function esperarPintat() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 async function generar() {
   if (!teProfessors.value || !teClasses.value) return;
   calculant.value = true;
@@ -650,6 +654,10 @@ async function generar() {
 
   for (let iter = 0; iter < MAX_ITERACIONS; iter++) {
     if (iter >= MIN_ITERACIONS && performance.now() - inici >= TEMPS_MAX_GENERACIO_MS) break;
+    if (iter > 0 && iter % 150 === 0) {
+      iteracionsProvades.value = iter;
+      await esperarPintat();
+    }
     const shuffled = ordenarPaquetsPerIntent(perDistribuir);
     const classesTractades = new Set(classesFixadesIds);
     const classesNoAssignades = [];
