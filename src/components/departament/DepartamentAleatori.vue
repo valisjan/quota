@@ -64,11 +64,15 @@
         <div class="rounded-lg border border-slate-200 bg-white p-3 text-center">
           <div
             class="text-xl font-bold"
-            :class="totalHoresDistribuides === totalHoresDisponibles ? 'text-green-700' : 'text-rose-600'"
+            :class="totalHoresCobertes === totalHoresDepartament ? 'text-green-700' : 'text-rose-600'"
           >
-            {{ totalHoresDistribuides }}/{{ totalHoresDisponibles }}h
+            {{ totalHoresCobertes }}/{{ totalHoresDepartament }}h
           </div>
-          <div class="text-xs text-slate-500">Hores distribuïdes</div>
+          <div class="text-xs text-slate-500">Hores del departament</div>
+          <div class="mt-1 text-[11px] leading-snug text-slate-400">
+            {{ totalHoresDistribuides }}/{{ totalHoresDisponibles }}h repartibles
+            <span v-if="totalHoresNoDistribuibles > 0"> · {{ totalHoresNoDistribuibles }}h fixes</span>
+          </div>
         </div>
       </div>
 
@@ -151,6 +155,9 @@
         <h5 class="mb-2 text-sm font-semibold text-rose-800">
           Classes que no caben sense superar les 21 hores
         </h5>
+        <p class="mb-2 text-xs text-rose-700">
+          Queden {{ totalHoresDesbordades }}h repartibles sense col·locar.
+        </p>
         <div class="space-y-1">
           <div v-for="c in classesDesbordades" :key="c.id" class="text-xs text-rose-700">
             {{ c.materia }} {{ c.curs }} {{ c.grup }} - {{ c.hores }}h
@@ -264,8 +271,26 @@ const totalHoresDisponibles = computed(() =>
   classesUnicesPerPaquets(assignables.value).reduce((sum, c) => sum + (Number(c.hores) || 0), 0)
 );
 
+const totalHoresDepartament = computed(() =>
+  props.classes
+    .filter((c) => !esGP(c.tipus) && !esPALIC(c.tipus))
+    .reduce((sum, c) => sum + (Number(c.hores) || 0), 0)
+);
+
+const totalHoresNoDistribuibles = computed(() =>
+  Math.max(0, totalHoresDepartament.value - totalHoresDisponibles.value)
+);
+
 const totalHoresDistribuides = computed(() =>
   classesUnicesProposta.value.reduce((sum, classe) => sum + (Number(classe.hores) || 0), 0)
+);
+
+const totalHoresCobertes = computed(() =>
+  totalHoresDistribuides.value + totalHoresNoDistribuibles.value
+);
+
+const totalHoresDesbordades = computed(() =>
+  classesDesbordades.value.reduce((sum, classe) => sum + (Number(classe.hores) || 0), 0)
 );
 
 const classesUnicesProposta = computed(() => {
