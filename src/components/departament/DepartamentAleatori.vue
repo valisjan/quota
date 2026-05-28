@@ -179,7 +179,7 @@ const props = defineProps({
   classes: { type: Array, default: () => [] },
 });
 
-const NUM_ITERACIONS = 300;
+const NUM_ITERACIONS = 1500;
 
 const proposta = ref(null);
 const classesDesbordades = ref([]);
@@ -265,7 +265,7 @@ const totalHoresDisponibles = computed(() =>
 );
 
 const totalHoresDistribuides = computed(() =>
-  (proposta.value || []).reduce((sum, slot) => sum + slot.hores - slot.horesFixadesCoord, 0)
+  (proposta.value || []).reduce((sum, slot) => sum + slot.hores - slot.horesFixadesEspecials, 0)
 );
 
 const statsIdeal = computed(() =>
@@ -319,19 +319,10 @@ function afegirClasseUnica(llista, classe) {
 function paquetClasses(classe) {
   const paquet = [];
   afegirClasseUnica(paquet, classe);
-
+  // *Tutoria always travels with its principal tutoria (1:1 mandatory pair)
   if (esTutoriaPrincipal(classe)) {
     afegirClasseUnica(paquet, trobarTutoriaAsterisc(classe, props.classes));
-    trobarAssignaturesParelladesTutoria(classe, props.classes).forEach((assignatura) =>
-      afegirClasseUnica(paquet, assignatura)
-    );
   }
-
-  // Bloc siblings must always go to the same professor
-  trobarGermanesBloc(classe, assignables.value).forEach((germana) =>
-    afegirClasseUnica(paquet, germana)
-  );
-
   return paquet;
 }
 
@@ -369,8 +360,9 @@ function generar() {
   }));
 
   // Build fixed hours map: coord classes (always) + already-assigned classes (when partirActual)
+  // horesEspecials tracks non-assignable fixed hours (coord + majors55 + dedicació)
   const fixatMap = new Map(
-    profLimits.map((p) => [p.nom, { hores: 0, horesCoord: 0, classesFixades: [] }])
+    profLimits.map((p) => [p.nom, { hores: 0, horesCoord: 0, horesEspecials: 0, classesFixades: [] }])
   );
 
   // 1. Coordination classes — always fixed, check participants[] too
@@ -382,6 +374,7 @@ function generar() {
       const entry = fixatMap.get(nom);
       entry.hores += h;
       entry.horesCoord += h;
+      entry.horesEspecials += h;
       entry.classesFixades.push(classe);
     }
   }
@@ -394,6 +387,7 @@ function generar() {
       if (!fixatMap.has(nom)) continue;
       const entry = fixatMap.get(nom);
       entry.hores += h;
+      entry.horesEspecials += h;
       entry.classesFixades.push(classe);
     }
   }
@@ -406,6 +400,7 @@ function generar() {
       if (!fixatMap.has(nom)) continue;
       const entry = fixatMap.get(nom);
       entry.hores += h;
+      entry.horesEspecials += h;
       entry.classesFixades.push(classe);
     }
   }
@@ -447,6 +442,7 @@ function generar() {
         hores: fixat.hores,
         horesFixades: fixat.hores,
         horesFixadesCoord: fixat.horesCoord,
+        horesFixadesEspecials: fixat.horesEspecials,
         classesFixades: fixat.classesFixades,
         classes: [],
       };
@@ -483,10 +479,11 @@ function generar() {
 
     const horesNoAssignades = classesNoAssignades.reduce((sum, classe) => sum + (Number(classe.hores) || 0), 0);
     const score = slots.reduce((sum, slot) => {
-      const diff = slot.hores - slot.ideal;
+      const underIdeal = Math.max(slot.ideal - slot.hores, 0);
+      const overIdeal = Math.max(slot.hores - slot.ideal, 0);
       const overMax = Math.max(slot.hores - slot.maxim, 0);
-      return sum + diff * diff + overMax * overMax * 10000;
-    }, horesNoAssignades * 1000);
+      return sum + underIdeal * underIdeal * 6 + overIdeal * overIdeal + overMax * overMax * 100000;
+    }, horesNoAssignades * 10000);
 
     if (score < millorScore) {
       millorScore = score;
@@ -495,12 +492,17 @@ function generar() {
     }
   }
 
-  // Enforce tutoria ↔ subject pairing: move each paired subject to the tutoria professor's slot
+  // Soft constraint: move each group's subjects to the tutoria professor's slot if there's room.
+  // Checks both pre-assigned (classesFixades) and randomly distributed (classes) tutorias.
   if (millor) {
+    const processedTutorias = new Set();
     for (const slot of millor) {
-      for (const classe of [...slot.classes]) {
+      for (const classe of [...slot.classesFixades, ...slot.classes]) {
         if (!esTutoriaPrincipal(classe)) continue;
+        if (processedTutorias.has(classe.id)) continue;
+        processedTutorias.add(classe.id);
         for (const assignatura of trobarAssignaturesParelladesTutoria(classe, props.classes)) {
+          if (slot.classesFixades.some((c) => c.id === assignatura.id)) continue;
           if (slot.classes.some((c) => c.id === assignatura.id)) continue;
           for (const otherSlot of millor) {
             const idx = otherSlot.classes.findIndex((c) => c.id === assignatura.id);
@@ -519,11 +521,12 @@ function generar() {
     }
   }
 
-  // Safety net: ensure bloc siblings are still together after random distribution
+  // Safety net: ensure bloc siblings end up together after random distribution.
+  // Seeds from both fixed (pre-assigned) and randomly distributed classes.
   if (millor) {
     const processed = new Set();
     for (const slot of millor) {
-      for (const classe of [...slot.classes]) {
+      for (const classe of [...slot.classesFixades, ...slot.classes]) {
         if (processed.has(classe.id)) continue;
         const germanes = trobarGermanesBloc(classe, props.classes);
         if (germanes.length === 0) continue;
