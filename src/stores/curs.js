@@ -36,11 +36,18 @@ export const useCursStore = defineStore('curs', () => {
         cursos.value = snap.docs
           .map((d) => ({ id: d.id, ...d.data() }))
           .sort((a, b) => b.id.localeCompare(a.id));
+
+        const cursGuardat = localStorage.getItem(STORAGE_KEY);
+        if (!cursActiuId.value && cursGuardat) {
+          cursActiuId.value = cursGuardat;
+        }
+
         // Mantenir el curs guardat; auto-seleccionar només si no existeix.
         if (!cursActiuId.value || !cursos.value.find((c) => c.id === cursActiuId.value)) {
           const preferit = cursos.value.find((c) => !c.bloqueig) || cursos.value[0];
           cursActiuId.value = preferit?.id || null;
           if (cursActiuId.value) localStorage.setItem(STORAGE_KEY, cursActiuId.value);
+          else localStorage.removeItem(STORAGE_KEY);
         }
         cursosReady.value = true;
       },
@@ -55,6 +62,7 @@ export const useCursStore = defineStore('curs', () => {
     const id = nom.replace('/', '-');
     await setDoc(doc(db, 'cursos', id), { nom, bloqueig: false, createdAt: new Date() });
     cursActiuId.value = id;
+    localStorage.setItem(STORAGE_KEY, id);
   }
 
   async function setBloqueig(cursId, valor) {
@@ -76,7 +84,6 @@ export const useCursStore = defineStore('curs', () => {
       unsubCursos = null;
     }
     cursos.value = [];
-    cursActiuId.value = null;
     cursosReady.value = false;
     cursosError.value = '';
   }
