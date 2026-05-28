@@ -5,8 +5,8 @@
       alt="IES Josep Sureda i Blanes"
       class="absolute inset-0 h-full w-full object-cover object-center"
     />
-    <div class="absolute inset-0 bg-slate-950/45"></div>
-    <div class="absolute inset-y-0 left-0 w-full bg-slate-950/35 lg:w-3/5"></div>
+    <div class="absolute inset-0 bg-slate-950/55"></div>
+    <div class="absolute inset-y-0 left-0 w-full bg-slate-950/45 lg:w-3/5"></div>
 
     <div class="relative mx-auto grid min-h-[calc(100vh-4.125rem)] w-full max-w-7xl items-center gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:px-10">
       <div class="max-w-3xl text-white">
