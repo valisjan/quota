@@ -15,7 +15,7 @@
         </label>
         <p v-if="proposta" class="text-xs text-slate-400">
           Millor resultat de {{ NUM_ITERACIONS }} combinacions ·
-          {{ totalClassesFixades }} fixes · {{ classesPerDistribuir.length }} redistribuïdes
+          {{ totalClassesFixadesActuals }} ja fixades · {{ classesPerDistribuir.length }} redistribuïdes
         </p>
         <p v-if="professorsExclosos > 0" class="text-xs text-amber-600">
           {{ professorsExclosos }} {{ professorsExclosos === 1 ? 'professor exclòs' : 'professors exclosos' }} per jornada reduïda - no apareixen a la proposta
@@ -70,8 +70,9 @@
           </div>
           <div class="text-xs text-slate-500">Hores del departament</div>
           <div class="mt-1 text-[11px] leading-snug text-slate-400">
-            {{ totalHoresDistribuides }}/{{ totalHoresDisponibles }}h repartibles
-            <span v-if="totalHoresNoDistribuibles > 0"> · {{ totalHoresNoDistribuibles }}h fixes</span>
+            {{ totalHoresRepartiblesCobertes }}/{{ totalHoresDisponibles }}h repartibles
+            <span v-if="totalHoresFixadesActuals > 0"> · {{ totalHoresFixadesActuals }}h ja fixades</span>
+            <span v-if="totalHoresNoDistribuibles > 0"> · {{ totalHoresNoDistribuibles }}h fora del sorteig</span>
           </div>
         </div>
       </div>
@@ -248,8 +249,8 @@ const classesPerDistribuir = computed(() =>
     : assignables.value
 );
 
-const totalClassesFixades = computed(
-  () => classesCoordinacio.value.length + classesJaAssignades.value.length
+const totalClassesFixadesActuals = computed(
+  () => classesUnicesPerPaquets(classesJaAssignades.value).length
 );
 
 const professorsElegibles = computed(() =>
@@ -281,12 +282,29 @@ const totalHoresNoDistribuibles = computed(() =>
   Math.max(0, totalHoresDepartament.value - totalHoresDisponibles.value)
 );
 
+const totalHoresFixadesActuals = computed(() =>
+  classesUnicesPerPaquets(classesJaAssignades.value)
+    .reduce((sum, classe) => sum + (Number(classe.hores) || 0), 0)
+);
+
+const totalHoresFixadesSenseTargeta = computed(() =>
+  classesUnicesPerPaquets(
+    classesJaAssignades.value.filter(
+      (classe) => professorsDeClasse(classe).filter(professorEsElegible).length === 0
+    )
+  ).reduce((sum, classe) => sum + (Number(classe.hores) || 0), 0)
+);
+
 const totalHoresDistribuides = computed(() =>
   classesUnicesProposta.value.reduce((sum, classe) => sum + (Number(classe.hores) || 0), 0)
 );
 
+const totalHoresRepartiblesCobertes = computed(() =>
+  totalHoresDistribuides.value + totalHoresFixadesSenseTargeta.value
+);
+
 const totalHoresCobertes = computed(() =>
-  totalHoresDistribuides.value + totalHoresNoDistribuibles.value
+  totalHoresRepartiblesCobertes.value + totalHoresNoDistribuibles.value
 );
 
 const totalHoresDesbordades = computed(() =>
@@ -385,6 +403,13 @@ function classeCompletamentAssignada(classe) {
   return assignats > 0;
 }
 
+function professorEsElegible(nomProfessor) {
+  const professor = props.professors.find((p) => p.nom === nomProfessor);
+  if (!professor) return false;
+  const lim = limitsHoresProfessor(professor);
+  return lim.ideal >= 18 && lim.maxim <= 21;
+}
+
 function horesComputablesPerProfessor(classe, totalProfessorsAssignats) {
   const hores = Number(classe.hores) || 0;
   if (esOptativaCompartida(classe.tipus) && totalProfessorsAssignats > 1) {
@@ -474,14 +499,15 @@ function generar() {
     if (classesFixadesIds.has(classe.id)) continue;
     const profs = professorsDeClasse(classe);
     const eligibleProfs = profs.filter((nom) => fixatMap.has(nom));
-    // If all assigned professors are excluded (e.g. part-time), let the class be distributed
-    if (eligibleProfs.length === 0) continue;
     const paquet = paquetClasses(classe);
+    paquet.forEach((item) => classesFixadesIds.add(item.id));
+    // If all assigned professors are excluded (e.g. part-time), keep the class fixed
+    // outside the generated professor cards.
+    if (eligibleProfs.length === 0) continue;
     const h = paquet.reduce(
       (sum, item) => sum + horesComputablesPerProfessor(item, eligibleProfs.length),
       0
     );
-    paquet.forEach((item) => classesFixadesIds.add(item.id));
     for (const nom of eligibleProfs) {
       const entry = fixatMap.get(nom);
       entry.hores += h;
