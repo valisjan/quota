@@ -11,6 +11,7 @@ const ExportUntis = () => import('../components/ExportUntis.vue');
 const Tancament = () => import('../components/Tancament.vue');
 const UsuarisAdmin = () => import('../components/UsuarisAdmin.vue');
 const GestioCursos = () => import('../components/GestioCursos.vue');
+const Configuracio = () => import('../components/Configuracio.vue');
 
 const routes = [
   { path: '/', component: Home },
@@ -26,6 +27,7 @@ const routes = [
       { path: 'sincronitzacio', component: Sincronitzacio },
       { path: 'untis', component: ExportUntis },
       { path: 'tancament', component: Tancament },
+      { path: 'configuracio', component: Configuracio },
       { path: 'estat', redirect: '/resums' },
       { path: 'cursos', component: GestioCursos },
       { path: 'usuaris', component: UsuarisAdmin },

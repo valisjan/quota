@@ -57,68 +57,6 @@
     <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
       <div class="border-b border-slate-200 p-5 dark:border-slate-700">
         <h3 class="text-xl font-semibold text-slate-950">
-          Guàrdies de pati
-        </h3>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Es reparteixen automàticament entre els departaments segons el nombre de professors. Educació Física, Agrària i Forneria no entren en el repartiment.
-        </p>
-      </div>
-
-      <div class="grid gap-5 p-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-          Total de guàrdies de pati
-          <input
-            v-model.number="formulari.totalGuardiesPati"
-            type="number"
-            min="0"
-            step="1"
-            class="form-input mt-2 w-full bg-white text-lg font-semibold dark:bg-gray-900"
-          />
-        </label>
-
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-gray-800/50">
-          <div class="mb-3 flex items-center justify-between gap-3">
-            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
-              Repartiment previst
-            </p>
-            <span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
-              {{ totalPreviewAssignat }} / {{ totalGuardiesPatiFormulari }}
-            </span>
-          </div>
-
-          <div v-if="quotesGuardies.length" class="grid gap-2 sm:grid-cols-2">
-            <div
-              v-for="item in quotesGuardies"
-              :key="item.departament"
-              class="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2 text-sm ring-1 ring-slate-200"
-            >
-              <span class="min-w-0 truncate font-medium text-slate-800">{{ item.departament }}</span>
-              <span class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">
-                {{ item.quota }}
-              </span>
-            </div>
-          </div>
-          <p v-else class="text-sm text-slate-500">
-            No hi ha professorat computable per repartir guàrdies.
-          </p>
-
-          <div class="mt-4 flex justify-end">
-            <button
-              type="button"
-              @click="guardar"
-              :disabled="guardant"
-              class="rounded-md bg-[#00BF33] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#009928] disabled:opacity-50"
-            >
-              {{ guardant ? 'Guardant...' : 'Guardar guàrdies' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div class="border-b border-slate-200 p-5 dark:border-slate-700">
-        <h3 class="text-xl font-semibold text-slate-950">
           Tancament per departament
         </h3>
         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -176,7 +114,6 @@ import { computed, watch, onUnmounted, reactive, ref } from 'vue';
 import { onSnapshot, query, updateDoc } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
 import { useToastStore } from '../stores/toast';
-import { calcularQuotesGuardiesPati } from '../utils/guardiesPati';
 import {
   DEFAULT_APP_SETTINGS,
   subscribeAppSettings,
@@ -187,11 +124,9 @@ const cursStore = useCursStore();
 const toast = useToastStore();
 const formulari = reactive({ ...DEFAULT_APP_SETTINGS });
 const departaments = ref([]);
-const professors = ref([]);
 const guardant = ref(false);
 let unsubscribe = null;
 let departamentsUnsubscribe = null;
-let professorsUnsubscribe = null;
 
 const estatText = computed(() => {
   if (formulari.tancamentAdmin) return 'Administració bloquejada.';
@@ -202,28 +137,12 @@ const departamentsOrdenats = computed(() =>
   [...departaments.value].sort((a, b) => a.nom.localeCompare(b.nom))
 );
 
-const totalGuardiesPatiFormulari = computed(() =>
-  Math.max(0, Math.round(Number(formulari.totalGuardiesPati ?? 30) || 0))
-);
-
-const quotesGuardies = computed(() => {
-  const quotes = calcularQuotesGuardiesPati(professors.value, totalGuardiesPatiFormulari.value);
-  return Object.entries(quotes)
-    .map(([departament, quota]) => ({ departament, quota }))
-    .filter((item) => item.quota > 0)
-    .sort((a, b) => a.departament.localeCompare(b.departament));
-});
-
-const totalPreviewAssignat = computed(() =>
-  quotesGuardies.value.reduce((sum, item) => sum + item.quota, 0)
-);
-
 async function guardar() {
   guardant.value = true;
   try {
     await updateAppSettings(cursStore.cursActiuId, {
-      ...formulari,
-      totalGuardiesPati: totalGuardiesPatiFormulari.value,
+      tancamentAdmin: formulari.tancamentAdmin,
+      missatgeTancament: formulari.missatgeTancament,
     });
     toast.ok('Configuració guardada.');
   } catch (err) {
@@ -279,14 +198,11 @@ async function desbloquejarDepartament(departament) {
 watch(() => cursStore.cursActiuId, () => {
   unsubscribe?.();
   departamentsUnsubscribe?.();
-  professorsUnsubscribe?.();
   unsubscribe = null;
   departamentsUnsubscribe = null;
-  professorsUnsubscribe = null;
   if (!cursStore.cursActiuId) {
     Object.assign(formulari, DEFAULT_APP_SETTINGS);
     departaments.value = [];
-    professors.value = [];
     return;
   }
   unsubscribe = subscribeAppSettings(cursStore.cursActiuId, (settings) => {
@@ -295,14 +211,10 @@ watch(() => cursStore.cursActiuId, () => {
   departamentsUnsubscribe = onSnapshot(query(cursStore.col('departaments')), (snapshot) => {
     departaments.value = snapshot.docs.map((docu) => ({ id: docu.id, ...docu.data() }));
   });
-  professorsUnsubscribe = onSnapshot(query(cursStore.col('professors')), (snapshot) => {
-    professors.value = snapshot.docs.map((docu) => ({ id: docu.id, ...docu.data() }));
-  });
 }, { immediate: true });
 
 onUnmounted(() => {
   unsubscribe?.();
   departamentsUnsubscribe?.();
-  professorsUnsubscribe?.();
 });
 </script>
