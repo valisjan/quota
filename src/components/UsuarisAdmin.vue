@@ -50,7 +50,7 @@
                 v-model="deptPendent[u.id]"
                 class="rounded-md border border-slate-300 bg-white py-1.5 pl-2 pr-6 text-xs"
               >
-                <option value="">— tria dept —</option>
+                <option value="">- tria dept -</option>
                 <option v-for="d in departaments" :key="d.nom" :value="d.nom">{{ d.nom }}</option>
               </select>
             </div>
@@ -128,7 +128,7 @@
               @change="canviarDepartament(u, $event.target.value)"
               class="rounded-lg border border-slate-300 bg-white py-1.5 pl-2 pr-6 text-sm dark:border-slate-600 dark:bg-gray-700 dark:text-white"
             >
-              <option value="">— cap departament —</option>
+              <option value="">- cap departament -</option>
               <option v-for="d in departaments" :key="d.nom" :value="d.nom">{{ d.nom }}</option>
             </select>
 

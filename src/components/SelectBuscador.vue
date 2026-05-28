@@ -26,7 +26,7 @@
         class="absolute right-2 text-lg leading-none text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
         tabindex="-1"
         title="Esborra selecció"
-      >×</button>
+      >x</button>
     </div>
 
     <div
@@ -48,7 +48,7 @@
             :class="i === actiu ? 'text-blue-200' : 'text-slate-500 dark:text-slate-400'"
           >{{ opcio.value }}</span>
           <span class="min-w-0 truncate">{{ opcio.nom }}</span>
-          <span v-if="opcio.suggerit" class="ml-auto shrink-0 opacity-60 dark:opacity-50">★</span>
+          <span v-if="opcio.suggerit" class="ml-auto shrink-0 opacity-60 dark:opacity-50">â˜…</span>
         </button>
       </template>
       <p v-else class="px-3 py-3 text-sm text-slate-400 dark:text-slate-500">
@@ -80,7 +80,7 @@ const etiquetaActual = computed(() => {
 });
 
 function netNorm(s) {
-  return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 const opcionsFiltrades = computed(() => {

@@ -18,7 +18,7 @@
           {{ totalClassesFixades }} fixes · {{ classesPerDistribuir.length }} redistribuïdes
         </p>
         <p v-if="professorsExclosos > 0" class="text-xs text-amber-600">
-          {{ professorsExclosos }} {{ professorsExclosos === 1 ? 'professor exclòs' : 'professors exclosos' }} per jornada reduïda — no apareixen a la proposta
+          {{ professorsExclosos }} {{ professorsExclosos === 1 ? 'professor exclòs' : 'professors exclosos' }} per jornada reduïda - no apareixen a la proposta
         </p>
       </div>
       <button
@@ -153,7 +153,7 @@
         </h5>
         <div class="space-y-1">
           <div v-for="c in classesDesbordades" :key="c.id" class="text-xs text-rose-700">
-            {{ c.materia }} {{ c.curs }} {{ c.grup }} — {{ c.hores }}h
+            {{ c.materia }} {{ c.curs }} {{ c.grup }} - {{ c.hores }}h
           </div>
         </div>
       </div>
@@ -365,7 +365,7 @@ function generar() {
     profLimits.map((p) => [p.nom, { hores: 0, horesCoord: 0, horesEspecials: 0, classesFixades: [] }])
   );
 
-  // 1. Coordination classes — always fixed, check participants[] too
+  // 1. Coordination classes - always fixed, check participants[] too
   for (const classe of classesCoordinacio.value) {
     const profs = professorsDeClasse(classe);
     const h = Number(classe.hores) || 0;
@@ -379,7 +379,7 @@ function generar() {
     }
   }
 
-  // 1b. Majors de 55 classes — always fixed, count toward assigned teacher's hours
+  // 1b. Majors de 55 classes - always fixed, count toward assigned teacher's hours
   for (const classe of classesMajors55.value) {
     const profs = professorsDeClasse(classe);
     const h = Number(classe.hores) || 0;
@@ -392,7 +392,7 @@ function generar() {
     }
   }
 
-  // 1c. *Dedicació a prefactura — always fixed, paired with cap d'estudis
+  // 1c. *Dedicació a prefactura - always fixed, paired with cap d'estudis
   for (const classe of classesDedicacioPrefactura.value) {
     const profs = professorsDeClasse(classe);
     const h = Number(classe.hores) || 0;

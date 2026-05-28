@@ -21,7 +21,7 @@
         aria-label="Exportar a Excel"
         class="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-100"
       >
-        ⬇ Excel
+        â¬‡ Excel
       </button>
     </div>
 
@@ -66,7 +66,7 @@
                 {{ sortClasses(getClassesProfessor(p.nom)).map(c => c.materia + (c.grup ? ' ' + c.grup : '')).join(' · ') }}
               </div>
               <div v-if="p.motiuAllegat || p.comentaris" class="mt-1 text-xs italic text-slate-400">
-                {{ [p.motiuAllegat, p.comentaris].filter(Boolean).join(' — ') }}
+                {{ [p.motiuAllegat, p.comentaris].filter(Boolean).join(' - ') }}
               </div>
             </td>
             <td class="px-4 py-3 text-center">
@@ -74,16 +74,16 @@
                 {{ calcularHoresProfessor(p.nom) }}h
               </span>
             </td>
-            <td class="px-4 py-3 text-center text-slate-500">{{ getHoresGP(p.nom) || '—' }}</td>
-            <td class="px-4 py-3 text-center text-slate-500">{{ getHoresPALIC(p.nom) || '—' }}</td>
-            <td class="px-4 py-3 text-slate-600">{{ getPreferenciaText(p.preferencia) || '—' }}</td>
+            <td class="px-4 py-3 text-center text-slate-500">{{ getHoresGP(p.nom) || '-' }}</td>
+            <td class="px-4 py-3 text-center text-slate-500">{{ getHoresPALIC(p.nom) || '-' }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ getPreferenciaText(p.preferencia) || '-' }}</td>
             <td class="px-4 py-3">
               <ul v-if="getAvisos(p).length" class="space-y-0.5">
                 <li v-for="avis in getAvisos(p)" :key="avis" class="text-xs font-medium text-amber-700">
                   {{ avis }}
                 </li>
               </ul>
-              <span v-else class="text-slate-300">—</span>
+              <span v-else class="text-slate-300">-</span>
             </td>
           </tr>
         </tbody>
@@ -130,7 +130,7 @@ const departamentsMostrats = computed(() =>
 );
 
 function normalitzar(text) {
-  return (text || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  return (text || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
 function getProfessorsDepartament(dept) {
@@ -246,7 +246,7 @@ function exportarExcel() {
   }
   descarregarExcel(
     [
-      { nom: 'Professors', dades: [[`Professors — ${data}`], [], cap, ...files] },
+      { nom: 'Professors', dades: [[`Professors - ${data}`], [], cap, ...files] },
       { nom: 'Assignacions', dades: [capAssig, ...filesAssig] },
     ],
     `professors_${new Date().toISOString().slice(0, 10)}`

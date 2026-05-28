@@ -26,7 +26,7 @@
           @click="imprimirGrups"
           class="btn-primary flex items-center gap-2"
         >
-          🖨️ Imprimir Resum de Grups
+          Imprimir Imprimir Resum de Grups
         </button>
       </div>
     </div>
@@ -75,14 +75,14 @@
                 Grup {{ grup }}
               </h4>
               <span v-if="grupTeBordeRojo(classes)" class="text-red-500 text-sm"
-                >⚠️</span
+                >âš ï¸</span
               >
             </div>
             <div class="text-sm font-medium" :class="getHoresClass(classes)">
               {{ calcularHoresAssignades(classes) }}h /
               {{ calcularTotalHoresGrup(classes) }}h
-              <span v-if="totsAssignats(classes)">✅</span>
-              <span v-else>⚠️</span>
+              <span v-if="totsAssignats(classes)">âœ…</span>
+              <span v-else>âš ï¸</span>
             </div>
           </div>
 
@@ -103,7 +103,7 @@
               >
                 <div class="flex justify-between items-center mb-2">
                   <span class="badge badge-green">
-                    🔵 Optativa {{ item.tipus !== 'O' ? item.tipus : '' }} —
+                    O Optativa {{ item.tipus !== 'O' ? item.tipus : '' }} -
                     {{ item.hores }}h
                   </span>
                   <span class="text-xs text-gray-500 dark:text-gray-400"
@@ -132,7 +132,7 @@
                       {{ classe.professorAssignat }}
                     </span>
                     <span v-else class="text-red-500 text-xs"
-                      >⚠️ Sense prof.</span
+                      >âš ï¸ Sense prof.</span
                     >
                   </div>
                 </div>
@@ -165,7 +165,7 @@
                       <span v-if="classe.hores !== item.hores" class="text-xs text-gray-400 dark:text-gray-500">({{ classe.hores }}h)</span>
                     </div>
                     <span v-if="classe.professorAssignat" class="text-gray-500 dark:text-gray-400 text-xs">{{ classe.professorAssignat }}</span>
-                    <span v-else class="text-red-500 text-xs">⚠️ Sense prof.</span>
+                    <span v-else class="text-red-500 text-xs">âš ï¸ Sense prof.</span>
                   </div>
                 </div>
               </div>
@@ -197,7 +197,7 @@
                     <span
                       v-if="!item.classe.professorAssignat"
                       class="text-red-500 text-sm"
-                      >⚠️</span
+                      >âš ï¸</span
                     >
                   </div>
                   <span class="text-gray-700 dark:text-gray-300 ml-2 shrink-0"
@@ -214,7 +214,7 @@
                   v-else
                   class="text-sm text-red-600 dark:text-red-400 font-medium"
                 >
-                  ⚠️ Sense professor assignat
+                  âš ï¸ Sense professor assignat
                 </div>
               </div>
             </template>
@@ -239,7 +239,7 @@
             v-if="coordinationActivitiesSenseAssignar.length > 0"
             class="text-red-500 text-sm"
           >
-            ⚠️ {{ coordinationActivitiesSenseAssignar.length }} sense assignar
+            âš ï¸ {{ coordinationActivitiesSenseAssignar.length }} sense assignar
           </span>
         </div>
         <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -289,7 +289,7 @@
               v-else
               class="text-sm text-red-600 dark:text-red-400 font-medium"
             >
-              ⚠️ Sense professor assignat
+              âš ï¸ Sense professor assignat
             </div>
             <div
               v-if="activity.departaments?.[0]"
@@ -352,7 +352,7 @@
                       :key="c.id"
                       style="padding-left: 12px; font-size: 12px"
                     >
-                      {{ c.materia }} —
+                      {{ c.materia }} -
                       {{ c.professorAssignat || 'Sense assignar' }}
                     </div>
                   </div>
@@ -371,7 +371,7 @@
                     >
                       {{ c.tipus || 'Normal' }}
                       <span v-if="c.hores !== item.hores">({{ c.hores }}h)</span>
-                      — {{ c.professorAssignat || 'Sense assignar' }}
+                      - {{ c.professorAssignat || 'Sense assignar' }}
                     </div>
                   </div>
                   <div
@@ -618,10 +618,10 @@ function getClasseStyle(classe) {
 
 function getTipusIcon(tipus) {
   const t = (tipus || '').toUpperCase().trim();
-  if (t.startsWith('O') || t.startsWith('T')) return '🔵';
-  if (esAutodesdoble(t)) return '🔄';
-  const m = { D: '📊', S: '🤝', A: '🔄', F: '⚡', GP: '👮', PALIC: '🎯', C: '📋' };
-  return m[t] || '📚';
+  if (t.startsWith('O') || t.startsWith('T')) return 'O';
+  if (esAutodesdoble(t)) return 'A';
+  const m = { D: 'D', S: 'S', A: 'A', F: 'F', GP: 'GP', PALIC: 'PALIC', C: 'C' };
+  return m[t] || 'Classe';
 }
 
 function getTipusText(tipus) {

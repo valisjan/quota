@@ -19,8 +19,8 @@
             :disabled="estatComprova === 'comprovant'"
             class="flex flex-1 items-center justify-center gap-2 rounded-md border border-slate-200 px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
           >
-            <span v-if="estatComprova === 'comprovant'" class="animate-spin">⏳</span>
-            <span v-else>🔍</span>
+            <span v-if="estatComprova === 'comprovant'" class="animate-spin">â³</span>
+            <span v-else>Revisa</span>
             Comprova
           </button>
           <button
@@ -28,8 +28,8 @@
             :disabled="estatSync === 'sincronitzant' || settings.tancamentAdmin || cursStore.esBloqueig"
             class="flex flex-1 items-center justify-center gap-2 rounded-md bg-[#0024B6] px-4 py-3 text-base font-medium text-white transition hover:bg-[#001A8A] disabled:opacity-50"
           >
-            <span v-if="estatSync === 'sincronitzant'" class="animate-spin">⏳</span>
-            <span v-else>🔄</span>
+            <span v-if="estatSync === 'sincronitzant'" class="animate-spin">â³</span>
+            <span v-else>A</span>
             Sincronitzar
           </button>
         </div>
@@ -61,7 +61,7 @@
           "
         >
           <div v-if="estatComprova === 'error'" class="font-medium text-orange-800 dark:text-orange-300">
-            ❌ Error en llegir Sheets: {{ errorComprovaMsg }}
+            âŒ Error en llegir Sheets: {{ errorComprovaMsg }}
           </div>
           <template v-else>
             <div class="flex items-center justify-between">
@@ -69,7 +69,7 @@
                 class="font-semibold"
                 :class="resultComprova.alDia ? 'text-green-800 dark:text-green-300' : 'text-orange-800 dark:text-orange-300'"
               >
-                {{ resultComprova.alDia ? '✅ L\'app és al dia' : `⚠️ ${totalDiscrepancies} discrepàncies` }}
+                {{ resultComprova.alDia ? 'âœ… L\'app és al dia' : `âš ï¸ ${totalDiscrepancies} discrepàncies` }}
               </span>
               <span class="text-sm text-slate-500 dark:text-gray-400">
                 Sheets: {{ resultComprova.totalSheets }} · App: {{ resultComprova.totalApp }}
@@ -77,13 +77,13 @@
             </div>
             <div v-if="!resultComprova.alDia" class="mt-2 space-y-1 text-sm">
               <div v-if="resultComprova.noves > 0" class="text-green-700 dark:text-green-400">
-                ＋ {{ resultComprova.noves }} classes noves al full (s'afegiran)
+                ï¼‹ {{ resultComprova.noves }} classes noves al full (s'afegiran)
               </div>
               <div v-if="resultComprova.eliminades > 0" class="text-orange-700 dark:text-orange-400">
-                − {{ resultComprova.eliminades }} classes que ja no estan al full (s'eliminaran)
+                âˆ’ {{ resultComprova.eliminades }} classes que ja no estan al full (s'eliminaran)
               </div>
               <div v-if="resultComprova.modificades > 0" class="text-blue-700 dark:text-blue-200">
-                ≠ {{ resultComprova.modificades }} classes amb hores o tipus diferent (s'actualitzaran)
+                â‰  {{ resultComprova.modificades }} classes amb hores o tipus diferent (s'actualitzaran)
               </div>
             </div>
             <div class="mt-2 text-sm text-slate-500 dark:text-gray-400">
@@ -103,16 +103,16 @@
           "
         >
           <div v-if="estatSync === 'error'" class="font-medium text-orange-800 dark:text-orange-300">
-            ❌ Error de sincronització: {{ errorSyncMsg }}
+            âŒ Error de sincronització: {{ errorSyncMsg }}
           </div>
           <template v-else>
-            <div class="font-semibold text-green-800 dark:text-green-300">✅ Sincronització completada</div>
+            <div class="font-semibold text-green-800 dark:text-green-300">âœ… Sincronització completada</div>
             <div class="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-gray-400">
               <span>{{ statsSync.total }} classes totals</span>
-              <span v-if="statsSync.afegides">＋{{ statsSync.afegides }} afegides</span>
-              <span v-if="statsSync.actualitzades">≠ {{ statsSync.actualitzades }} actualitzades</span>
-              <span v-if="statsSync.eliminades">− {{ statsSync.eliminades }} eliminades</span>
-              <span v-if="statsSync.assignacionsConservades">🔒 {{ statsSync.assignacionsConservades }} assignacions conservades</span>
+              <span v-if="statsSync.afegides">ï¼‹{{ statsSync.afegides }} afegides</span>
+              <span v-if="statsSync.actualitzades">â‰  {{ statsSync.actualitzades }} actualitzades</span>
+              <span v-if="statsSync.eliminades">âˆ’ {{ statsSync.eliminades }} eliminades</span>
+              <span v-if="statsSync.assignacionsConservades">Bloquejat {{ statsSync.assignacionsConservades }} assignacions conservades</span>
             </div>
             <div class="mt-1 text-sm text-slate-500 dark:text-gray-400">
               {{ statsSync.totalProfs }} professors · {{ statsSync.totalDeps }} departaments ·

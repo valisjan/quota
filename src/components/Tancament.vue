@@ -17,7 +17,7 @@
               Bloquejar administració
             </p>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Les pantalles d’administració queden en mode lectura. Aquesta pantalla sempre queda disponible per desbloquejar.
+              Les pantalles d'administració queden en mode lectura. Aquesta pantalla sempre queda disponible per desbloquejar.
             </p>
           </div>
           <input

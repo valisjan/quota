@@ -22,7 +22,7 @@
           class="shrink-0 text-white/70 transition hover:text-white"
           aria-label="Tancar notificació"
         >
-          ✕
+          âœ•
         </button>
       </div>
     </TransitionGroup>

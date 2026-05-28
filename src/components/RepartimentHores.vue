@@ -14,7 +14,7 @@
       class="flex items-center justify-between rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800"
     >
       {{ error }}
-      <button type="button" class="ml-3 font-semibold hover:underline" @click="error = null">×</button>
+      <button type="button" class="ml-3 font-semibold hover:underline" @click="error = null">x</button>
     </div>
 
     <!-- Pendents -->
@@ -164,7 +164,7 @@
               :disabled="bloquejat"
               class="shrink-0 text-lg font-bold leading-none text-[#FF8040] hover:text-[#CC5020] dark:text-[#FF9060]"
               :aria-label="`Desassignar ${classe.materia} ${formatGrup(classe)}`"
-            >×</button>
+            >x</button>
           </div>
           <p
             v-for="avis in avisosHores(classe)"

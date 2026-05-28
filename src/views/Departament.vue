@@ -27,7 +27,7 @@
         class="mb-4 flex items-center justify-between rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800"
       >
         {{ errorMsg }}
-        <button type="button" class="ml-3 font-semibold hover:underline" @click="errorMsg = null">×</button>
+        <button type="button" class="ml-3 font-semibold hover:underline" @click="errorMsg = null">x</button>
       </div>
 
       <!-- Indicador de connexió -->
@@ -365,7 +365,7 @@ const sessionId = ref(
   `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 );
 
-// ─── Computed ─────────────────────────────────────────────────────
+// â”€â”€â”€ Computed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const departamentsSorted = computed(() => {
   return [...departaments.value].sort((a, b) => a.nom.localeCompare(b.nom));
@@ -449,7 +449,7 @@ const departamentActual = computed(() =>
 
 const departamentTancat = computed(() => Boolean(departamentActual.value?.tancat));
 
-// ─── Funcions ─────────────────────────────────────────────────────
+// â”€â”€â”€ Funcions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function updateLastUpdate() {
   lastUpdate.value = new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -522,7 +522,7 @@ function isOverLimit(nomProfessor) {
   return calcularHoresComputablesProfessor(nomProfessor) > limits.maxim;
 }
 
-// ─── GP ───────────────────────────────────────────────────────────
+// â”€â”€â”€ GP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function incrementarGP(professor) {
   if (departamentTancat.value) return;
@@ -550,7 +550,7 @@ async function decrementarGP(professor) {
   }
 }
 
-// ─── PALIC ────────────────────────────────────────────────────────
+// â”€â”€â”€ PALIC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function incrementarPALIC(professor) {
   if (departamentTancat.value) return;
@@ -578,7 +578,7 @@ async function decrementarPALIC(professor) {
   }
 }
 
-// ─── Professor ────────────────────────────────────────────────────
+// â”€â”€â”€ Professor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function actualitzarProfessor(professor) {
   if (departamentTancat.value) return;
@@ -707,7 +707,7 @@ async function tancarDepartament() {
   }
 }
 
-// ─── Listeners ────────────────────────────────────────────────────
+// â”€â”€â”€ Listeners â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function setupRealtimeListeners() {
   cleanupListeners();
@@ -862,7 +862,7 @@ function cleanupListeners() {
   settingsUnsubscribe = null;
 }
 
-// ─── Print ────────────────────────────────────────────────────────
+// â”€â”€â”€ Print â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function imprimirDepartament() {
   const printWindow = window.open('', '_blank');
@@ -886,7 +886,7 @@ function imprimirDepartament() {
   };
 }
 
-// ─── Lifecycle ────────────────────────────────────────────────────
+// â”€â”€â”€ Lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 watch(departamentSeleccionat, (newDept, oldDept) => {
   if (newDept !== oldDept) {

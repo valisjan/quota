@@ -117,7 +117,7 @@
               :aria-label="`Desassignar ${classe.materia} de ${professor.nom}`"
               :disabled="bloquejat"
               @click="$emit('desassignar-classe', { professor, classe })"
-            >×</button>
+            >x</button>
           </div>
         </div>
       </div>

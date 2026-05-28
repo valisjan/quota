@@ -73,7 +73,7 @@
           <span class="rounded-full bg-white/70 px-3 py-1 text-sm font-bold dark:bg-gray-900/60">
             {{ bloc.items.length }}
           </span>
-          <span class="text-lg">{{ blocsOberts[bloc.id] ? '−' : '+' }}</span>
+          <span class="text-lg">{{ blocsOberts[bloc.id] ? 'âˆ’' : '+' }}</span>
         </div>
       </button>
 

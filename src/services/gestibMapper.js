@@ -25,7 +25,7 @@ function primerNodePerTag(node, tag) {
 
 function parseXmlRobust(text) {
   const parser = new DOMParser();
-  const net = (text || '').replace(/^﻿/, '').trim();
+  const net = (text || '').replace(/^ï»¿/, '').trim();
   let xml = parser.parseFromString(net, 'application/xml');
   let error = xml.querySelector('parsererror');
 
@@ -195,7 +195,7 @@ export function parseGestibXml(text) {
   };
 }
 
-// Abreviatures GestIB conegudes: nom normalitzat de l'app → array de codis curta GestIB possibles
+// Abreviatures GestIB conegudes: nom normalitzat de l'app â†’ array de codis curta GestIB possibles
 // FI = Filosofia (no Física); Física standalone = FIS; Alemany ESO = SAL, Batx = EAL1/EAL2
 const ABREVIATURES_MATERIA = new Map([
   ['atencioeducativa', ['ae']],
@@ -244,7 +244,7 @@ function scorarCandidatsGestib(classe, gestib) {
       }
       // Si la classe NO té grup, no penalitzem les matèries que sí en tenen:
       // les classes sense grup (tutories, suport, desdobles...) poden correspondre
-      // a qualsevol matèria del curs — la descripció serà el criteri decisiu
+      // a qualsevol matèria del curs - la descripció serà el criteri decisiu
     }
 
     if (baseNorm === materiaNorm) score += 140;

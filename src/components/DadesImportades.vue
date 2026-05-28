@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="space-y-6">
     <section class="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800">
       <div class="border-l-4 border-[#0024B6] px-5 py-4 dark:border-[#B7C5FF]">

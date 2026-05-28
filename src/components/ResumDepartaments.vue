@@ -94,16 +94,16 @@ function updateLastUpdate() {
 
 function getTipusIcon(tipus) {
   const iconMap = {
-    'O': '🔵', // Optativa
-    'D': '📊', // Desdoblament
-    'S': '🤝', // Suport
-    'A': '🔄', // Autodesdoble
-    'F': '⚡', // Flexible
-    'GP': '👮', // Guàrdies de Pati
-    'PALIC': '🎯', // PALIC
-    'C': '📋' // Coordinació
+    'O': 'O', // Optativa
+    'D': 'D', // Desdoblament
+    'S': 'S', // Suport
+    'A': 'A', // Autodesdoble
+    'F': 'F', // Flexible
+    'GP': 'GP', // Guàrdies de Pati
+    'PALIC': 'PALIC', // PALIC
+    'C': 'C' // Coordinació
   };
-  return iconMap[tipus] || '📚';
+  return iconMap[tipus] || 'Classe';
 }
 
 function getTipusText(tipus) {

@@ -7,7 +7,7 @@ const APPS_SCRIPT_URL =
 const SHEET_ID = '1uKYDn_2-KyHVJrlfLAHWvZ-YvPIRpv2SlSDUhdQfnA0';
 const SHEET_CLASSES = 'Classes';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const n = (s) => (s || '').toString().toLowerCase().trim();
 
@@ -61,7 +61,7 @@ function trobarNoEmparellat(index, clau, idsEmparellats) {
   return (index.get(clau) || []).find((item) => !idsEmparellats.has(item.id));
 }
 
-// ─── Batch amb auto-split (límit Firestore: 500 ops) ─────────────────────────
+// â”€â”€â”€ Batch amb auto-split (límit Firestore: 500 ops) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class BatchSplit {
   constructor() {
@@ -94,12 +94,12 @@ async function guardarHistorialSincronitzacio(cursId, resultat, actor) {
   });
 }
 
-// ─── Helpers per subcol·leccions de curs ──────────────────────────────────────
+// â”€â”€â”€ Helpers per subcol·leccions de curs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function cc(cursId, nom) { return collection(db, 'cursos', cursId, nom); }
 function dd(cursId, nom, id) { return id ? doc(db, 'cursos', cursId, nom, id) : doc(cc(cursId, nom)); }
 
-// ─── Lectura de Sheets ────────────────────────────────────────────────────────
+// â”€â”€â”€ Lectura de Sheets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function llegirSheets(nomPestanya) {
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(nomPestanya)}`;
@@ -109,9 +109,9 @@ async function llegirSheets(nomPestanya) {
   return JSON.parse(text.substring(47, text.length - 2));
 }
 
-// ─── Sincronització principal ─────────────────────────────────────────────────
+// â”€â”€â”€ Sincronització principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ─── Comprovació de discrepàncies (sense escriure) ────────────────────────────
+// â”€â”€â”€ Comprovació de discrepàncies (sense escriure) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function comprovarDiscrepancies(cursId) {
   const jsonClasses = await llegirSheets(SHEET_CLASSES);
@@ -196,7 +196,7 @@ export async function comprovarDiscrepancies(cursId) {
   };
 }
 
-// ─── Sincronització principal ─────────────────────────────────────────────────
+// â”€â”€â”€ Sincronització principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function sincronitzar(cursId, options = {}) {
   // 1. Activar Apps Script (per si ha de recalcular el full)
@@ -231,7 +231,7 @@ export async function sincronitzar(cursId, options = {}) {
     }))
     .filter((p) => p.nom && n(p.nom) !== 'nom' && p.departament);
 
-  // 4. Sincronitzar departaments ─────────────────────────────────────────────
+  // 4. Sincronitzar departaments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const nomsDepNous = [...new Set(professorsNous.map((p) => p.departament))].sort();
   const nomsDepNousNorm = new Set(nomsDepNous.map(n));
 
@@ -254,7 +254,7 @@ export async function sincronitzar(cursId, options = {}) {
   });
   await batchDeps.commit();
 
-  // 5. Sincronitzar professors ───────────────────────────────────────────────
+  // 5. Sincronitzar professors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const snapProfs = await getDocs(cc(cursId, 'professors'));
   const profsExistentsPerNom = new Map(
     snapProfs.docs.map((d) => [n(d.data().nom), { id: d.id, data: d.data() }])
@@ -311,7 +311,7 @@ export async function sincronitzar(cursId, options = {}) {
   });
   await batchProfs.commit();
 
-  // 6. Sincronitzar classes ──────────────────────────────────────────────────
+  // 6. Sincronitzar classes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const snapClasses = await getDocs(cc(cursId, 'classes'));
 
   const existents = snapClasses.docs.map((d) => ({
@@ -441,7 +441,7 @@ export async function sincronitzar(cursId, options = {}) {
     await guardarHistorialSincronitzacio(cursId, resultat, options.actor);
     resultat.historialGuardat = true;
   } catch (error) {
-    console.warn("No s’ha pogut guardar l’historial de sincronització:", error);
+    console.warn("No s'ha pogut guardar l'historial de sincronització:", error);
     resultat.historialGuardat = false;
     resultat.errorHistorial = error.message;
   }

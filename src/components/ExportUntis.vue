@@ -153,7 +153,7 @@
               <span
                 v-if="codiActualMapeig(m)"
                 class="shrink-0 text-sm font-semibold text-green-700 dark:text-green-400"
-              >✓</span>
+              >âœ“</span>
             </div>
           </div>
           <p v-if="classesFiltrades.length === 0" class="px-4 py-6 text-center text-sm text-slate-400 dark:text-slate-500">
@@ -171,7 +171,7 @@
           class="h-4 w-4 rounded border-slate-300 text-[#0024B6] accent-[#0024B6]"
         />
         <span class="text-sm font-medium text-slate-800 dark:text-slate-200">
-          Mode simulació: assigna codis de les places de l’XML a totes les classes exportables, sense guardar res a Firestore
+          Mode simulació: assigna codis de les places de l'XML a totes les classes exportables, sense guardar res a Firestore
         </span>
       </label>
     </div>
@@ -513,20 +513,20 @@
                   <td class="px-3 py-2">
                     <span v-if="entrada.profGpu" class="font-mono text-slate-700 dark:text-slate-300">{{ entrada.profGpu }}</span>
                     <span v-if="entrada.profNomGpu && entrada.profNomGpu !== entrada.profGpu" class="ml-1 text-slate-400 dark:text-slate-500">{{ entrada.profNomGpu }}</span>
-                    <span v-if="!entrada.profGpu" class="text-slate-400">—</span>
+                    <span v-if="!entrada.profGpu" class="text-slate-400">-</span>
                   </td>
                   <td class="px-3 py-2">
                     <span v-if="entrada.classeApp" class="text-slate-700 dark:text-slate-300">
                       {{ entrada.classeApp.curs }} {{ entrada.classeApp.grup }}
                     </span>
-                    <span v-else class="text-slate-400">—</span>
+                    <span v-else class="text-slate-400">-</span>
                   </td>
                   <td class="px-3 py-2">
                     <span v-if="entrada.profNomApp" class="text-slate-700 dark:text-slate-300">
                       {{ entrada.profNomApp }}
                       <span v-if="entrada.profCodeApp" class="ml-1 font-mono text-slate-400">({{ entrada.profCodeApp }})</span>
                     </span>
-                    <span v-else class="text-slate-400">—</span>
+                    <span v-else class="text-slate-400">-</span>
                   </td>
                   <td class="px-3 py-2 text-center">
                     <span v-if="entrada.classeApp && Number(entrada.horesGpu) !== Number(entrada.classeApp.hores)" class="font-semibold text-amber-700 dark:text-amber-300">
@@ -560,7 +560,7 @@
               >
                 <span class="font-mono font-semibold">{{ c.curs }} {{ c.grup }}</span>
                 · {{ c.materia }} · {{ c.hores }}h
-                · {{ c.professorAssignat || c.professors?.[0] || '—' }}
+                · {{ c.professorAssignat || c.professors?.[0] || '-' }}
               </div>
             </div>
           </div>
@@ -684,7 +684,7 @@ function opcionsPerClau(m) {
     .filter((item) => !suggeritsSet.has(item.codiUntis))
     .map((item) => ({
       value: item.codiUntis,
-      nom: [item.label.replace(/^[A-Z0-9-]+\s*·\s*/, '').trim(), item.cursDescripcio].filter(Boolean).join(' — '),
+      nom: [item.label.replace(/^[A-Z0-9-]+\s*·\s*/, '').trim(), item.cursDescripcio].filter(Boolean).join(' - '),
       suggerit: false,
     }));
   return [...suggerits, ...rest];
@@ -1001,8 +1001,8 @@ function estatBadgeClass(estat) {
 function estatEtiqueta(estat) {
   const etiquetes = {
     ok: 'OK',
-    diferentProf: 'Prof ≠',
-    diferentHores: 'Hores ≠',
+    diferentProf: 'Prof â‰ ',
+    diferentHores: 'Hores â‰ ',
     noTrobat: 'No trobat',
     senseProfGpu: 'Sense prof GPU',
     senseProfApp: 'Sense prof App',

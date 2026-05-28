@@ -164,7 +164,7 @@ export function calcularValidacioFinal({ classes = [], professors = [], departam
         'tut-asterisc-falta',
         classe,
         classe.materia || 'Tutoria',
-        'No s’ha trobat la seva *Tutoria associada.',
+        "No s'ha trobat la seva *Tutoria associada.",
         `${classe.curs || ''} ${classe.grup || ''}`.trim() || 'Sense grup'
       )
     );
@@ -180,7 +180,7 @@ export function calcularValidacioFinal({ classes = [], professors = [], departam
         'tut-principal-falta',
         classe,
         classe.materia || '*Tutoria',
-        'No s’ha trobat la tutoria lectiva associada.',
+        "No s'ha trobat la tutoria lectiva associada.",
         `${classe.curs || ''} ${classe.grup || ''}`.trim() || 'Sense grup'
       )
     );
