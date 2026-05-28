@@ -39,7 +39,14 @@
     </div>
 
     <div v-else-if="calculant" class="rounded-lg border border-blue-100 bg-blue-50 p-4 text-center text-sm font-medium text-blue-900">
-        Calculant la millor proposta... {{ iteracionsProvades }} combinacions provades
+      <div>Calculant la millor proposta... {{ iteracionsProvades }} combinacions provades</div>
+      <div class="mt-3 h-2 overflow-hidden rounded-full bg-blue-100">
+        <div
+          class="h-full rounded-full bg-[#0024B6] transition-[width] duration-150"
+          :style="{ width: `${progresCalcul}%` }"
+        />
+      </div>
+      <div class="mt-1 text-xs text-blue-700">{{ progresCalcul }}%</div>
     </div>
 
     <div v-else-if="!proposta" class="rounded-lg border border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-400">
@@ -192,6 +199,7 @@ const props = defineProps({
   classes: { type: Array, default: () => [] },
 });
 
+const TEMPS_MAX_GENERACIO_MS = 15000;
 const MAX_ITERACIONS = 500000;
 
 const proposta = ref(null);
@@ -200,6 +208,7 @@ const errorProposta = ref('');
 const partirActual = ref(true);
 const iteracionsProvades = ref(0);
 const calculant = ref(false);
+const progresCalcul = ref(0);
 
 // All professors of a class, including participants[] for C-type
 function professorsDeClasse(classe) {
@@ -567,6 +576,7 @@ async function generar() {
   errorProposta.value = '';
   classesDesbordades.value = [];
   iteracionsProvades.value = 0;
+  progresCalcul.value = 0;
   await new Promise((resolve) => requestAnimationFrame(resolve));
 
   try {
@@ -645,13 +655,17 @@ async function generar() {
   }
 
   const perDistribuir = classesUnicesPerPaquets(classesPerDistribuir.value);
+  const inici = performance.now();
   let millor = null;
   let millorScore = Infinity;
   let millorNoAssignades = [];
 
   for (let iter = 0; iter < MAX_ITERACIONS; iter++) {
+    const elapsed = performance.now() - inici;
+    if (elapsed >= TEMPS_MAX_GENERACIO_MS) break;
     if (iter > 0 && iter % 150 === 0) {
       iteracionsProvades.value = iter;
+      progresCalcul.value = Math.min(99, Math.floor((elapsed / TEMPS_MAX_GENERACIO_MS) * 100));
       await esperarPintat();
     }
     const shuffled = ordenarPaquetsPerIntent(perDistribuir);
@@ -697,6 +711,7 @@ async function generar() {
     }
     iteracionsProvades.value = iter + 1;
   }
+  progresCalcul.value = 100;
 
   // Soft constraint: move each group's subjects to the tutoria professor's slot if there's room.
   // Checks both pre-assigned (classesFixades) and randomly distributed (classes) tutorias.
