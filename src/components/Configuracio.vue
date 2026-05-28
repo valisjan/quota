@@ -1,14 +1,5 @@
 <template>
-  <div class="max-w-4xl space-y-5">
-    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 class="text-2xl font-semibold text-slate-950">
-        Paràmetres
-      </h3>
-      <p class="mt-2 text-base text-slate-600">
-        Ajusta els paràmetres generals que afecten el repartiment del curs actiu.
-      </p>
-    </section>
-
+  <div class="max-w-4xl">
     <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
       <div class="border-b border-slate-200 p-5">
         <h3 class="text-xl font-semibold text-slate-950">
