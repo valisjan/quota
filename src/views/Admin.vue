@@ -1,6 +1,6 @@
 <template>
   <div class="admin-shell">
-    <aside class="admin-sidebar" :style="{ backgroundColor: colorActual }">
+    <aside class="admin-sidebar">
       <div class="admin-sidebar-body">
         <div class="admin-brand">
           <div class="admin-brand-mark">Q</div>
@@ -17,6 +17,7 @@
             :to="tab.path"
             class="admin-nav-item"
             :class="{ 'admin-nav-item-active': isActive(tab) }"
+            :style="isActive(tab) ? { '--section-color': tab.color } : null"
             :title="tab.nom"
           >
             <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
