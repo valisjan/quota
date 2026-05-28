@@ -14,7 +14,7 @@
           Partir del repartiment actual (manté les classes ja assignades)
         </label>
         <p v-if="proposta" class="text-xs text-slate-400">
-          Millor resultat de {{ NUM_ITERACIONS }} combinacions ·
+          Millor resultat de {{ iteracionsProvades }} combinacions ·
           {{ totalClassesFixadesActuals }} ja fixades · {{ classesPerDistribuir.length }} redistribuïdes
         </p>
         <p v-if="professorsExclosos > 0" class="text-xs text-amber-600">
@@ -188,12 +188,15 @@ const props = defineProps({
   classes: { type: Array, default: () => [] },
 });
 
-const NUM_ITERACIONS = 1500;
+const TEMPS_MAX_GENERACIO_MS = 4500;
+const MIN_ITERACIONS = 3000;
+const MAX_ITERACIONS = 45000;
 
 const proposta = ref(null);
 const classesDesbordades = ref([]);
 const errorProposta = ref('');
 const partirActual = ref(true);
+const iteracionsProvades = ref(0);
 
 // All professors of a class, including participants[] for C-type
 function professorsDeClasse(classe) {
@@ -391,6 +394,10 @@ function horesPaquetClasse(classe) {
   return paquetClasses(classe).reduce((sum, item) => sum + (Number(item.hores) || 0), 0);
 }
 
+function idsPaquet(classe) {
+  return paquetClasses(classe).map((item) => item.id);
+}
+
 function classeEsAssignable(classe) {
   return (
     !esGP(classe.tipus) &&
@@ -441,10 +448,117 @@ function resumSlots(slots) {
   return slots.map((slot) => `${slot.nom} (${slot.hores}h)`).join(', ');
 }
 
+function crearSlotsBase(profLimits, fixatMap) {
+  return profLimits.map((p) => {
+    const fixat = fixatMap.get(p.nom);
+    return {
+      nom: p.nom,
+      ideal: p.ideal,
+      maxim: p.maxim,
+      hores: fixat.hores,
+      horesFixades: fixat.hores,
+      horesFixadesCoord: fixat.horesCoord,
+      horesFixadesEspecials: fixat.horesEspecials,
+      classesFixades: fixat.classesFixades,
+      classes: [],
+    };
+  });
+}
+
+function copiarSlots(slots) {
+  return slots.map((slot) => ({
+    ...slot,
+    classesFixades: [...slot.classesFixades],
+    classes: [...slot.classes],
+  }));
+}
+
+function ordenarPaquetsPerIntent(classes) {
+  const paquets = classesUnicesPerPaquets(classes);
+  return [...paquets].sort((a, b) => {
+    const ha = horesPaquetClasse(a);
+    const hb = horesPaquetClasse(b);
+    if (Math.random() < 0.82 && ha !== hb) return hb - ha;
+    return Math.random() - 0.5;
+  });
+}
+
+function ordenarCandidats(slots) {
+  return [...slots].sort((a, b) => {
+    const aDeficit = Math.max(a.ideal - a.hores, 0);
+    const bDeficit = Math.max(b.ideal - b.hores, 0);
+    if (aDeficit !== bDeficit) return bDeficit - aDeficit;
+    if (a.hores !== b.hores) return a.hores - b.hores;
+    return Math.random() - 0.5;
+  });
+}
+
+function afegirPaquetASlot(slot, classe) {
+  const paquet = paquetClasses(classe);
+  const h = horesPaquetClasse(classe);
+  slot.hores += h;
+  slot.classes.push(...paquet);
+}
+
+function llevarPaquetDeSlot(slot, classe) {
+  const ids = new Set(idsPaquet(classe));
+  const h = horesPaquetClasse(classe);
+  slot.classes = slot.classes.filter((item) => !ids.has(item.id));
+  slot.hores -= h;
+}
+
+function paquetsMovibles(slot) {
+  return classesUnicesPerPaquets(slot.classes).sort(
+    (a, b) => horesPaquetClasse(b) - horesPaquetClasse(a)
+  );
+}
+
+function intentarReubicarPerEncabir(slots, classe) {
+  const h = horesPaquetClasse(classe);
+  for (const target of ordenarCandidats(slots)) {
+    if (target.hores + h <= target.maxim) {
+      afegirPaquetASlot(target, classe);
+      return true;
+    }
+
+    const horesAFerLloc = h - (target.maxim - target.hores);
+    const movibles = paquetsMovibles(target).filter(
+      (movible) => horesPaquetClasse(movible) >= horesAFerLloc
+    );
+
+    for (const movible of movibles) {
+      const hm = horesPaquetClasse(movible);
+      for (const receptor of ordenarCandidats(slots)) {
+        if (receptor === target) continue;
+        if (receptor.hores + hm > receptor.maxim) continue;
+        llevarPaquetDeSlot(target, movible);
+        afegirPaquetASlot(receptor, movible);
+        afegirPaquetASlot(target, classe);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function scoreProposta(slots, classesNoAssignades) {
+  const horesNoAssignades = classesNoAssignades.reduce(
+    (sum, classe) => sum + (Number(classe.hores) || 0),
+    0
+  );
+  return slots.reduce((sum, slot) => {
+    const underIdeal = Math.max(slot.ideal - slot.hores, 0);
+    const overIdeal = Math.max(slot.hores - slot.ideal, 0);
+    const overMax = Math.max(slot.hores - slot.maxim, 0);
+    return sum + underIdeal * underIdeal * 7 + overIdeal * overIdeal + overMax * overMax * 100000;
+  }, horesNoAssignades * 100000);
+}
+
 function generar() {
   if (!teProfessors.value || !teClasses.value) return;
   errorProposta.value = '';
   classesDesbordades.value = [];
+  iteracionsProvades.value = 0;
 
   const profLimits = professorsElegibles.value.map((p) => ({
     nom: p.nom,
@@ -520,53 +634,37 @@ function generar() {
     }
   }
 
-  const perDistribuir = classesPerDistribuir.value;
+  const perDistribuir = classesUnicesPerPaquets(classesPerDistribuir.value);
+  const inici = performance.now();
   let millor = null;
   let millorScore = Infinity;
   let millorNoAssignades = [];
 
-  for (let iter = 0; iter < NUM_ITERACIONS; iter++) {
-    const shuffled = [...perDistribuir].sort(() => Math.random() - 0.5);
+  for (let iter = 0; iter < MAX_ITERACIONS; iter++) {
+    if (iter >= MIN_ITERACIONS && performance.now() - inici >= TEMPS_MAX_GENERACIO_MS) break;
+    const shuffled = ordenarPaquetsPerIntent(perDistribuir);
     const classesTractades = new Set(classesFixadesIds);
     const classesNoAssignades = [];
 
-    const slots = profLimits.map((p) => {
-      const fixat = fixatMap.get(p.nom);
-      return {
-        nom: p.nom,
-        ideal: p.ideal,
-        maxim: p.maxim,
-        hores: fixat.hores,
-        horesFixades: fixat.hores,
-        horesFixadesCoord: fixat.horesCoord,
-        horesFixadesEspecials: fixat.horesEspecials,
-        classesFixades: fixat.classesFixades,
-        classes: [],
-      };
-    });
+    const slots = crearSlotsBase(profLimits, fixatMap);
 
     for (const classe of shuffled) {
       if (classesTractades.has(classe.id)) continue;
       const paquet = paquetClasses(classe);
       if (paquet.some((item) => classesTractades.has(item.id))) continue;
-      const h = horesPaquetClasse(classe);
       paquet.forEach((item) => classesTractades.add(item.id));
 
-      const candidats = [...slots].sort((a, b) => {
-        const aDeficit = Math.max(a.ideal - a.hores, 0);
-        const bDeficit = Math.max(b.ideal - b.hores, 0);
-        if (aDeficit !== bDeficit) return bDeficit - aDeficit;
-        return a.hores - b.hores;
-      });
-
       let assignat = false;
-      for (const slot of candidats) {
-        if (slot.hores + h <= slot.maxim) {
-          slot.hores += h;
-          slot.classes.push(...paquet);
+      for (const slot of ordenarCandidats(slots)) {
+        if (slot.hores + horesPaquetClasse(classe) <= slot.maxim) {
+          afegirPaquetASlot(slot, classe);
           assignat = true;
           break;
         }
+      }
+
+      if (!assignat) {
+        assignat = intentarReubicarPerEncabir(slots, classe);
       }
 
       if (!assignat) {
@@ -574,19 +672,18 @@ function generar() {
       }
     }
 
-    const horesNoAssignades = classesNoAssignades.reduce((sum, classe) => sum + (Number(classe.hores) || 0), 0);
-    const score = slots.reduce((sum, slot) => {
-      const underIdeal = Math.max(slot.ideal - slot.hores, 0);
-      const overIdeal = Math.max(slot.hores - slot.ideal, 0);
-      const overMax = Math.max(slot.hores - slot.maxim, 0);
-      return sum + underIdeal * underIdeal * 6 + overIdeal * overIdeal + overMax * overMax * 100000;
-    }, horesNoAssignades * 10000);
+    const score = scoreProposta(slots, classesNoAssignades);
 
     if (score < millorScore) {
       millorScore = score;
-      millor = slots.map((slot) => ({ ...slot, classes: [...slot.classes] }));
+      millor = copiarSlots(slots);
       millorNoAssignades = [...classesNoAssignades];
+      if (millorNoAssignades.length === 0 && score === 0) {
+        iteracionsProvades.value = iter + 1;
+        break;
+      }
     }
+    iteracionsProvades.value = iter + 1;
   }
 
   // Soft constraint: move each group's subjects to the tutoria professor's slot if there's room.
