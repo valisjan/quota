@@ -121,7 +121,7 @@
       </div>
 
       <p class="absolute bottom-4 right-5 select-none rounded bg-slate-950/50 px-2 py-1 text-xs text-white/70">
-        v1.0 · {{ buildDate }}
+        v{{ appVersion }} · {{ buildDate }}
       </p>
     </div>
   </section>
@@ -142,6 +142,7 @@ const buildDate = (() => {
     + ' ' + d.toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' });
 })();
 const errorLogin = ref('');
+const appVersion = __APP_VERSION__;
 const heroImageUrl = 'https://content.gnoss.ws/carq/imagenes/Documentos/imgsem/37/3733/3733d88a-d57c-4dff-a4ba-a5951198b3f1/43c12d9f-45d9-468b-b164-6ee33c982047.jpg';
 
 const etiquetaRol = computed(() => {
