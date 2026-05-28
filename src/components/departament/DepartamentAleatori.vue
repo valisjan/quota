@@ -44,7 +44,7 @@
 
     <template v-else>
       <div v-if="calculant" class="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm font-medium text-blue-900">
-        Calculant la millor proposta...
+        Calculant la millor proposta... {{ iteracionsProvades }} combinacions provades
       </div>
 
       <div v-if="errorProposta" class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
