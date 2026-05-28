@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-slate-100 text-slate-950">
+  <div class="min-h-screen bg-slate-200 text-slate-950">
     <a href="#main-content" class="skip-link">Saltar al contingut</a>
     <nav class="sticky top-0 z-50 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

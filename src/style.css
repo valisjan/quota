@@ -29,6 +29,10 @@
 }
 
 @layer base {
+  body {
+    @apply bg-slate-200;
+  }
+
   a,
   button,
   input,
