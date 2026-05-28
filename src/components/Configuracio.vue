@@ -2,7 +2,7 @@
   <div class="max-w-4xl space-y-5">
     <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <h3 class="text-2xl font-semibold text-slate-950">
-        Configuració
+        Paràmetres
       </h3>
       <p class="mt-2 text-base text-slate-600">
         Ajusta els paràmetres generals que afecten el repartiment del curs actiu.
