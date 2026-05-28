@@ -171,7 +171,7 @@ import {
   trobarAssignaturesParelladesTutoria,
   esDedicacioPrefacturaClasse,
 } from '../../utils/tutories';
-import { esGP, esPALIC, esCoordinacio, getTipusText } from '../../utils/tipus';
+import { esGP, esPALIC, esCoordinacio, esOptativaCompartida, getTipusText } from '../../utils/tipus';
 import { trobarGermanesBloc } from '../../utils/grups';
 
 const props = defineProps({
@@ -230,14 +230,14 @@ const classesDedicacioPrefactura = computed(() =>
 // Already-assigned non-C classes (only relevant when partirActual = true)
 const classesJaAssignades = computed(() =>
   partirActual.value
-    ? assignables.value.filter((c) => professorsDeClasse(c).length > 0)
+    ? assignables.value.filter((c) => classeCompletamentAssignada(c))
     : []
 );
 
 // Classes to distribute randomly
 const classesPerDistribuir = computed(() =>
   partirActual.value
-    ? assignables.value.filter((c) => professorsDeClasse(c).length === 0)
+    ? assignables.value.filter((c) => !classeCompletamentAssignada(c))
     : assignables.value
 );
 
@@ -265,8 +265,21 @@ const totalHoresDisponibles = computed(() =>
 );
 
 const totalHoresDistribuides = computed(() =>
-  (proposta.value || []).reduce((sum, slot) => sum + slot.hores - slot.horesFixadesEspecials, 0)
+  classesUnicesProposta.value.reduce((sum, classe) => sum + (Number(classe.hores) || 0), 0)
 );
+
+const classesUnicesProposta = computed(() => {
+  const resultat = [];
+  const vistes = new Set();
+  for (const slot of proposta.value || []) {
+    for (const classe of [...slot.classesFixades, ...slot.classes]) {
+      if (!classeEsAssignable(classe) || vistes.has(classe.id)) continue;
+      vistes.add(classe.id);
+      resultat.push(classe);
+    }
+  }
+  return resultat;
+});
 
 const statsIdeal = computed(() =>
   (proposta.value || []).filter((s) => s.hores === s.ideal).length
@@ -328,6 +341,31 @@ function paquetClasses(classe) {
 
 function horesPaquetClasse(classe) {
   return paquetClasses(classe).reduce((sum, item) => sum + (Number(item.hores) || 0), 0);
+}
+
+function classeEsAssignable(classe) {
+  return (
+    !esGP(classe.tipus) &&
+    !esPALIC(classe.tipus) &&
+    !esCoordinacio(classe.tipus) &&
+    !esMajorDe55Classe(classe) &&
+    !esDedicacioPrefacturaClasse(classe) &&
+    !teTutoriaPrincipalParellada(classe, props.classes)
+  );
+}
+
+function classeCompletamentAssignada(classe) {
+  const assignats = professorsDeClasse(classe).length;
+  if (esOptativaCompartida(classe.tipus)) return assignats >= 2;
+  return assignats > 0;
+}
+
+function horesComputablesPerProfessor(classe, totalProfessorsAssignats) {
+  const hores = Number(classe.hores) || 0;
+  if (esOptativaCompartida(classe.tipus) && totalProfessorsAssignats > 1) {
+    return hores / totalProfessorsAssignats;
+  }
+  return hores;
 }
 
 function classesUnicesPerPaquets(classes) {
@@ -414,7 +452,10 @@ function generar() {
     // If all assigned professors are excluded (e.g. part-time), let the class be distributed
     if (eligibleProfs.length === 0) continue;
     const paquet = paquetClasses(classe);
-    const h = horesPaquetClasse(classe);
+    const h = paquet.reduce(
+      (sum, item) => sum + horesComputablesPerProfessor(item, eligibleProfs.length),
+      0
+    );
     paquet.forEach((item) => classesFixadesIds.add(item.id));
     for (const nom of eligibleProfs) {
       const entry = fixatMap.get(nom);
