@@ -48,18 +48,18 @@
       </div>
 
       <!-- Stats -->
-      <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <div class="rounded-lg border border-slate-200 bg-white p-3 text-center">
           <div class="text-xl font-bold text-green-700">{{ statsIdeal }}</div>
-          <div class="text-xs text-slate-500">A l'ideal</div>
+          <div class="text-xs text-slate-500">Professors OK</div>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white p-3 text-center">
           <div class="text-xl font-bold text-amber-600">{{ statsOverIdeal }}</div>
-          <div class="text-xs text-slate-500">Per sobre l'ideal</div>
+          <div class="text-xs text-slate-500">Per sobre</div>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white p-3 text-center">
           <div class="text-xl font-bold text-blue-600">{{ statsUnderIdeal }}</div>
-          <div class="text-xs text-slate-500">Per sota l'ideal</div>
+          <div class="text-xs text-slate-500">Per sota</div>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white p-3 text-center">
           <div
@@ -68,11 +68,12 @@
           >
             {{ totalHoresCobertes }}/{{ totalHoresDepartament }}h
           </div>
-          <div class="text-xs text-slate-500">Hores del departament</div>
-          <div class="mt-1 text-[11px] leading-snug text-slate-400">
-            {{ totalHoresRepartiblesCobertes }}/{{ totalHoresDisponibles }}h repartibles
-            <span v-if="totalHoresFixadesActuals > 0"> · {{ totalHoresFixadesActuals }}h ja fixades</span>
-            <span v-if="totalHoresNoDistribuibles > 0"> · {{ totalHoresNoDistribuibles }}h fora del sorteig</span>
+          <div class="text-xs text-slate-500">Hores col·locades / totals</div>
+          <div
+            class="mt-1 text-[11px] font-semibold leading-snug"
+            :class="totalHoresPerRepartir === 0 ? 'text-green-700' : 'text-rose-600'"
+          >
+            {{ totalHoresPerRepartir }}h per repartir
           </div>
         </div>
       </div>
@@ -309,6 +310,10 @@ const totalHoresCobertes = computed(() =>
 
 const totalHoresDesbordades = computed(() =>
   classesDesbordades.value.reduce((sum, classe) => sum + (Number(classe.hores) || 0), 0)
+);
+
+const totalHoresPerRepartir = computed(() =>
+  Math.max(0, totalHoresDepartament.value - totalHoresCobertes.value)
 );
 
 const classesUnicesProposta = computed(() => {
