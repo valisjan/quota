@@ -23,10 +23,10 @@
       </div>
       <button
         @click="generar"
-        :disabled="!teProfessors || !teClasses"
+        :disabled="!teProfessors || !teClasses || calculant"
         class="shrink-0 rounded-md bg-[#0024B6] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#001A8A] disabled:opacity-40"
       >
-        {{ proposta ? 'Regenera' : 'Genera proposta' }}
+        {{ calculant ? 'Calculant...' : proposta ? 'Regenera' : 'Genera proposta' }}
       </button>
     </div>
 
@@ -43,6 +43,10 @@
     </div>
 
     <template v-else>
+      <div v-if="calculant" class="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm font-medium text-blue-900">
+        Calculant la millor proposta...
+      </div>
+
       <div v-if="errorProposta" class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
         {{ errorProposta }}
       </div>
@@ -197,6 +201,7 @@ const classesDesbordades = ref([]);
 const errorProposta = ref('');
 const partirActual = ref(true);
 const iteracionsProvades = ref(0);
+const calculant = ref(false);
 
 // All professors of a class, including participants[] for C-type
 function professorsDeClasse(classe) {
@@ -554,12 +559,15 @@ function scoreProposta(slots, classesNoAssignades) {
   }, horesNoAssignades * 100000);
 }
 
-function generar() {
+async function generar() {
   if (!teProfessors.value || !teClasses.value) return;
+  calculant.value = true;
   errorProposta.value = '';
   classesDesbordades.value = [];
   iteracionsProvades.value = 0;
+  await new Promise((resolve) => requestAnimationFrame(resolve));
 
+  try {
   const profLimits = professorsElegibles.value.map((p) => ({
     nom: p.nom,
     ideal: limitsHoresProfessor(p).ideal,
@@ -766,6 +774,9 @@ function generar() {
     avisos.push(`${millorNoAssignades.length} classes no caben sense superar les 21 hores.`);
   }
 
-  errorProposta.value = avisos.join(' ');
+    errorProposta.value = avisos.join(' ');
+  } finally {
+    calculant.value = false;
+  }
 }
 </script>
