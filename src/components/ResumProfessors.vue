@@ -21,7 +21,7 @@
         aria-label="Exportar a Excel"
         class="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-100"
       >
-        â¬‡ Excel
+        &darr; Excel
       </button>
     </div>
 

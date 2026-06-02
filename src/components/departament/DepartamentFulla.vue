@@ -10,7 +10,7 @@
           @click="exportarExcel"
           class="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
         >
-          â¬‡ Excel
+          &darr; Excel
         </button>
         <button
           @click="imprimir"
@@ -38,7 +38,7 @@
       <div>
         <span class="text-slate-500 dark:text-slate-400">Professors:</span>
         <strong class="ml-1.5 text-slate-900 dark:text-white">{{ professors.length }}</strong>
-        <span class="ml-1 text-slate-400 dark:text-slate-500">(â‰ˆ{{ professorsNecessaris }} necessaris)</span>
+        <span class="ml-1 text-slate-400 dark:text-slate-500">(~{{ professorsNecessaris }} necessaris)</span>
       </div>
       <div v-if="totalGpDepartament > 0">
         <span class="text-slate-500 dark:text-slate-400">GP:</span>
@@ -110,7 +110,7 @@
               <div v-if="professor.preferencia" class="mt-0.5 text-xs"
                 :class="professor.preferencia === 'pronto' ? 'text-emerald-600 dark:text-emerald-400' : 'text-violet-600 dark:text-violet-400'"
               >
-                {{ professor.preferencia === 'pronto' ? 'â†‘ Entrar prest' : 'â†“ Entrar tard' }}
+                {{ professor.preferencia === 'pronto' ? 'Entrar prest' : 'Entrar tard' }}
               </div>
               <div v-if="professor.comentaris" class="mt-0.5 text-xs italic text-slate-400 dark:text-gray-500">
                 {{ professor.comentaris }}
@@ -235,7 +235,7 @@
         v-if="classesNoAssignades.length === 0"
         class="rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300"
       >
-        Totes les classes estan assignades âœ“
+        Totes les classes estan assignades &#10003;
       </div>
 
       <div v-else class="overflow-x-auto rounded-lg border border-red-200 dark:border-red-900/50">

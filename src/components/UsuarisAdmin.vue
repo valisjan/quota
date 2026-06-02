@@ -71,6 +71,37 @@
       </div>
     </div>
 
+    <!-- Pre-autoritzats (esperen el primer login) -->
+    <div v-if="preautoritzatsLlista.length" class="rounded-lg border border-blue-200 bg-blue-50 shadow-sm">
+      <div class="border-b border-blue-200 px-5 py-4">
+        <h3 class="text-base font-semibold text-slate-900">Pre-autoritzats ({{ preautoritzatsLlista.length }})</h3>
+        <p class="mt-1 text-sm text-slate-600">
+          Importats des del full de Sheets. Obtindran el rol automàticament quan facin el primer login amb Google.
+        </p>
+      </div>
+      <div class="divide-y divide-blue-100">
+        <div
+          v-for="p in preautoritzatsLlista"
+          :key="p.id"
+          class="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <p class="text-sm font-semibold text-slate-900">{{ p.email }}</p>
+            <p class="text-xs text-slate-500">
+              <span class="font-medium">{{ etiquetaRol(p.rol) }}</span>
+              <span v-if="p.departament"> · {{ p.departament }}</span>
+            </p>
+          </div>
+          <button
+            @click="eliminarPreautoritzat(p)"
+            class="shrink-0 rounded-md border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+          >
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Usuaris actius -->
     <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
       <div class="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
@@ -160,6 +191,7 @@ import { useCursStore } from '../stores/curs';
 const authStore = useAuthStore();
 const cursStore = useCursStore();
 const usuaris = ref([]);
+const preautoritzats = ref([]);
 const departaments = ref([]);
 const deptPendent = ref({});
 const error = ref('');
@@ -171,6 +203,11 @@ watch(() => cursStore.cursActiuId, () => {
     onSnapshot(collection(db, 'usuaris'), (snap) => {
       usuaris.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     }),
+    onSnapshot(collection(db, 'preautoritzats'), (snap) => {
+      preautoritzats.value = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.email || '').localeCompare(b.email || '', 'ca'));
+    }),
     onSnapshot(cursStore.col('departaments'), (snap) => {
       departaments.value = snap.docs
         .map((d) => ({ id: d.id, ...d.data() }))
@@ -180,6 +217,17 @@ watch(() => cursStore.cursActiuId, () => {
 }, { immediate: true });
 
 onUnmounted(() => unsubs.forEach((u) => u()));
+
+// Emails dels usuaris que ja han fet login (no mostrar-los com a pre-autoritzats)
+const emailsActius = computed(() => new Set(usuaris.value.map((u) => (u.email || '').toLowerCase())));
+const preautoritzatsLlista = computed(() =>
+  preautoritzats.value.filter((p) => !emailsActius.value.has((p.email || '').toLowerCase()))
+);
+
+function etiquetaRol(rol) {
+  const etiquetes = { admin: 'Admin', cap_departament: 'Cap de departament', departament: 'Cap de departament', professor: 'Professor' };
+  return etiquetes[rol] || rol || '';
+}
 
 const pendents = computed(() => usuaris.value.filter((u) => !u.rol));
 const actius = computed(() =>
@@ -246,6 +294,15 @@ async function eliminarUsuari(usuari) {
     await deleteDoc(doc(db, 'usuaris', usuari.id));
   } catch (err) {
     error.value = 'Error eliminant usuari: ' + err.message;
+  }
+}
+
+async function eliminarPreautoritzat(preautoritzat) {
+  error.value = '';
+  try {
+    await deleteDoc(doc(db, 'preautoritzats', preautoritzat.id));
+  } catch (err) {
+    error.value = 'Error eliminant pre-autoritzat: ' + err.message;
   }
 }
 </script>

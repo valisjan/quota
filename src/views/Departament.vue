@@ -327,12 +327,14 @@ import { esGP, esPALIC, esOptativaCompartida, exclosaDelRepartiment } from '../u
 import { trobarGermanesBloc } from '../utils/grups';
 import { quotaGuardiesPatiDepartament } from '../utils/guardiesPati';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
+import { useToastStore } from '../stores/toast';
 import { useAuthStore } from '../stores/auth';
 import { useCursStore } from '../stores/curs';
 
 const departamentSeleccionat = ref('');
 const authStore = useAuthStore();
 const cursStore = useCursStore();
+const toast = useToastStore();
 const solsLectura = computed(() => authStore.rol === 'professor');
 const departaments = ref([]);
 const classes = ref([]);
@@ -365,7 +367,7 @@ const sessionId = ref(
   `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 );
 
-// â”€â”€â”€ Computed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Computed
 
 const departamentsSorted = computed(() => {
   return [...departaments.value].sort((a, b) => a.nom.localeCompare(b.nom));
@@ -408,7 +410,7 @@ const totalGPDepartament = computed(() => {
   );
 });
 
-// GP assignades: suma del camp gpAssignades de cada professor
+// GP assignades: suma del camp gpAssignades de cada professor.
 const totalGPAssignades = computed(() => {
   return professorsDepartament.value.reduce(
     (total, p) => total + (p.gpAssignades || 0),
@@ -416,7 +418,7 @@ const totalGPAssignades = computed(() => {
   );
 });
 
-// PALIC: pool total del departament (ve de la hoja)
+// PALIC: pool total del departament.
 const totalPALICDepartament = computed(() => {
   return classes.value
     .filter(
@@ -429,7 +431,7 @@ const totalPALICDepartament = computed(() => {
     .reduce((total, c) => total + c.hores, 0);
 });
 
-// PALIC assignades: suma del camp palicAssignades de cada professor
+// PALIC assignades: suma del camp palicAssignades de cada professor.
 const totalPALICAssignades = computed(() => {
   return professorsDepartament.value.reduce(
     (total, p) => total + (p.palicAssignades || 0),
@@ -449,7 +451,7 @@ const departamentActual = computed(() =>
 
 const departamentTancat = computed(() => Boolean(departamentActual.value?.tancat));
 
-// â”€â”€â”€ Funcions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Funcions
 
 function updateLastUpdate() {
   lastUpdate.value = new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -522,7 +524,7 @@ function isOverLimit(nomProfessor) {
   return calcularHoresComputablesProfessor(nomProfessor) > limits.maxim;
 }
 
-// â”€â”€â”€ GP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// GP
 
 async function incrementarGP(professor) {
   if (departamentTancat.value) return;
@@ -534,6 +536,7 @@ async function incrementarGP(professor) {
     });
   } catch (e) {
     console.error('Error incrementant GP:', e);
+    toast.error("No s'ha pogut guardar la guàrdia de pati: " + (e.message || e.code || ''));
   }
 }
 
@@ -547,10 +550,11 @@ async function decrementarGP(professor) {
     });
   } catch (e) {
     console.error('Error decrementant GP:', e);
+    toast.error("No s'ha pogut guardar la guàrdia de pati: " + (e.message || e.code || ''));
   }
 }
 
-// â”€â”€â”€ PALIC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// PALIC
 
 async function incrementarPALIC(professor) {
   if (departamentTancat.value) return;
@@ -578,7 +582,7 @@ async function decrementarPALIC(professor) {
   }
 }
 
-// â”€â”€â”€ Professor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Professor
 
 async function actualitzarProfessor(professor) {
   if (departamentTancat.value) return;
@@ -707,7 +711,7 @@ async function tancarDepartament() {
   }
 }
 
-// â”€â”€â”€ Listeners â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Listeners
 
 function setupRealtimeListeners() {
   cleanupListeners();
@@ -862,7 +866,7 @@ function cleanupListeners() {
   settingsUnsubscribe = null;
 }
 
-// â”€â”€â”€ Print â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Print
 
 function imprimirDepartament() {
   const printWindow = window.open('', '_blank');
@@ -886,7 +890,7 @@ function imprimirDepartament() {
   };
 }
 
-// â”€â”€â”€ Lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Lifecycle
 
 watch(departamentSeleccionat, (newDept, oldDept) => {
   if (newDept !== oldDept) {

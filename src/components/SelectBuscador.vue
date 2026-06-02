@@ -48,7 +48,7 @@
             :class="i === actiu ? 'text-blue-200' : 'text-slate-500 dark:text-slate-400'"
           >{{ opcio.value }}</span>
           <span class="min-w-0 truncate">{{ opcio.nom }}</span>
-          <span v-if="opcio.suggerit" class="ml-auto shrink-0 opacity-60 dark:opacity-50">â˜…</span>
+          <span v-if="opcio.suggerit" class="ml-auto shrink-0 opacity-60 dark:opacity-50">&#9733;</span>
         </button>
       </template>
       <p v-else class="px-3 py-3 text-sm text-slate-400 dark:text-slate-500">

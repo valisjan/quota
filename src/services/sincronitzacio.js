@@ -4,12 +4,21 @@ import { normalitzarJornada } from '../utils/horesProfessor';
 
 const APPS_SCRIPT_URL =
   'https://script.google.com/macros/s/AKfycbykQQXn6_oZ1iTtkASuHSA1P1kr5eSqGlIEdm5IBfuxSvr0wDh2I6Ec_yjILnHCXDKe/exec';
-const SHEET_ID = '1uKYDn_2-KyHVJrlfLAHWvZ-YvPIRpv2SlSDUhdQfnA0';
+export const DEFAULT_SHEETS_ID = '1uKYDn_2-KyHVJrlfLAHWvZ-YvPIRpv2SlSDUhdQfnA0';
 const SHEET_CLASSES = 'Classes';
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Helpers
 
 const n = (s) => (s || '').toString().toLowerCase().trim();
+
+const DOMINI_CENTRE = 'iesjosepsuredaiblanes.com';
+function completarEmail(raw) {
+  const s = (raw || '').trim().toLowerCase();
+  if (!s) return '';
+  return s.includes('@') ? s : `${s}@${DOMINI_CENTRE}`;
+}
+
+const ROLS_VALIDS = new Set(['admin', 'cap_departament', 'departament', 'professor']);
 
 function normalitzarGrup(grup) {
   if (!grup) return '';
@@ -61,7 +70,7 @@ function trobarNoEmparellat(index, clau, idsEmparellats) {
   return (index.get(clau) || []).find((item) => !idsEmparellats.has(item.id));
 }
 
-// â”€â”€â”€ Batch amb auto-split (límit Firestore: 500 ops) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Batch amb auto-split (limit Firestore: 500 ops)
 
 class BatchSplit {
   constructor() {
@@ -94,27 +103,58 @@ async function guardarHistorialSincronitzacio(cursId, resultat, actor) {
   });
 }
 
-// â”€â”€â”€ Helpers per subcol·leccions de curs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Helpers per subcol.leccions de curs
 
 function cc(cursId, nom) { return collection(db, 'cursos', cursId, nom); }
 function dd(cursId, nom, id) { return id ? doc(db, 'cursos', cursId, nom, id) : doc(cc(cursId, nom)); }
 
-// â”€â”€â”€ Lectura de Sheets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Lectura de Sheets
 
-async function llegirSheets(nomPestanya) {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(nomPestanya)}`;
-  const res = await fetch(url);
-  const text = await res.text();
-  // La resposta de gviz té un prefix de 47 caràcters i un sufix de 2
-  return JSON.parse(text.substring(47, text.length - 2));
+function parseGvizResponse(text) {
+  // The gviz response format: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
+  // The prefix is always 47 chars; the suffix is ");".
+  try {
+    return JSON.parse(text.substring(47, text.length - 2));
+  } catch {
+    // Fallback: try regex in case the format varies slightly
+    const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);?\s*$/);
+    if (match) return JSON.parse(match[1]);
+    throw new Error("No s'ha pogut llegir el full. Comprova que és públic (visible per a tothom amb l'enllaç).");
+  }
 }
 
-// â”€â”€â”€ Sincronització principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function llegirSheets(nomPestanya, sheetsId = DEFAULT_SHEETS_ID) {
+  const url = `https://docs.google.com/spreadsheets/d/${sheetsId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(nomPestanya)}`;
+  const res = await fetch(url);
+  const text = await res.text();
+  return parseGvizResponse(text);
+}
 
-// â”€â”€â”€ Comprovació de discrepàncies (sense escriure) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export async function provarConnexioSheets(sheetsId) {
+  try {
+    const data = await llegirSheets(SHEET_CLASSES, sheetsId);
+    if (data.status === 'error') {
+      return { ok: false, error: data.errors?.[0]?.detailed_message || data.errors?.[0]?.message || 'Error en llegir el full.' };
+    }
+    const rows = (data.table?.rows || [])
+      .map((row) => ({ materia: row.c[2]?.v?.toString().trim() || '' }))
+      .filter((r) => r.materia && r.materia.toLowerCase() !== 'materia');
+    if (rows.length === 0) {
+      return { ok: false, error: 'La pestanya "Classes" no té dades o no té el format esperat (CURS, GRUP, MATERIA, HORES, DEPARTAMENT, TIPUS).' };
+    }
+    return { ok: true, totalFiles: rows.length };
+  } catch (err) {
+    return { ok: false, error: err.message || 'Error de connexió' };
+  }
+}
 
-export async function comprovarDiscrepancies(cursId) {
-  const jsonClasses = await llegirSheets(SHEET_CLASSES);
+// Sincronitzacio principal
+
+// Comprovacio de discrepancies (sense escriure)
+
+export async function comprovarDiscrepancies(cursId, options = {}) {
+  const sheetsId = options.sheetsId || DEFAULT_SHEETS_ID;
+  const jsonClasses = await llegirSheets(SHEET_CLASSES, sheetsId);
   const classesSheets = jsonClasses.table.rows
     .map((row) => ({
       curs:        row.c[0]?.v?.toString().trim() || '',
@@ -196,9 +236,11 @@ export async function comprovarDiscrepancies(cursId) {
   };
 }
 
-// â”€â”€â”€ Sincronització principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Sincronitzacio principal
 
 export async function sincronitzar(cursId, options = {}) {
+  const sheetsId = options.sheetsId || DEFAULT_SHEETS_ID;
+
   // 1. Activar Apps Script (per si ha de recalcular el full)
   try {
     await fetch(APPS_SCRIPT_URL, { mode: 'no-cors' });
@@ -206,7 +248,7 @@ export async function sincronitzar(cursId, options = {}) {
   } catch (_) {}
 
   // 2. Llegir Classes des de Sheets
-  const jsonClasses = await llegirSheets(SHEET_CLASSES);
+  const jsonClasses = await llegirSheets(SHEET_CLASSES, sheetsId);
   const classesNoves = jsonClasses.table.rows
     .map((row) => ({
       curs:       row.c[0]?.v?.toString().trim() || '',
@@ -219,19 +261,19 @@ export async function sincronitzar(cursId, options = {}) {
     .filter((c) => c.materia && n(c.materia) !== 'materia');
 
   // 3. Llegir Professorat des de Sheets (pestanya "Professorat")
-  const jsonProfs = await llegirSheets('Professorat');
+  const jsonProfs = await llegirSheets('Professorat', sheetsId);
   const professorsNous = jsonProfs.table.rows
     .map((row) => ({
       nom:         row.c[0]?.v?.toString().trim() || '',
       departament: row.c[1]?.v?.toString().trim() || '',
       jornada:     normalitzarJornada(row.c[2]?.v?.toString() || ''),
       codiUntis:   row.c[3]?.v?.toString().trim() || '',
-      email:       (row.c[4]?.v?.toString().trim() || '').toLowerCase(),
+      email:       completarEmail(row.c[4]?.v?.toString().trim() || ''),
       rol:         row.c[5]?.v?.toString().trim() || '',
     }))
     .filter((p) => p.nom && n(p.nom) !== 'nom' && p.departament);
 
-  // 4. Sincronitzar departaments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // 4. Sincronitzar departaments
   const nomsDepNous = [...new Set(professorsNous.map((p) => p.departament))].sort();
   const nomsDepNousNorm = new Set(nomsDepNous.map(n));
 
@@ -254,7 +296,7 @@ export async function sincronitzar(cursId, options = {}) {
   });
   await batchDeps.commit();
 
-  // 5. Sincronitzar professors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // 5. Sincronitzar professors
   const snapProfs = await getDocs(cc(cursId, 'professors'));
   const profsExistentsPerNom = new Map(
     snapProfs.docs.map((d) => [n(d.data().nom), { id: d.id, data: d.data() }])
@@ -311,7 +353,7 @@ export async function sincronitzar(cursId, options = {}) {
   });
   await batchProfs.commit();
 
-  // 6. Sincronitzar classes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // 6. Sincronitzar classes
   const snapClasses = await getDocs(cc(cursId, 'classes'));
 
   const existents = snapClasses.docs.map((d) => ({
@@ -403,9 +445,12 @@ export async function sincronitzar(cursId, options = {}) {
   await batchClasses.commit();
 
   // 7. Sincronitzar usuaris pre-autoritzats (columnes EMAIL i ROL del full Professorat)
-  const rols_valids = new Set(['admin', 'cap_departament', 'departament', 'professor']);
-  const preautoritzats = professorsNous.filter((p) => p.email && rols_valids.has(p.rol));
+  // Tots els professors amb email → preautoritzats. Rol per defecte: 'professor'.
+  const preautoritzats = professorsNous
+    .filter((p) => p.email)
+    .map((p) => ({ ...p, rol: ROLS_VALIDS.has(p.rol) ? p.rol : 'professor' }));
 
+  // Guard: only sync if we actually have emails — avoids wiping everything if the column is empty.
   if (preautoritzats.length > 0) {
     const snapPre = await getDocs(collection(db, 'preautoritzats'));
     const emailsNous = new Set(preautoritzats.map((p) => p.email));

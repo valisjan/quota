@@ -3,6 +3,7 @@ import {
   grupsClasse, clauGrups, esSubconjuntGrups, obtenirProfessorsClasse,
   expandirClassePerGrups,
 } from './untisUtils';
+import { comptaPerGrupPerTipus } from '../utils/tipus';
 
 function clauLlicoAgrupada(classe) {
   return [
@@ -25,14 +26,40 @@ function esOptativaClasse(classe) {
   return tipus.startsWith('O') || tipus.startsWith('T');
 }
 
+function esAutodesdobleClasse(classe) {
+  return /^A\d+$/i.test(netejarText(classe.tipus));
+}
+
+function getAutodesdobleN(classe) {
+  const match = netejarText(classe.tipus).toUpperCase().match(/^A(\d+)$/);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+function comptaPerGrupExport(classe) {
+  if (!classe.curs || !classe.grup) return false;
+  if ((classe.materia || '').toString().trim().startsWith('*')) return false;
+  return comptaPerGrupPerTipus(classe.tipus);
+}
+
+function horesPerGrupExport(classe, totalGrups) {
+  const hores = Number(classe.hores) || 0;
+  const horesBase = comptaPerGrupExport(classe) && totalGrups > 1 && !esOptativaClasse(classe)
+    ? Math.round(hores / totalGrups)
+    : hores;
+  return esAutodesdobleClasse(classe)
+    ? Math.max(0, horesBase - getAutodesdobleN(classe))
+    : horesBase;
+}
+
 export function esOptativaCompartida(classe) {
   return netejarText(classe.tipus).toUpperCase().startsWith('T');
 }
 
 function franjaOptativa(tipus) {
   const normal = netejarText(tipus).toUpperCase();
+  if (!normal.startsWith('O') && !normal.startsWith('T')) return '';
   if (normal.startsWith('T')) return `O${normal.slice(1)}`;
-  return normal || 'O';
+  return normal;
 }
 
 function combinarTipusLlico(actual, nou) {
@@ -271,4 +298,18 @@ export function agruparClassesPerLlico(classes) {
     ...agruparOptatives(optatives),
     ...flexibles,
   ];
+}
+
+export function agruparClassesPerLlicoExport(classes) {
+  const preparades = classes.flatMap((classe) => {
+    const totalGrups = Math.max(1, grupsClasse(classe).length);
+    const horesExport = horesPerGrupExport(classe, totalGrups);
+    return expandirClassePerGrups(classe).map((expandida) => ({
+        ...expandida,
+        hores: horesExport,
+        _horesOriginals: Number(classe.hores) || 0,
+      }));
+  });
+
+  return agruparClassesPerLlico(preparades);
 }

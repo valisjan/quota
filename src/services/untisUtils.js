@@ -40,24 +40,60 @@ export function codiProfessorBase(valor, fallback = 'PROF') {
   return (net || fallback).slice(0, 4);
 }
 
+export function grupSenseCurs(valor) {
+  const text = senseAccents(netejarText(valor)).toUpperCase().replace(/\s+/g, '');
+  const compacte = text.replace(/[-_./]/g, '');
+  if (!text) return '';
+
+  const batxLlarg = compacte.match(/^[12](?:R|N)?B(?:ATX?|ACH)([A-Z])$/);
+  if (batxLlarg) return batxLlarg[1];
+
+  const batxCurt = compacte.match(/^[12](?:R|N)?B([A-Z])$/);
+  if (batxCurt) return batxCurt[1];
+
+  const esoLlarg = compacte.match(/^[1-4](?:R|N|T)?ESO([A-Z])$/);
+  if (esoLlarg) return esoLlarg[1];
+
+  const esoCurt = compacte.match(/^[1-4]E([A-Z])$/);
+  if (esoCurt) return esoCurt[1];
+
+  return '';
+}
+
 export function normalitzarGrup(grup) {
   const text = netejarText(grup);
-  if (!text || text.includes('+') || text.length <= 1) return text;
+  if (!text) return text;
+  if (text.includes('+')) return text.split('+').map(normalitzarGrup).join('+');
+  const grupIncorporat = grupSenseCurs(text);
+  if (grupIncorporat) return grupIncorporat;
+  if (text.length <= 1) return text;
   if (/^[A-Za-z]+$/.test(text)) return text.split('').join('+');
   return text;
 }
 
+function codiCursBatxUntis(numero) {
+  return numero === '2' ? '2b' : `${numero}B`;
+}
+
 export function codisCurs(curs) {
+  const text = senseAccents(netejarText(curs)).toUpperCase().replace(/\s+/g, '');
+  const compacte = text.replace(/[-_./]/g, '');
+  const batxAmbGrup = compacte.match(/^([12])(?:R|N)?B(?:ATX?|ACH)?[A-Z]$/);
+  if (batxAmbGrup) return [codiCursBatxUntis(batxAmbGrup[1])];
+  const esoAmbGrup = compacte.match(/^([1-4])(?:R|N|T)?ESO[A-Z]$/) || compacte.match(/^([1-4])E[A-Z]$/);
+  if (esoAmbGrup) return [`${esoAmbGrup[1]}ESO`];
+
   const norm = senseAccents(netejarText(curs)).toUpperCase().replace(/[^A-Z0-9]/g, '');
   const eso = norm.match(/^([1-4])[A-Z]*ESO/);
   if (eso) return [`${eso[1]}ESO`];
   const batx = norm.match(/^([12])[A-Z]*B(?:AT)?X?/);
-  if (batx) return [`${batx[1]}B`];
+  if (batx) return [codiCursBatxUntis(batx[1])];
   return [norm].filter(Boolean);
 }
 
 export function grupsClasse(classe) {
-  return normalitzarGrup(classe.grup)
+  const grup = netejarText(classe.grup) || grupSenseCurs(classe.curs);
+  return normalitzarGrup(grup)
     .split('+')
     .map((grup) => netejarText(grup).toUpperCase())
     .filter(Boolean);

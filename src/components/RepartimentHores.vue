@@ -202,7 +202,6 @@ import { classeCompletamentAssignada, professorPrincipalClasse, professorSecunda
 import { esOptativaCompartida, exclosaDelRepartiment, getTipusText } from '../utils/tipus';
 import {
   esTutoriaPrincipal,
-  teTutoriaPrincipalParellada,
   trobarTutoriaAsterisc,
   trobarAssignaturesParelladesTutoria,
   esCapsEstudisClasse,
@@ -236,8 +235,7 @@ const classesDepartament = computed(() => {
   if (!props.departamentSeleccionat) return [];
   return sortClasses(
     classes.value.filter((classe) =>
-      classe.departaments?.includes(props.departamentSeleccionat) &&
-      !teTutoriaPrincipalParellada(classe, classes.value)
+      classe.departaments?.includes(props.departamentSeleccionat)
     )
   );
 });

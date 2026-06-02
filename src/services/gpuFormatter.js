@@ -4,10 +4,11 @@ import {
   TIPUS_NO_LECTIUS, netejarText, senseAccents, normalitzar,
   codiBase, codiUnic, codiProfessorBase,
   codisClasse, grupsClasse, campsBuids, decimalUntis, liniaDif,
-  parseGpu002, limitsJornada, obtenirProfessorsClasse, descarregarText, expandirClassePerGrups,
+  parseGpu002, parseCsvLine, limitsJornada, obtenirProfessorsClasse, descarregarText, expandirClassePerGrups,
 } from './untisUtils';
 import { parseGestibXml, trobarMateriaGestib, trobarMateriaGestibAmbOverride } from './gestibMapper';
-import { agruparClassesPerLlico, esOptativaCompartida } from './lessonBuilder';
+import { agruparClassesPerLlicoExport } from './lessonBuilder';
+import { comptaPerGrupPerTipus } from '../utils/tipus';
 
 function cc(cursId, nom) { return collection(db, 'cursos', cursId, nom); }
 
@@ -52,6 +53,128 @@ function crearMapes(classes, professors) {
 
 function esGuardiaPati(classe) {
   return netejarText(classe?.tipus).toUpperCase() === 'GP';
+}
+
+function codiUntisSegur(codi, fallback = 'MAT') {
+  const text = (codi || '').toString().trim();
+  if (text.startsWith('*')) return codiActivitatProvisional(text);
+
+  const net = text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\\/:*?"<>|;~,\s]+/g, '')
+    .toUpperCase()
+    .trim();
+  return net || codiBase(text, fallback);
+}
+
+function codiClasseUntisSegur(codi) {
+  return (codi || '')
+    .toString()
+    .trim()
+    .replace(/[\\/:*?"<>|;~,\s]+/g, '');
+}
+
+function textUntisSegur(valor) {
+  return netejarText(valor).replace(/[;~*|]+/g, '');
+}
+
+function codiActivitatProvisional(materia) {
+  return codiBase(
+    (materia || '')
+      .toString()
+      .replace(/^\*/, '')
+      .replace(/>55/g, 'majors de 55')
+      .replace(/\b[1-4]\s*ESO[A-Z]*\b/gi, '')
+      .replace(/\b[12]\s*BAT[A-Z]*\b/gi, '')
+      .replace(/\b[12]\s*B[A-Z]*\b/gi, '')
+      .replace(/\s*-\s*[A-Z]\s*$/i, '')
+      .trim(),
+    'ACT'
+  );
+}
+
+function nomActivitatProvisional(materia) {
+  return textUntisSegur(
+    (materia || '')
+      .toString()
+      .replace(/^\*/, '')
+      .replace(/>55/g, 'majors de 55')
+      .replace(/\b[1-4]\s*ESO[A-Z]*\b/gi, '')
+      .replace(/\b[12]\s*BAT[A-Z]*\b/gi, '')
+      .replace(/\b[12]\s*B[A-Z]*\b/gi, '')
+      .replace(/\s*-\s*[A-Z]\s*$/i, '')
+      .trim()
+  ) || 'Activitat';
+}
+
+function classeComptaPerGrupUntis(classe) {
+  if (!classe?.curs || !classe?.grup) return false;
+  if ((classe.materia || '').toString().trim().startsWith('*')) return false;
+  return comptaPerGrupPerTipus(classe.tipus);
+}
+
+function codiMateriaClasse(classe, materiaGestib, codisMateries) {
+  const codi = materiaGestib?.codiUntis ||
+    (esGuardiaPati(classe)
+      ? 'GP'
+      : (classe.materia || '').toString().trim().startsWith('*')
+        ? codiActivitatProvisional(classe.materia)
+        : codisMateries.get(classe.materia));
+  return codiUntisSegur(codi || classe.materia, 'MAT');
+}
+
+function nomMateriaClasse(classe, materiaGestib) {
+  if (materiaGestib) {
+    return textUntisSegur(
+      materiaGestib.cursDescripcio
+        ? `${materiaGestib.descripcio} (${materiaGestib.cursDescripcio})`
+        : materiaGestib.descripcio
+    );
+  }
+  if ((classe.materia || '').toString().trim().startsWith('*')) {
+    return nomActivitatProvisional(classe.materia);
+  }
+  return textUntisSegur(classe.materia);
+}
+
+const CAMPS_ABREVIATURA_UNTIS = {
+  'GPU002.TXT': [4, 5, 6, 41],
+  'GPU003.TXT': [0],
+  'GPU004.TXT': [0],
+  'GPU006.TXT': [0],
+};
+
+function abreviaturaUntisInvalida(valor) {
+  const text = (valor || '').toString();
+  return Boolean(text && (text !== text.trim() || /[;~*|\s]/.test(text)));
+}
+
+function validarAbreviaturesFitxer(fitxer) {
+  const indexs = CAMPS_ABREVIATURA_UNTIS[fitxer.nom];
+  if (!indexs || !fitxer.contingut) return [];
+
+  return fitxer.contingut
+    .split(/\r?\n/)
+    .map((linia, index) => ({ linia, index }))
+    .filter(({ linia }) => linia.trim())
+    .flatMap(({ linia, index }) => {
+      const camps = parseCsvLine(linia);
+      const simbolsProhibits = camps
+        .map((valor, camp) => ({ camp, valor }))
+        .filter(({ valor }) => /[;~*|]/.test((valor || '').toString()));
+      const abreviatures = indexs
+        .map((camp) => ({ camp, valor: camps[camp] || '' }))
+        .filter(({ valor }) => abreviaturaUntisInvalida(valor));
+      return [...simbolsProhibits, ...abreviatures]
+        .map(({ camp, valor }) => `${fitxer.nom}:${index + 1} camp ${camp + 1} (${valor})`);
+    });
+}
+
+function validarFitxersUntis(fitxers) {
+  const incidencies = fitxers.flatMap(validarAbreviaturesFitxer);
+  if (!incidencies.length) return;
+  throw new Error(`S'han detectat abreviatures no valides per a Untis: ${incidencies.slice(0, 5).join('; ')}`);
 }
 
 function crearClassesGuardiesPati(professors) {
@@ -200,8 +323,8 @@ function generarClasses(classes) {
     .sort((a, b) => a.codi.localeCompare(b.codi))
     .map((item) => {
       const camps = campsBuids(31);
-      camps[0] = item.codi;
-      camps[1] = item.nom || item.codi;
+      camps[0] = codiClasseUntisSegur(item.codi);
+      camps[1] = textUntisSegur(item.nom || item.codi);
       return liniaDif(camps, new Set([6, 7, 8, 9, 10, 11, 13, 16, 17, 27]));
     })
     .join('\r\n');
@@ -213,12 +336,12 @@ function generarProfessors(professors, codisProfessors) {
     .sort((a, b) => a.nom.localeCompare(b.nom))
     .map((professor) => {
       const camps = campsBuids(43);
-      camps[0] = codisProfessors.get(professor.nom);
-      camps[1] = professor.nom;
+      camps[0] = codiUntisSegur(codisProfessors.get(professor.nom), 'PROF');
+      camps[1] = textUntisSegur(professor.nom);
       camps[14] = limitsJornada(professor);
-      camps[16] = professor.departament || '';
+      camps[16] = textUntisSegur(professor.departament || '');
       camps[22] = professor.major55 ? '>55' : '';
-      camps[35] = professor.nom;
+      camps[35] = textUntisSegur(professor.nom);
       return liniaDif(camps, new Set([7, 8, 9, 10, 11, 12, 13, 14, 15, 21, 27, 34, 37, 40]));
     })
     .join('\r\n');
@@ -232,10 +355,8 @@ function generarMateries(classes, codisMateries, referenciaGestib, overrides) {
     .flatMap(expandirClassePerGrups)
     .forEach((classe) => {
       const materiaGestib = trobarMateriaGestibAmbOverride(classe, referenciaGestib, overrides);
-      const codi = materiaGestib?.codiUntis || (esGuardiaPati(classe) ? 'GP' : codisMateries.get(classe.materia));
-      const nom = materiaGestib
-        ? `${materiaGestib.descripcio} (${materiaGestib.cursDescripcio})`
-        : classe.materia;
+      const codi = codiMateriaClasse(classe, materiaGestib, codisMateries);
+      const nom = nomMateriaClasse(classe, materiaGestib);
       if (codi && !materies.has(codi)) {
         materies.set(codi, { codi, nom });
       }
@@ -246,7 +367,7 @@ function generarMateries(classes, codisMateries, referenciaGestib, overrides) {
     .map(({ nom, codi }) => {
       const camps = campsBuids(21);
       camps[0] = codi;
-      camps[1] = nom;
+      camps[1] = textUntisSegur(nom);
       return liniaDif(camps, new Set([6, 7, 8, 9, 14, 17, 18]));
     })
     .join('\r\n');
@@ -269,9 +390,9 @@ function crearFilaGpu002({ numero, hores, grups, codiProfessors, codiMateria, ti
   camps[1] = horesNum;
   camps[2] = horesNum;
   camps[3] = horesNum;
-  camps[4] = grups.join('~');
-  camps[5] = codiProfessors.join('~');
-  camps[6] = codiMateria;
+  camps[4] = grups.filter(Boolean)[0] || '';
+  camps[5] = codiProfessors.filter(Boolean)[0] || '';
+  camps[6] = codiUntisSegur(codiMateria, 'MAT');
   camps[9] = 0;
   camps[10] = decimalUntis(horesNum);
   camps[12] = netejarText(tipus);
@@ -281,15 +402,85 @@ function crearFilaGpu002({ numero, hores, grups, codiProfessors, codiMateria, ti
   camps[20] = [
     netejarText(classe.curs),
     netejarText(classe.grup),
-    netejarText(classe.materia),
+    nomMateriaClasse(classe, null),
   ].filter(Boolean).join(' ');
   camps[23] = 'n';
   camps[33] = 0;
   camps[34] = 0;
   camps[39] = Math.round(horesNum * 100000);
   camps[40] = decimalUntis(horesNum);
-  camps[41] = `${codiMateria}_${grups.join('~')}_${numero}`;
+  camps[41] = codiUntisSegur(`${camps[6]}_${camps[4] || 'ACT'}_${camps[5] || 'PROF'}_${numero}`, 'ID');
+  camps.forEach((valor, index) => {
+    if (typeof valor === 'string' && ![4, 5, 6, 41].includes(index)) {
+      camps[index] = textUntisSegur(valor);
+    }
+  });
   camps[45] = 0;
+
+  return camps;
+}
+
+function componentsExportables(components) {
+  const vistos = new Set();
+  return components
+    .flatMap((component) => {
+      const grups = (component.codiGrups || '')
+        .split(',')
+        .map((grup) => grup.trim())
+        .filter(Boolean);
+      return (grups.length ? grups : ['']).map((grup) => ({
+        ...component,
+        codiGrups: grup,
+      }));
+    })
+    .filter((component) => {
+      const clau = [
+        component.codiGrups || '',
+        component.codiProfessor || '',
+        component.codiMateria || '',
+        component.aula || '',
+      ].join('|');
+      if (vistos.has(clau)) return false;
+      vistos.add(clau);
+      return true;
+    });
+}
+
+function prepararCampsLlico({ referencia, numLlico, classe, component, hores, tipus, referenciaGestib, flags }) {
+  const camps = referencia?.camps
+    ? [...referencia.camps]
+    : crearFilaGpu002({
+        numero: numLlico,
+        hores,
+        grups: [component.codiGrups || ''],
+        codiProfessors: [component.codiProfessor],
+        codiMateria: component.codiMateria,
+        tipus,
+        classe,
+        referenciaGestib,
+      });
+
+  const horesNum = Number(hores) || 0;
+  camps[0] = numLlico;
+  camps[1] = horesNum;
+  camps[2] = flags.comptaGrup ? horesNum : '';
+  camps[3] = flags.comptaProfessor ? horesNum : 0;
+  camps[4] = component.codiGrups || '';
+  camps[5] = component.codiProfessor;
+  camps[6] = codiUntisSegur(component.codiMateria, 'MAT');
+  camps[7] = textUntisSegur(component.aula || camps[7] || '');
+  camps[12] = netejarText(tipus);
+  camps[20] = [
+    netejarText(classe.curs),
+    netejarText(component.grup || classe.grup),
+    nomMateriaClasse({ ...classe, materia: component.materia || classe.materia }, null),
+  ].filter(Boolean).join(' ');
+  camps[41] = codiUntisSegur(`${camps[6]}_${component.codiGrups || 'ACT'}_${component.codiProfessor}_${numLlico}`, 'ID');
+  camps.forEach((valor, index) => {
+    if (typeof valor === 'string' && ![4, 5, 6, 41].includes(index)) {
+      camps[index] = textUntisSegur(valor);
+    }
+  });
 
   return camps;
 }
@@ -327,10 +518,11 @@ function componentsLlico(classe, professors, codisProfessors, codisMateries, ref
       });
     }
 
-    const codiMateria = materiaGestib?.codiUntis || (esGuardiaPati(fila) ? 'GP' : codisMateries.get(fila.materia));
+    const codiMateria = codiMateriaClasse(fila, materiaGestib, codisMateries);
     const grupOriginal = classe._preservaGrupsOriginals ? fila.grup : classe.grup;
-    const codiGrups = codisClasse({ ...fila, grup: grupOriginal }).join(',');
-    const teGrupDefinit = Boolean((fila.curs || '').toString().trim() && (grupOriginal || '').toString().trim());
+    const comptaGrup = classeComptaPerGrupUntis({ ...fila, grup: grupOriginal });
+    const codiGrups = comptaGrup ? codisClasse({ ...fila, grup: grupOriginal }).join(',') : '';
+    const teGrupDefinit = comptaGrup;
 
     obtenirProfessorsClasse(fila).forEach((nomProfessor) => {
       const codiProf = codiProfessor(nomProfessor, professors, codisProfessors);
@@ -357,8 +549,12 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
   const vistaPrevia = [];
   let numero = 1;
 
-  const linies = agruparClassesPerLlico(
-    classes.filter((classe) => Number(classe.hores) > 0 && classe.materia)
+  const linies = agruparClassesPerLlicoExport(
+    classes.filter((classe) =>
+      Number(classe.hores) > 0 &&
+      classe.materia &&
+      !TIPUS_NO_LECTIUS.has(netejarText(classe.tipus).toUpperCase())
+    )
   )
     .flatMap((classe) => {
       const tipus = netejarText(classe.tipus).toUpperCase();
@@ -394,58 +590,62 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
         return [];
       }
 
-      const codiProfessorsLlico = components.map((c) => c.codiProfessor);
-      const codiMateria = components.map((c) => c.codiMateria).join('~');
-      const grups = [...new Set(components.map((c) => c.codiGrups))];
+      const componentsUnics = componentsExportables(components);
+      const grups = [...new Set(componentsUnics.map((c) => c.codiGrups))];
       const numLlico = referencia?.num || numero++;
-      const camps = referencia?.camps
-        ? [...referencia.camps]
-        : crearFilaGpu002({
-            numero: numLlico,
-            hores: classe.hores,
-            grups,
-            codiProfessors: codiProfessorsLlico,
-            codiMateria,
-            tipus,
-            classe,
-            referenciaGestib,
-          });
+      const NUMERICS_LLICO = new Set([0, 1, 2, 3, 9, 10, 13, 16, 18, 27, 28, 29, 30, 33, 34, 39, 40, 43, 45]);
+      const hores = Number(classe.hores) || 0;
 
-      if (referencia) {
-        camps[0] = numLlico;
-        camps[1] = Number(classe.hores);
-        camps[2] = Number(classe.hores);
-        camps[3] = Number(classe.hores);
-        camps[4] = grups.join('~');
-        camps[5] = codiProfessorsLlico.join('~');
-        camps[6] = codiMateria;
-        camps[12] = netejarText(classe.tipus);
-      }
+      const filesAgrupades = (classe._filesAgrupades || [classe]).map((fila) => ({
+        curs: fila.curs || '',
+        grup: fila.grup || '',
+        materia: fila.materia || '',
+        hores: Number(fila.hores) || 0,
+        tipus: fila.tipus || '',
+        professor: fila.professorAssignat || fila.professors?.[0] || '',
+      }));
+
+      const primerGrup = new Set();
+      const primerProfessor = new Set();
+      const liniesComponents = componentsUnics.map((component) => {
+        const clauProfessor = `${component.codiProfessor}|${component.codiMateria}`;
+        const flags = {
+          comptaGrup: Boolean(component.codiGrups) && !primerGrup.has(component.codiGrups),
+          comptaProfessor: !primerProfessor.has(clauProfessor),
+        };
+        if (component.codiGrups) primerGrup.add(component.codiGrups);
+        primerProfessor.add(clauProfessor);
+
+        const camps = prepararCampsLlico({
+          referencia,
+          numLlico,
+          classe,
+          component,
+          hores,
+          tipus,
+          referenciaGestib,
+          flags,
+        });
+        return liniaDif(camps, NUMERICS_LLICO);
+      });
 
       vistaPrevia.push({
         numero: numLlico,
         curs: classe.curs || '',
         grup: classe.grup || '',
         materia: classe.materia || '',
-        hores: Number(classe.hores) || 0,
+        hores,
         tipus: netejarText(classe.tipus),
-        professors: components.map((c) => c.professor),
-        codisProfessors: codiProfessorsLlico,
-        codiMateria,
-        codiGrups: camps[4] || grups.join('~'),
+        professors: [...new Set(componentsUnics.map((c) => c.professor))],
+        codisProfessors: [...new Set(componentsUnics.map((c) => c.codiProfessor))],
+        codiMateria: [...new Set(componentsUnics.map((c) => c.codiMateria))].join(', '),
+        codiGrups: grups.join('+'),
         font: referencia ? 'referencia' : 'generat',
         esActivitat: !classe.curs && !classe.grup,
-        filesAgrupades: (classe._filesAgrupades || [classe]).map((fila) => ({
-          curs: fila.curs || '',
-          grup: fila.grup || '',
-          materia: fila.materia || '',
-          hores: Number(fila.hores) || 0,
-          tipus: fila.tipus || '',
-          professor: fila.professorAssignat || fila.professors?.[0] || '',
-        })),
+        filesAgrupades,
       });
 
-      return [liniaDif(camps, new Set([0, 1, 2, 3, 9, 10, 13, 16, 18, 27, 28, 29, 30, 33, 34, 39, 40, 43, 45]))];
+      return liniesComponents;
     });
 
   return {
@@ -514,23 +714,32 @@ function professorsPerSimulacio(professors, referenciaGestib) {
     }));
 }
 
+function hashText(text) {
+  return [...(text || '').toString()].reduce(
+    (hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) >>> 0,
+    0
+  );
+}
+
 function simularAssignacions(classes, professorsSimulacio) {
   const disponibles = professorsSimulacio.map((p) => p.nom).filter(Boolean);
-  let index = 0;
 
   return classes.map((classe) => {
     if (TIPUS_NO_LECTIUS.has((classe.tipus || '').toUpperCase())) return classe;
     if (!disponibles.length) return classe;
-    const totalProfessors = esOptativaCompartida(classe) && disponibles.length > 1 ? 2 : 1;
-    const professorsAssignats = Array.from({ length: totalProfessors }, () => {
-      const profNom = disponibles[index % disponibles.length];
-      index++;
-      return profNom;
-    });
+    const clau = [
+      classe.id,
+      classe.curs,
+      classe.grup,
+      classe.materia,
+      classe.tipus,
+    ].map((part) => normalitzar(part || '')).join('|');
+    const index = hashText(clau) % disponibles.length;
+    const professorAssignat = disponibles[index] || '';
     return {
       ...classe,
-      professorAssignat: professorsAssignats[0] || '',
-      professors: professorsAssignats,
+      professorAssignat,
+      professors: professorAssignat ? [professorAssignat] : [],
       _simulat: true,
     };
   });
@@ -566,6 +775,18 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
     llicons: llicons.text ? llicons.text.split('\r\n').length : 0,
     simulades: simular ? classes.filter((classe) => classe._simulat).length : 0,
   };
+  const fitxers = [
+    { nom: 'GPU003.TXT', descripcio: 'Classes / grups', contingut: classesText },
+    { nom: 'GPU004.TXT', descripcio: 'Professors', contingut: professorsText },
+    { nom: 'GPU006.TXT', descripcio: 'Materies', contingut: materiesText },
+    { nom: 'GPU002.TXT', descripcio: 'Llicons amb professor i grup', contingut: llicons.text },
+    {
+      nom: 'GPU000_REVISIO_EXPORTACIO.TXT',
+      descripcio: 'Incidencies i files no exportades com a llicons',
+      contingut: generarRevisio(llicons.pendents, totals),
+    },
+  ];
+  validarFitxersUntis(fitxers);
 
   return {
     totals,
@@ -582,7 +803,7 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
       : null,
     pendents: llicons.pendents,
     vistaPrevia: llicons.vistaPrevia,
-    fitxers: [
+    fitxersOriginals: [
       { nom: 'GPU003.TXT', descripcio: 'Classes / grups', contingut: classesText },
       { nom: 'GPU004.TXT', descripcio: 'Professors', contingut: professorsText },
       { nom: 'GPU006.TXT', descripcio: 'Matèries', contingut: materiesText },
@@ -593,6 +814,8 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
         contingut: generarRevisio(llicons.pendents, totals),
       },
     ],
+    fitxersOriginals: undefined,
+    fitxers,
   };
 }
 

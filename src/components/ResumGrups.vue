@@ -75,14 +75,14 @@
                 Grup {{ grup }}
               </h4>
               <span v-if="grupTeBordeRojo(classes)" class="text-red-500 text-sm"
-                >âš ï¸</span
+                >&#9888;</span
               >
             </div>
             <div class="text-sm font-medium" :class="getHoresClass(classes)">
               {{ calcularHoresAssignades(classes) }}h /
               {{ calcularTotalHoresGrup(classes) }}h
-              <span v-if="totsAssignats(classes)">âœ…</span>
-              <span v-else>âš ï¸</span>
+              <span v-if="totsAssignats(classes)">&#10004;</span>
+              <span v-else>&#9888;</span>
             </div>
           </div>
 
@@ -132,7 +132,7 @@
                       {{ classe.professorAssignat }}
                     </span>
                     <span v-else class="text-red-500 text-xs"
-                      >âš ï¸ Sense prof.</span
+                      >&#9888; Sense prof.</span
                     >
                   </div>
                 </div>
@@ -165,7 +165,7 @@
                       <span v-if="classe.hores !== item.hores" class="text-xs text-gray-400 dark:text-gray-500">({{ classe.hores }}h)</span>
                     </div>
                     <span v-if="classe.professorAssignat" class="text-gray-500 dark:text-gray-400 text-xs">{{ classe.professorAssignat }}</span>
-                    <span v-else class="text-red-500 text-xs">âš ï¸ Sense prof.</span>
+                    <span v-else class="text-red-500 text-xs">&#9888; Sense prof.</span>
                   </div>
                 </div>
               </div>
@@ -197,7 +197,7 @@
                     <span
                       v-if="!item.classe.professorAssignat"
                       class="text-red-500 text-sm"
-                      >âš ï¸</span
+                      >&#9888;</span
                     >
                   </div>
                   <span class="text-gray-700 dark:text-gray-300 ml-2 shrink-0"
@@ -214,7 +214,7 @@
                   v-else
                   class="text-sm text-red-600 dark:text-red-400 font-medium"
                 >
-                  âš ï¸ Sense professor assignat
+                  &#9888; Sense professor assignat
                 </div>
               </div>
             </template>
@@ -239,7 +239,7 @@
             v-if="coordinationActivitiesSenseAssignar.length > 0"
             class="text-red-500 text-sm"
           >
-            âš ï¸ {{ coordinationActivitiesSenseAssignar.length }} sense assignar
+            &#9888; {{ coordinationActivitiesSenseAssignar.length }} sense assignar
           </span>
         </div>
         <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -289,7 +289,7 @@
               v-else
               class="text-sm text-red-600 dark:text-red-400 font-medium"
             >
-              âš ï¸ Sense professor assignat
+              &#9888; Sense professor assignat
             </div>
             <div
               v-if="activity.departaments?.[0]"
@@ -444,8 +444,9 @@ function esOptativa(tipus) {
 
 function clauFranjaOptativa(tipus) {
   const t = (tipus || '').toUpperCase().trim();
+  if (!esOptativa(t)) return '';
   if (t.startsWith('T')) return `O${t.slice(1)}`;
-  return t || 'O';
+  return t;
 }
 
 function professorsClasse(classe) {
@@ -565,7 +566,10 @@ function agruparClassesPerVista(classesDelGrup) {
       if (!tipusOptativesVists.has(clauOptativa)) {
         tipusOptativesVists.add(clauOptativa);
         const classesDelTipus = classesDelGrup.filter(
-          (c) => clauFranjaOptativa((c.tipus || '').toUpperCase().trim()) === clauOptativa
+          (c) => {
+            const tipusClasse = (c.tipus || '').toUpperCase().trim();
+            return esOptativa(tipusClasse) && clauFranjaOptativa(tipusClasse) === clauOptativa;
+          }
         );
         resultat.push({
           key: `optativa-${clauOptativa}`,

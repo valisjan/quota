@@ -67,7 +67,7 @@
                 </span>
               </td>
               <td class="px-6 py-3 text-center text-red-600 dark:text-red-400 font-medium">
-                âˆ’{{ professor.diferencia }}h
+                -{{ professor.diferencia }}h
               </td>
             </tr>
           </tbody>

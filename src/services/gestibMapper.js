@@ -1,8 +1,8 @@
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import {
-  netejarText, senseAccents, normalitzar, codiBase,
-  grupsClasse, codisClasse, codisCurs, compactarGrup, parseGpu002, expandirClassePerGrups,
+  netejarText, senseAccents, normalitzar, codiBase, codiUnic,
+  grupsClasse, codisClasse, codisCurs, compactarGrup, grupSenseCurs, parseGpu002, expandirClassePerGrups,
 } from './untisUtils';
 
 function cc(cursId, nom) { return collection(db, 'cursos', cursId, nom); }
@@ -25,7 +25,7 @@ function primerNodePerTag(node, tag) {
 
 function parseXmlRobust(text) {
   const parser = new DOMParser();
-  const net = (text || '').replace(/^ï»¿/, '').trim();
+  const net = (text || '').replace(/^\uFEFF/, '').trim();
   let xml = parser.parseFromString(net, 'application/xml');
   let error = xml.querySelector('parsererror');
 
@@ -48,20 +48,17 @@ function parseXmlRobust(text) {
 }
 
 function sufixMateriaCurs(curs = {}) {
-  const desc = senseAccents(curs.descripcio || '').toUpperCase();
-  const eso = desc.match(/^([1-4])\D*ESO/);
+  const codi = codisCurs(curs.descripcio || curs.codi || '')[0] || '';
+  const eso = codi.match(/^([1-4])ESO$/);
   if (eso) return `${eso[1]}E`;
-  const batx = desc.match(/^([12])\D*BATX?/);
+  const batx = codi.match(/^([12])[bB]$/);
   if (batx) return `${batx[1]}B`;
   return '';
 }
 
 function codiCursUntis(curs = {}) {
-  const desc = senseAccents(curs.descripcio || '').toUpperCase();
-  const eso = desc.match(/^([1-4])\D*ESO/);
-  if (eso) return `${eso[1]}ESO`;
-  const batx = desc.match(/^([12])\D*BATX?/);
-  if (batx) return `${batx[1]}B`;
+  const codi = codisCurs(curs.descripcio || curs.codi || '')[0];
+  if (codi) return codi;
   return codiBase(curs.descripcio || curs.codi, 'CURS');
 }
 
@@ -87,8 +84,15 @@ function aliasesCurs(curs = {}) {
 
 function grupMateria(materia = {}) {
   const text = materia.descripcio || materia.curta || '';
-  const match = text.match(/-([A-Za-z0-9]+)$/);
-  return match ? match[1].toUpperCase() : '';
+  const parts = text.split('-').map((part) => part.trim()).filter(Boolean);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const part = parts[i].toUpperCase();
+    const grupIncorporat = grupSenseCurs(part);
+    if (grupIncorporat) return grupIncorporat;
+    if (/^[12]B$/.test(part) || /^[1-4]E(?:SO)?$/.test(part)) continue;
+    if (i > 0) return part;
+  }
+  return '';
 }
 
 function baseMateriaGestib(materia = {}) {
@@ -114,9 +118,20 @@ function esActivitatGuardiaPati(text) {
   );
 }
 
-function codiActivitatUntis(curta, descripcio) {
-  if (esActivitatGuardiaPati(`${curta} ${descripcio}`)) return 'GP';
-  return codiBase(curta || descripcio, 'ACT');
+function codiActivitatUntis(curta, descripcio, usats) {
+  const teAsterisc = /^\s*\*/.test(curta || '') || /^\s*\*/.test(descripcio || '');
+  const curtaNeta = (curta || '').replace(/^\*/, '').trim();
+  const descripcioNeta = (descripcio || '').replace(/^\*/, '').trim();
+  const base = codiBase(curtaNeta || descripcioNeta, 'ACT');
+  return codiUnic(teAsterisc ? `A${base}`.slice(0, 14) : base, usats);
+}
+
+function etiquetaActivitat(curta, descripcio) {
+  const principal = netejarText(curta || descripcio || 'Activitat');
+  if (/^\s*\*/.test(curta || '') || /^\s*\*/.test(descripcio || '')) {
+    return principal.startsWith('*') ? principal : `*${principal}`;
+  }
+  return principal;
 }
 
 export function parseGestibXml(text) {
@@ -162,21 +177,31 @@ export function parseGestibXml(text) {
     return materia;
   });
 
-  const activitatsMap = new Map(
-    nodesPerTag(xml, 'ACTIVITAT').map((node) => {
-      const curta = atribut(node, 'curta').replace(/^\*/, '').trim();
-      const descripcio = atribut(node, 'descripcio').replace(/^\*/, '').trim();
-      const codiUntis = codiActivitatUntis(curta, descripcio);
-      const activitat = {
-        codiGestib: atribut(node, 'codi'),
-        descripcio: atribut(node, 'descripcio'),
-        curta: atribut(node, 'curta'),
-        codiUntis,
-        aliases: [normalitzar(descripcio), normalitzar(curta)].filter(Boolean),
-      };
-      return [codiUntis, activitat];
-    })
-  );
+  const codisActivitatsUsats = new Set();
+  const activitats = nodesPerTag(xml, 'ACTIVITAT').map((node) => {
+    const curta = atribut(node, 'curta');
+    const descripcio = atribut(node, 'descripcio');
+    const curtaNeta = curta.replace(/^\*/, '').trim();
+    const descripcioNeta = descripcio.replace(/^\*/, '').trim();
+    const codiUntis = codiActivitatUntis(curta, descripcio, codisActivitatsUsats);
+    const activitat = {
+      codiGestib: atribut(node, 'codi'),
+      descripcio,
+      curta,
+      etiqueta: etiquetaActivitat(curta, descripcio),
+      codiUntis,
+      teAsterisc: /^\s*\*/.test(curta || '') || /^\s*\*/.test(descripcio || ''),
+      esGuardiaPati: esActivitatGuardiaPati(`${curtaNeta} ${descripcioNeta}`),
+      aliases: [
+        normalitzar(descripcio),
+        normalitzar(curta),
+        normalitzar(descripcioNeta),
+        normalitzar(curtaNeta),
+      ].filter(Boolean),
+    };
+    return activitat;
+  });
+  const activitatsMap = new Map(activitats.map((activitat) => [activitat.codiUntis, activitat]));
 
   return {
     centre: atribut(centreNode, 'codi'),
@@ -190,15 +215,16 @@ export function parseGestibXml(text) {
     departaments: nodesPerTag(xml, 'DEPARTAMENT'),
     materies,
     activitatsMap,
-    activitats: nodesPerTag(xml, 'ACTIVITAT'),
+    activitats,
     aules: nodesPerTag(xml, 'AULA'),
   };
 }
 
-// Abreviatures GestIB conegudes: nom normalitzat de l'app â†’ array de codis curta GestIB possibles
+// Abreviatures GestIB conegudes: nom normalitzat de l'app -> array de codis curta GestIB possibles
 // FI = Filosofia (no Física); Física standalone = FIS; Alemany ESO = SAL, Batx = EAL1/EAL2
 const ABREVIATURES_MATERIA = new Map([
   ['atencioeducativa', ['ae']],
+  ['ae', ['ae']],
   ['angles', ['a', 'lan1', 'lan2']],
   ['psicologia', ['ps']],
   ['matematiquesaplicadesalescienciessocials', ['map1', 'map2']],
@@ -218,8 +244,8 @@ function scorarCandidatsGestib(classe, gestib) {
   if (!gestib) return [];
   const cursRaw = codisCurs(classe.curs || '')[0] || classe.curs || '';
   const cursNorm = normalitzar(cursRaw);
-  const grupNorm = compactarGrup(classe.grup);
   const grupsNorm = grupsClasse(classe).map((grup) => compactarGrup(grup));
+  const grupNorm = compactarGrup(classe.grup) || grupsNorm[0] || '';
   const materiaNorm = normalitzar(classe.materia);
   const tenimCurs = !!cursNorm;
 
@@ -248,7 +274,7 @@ function scorarCandidatsGestib(classe, gestib) {
     }
 
     if (baseNorm === materiaNorm) score += 140;
-    else if (baseNorm.includes(materiaNorm) || materiaNorm.includes(baseNorm)) score += 80;
+    else if (baseNorm.length >= 2 && materiaNorm.length >= 2 && (baseNorm.includes(materiaNorm) || materiaNorm.includes(baseNorm))) score += 80;
     else if (materiaNorm.length >= 5 && descNorm.includes(materiaNorm)) score += 90;
     else if (descNorm.includes(materiaNorm) || curtaNorm.includes(materiaNorm)) score += 55;
 
@@ -270,13 +296,29 @@ export function trobarMateriaGestib(classe, referenciaGestib) {
   return candidates[0]?.materia || null;
 }
 
+function baseActivitat(text) {
+  return (text || '')
+    .replace(/^\*/, '')
+    .replace(/>55/g, 'majors de 55')
+    .replace(/\b[1-4]\s*ESO[A-Z]*\b/gi, '')
+    .replace(/\b[12]\s*BAT[A-Z]*\b/gi, '')
+    .replace(/\b[12]\s*B[A-Z]*\b/gi, '')
+    .replace(/\s*-\s*[A-Z]\s*$/i, '')
+    .trim();
+}
+
+function normMateriaActivitat(materia) {
+  return normalitzar(baseActivitat(materia));
+}
+
 function trobarActivitatGestib(classe, gestib) {
   if (!gestib?.activitatsMap?.size) return null;
-  const materiaNorm = normalitzar(classe.materia || '');
+  const materiaNorm = normMateriaActivitat(classe.materia);
+  const demanaAsterisc = (classe.materia || '').toString().trim().startsWith('*');
   const tipus = netejarText(classe.tipus || '').toUpperCase();
   if (tipus === 'GP') {
     for (const activitat of gestib.activitatsMap.values()) {
-      if (activitat.codiUntis === 'GP' || esActivitatGuardiaPati(`${activitat.descripcio} ${activitat.curta}`)) {
+      if (activitat.esGuardiaPati) {
         return activitat;
       }
     }
@@ -284,33 +326,42 @@ function trobarActivitatGestib(classe, gestib) {
   let millor = null;
   let millorScore = 0;
   for (const activitat of gestib.activitatsMap.values()) {
-    const score = activitat.aliases.reduce((s, alias) => {
+    let score = activitat.aliases.reduce((s, alias) => {
       if (alias === materiaNorm) return s + 120;
       if (alias.includes(materiaNorm) || materiaNorm.includes(alias)) return s + 60;
       return s;
     }, 0);
+    if (demanaAsterisc === Boolean(activitat.teAsterisc)) score += 25;
+    else if (demanaAsterisc) score -= 25;
     if (score > millorScore) { millorScore = score; millor = activitat; }
   }
   return millorScore >= 60 ? millor : null;
 }
 
 export function trobarMateriaGestibAmbOverride(classe, gestib, overrides) {
+  const senseAmbdos = !classe.curs && !classe.grup;
+  const esActivitatPerMateria = (classe.materia || '').startsWith('*');
   if (overrides) {
     const clau = clauOverride(classe);
     const codiUntis = overrides[clau];
     if (codiUntis) {
-      const mat = gestib?.materies.find((m) => m.codiUntis === codiUntis);
+      const mat = (!senseAmbdos && !esActivitatPerMateria)
+        ? gestib?.materies.find((m) => m.codiUntis === codiUntis)
+        : null;
       if (mat) return mat;
       const act = gestib?.activitatsMap?.get(codiUntis);
-      if (act) return { codiUntis: act.codiUntis, descripcio: act.descripcio.replace(/^\*/, '').trim(), cursDescripcio: '' };
-      return { codiUntis, descripcio: codiUntis, cursDescripcio: '' };
+      if (act) return { codiUntis: act.codiUntis, descripcio: act.etiqueta || act.descripcio.replace(/^\*/, '').trim(), cursDescripcio: '' };
+      if (!gestib) {
+        const descripcio = baseActivitat(codiUntis) || codiUntis;
+        return { codiUntis: codiBase(descripcio, 'MAT'), descripcio, cursDescripcio: '' };
+      }
     }
   }
-  const materiaMatch = trobarMateriaGestib(classe, gestib);
-  if (materiaMatch) return materiaMatch;
-  // Per a classes sense grup (tutories, suport, desdobles...) busquem també
-  // entre les ACTIVITATs del XML, que inclouen activitats no lligades a cap grup
-  if (!classe.grup) return trobarActivitatGestib(classe, gestib);
+  if (!senseAmbdos && !esActivitatPerMateria) {
+    const materiaMatch = trobarMateriaGestib(classe, gestib);
+    if (materiaMatch) return materiaMatch;
+  }
+  if (!classe.grup || esActivitatPerMateria) return trobarActivitatGestib(classe, gestib);
   return null;
 }
 
@@ -320,20 +371,25 @@ export function clauOverride(classe) {
 
 export function trobarCandidatsGestib(classe, gestib, n = 8) {
   const senseAmbdos = !classe.curs && !classe.grup;
+  const esActivitatPerMateria = (classe.materia || '').toString().trim().startsWith('*');
 
-  if (senseAmbdos) {
-    const materiaNorm = normalitzar(classe.materia || '');
+  if (senseAmbdos || esActivitatPerMateria) {
+    const materiaNorm = normMateriaActivitat(classe.materia);
+    const demanaAsterisc = esActivitatPerMateria;
     const candidats = [];
     if (gestib?.activitatsMap?.size) {
       for (const activitat of gestib.activitatsMap.values()) {
-        const score = activitat.aliases.reduce((s, alias) => {
+        let score = activitat.aliases.reduce((s, alias) => {
           if (alias === materiaNorm) return s + 120;
           if (alias.includes(materiaNorm) || materiaNorm.includes(alias)) return s + 60;
           return s;
         }, 40);
+        if (demanaAsterisc === Boolean(activitat.teAsterisc)) score += 25;
+        else if (demanaAsterisc) score -= 25;
         candidats.push({
           codiUntis: activitat.codiUntis,
           label: `${activitat.codiUntis} · ${activitat.descripcio.replace(/^\*/, '').trim()}`,
+          label: [activitat.codiUntis, activitat.etiqueta || activitat.descripcio].join(' · '),
           score,
         });
       }
@@ -411,7 +467,8 @@ export async function previsualitzarMapeigGestib(cursId, gestibXmlText, gpu002Te
 
     const senseAmbdos = !classe.curs && !classe.grup;
     const esCoordinacio = netejarText(classe.tipus || '').toUpperCase() === 'C';
-    const esActivitat = senseAmbdos || esCoordinacio;
+    const esActivitatPerMateria = (classe.materia || '').startsWith('*');
+    const esActivitat = senseAmbdos || esCoordinacio || esActivitatPerMateria;
 
     let estat = 'pendent';
     let autoCodiUntis = null;
@@ -424,7 +481,7 @@ export async function previsualitzarMapeigGestib(cursId, gestibXmlText, gpu002Te
         autoCodiUntis = act.codiUntis;
         autoLabel = act.descripcio.replace(/^\*/, '').trim();
       }
-    } else if (senseAmbdos) {
+    } else if (senseAmbdos || esActivitatPerMateria) {
       const act = trobarActivitatGestib(classe, gestib);
       if (act) {
         estat = 'autoMatch';

@@ -153,7 +153,7 @@
               <span
                 v-if="codiActualMapeig(m)"
                 class="shrink-0 text-sm font-semibold text-green-700 dark:text-green-400"
-              >âœ“</span>
+              >&#10003;</span>
             </div>
           </div>
           <p v-if="classesFiltrades.length === 0" class="px-4 py-6 text-center text-sm text-slate-400 dark:text-slate-500">
@@ -640,12 +640,75 @@ const totesMateriesOpcions = computed(() => {
     .sort((a, b) => a.codiUntis.localeCompare(b.codiUntis));
 });
 
-const totesActivitatsOpcions = computed(() => {
+const totesActivitatsOpcionsObsoletes = computed(() => {
   if (!gestibActual.value?.activitatsMap) return [];
   return [...gestibActual.value.activitatsMap.values()]
     .map((a) => ({ codiUntis: a.codiUntis, label: `${a.codiUntis} · ${a.descripcio.replace(/^\*/, '').trim()}`, cursDescripcio: '' }))
     .sort((a, b) => a.codiUntis.localeCompare(b.codiUntis));
 });
+
+const totesActivitatsOpcions = computed(() => {
+  if (!gestibActual.value?.activitatsMap) return [];
+  return [...gestibActual.value.activitatsMap.values()]
+    .map((a) => ({
+      codiUntis: a.codiUntis,
+      label: [a.codiUntis, a.etiqueta || a.descripcio].filter(Boolean).join(' · '),
+      cursDescripcio: '',
+    }))
+    .sort((a, b) => a.codiUntis.localeCompare(b.codiUntis));
+});
+
+const materiesOpcionsUntis = computed(() => {
+  if (!gestibActual.value?.materies) return [];
+  return gestibActual.value.materies
+    .map((m) => ({
+      codiUntis: m.codiUntis,
+      label: ['Materia', m.codiUntis, m.descripcio].filter(Boolean).join(' - '),
+      cursDescripcio: m.cursDescripcio || '',
+    }))
+    .sort((a, b) => a.codiUntis.localeCompare(b.codiUntis));
+});
+
+const activitatsOpcionsUntis = computed(() => {
+  if (!gestibActual.value?.activitatsMap) return [];
+  return [...gestibActual.value.activitatsMap.values()]
+    .map((a) => ({
+      codiUntis: a.codiUntis,
+      label: ['Activitat', a.codiUntis, a.etiqueta || a.descripcio].filter(Boolean).join(' - '),
+      cursDescripcio: '',
+    }))
+    .sort((a, b) => a.codiUntis.localeCompare(b.codiUntis));
+});
+
+function esMapeigActivitat(m) {
+  return Boolean(m?.senseAmbdos || m?.esActivitat || (m?.materia || '').toString().trim().startsWith('*'));
+}
+
+function poolOpcionsPerMapeig(m) {
+  if (esMapeigActivitat(m)) return activitatsOpcionsUntis.value;
+  return [...materiesOpcionsUntis.value, ...activitatsOpcionsUntis.value];
+}
+
+function codisValidsPerMapeig(m) {
+  return new Set(poolOpcionsPerMapeig(m).map((opcio) => opcio.codiUntis));
+}
+
+function netejarMapeigManual(classesMapeig, overrides) {
+  const perClau = new Map(classesMapeig.map((m) => [m.clau, m]));
+  const net = {};
+  let eliminats = 0;
+
+  Object.entries(overrides || {}).forEach(([clau, codiUntis]) => {
+    const m = perClau.get(clau);
+    if (!m || !codisValidsPerMapeig(m).has(codiUntis)) {
+      eliminats++;
+      return;
+    }
+    net[clau] = codiUntis;
+  });
+
+  return { net, eliminats };
+}
 
 function codiActualMapeig(m) {
   return mapeigManual.value[m.clau] || m.autoCodiUntis || '';
@@ -672,12 +735,22 @@ function estatMapeigEtiqueta(m) {
   return 'Pendent';
 }
 
+function pesCurs(curs) {
+  const c = (curs || '').toUpperCase().replace(/[\s.]/g, '');
+  const eso = c.match(/^([1-4])ESO/);
+  if (eso) return parseInt(eso[1]);
+  const bat = c.match(/^([12])BAT/);
+  if (bat) return 4 + parseInt(bat[1]);
+  return 99;
+}
+
 function opcionsPerClau(m) {
-  const pool = m.esActivitat ? totesActivitatsOpcions.value : totesMateriesOpcions.value;
+  const pool = poolOpcionsPerMapeig(m);
   const suggeritsSet = new Set((m.candidats || []).map((c) => c.codiUntis));
   const suggerits = (m.candidats || []).map((c) => ({
     value: c.codiUntis,
     nom: c.label.replace(/^[A-Z0-9-]+\s*·\s*/, '').trim(),
+    nom: c.label,
     suggerit: true,
   }));
   const rest = pool
@@ -685,6 +758,7 @@ function opcionsPerClau(m) {
     .map((item) => ({
       value: item.codiUntis,
       nom: [item.label.replace(/^[A-Z0-9-]+\s*·\s*/, '').trim(), item.cursDescripcio].filter(Boolean).join(' - '),
+      nom: [item.label, item.cursDescripcio].filter(Boolean).join(' - '),
       suggerit: false,
     }));
   return [...suggerits, ...rest];
@@ -889,7 +963,26 @@ async function analitzarMapeig() {
       referenciaGpu002Text.value,
     );
     gestibActual.value = resultat.gestib;
-    totes.value = resultat.classes;
+    totes.value = resultat.classes.sort((a, b) => {
+      if (a.esActivitat !== b.esActivitat) return a.esActivitat ? 1 : -1;
+      const byCurs = pesCurs(a.curs) - pesCurs(b.curs)
+        || (a.curs || '').localeCompare(b.curs || '', 'ca');
+      if (byCurs !== 0) return byCurs;
+      const byGrup = (a.grup || '').localeCompare(b.grup || '', 'ca');
+      if (byGrup !== 0) return byGrup;
+      return (a.materia || '').localeCompare(b.materia || '', 'ca');
+    });
+
+    const mapeigNet = netejarMapeigManual(resultat.classes, mapeigManual.value);
+    if (mapeigNet.eliminats > 0) {
+      mapeigManual.value = mapeigNet.net;
+      await setDoc(
+        mapeigRef(cursStore.cursActiuId),
+        { overrides: mapeigManual.value },
+        { merge: true }
+      );
+      toast.ok(`${mapeigNet.eliminats} mapeigs antics eliminats.`);
+    }
 
     const nousMapeigs = {};
     for (const m of resultat.classes) {
@@ -1001,8 +1094,8 @@ function estatBadgeClass(estat) {
 function estatEtiqueta(estat) {
   const etiquetes = {
     ok: 'OK',
-    diferentProf: 'Prof â‰ ',
-    diferentHores: 'Hores â‰ ',
+    diferentProf: 'Prof !=',
+    diferentHores: 'Hores !=',
     noTrobat: 'No trobat',
     senseProfGpu: 'Sense prof GPU',
     senseProfApp: 'Sense prof App',

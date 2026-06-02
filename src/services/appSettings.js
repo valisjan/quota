@@ -1,11 +1,15 @@
 import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 
+export const DEFAULT_SHEETS_ID = '1uKYDn_2-KyHVJrlfLAHWvZ-YvPIRpv2SlSDUhdQfnA0';
+
 export const DEFAULT_APP_SETTINGS = {
   tancamentAdmin: false,
   departamentsTancats: {},
   missatgeTancament: '',
   totalGuardiesPati: 30,
+  sheetsId: DEFAULT_SHEETS_ID,
+  sheetsIdAnterior: '',
 };
 
 const noop = () => {};
