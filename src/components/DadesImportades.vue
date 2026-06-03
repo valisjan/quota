@@ -12,15 +12,14 @@
             Consulta de les dades que venen del full de càlcul. Els canvis estructurals es fan a Google Sheets i després se sincronitzen.
           </p>
         </div>
-        <router-link
-          to="/admin/sincronitzacio"
-          class="inline-flex items-center justify-center rounded-lg bg-[#0024B6] px-4 py-2 text-sm font-semibold text-white hover:bg-[#001A8A] dark:bg-[#3355CC] dark:hover:bg-[#0024B6]"
-        >
-          Sincronització
-        </router-link>
+        <div class="rounded-lg border border-blue-100 bg-blue-50 px-4 py-2 text-sm font-semibold text-[#0024B6] dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-200">
+          Sincronitza i revisa les dades des d'aquesta pantalla.
+        </div>
       </div>
       </div>
     </section>
+
+    <Sincronitzacio embedded />
 
     <section class="grid grid-cols-1 gap-3 md:grid-cols-3">
       <div
@@ -57,7 +56,7 @@
           <div>
             <h3 class="text-lg font-bold text-slate-950 dark:text-white">Classes</h3>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Carrega només el que necessites revisar.
+              Es carreguen totes les classes; usa els filtres per acotar la revisió.
             </p>
           </div>
           <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-gray-700" @click="netejarFiltresClasses">
@@ -121,25 +120,13 @@
 
         <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p class="text-sm text-slate-500 dark:text-slate-400">
-            <span v-if="teFiltreEstructurat">
-              {{ classesFiltrades.length }} classes carregades amb el filtre actual.
-            </span>
-            <span v-else>
-              Tria departament, curs, tipus o professor per carregar classes.
-            </span>
+            {{ classesFiltrades.length }} classes visibles de {{ classes.length }} carregades.
           </p>
         </div>
       </div>
 
       <div v-if="carregantClasses" class="rounded-lg border border-slate-200 bg-white p-8 text-center text-slate-500 dark:border-slate-700 dark:bg-gray-800">
         Carregant classes...
-      </div>
-
-      <div v-else-if="!teFiltreEstructurat" class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-10 text-center dark:border-slate-700 dark:bg-gray-900">
-        <p class="font-semibold text-slate-900 dark:text-white">Aplica un filtre per veure classes.</p>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Així evitem carregar tota la quota cada vegada.
-        </p>
       </div>
 
       <div v-else-if="classesFiltrades.length === 0" class="rounded-lg border border-slate-200 bg-white p-10 text-center dark:border-slate-700 dark:bg-gray-800">
@@ -251,6 +238,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { getDocs, query, where } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
 import { professorsClasse } from '../utils/horesProfessor';
+import Sincronitzacio from './Sincronitzacio.vue';
 
 const tabs = [
   { id: 'classes', label: 'Classes' },
@@ -273,15 +261,6 @@ const filtresClasses = reactive({
   tipus: '',
   professor: '',
 });
-
-const teFiltreEstructurat = computed(() =>
-  Boolean(
-    filtresClasses.departament ||
-      filtresClasses.curs ||
-      filtresClasses.tipus ||
-      filtresClasses.professor
-  )
-);
 
 const clauFiltresClasses = computed(() =>
   [
@@ -365,8 +344,8 @@ const resumDades = computed(() => [
   },
   {
     label: 'Classes visibles',
-    value: teFiltreEstructurat.value ? classesFiltrades.value.length : '-',
-    detail: teFiltreEstructurat.value ? 'amb el filtre actual' : 'aplica un filtre',
+    value: classesFiltrades.value.length,
+    detail: `${classes.value.length} classes carregades`,
   },
 ]);
 
@@ -399,10 +378,6 @@ async function carregarDepartaments() {
 
 async function carregarClasses() {
   error.value = '';
-  if (!teFiltreEstructurat.value) {
-    classes.value = [];
-    return;
-  }
 
   carregantClasses.value = true;
   try {

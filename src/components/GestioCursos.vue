@@ -1,18 +1,19 @@
 <template>
-  <div class="max-w-2xl space-y-5">
-    <!-- Crear curs nou -->
+  <div class="max-w-3xl space-y-5">
     <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div class="flex items-center justify-between gap-4">
         <div>
           <h3 class="font-semibold text-slate-900">Crear curs nou</h3>
-          <p class="mt-0.5 text-sm text-slate-500">Següent curs: <strong>{{ cursSegüent }}</strong></p>
+          <p class="mt-0.5 text-sm text-slate-500">
+            Següent curs: <strong>{{ cursSeguent }}</strong>
+          </p>
         </div>
         <button
           @click="crearCurs"
-          :disabled="!cursSegüent || creant || cursJaExisteix"
+          :disabled="!cursSeguent || creant || cursJaExisteix"
           class="shrink-0 rounded-lg bg-[#0024B6] px-4 py-2 text-sm font-medium text-white hover:bg-[#001A8A] disabled:opacity-50"
         >
-          {{ creant ? 'Creant...' : `Crear ${cursSegüent}` }}
+          {{ creant ? 'Creant...' : `Crear ${cursSeguent}` }}
         </button>
       </div>
       <p v-if="cursJaExisteix" class="mt-2 text-sm font-medium text-amber-600">
@@ -20,11 +21,12 @@
       </p>
     </div>
 
-    <!-- Llista de cursos -->
     <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
       <div class="border-b border-slate-200 bg-slate-50 px-5 py-4">
         <h3 class="font-semibold text-slate-900">Cursos</h3>
-        <p class="mt-1 text-sm text-slate-500">Selecciona el curs actiu o bloqueja els tancats.</p>
+        <p class="mt-1 text-sm text-slate-500">
+          Selecciona el curs actiu, bloqueja els tancats o elimina completament un curs de proves.
+        </p>
       </div>
 
       <div v-if="cursStore.cursos.length === 0" class="p-5 text-sm text-slate-400">
@@ -35,7 +37,7 @@
         <div
           v-for="curs in cursStore.cursos"
           :key="curs.id"
-          class="flex items-center justify-between px-5 py-4"
+          class="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
           :class="curs.id === cursStore.cursActiuId ? 'bg-emerald-50/40' : ''"
         >
           <div>
@@ -52,7 +54,7 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <button
               v-if="curs.id !== cursStore.cursActiuId"
               @click="cursStore.canviarCursActiu(curs.id)"
@@ -70,44 +72,68 @@
               {{ curs.bloqueig ? 'Desbloquejar' : 'Bloquejar' }}
             </button>
             <button
-              v-if="curs.id !== cursStore.cursActiuId"
-              @click="confirmarEliminació(curs)"
+              @click="confirmarBorratTotal(curs)"
               :disabled="eliminant === curs.id"
               class="rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
             >
-              {{ eliminant === curs.id ? '...' : 'Eliminar' }}
+              {{ eliminant === curs.id ? 'Esborrant...' : 'Borrat total' }}
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Confirmació eliminació -->
     <div
-      v-if="cursAEliminar"
+      v-if="cursABorrarTotal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      @click.self="cursAEliminar = null"
+      @click.self="tancarBorratTotal"
     >
-      <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
-        <h4 class="text-lg font-semibold text-slate-900">Eliminar curs</h4>
+      <div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+        <h4 class="text-lg font-semibold text-red-700">Borrat total del curs acadèmic</h4>
         <p class="mt-2 text-sm text-slate-600">
-          Estàs a punt d'eliminar el curs
-          <strong>{{ cursAEliminar.nom || cursAEliminar.id }}</strong>.
-          Només elimina el curs si és buit (sense classes ni professors importats).
-          Les subcol·leccions no s'eliminen automàticament.
+          Aquesta acció eliminarà definitivament el curs
+          <strong>{{ cursABorrarTotal.nom || cursABorrarTotal.id }}</strong>
+          i tots els seus rastres: classes, professorat, departaments, historial de sincronització,
+          presència, configuració i mapeig Untis del curs.
         </p>
-        <div class="mt-4 flex justify-end gap-3">
+        <label class="mt-4 flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700">
+          <input
+            v-model="eliminarPreautoritzats"
+            type="checkbox"
+            class="mt-0.5 h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500"
+            :disabled="Boolean(eliminant)"
+          />
+          <span>
+            Eliminar també les preautoritzacions globals dels professors d'aquest curs.
+            No elimina comptes d'usuari ja creats.
+          </span>
+        </label>
+        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          No es pot desfer. Escriu exactament
+          <strong>{{ textConfirmacioBorrat }}</strong>
+          per activar el botó de borrat.
+        </div>
+        <input
+          v-model="confirmacioBorratTotal"
+          type="text"
+          class="mt-4 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+          :placeholder="textConfirmacioBorrat"
+          @keyup.enter="potConfirmarBorrat && eliminarCurs(cursABorrarTotal)"
+        />
+        <div class="mt-5 flex justify-end gap-3">
           <button
-            @click="cursAEliminar = null"
-            class="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            @click="tancarBorratTotal"
+            :disabled="Boolean(eliminant)"
+            class="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             Cancel·lar
           </button>
           <button
-            @click="eliminarCurs(cursAEliminar)"
-            class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            @click="eliminarCurs(cursABorrarTotal)"
+            :disabled="!potConfirmarBorrat || eliminant === cursABorrarTotal.id"
+            class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Eliminar
+            {{ eliminant === cursABorrarTotal.id ? 'Esborrant...' : 'Esborrar-ho tot' }}
           </button>
         </div>
       </div>
@@ -124,9 +150,11 @@ const cursStore = useCursStore();
 const toast = useToastStore();
 const creant = ref(false);
 const eliminant = ref(null);
-const cursAEliminar = ref(null);
+const cursABorrarTotal = ref(null);
+const confirmacioBorratTotal = ref('');
+const eliminarPreautoritzats = ref(true);
 
-const cursSegüent = computed(() => {
+const cursSeguent = computed(() => {
   if (cursStore.cursos.length === 0) return '2025/2026';
   const last = cursStore.cursos[0];
   const nom = last.nom || last.id.replace('-', '/');
@@ -137,17 +165,25 @@ const cursSegüent = computed(() => {
 });
 
 const cursJaExisteix = computed(() =>
-  !!cursSegüent.value && cursStore.cursos.some(
-    (c) => c.nom === cursSegüent.value || c.id === cursSegüent.value.replace('/', '-')
+  !!cursSeguent.value && cursStore.cursos.some(
+    (c) => c.nom === cursSeguent.value || c.id === cursSeguent.value.replace('/', '-')
   )
 );
 
+const textConfirmacioBorrat = computed(() =>
+  cursABorrarTotal.value ? (cursABorrarTotal.value.nom || cursABorrarTotal.value.id) : ''
+);
+
+const potConfirmarBorrat = computed(() =>
+  confirmacioBorratTotal.value.trim() === textConfirmacioBorrat.value
+);
+
 async function crearCurs() {
-  if (!cursSegüent.value || cursJaExisteix.value) return;
+  if (!cursSeguent.value || cursJaExisteix.value) return;
   creant.value = true;
   try {
-    await cursStore.crearCurs(cursSegüent.value);
-    toast.ok(`Curs ${cursSegüent.value} creat correctament.`);
+    await cursStore.crearCurs(cursSeguent.value);
+    toast.ok(`Curs ${cursSeguent.value} creat correctament.`);
   } catch (e) {
     toast.error('Error creant el curs: ' + e.message);
   } finally {
@@ -165,18 +201,34 @@ async function toggleBloqueig(curs) {
   }
 }
 
-function confirmarEliminació(curs) {
-  cursAEliminar.value = curs;
+function confirmarBorratTotal(curs) {
+  cursABorrarTotal.value = curs;
+  confirmacioBorratTotal.value = '';
+  eliminarPreautoritzats.value = true;
+}
+
+function tancarBorratTotal() {
+  if (eliminant.value) return;
+  cursABorrarTotal.value = null;
+  confirmacioBorratTotal.value = '';
+  eliminarPreautoritzats.value = true;
 }
 
 async function eliminarCurs(curs) {
+  if (!curs || !potConfirmarBorrat.value) return;
+  const etiqueta = curs.nom || curs.id;
   eliminant.value = curs.id;
-  cursAEliminar.value = null;
   try {
-    await cursStore.eliminarCurs(curs.id);
-    toast.ok(`Curs ${curs.nom || curs.id} eliminat.`);
+    const resum = await cursStore.eliminarCurs(curs.id, {
+      eliminarPreautoritzats: eliminarPreautoritzats.value,
+    });
+    const registres = Math.max((resum?.total || 1) - 1, 0);
+    toast.ok(`Curs ${etiqueta} esborrat. S'han eliminat ${registres} registres associats.`);
+    cursABorrarTotal.value = null;
+    confirmacioBorratTotal.value = '';
+    eliminarPreautoritzats.value = true;
   } catch (e) {
-    toast.error('Error eliminant el curs: ' + e.message);
+    toast.error('Error esborrant el curs: ' + e.message);
   } finally {
     eliminant.value = null;
   }

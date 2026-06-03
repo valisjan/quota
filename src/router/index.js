@@ -6,7 +6,6 @@ const Admin = () => import('../views/Admin.vue');
 const Departament = () => import('../views/Departament.vue');
 const Resums = () => import('../views/Resums.vue');
 const DadesImportades = () => import('../components/DadesImportades.vue');
-const Sincronitzacio = () => import('../components/Sincronitzacio.vue');
 const ExportUntis = () => import('../components/ExportUntis.vue');
 const Tancament = () => import('../components/Tancament.vue');
 const UsuarisAdmin = () => import('../components/UsuarisAdmin.vue');
@@ -24,7 +23,7 @@ const routes = [
       { path: 'professors', redirect: '/admin/dades' },
       { path: 'departaments', redirect: '/admin/dades' },
       { path: 'dades', component: DadesImportades },
-      { path: 'sincronitzacio', component: Sincronitzacio },
+      { path: 'sincronitzacio', redirect: '/admin/dades' },
       { path: 'untis', component: ExportUntis },
       { path: 'tancament', component: Tancament },
       { path: 'parametres', component: Configuracio },

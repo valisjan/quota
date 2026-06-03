@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { eliminarCursAcademicComplet } from '../services/cursCleanup';
 
 const STORAGE_KEY = 'quota_curs_actiu';
 
@@ -74,8 +75,8 @@ export const useCursStore = defineStore('curs', () => {
     localStorage.setItem(STORAGE_KEY, id);
   }
 
-  async function eliminarCurs(cursId) {
-    await deleteDoc(doc(db, 'cursos', cursId));
+  async function eliminarCurs(cursId, options = {}) {
+    return eliminarCursAcademicComplet(cursId, options);
   }
 
   function aturar() {

@@ -52,7 +52,7 @@
             <div class="mt-4 space-y-2">
               <button
                 v-if="authStore.esAdmin()"
-                @click="router.push('/admin/sincronitzacio')"
+                @click="router.push('/admin/dades')"
                 class="portal-action portal-action-primary"
               >
                 Administració

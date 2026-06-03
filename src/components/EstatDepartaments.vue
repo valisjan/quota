@@ -17,7 +17,7 @@
           <router-link to="/admin/dades" class="rounded-md bg-[#0024B6] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#001A8A]">
             Revisar pendents
           </router-link>
-          <router-link to="/admin/sincronitzacio" class="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+          <router-link to="/admin/dades" class="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
             Sincronitzar
           </router-link>
           <router-link to="/admin/untis" class="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">

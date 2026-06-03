@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-2xl space-y-4">
+  <div :class="embedded ? 'space-y-4' : 'max-w-2xl space-y-4'">
     <!-- Capçalera -->
     <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
       <div class="border-b border-slate-200 bg-slate-50 px-5 py-4">
@@ -130,18 +130,27 @@
     </div>
 
     <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div class="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
-        <h3 class="text-xl font-semibold text-slate-950">
-          Historial de sincronitzacions
-        </h3>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Últimes sincronitzacions guardades a Firestore.
-        </p>
-      </div>
-      <div v-if="historial.length === 0" class="p-5 text-sm text-slate-500 dark:text-slate-400">
+      <button
+        type="button"
+        class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+        @click="historialObert = !historialObert"
+      >
+        <div>
+          <h3 class="text-lg font-semibold text-slate-950">
+            Historial de sincronitzacions
+          </h3>
+          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            {{ historial.length }} registres guardats a Firestore.
+          </p>
+        </div>
+        <span class="rounded-md border border-slate-200 px-2 py-1 text-sm font-semibold text-slate-600">
+          {{ historialObert ? 'Amaga' : 'Mostra' }}
+        </span>
+      </button>
+      <div v-if="historialObert && historial.length === 0" class="border-t border-slate-100 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
         {{ errorHistorialMsg || 'Encara no hi ha sincronitzacions registrades.' }}
       </div>
-      <div v-else class="divide-y divide-slate-100 dark:divide-slate-700">
+      <div v-else-if="historialObert" class="divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-700 dark:border-slate-700">
         <div
           v-for="item in historial"
           :key="item.id"
@@ -181,6 +190,10 @@ import { useCursStore } from '../stores/curs';
 import { useToastStore } from '../stores/toast';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
 
+defineProps({
+  embedded: { type: Boolean, default: false },
+});
+
 const authStore = useAuthStore();
 const cursStore = useCursStore();
 const toast = useToastStore();
@@ -196,6 +209,7 @@ const statsSync = ref({
   assignacionsConservades: 0, totalProfs: 0, totalDeps: 0,
 });
 const historial = ref([]);
+const historialObert = ref(false);
 const settings = ref({ ...DEFAULT_APP_SETTINGS });
 let historialUnsubscribe = null;
 let settingsUnsubscribe = null;
