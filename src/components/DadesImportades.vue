@@ -5,15 +5,15 @@
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p class="text-sm font-medium text-slate-500">
-            Font de veritat: Google Sheets
+            Origen: Google Sheets
           </p>
           <h2 class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">Dades importades</h2>
           <p class="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-            Consulta de les dades que venen del full de càlcul. Els canvis estructurals es fan a Google Sheets i després se sincronitzen.
+            Revisa les dades importades del full de càlcul. Els canvis estructurals es fan a Google Sheets i després se sincronitzen.
           </p>
         </div>
         <div class="rounded-lg border border-blue-100 bg-blue-50 px-4 py-2 text-sm font-semibold text-[#0024B6] dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-200">
-          Sincronitza i revisa les dades des d'aquesta pantalla.
+          Revisió i sincronització
         </div>
       </div>
       </div>
@@ -56,11 +56,11 @@
           <div>
             <h3 class="text-lg font-bold text-slate-950 dark:text-white">Classes</h3>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Es carreguen totes les classes; usa els filtres per acotar la revisió.
+              Mostra totes les classes. Fes servir els filtres per acotar la revisió.
             </p>
           </div>
           <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-gray-700" @click="netejarFiltresClasses">
-            Neteja filtres
+            Neteja els filtres
           </button>
         </div>
         <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -131,8 +131,8 @@
       </div>
 
       <div v-else-if="classesFiltrades.length === 0" class="rounded-lg border border-slate-200 bg-white p-10 text-center dark:border-slate-700 dark:bg-gray-800">
-        <p class="font-semibold text-slate-900 dark:text-white">No hi ha classes amb aquest filtre.</p>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Canvia el filtre o comprova la sincronització.</p>
+        <p class="font-semibold text-slate-900 dark:text-white">No hi ha classes per mostrar.</p>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Canvia els filtres o revisa la sincronització.</p>
       </div>
 
       <div v-else class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800">
@@ -207,7 +207,7 @@
       <div class="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
         <h3 class="text-lg font-bold text-slate-900 dark:text-white">Departaments</h3>
         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Es deriven del professorat importat.
+          Llista generada a partir del professorat importat.
         </p>
       </div>
       <div class="overflow-x-auto">

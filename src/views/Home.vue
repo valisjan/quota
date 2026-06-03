@@ -13,26 +13,8 @@
         <p class="text-sm font-semibold uppercase text-white/70">IES Josep Sureda i Blanes</p>
         <h1 class="mt-4 text-5xl font-semibold leading-none sm:text-6xl lg:text-7xl">QUOTA</h1>
         <p class="mt-5 max-w-2xl text-lg leading-8 text-white/85">
-          Importa el full de Sheets, reparteix les hores per departament i exporta-ho a l'Untis.
+          Eina pròpia de l'IES Josep Sureda i Blanes per gestionar la quota i la distribució d'hores per departaments.
         </p>
-
-        <div class="mt-8 hidden gap-3 sm:grid sm:max-w-2xl sm:grid-cols-3">
-          <div class="home-step home-step-photo">
-            <span>01</span>
-            <strong>Importa</strong>
-            <p>Sheets</p>
-          </div>
-          <div class="home-step home-step-photo">
-            <span>02</span>
-            <strong>Reparteix</strong>
-            <p>Per departament</p>
-          </div>
-          <div class="home-step home-step-photo">
-            <span>03</span>
-            <strong>Exporta</strong>
-            <p>Untis</p>
-          </div>
-        </div>
       </div>
 
       <div class="w-full max-w-sm justify-self-center lg:justify-self-end">

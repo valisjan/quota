@@ -7,7 +7,7 @@
           Sincronització amb Google Sheets
         </h3>
         <p class="mt-1 text-base text-slate-600">
-          Pestanyes: <strong>Classes</strong> · <strong>Professorat</strong>
+          Llegeix les pestanyes <strong>Classes</strong> i <strong>Professorat</strong>.
         </p>
       </div>
 
@@ -20,8 +20,7 @@
             class="flex flex-1 items-center justify-center gap-2 rounded-md border border-slate-200 px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
           >
             <span v-if="estatComprova === 'comprovant'" class="animate-spin">&#9203;</span>
-            <span v-else>Revisa</span>
-            Comprova
+            {{ estatComprova === 'comprovant' ? 'Comprovant...' : 'Comprova canvis' }}
           </button>
           <button
             @click="ferSync"
@@ -29,8 +28,7 @@
             class="flex flex-1 items-center justify-center gap-2 rounded-md bg-[#0024B6] px-4 py-3 text-base font-medium text-white transition hover:bg-[#001A8A] disabled:opacity-50"
           >
             <span v-if="estatSync === 'sincronitzant'" class="animate-spin">&#9203;</span>
-            <span v-else>A</span>
-            Sincronitzar
+            {{ estatSync === 'sincronitzant' ? 'Sincronitzant...' : 'Sincronitza' }}
           </button>
         </div>
 
@@ -69,7 +67,7 @@
                 class="font-semibold"
                 :class="resultComprova.alDia ? 'text-green-800 dark:text-green-300' : 'text-orange-800 dark:text-orange-300'"
               >
-                {{ resultComprova.alDia ? 'OK L\'app és al dia' : `Atenció: ${totalDiscrepancies} discrepàncies` }}
+                {{ resultComprova.alDia ? 'L\'app està al dia' : `Atenció: ${totalDiscrepancies} discrepàncies` }}
               </span>
               <span class="text-sm text-slate-500 dark:text-gray-400">
                 Sheets: {{ resultComprova.totalSheets }} · App: {{ resultComprova.totalApp }}
@@ -106,13 +104,13 @@
             &#10060; Error de sincronització: {{ errorSyncMsg }}
           </div>
           <template v-else>
-            <div class="font-semibold text-green-800 dark:text-green-300">OK Sincronització completada</div>
+            <div class="font-semibold text-green-800 dark:text-green-300">Sincronització completada</div>
             <div class="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-gray-400">
               <span>{{ statsSync.total }} classes totals</span>
               <span v-if="statsSync.afegides">+{{ statsSync.afegides }} afegides</span>
               <span v-if="statsSync.actualitzades">!= {{ statsSync.actualitzades }} actualitzades</span>
               <span v-if="statsSync.eliminades">- {{ statsSync.eliminades }} eliminades</span>
-              <span v-if="statsSync.assignacionsConservades">Bloquejat {{ statsSync.assignacionsConservades }} assignacions conservades</span>
+              <span v-if="statsSync.assignacionsConservades">{{ statsSync.assignacionsConservades }} assignacions conservades</span>
             </div>
             <div class="mt-1 text-sm text-slate-500 dark:text-gray-400">
               {{ statsSync.totalProfs }} professors · {{ statsSync.totalDeps }} departaments ·
@@ -140,7 +138,7 @@
             Historial de sincronitzacions
           </h3>
           <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {{ historial.length }} registres guardats a Firestore.
+            {{ historial.length }} registres de sincronització.
           </p>
         </div>
         <span class="rounded-md border border-slate-200 px-2 py-1 text-sm font-semibold text-slate-600">
@@ -170,7 +168,7 @@
               <span class="rounded bg-blue-100 px-2 py-1 text-blue-800 dark:bg-blue-900 dark:text-blue-100">={{ item.actualitzades || 0 }}</span>
               <span class="rounded bg-orange-100 px-2 py-1 text-orange-800 dark:bg-orange-900 dark:text-orange-100">-{{ item.eliminades || 0 }}</span>
               <span class="rounded bg-slate-100 px-2 py-1 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
-                conservades {{ item.assignacionsConservades || 0 }}
+                {{ item.assignacionsConservades || 0 }} conservades
               </span>
             </div>
           </div>

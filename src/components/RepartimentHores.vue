@@ -35,8 +35,13 @@
         >
           <div class="mb-2">
             <div class="flex flex-wrap items-start gap-x-2 gap-y-1 text-base leading-snug">
-            <span class="shrink-0 font-mono font-semibold text-slate-700">{{ formatGrup(classe) }}</span>
-            <span class="min-w-[12rem] flex-1 whitespace-normal break-words font-medium text-slate-800">{{ classe.materia }}</span>
+              <span
+                v-if="formatGrup(classe)"
+                class="shrink-0 font-mono font-semibold text-slate-700"
+              >
+                {{ formatGrup(classe) }}
+              </span>
+              <span class="min-w-[12rem] flex-1 whitespace-normal break-words font-medium text-slate-800">{{ classe.materia }}</span>
             </div>
             <div class="mt-1 flex flex-wrap items-center gap-2">
               <span
@@ -54,7 +59,7 @@
             :value="professorPrincipalClasse(classe)"
             @change="assignarProfessor(classe, $event.target.value)"
             :disabled="bloquejat"
-            :aria-label="`Assignar professor a ${classe.materia} ${formatGrup(classe)}`"
+            :aria-label="`Assignar professor a ${formatClasseLabel(classe)}`"
             class="form-input w-full py-1.5 text-sm"
           >
             <option value="">Assignar professor</option>
@@ -72,7 +77,7 @@
             :value="professorSecundariClasse(classe)"
             @change="assignarProfessor(classe, $event.target.value, 1)"
             :disabled="bloquejat"
-            :aria-label="`Segon professor per a ${classe.materia} ${formatGrup(classe)}`"
+            :aria-label="`Segon professor per a ${formatClasseLabel(classe)}`"
             class="form-input mt-1.5 w-full py-1.5 text-sm"
           >
             <option value="">Segon professor</option>
@@ -107,8 +112,13 @@
         >
           <div class="mb-2">
             <div class="flex flex-wrap items-start gap-x-2 gap-y-1 text-base leading-snug">
-            <span class="shrink-0 font-mono font-semibold text-slate-700">{{ formatGrup(classe) }}</span>
-            <span class="min-w-[12rem] flex-1 whitespace-normal break-words font-medium text-slate-800">{{ classe.materia }}</span>
+              <span
+                v-if="formatGrup(classe)"
+                class="shrink-0 font-mono font-semibold text-slate-700"
+              >
+                {{ formatGrup(classe) }}
+              </span>
+              <span class="min-w-[12rem] flex-1 whitespace-normal break-words font-medium text-slate-800">{{ classe.materia }}</span>
             </div>
             <div class="mt-1 flex flex-wrap items-center gap-2">
               <span
@@ -127,7 +137,7 @@
             :value="professorSecundariClasse(classe)"
             @change="assignarProfessor(classe, $event.target.value, 1)"
             :disabled="bloquejat"
-            :aria-label="`Segon professor per a ${classe.materia} ${formatGrup(classe)}`"
+            :aria-label="`Segon professor per a ${formatClasseLabel(classe)}`"
             class="form-input mt-1.5 w-full py-1.5 text-sm"
           >
             <option value="">Segon professor</option>
@@ -145,7 +155,7 @@
               :value="professorPrincipalClasse(classe)"
               @change="assignarProfessor(classe, $event.target.value)"
               :disabled="bloquejat"
-              :aria-label="`Professor de ${classe.materia} ${formatGrup(classe)}`"
+              :aria-label="`Professor de ${formatClasseLabel(classe)}`"
               class="form-input flex-1 py-1.5 text-sm"
             >
               <option value="">Sense assignar</option>
@@ -163,7 +173,7 @@
               @click="desassignarProfessors(classe)"
               :disabled="bloquejat"
               class="shrink-0 text-lg font-bold leading-none text-[#FF8040] hover:text-[#CC5020] dark:text-[#FF9060]"
-              :aria-label="`Desassignar ${classe.materia} ${formatGrup(classe)}`"
+              :aria-label="`Desassignar ${formatClasseLabel(classe)}`"
             >x</button>
           </div>
           <p
@@ -280,8 +290,18 @@ function sortProfessors(llista) {
 }
 
 function formatGrup(classe) {
-  const text = `${classe.curs || ''} ${classe.grup || ''}`.trim();
-  return text || 'Sense grup';
+  const curs = netejarGrupBuit(classe.curs);
+  const grup = netejarGrupBuit(classe.grup);
+  return `${curs} ${grup}`.trim();
+}
+
+function formatClasseLabel(classe) {
+  return [classe.materia, formatGrup(classe)].filter(Boolean).join(' ');
+}
+
+function netejarGrupBuit(valor) {
+  const text = (valor || '').toString().trim();
+  return /^sense grup( assignat)?$/i.test(text) ? '' : text;
 }
 
 function esOptativaCompartidaClasse(classe) {
