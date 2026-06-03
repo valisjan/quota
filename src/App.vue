@@ -135,7 +135,7 @@
         v-else-if="senseCurs"
         class="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center text-sm font-medium text-amber-900 shadow-sm"
       >
-        No hi ha cap curs actiu. Ves a Administració > Cursos per crear o seleccionar un curs.
+        No hi ha cap curs actiu. Ves a Administració > Curs acadèmic per crear o seleccionar un curs.
       </div>
       <router-view v-else />
     </main>

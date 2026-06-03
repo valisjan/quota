@@ -36,7 +36,7 @@
           v-if="cursStore.esBloqueig"
           class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-900"
         >
-          El curs <strong>{{ cursStore.cursActiu?.nom }}</strong> està bloquejat. Desbloqueja'l a Gestió de cursos per poder sincronitzar.
+          El curs <strong>{{ cursStore.cursActiu?.nom }}</strong> està bloquejat. Desbloqueja'l a Curs acadèmic per poder sincronitzar.
         </div>
 
         <div
@@ -105,11 +105,18 @@
           </div>
           <template v-else>
             <div class="font-semibold text-green-800 dark:text-green-300">Sincronització completada</div>
-            <div class="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-gray-400">
+            <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div
+                v-for="item in resumCanvisSync"
+                :key="item.label"
+                class="rounded-md border border-white/70 bg-white/80 px-3 py-2 dark:border-slate-700 dark:bg-slate-900/30"
+              >
+                <div class="text-lg font-semibold" :class="item.color">{{ item.valor }}</div>
+                <div class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ item.label }}</div>
+              </div>
+            </div>
+            <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-gray-400">
               <span>{{ statsSync.total }} classes totals</span>
-              <span v-if="statsSync.afegides">+{{ statsSync.afegides }} afegides</span>
-              <span v-if="statsSync.actualitzades">!= {{ statsSync.actualitzades }} actualitzades</span>
-              <span v-if="statsSync.eliminades">- {{ statsSync.eliminades }} eliminades</span>
               <span v-if="statsSync.assignacionsConservades">{{ statsSync.assignacionsConservades }} assignacions conservades</span>
             </div>
             <div class="mt-1 text-sm text-slate-500 dark:text-gray-400">
@@ -218,6 +225,12 @@ const totalDiscrepancies = computed(() =>
     : 0
 );
 
+const resumCanvisSync = computed(() => [
+  { label: 'Afegides', valor: statsSync.value.afegides || 0, color: 'text-green-700 dark:text-green-300' },
+  { label: 'Actualitzades', valor: statsSync.value.actualitzades || 0, color: 'text-blue-700 dark:text-blue-300' },
+  { label: 'Eliminades', valor: statsSync.value.eliminades || 0, color: 'text-orange-700 dark:text-orange-300' },
+]);
+
 function formatDataHora(ts) {
   if (!ts) return '?';
   return new Date(ts).toLocaleString('ca-ES', {
@@ -249,7 +262,10 @@ async function ferSync() {
     statsSync.value = result;
     ultimaSync.value = result.timestamp;
     estatSync.value = 'ok';
-    toast.ok(`Sincronització completada: ${result.total} classes, ${result.totalProfs} professors.`);
+    toast.ok(
+      `Sincronització completada: ${result.afegides || 0} afegides, `
+      + `${result.actualitzades || 0} actualitzades, ${result.eliminades || 0} eliminades.`
+    );
     // Actualitzar la comprovació automàticament després del sync
     resultComprova.value = {
       totalSheets: result.total,

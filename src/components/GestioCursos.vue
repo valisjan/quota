@@ -3,7 +3,7 @@
     <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div class="flex items-center justify-between gap-4">
         <div>
-          <h3 class="font-semibold text-slate-900">Crear curs nou</h3>
+          <h3 class="font-semibold text-slate-900">Crear curs acadèmic</h3>
           <p class="mt-0.5 text-sm text-slate-500">
             Següent curs: <strong>{{ cursSeguent }}</strong>
           </p>
@@ -23,7 +23,7 @@
 
     <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
       <div class="border-b border-slate-200 bg-slate-50 px-5 py-4">
-        <h3 class="font-semibold text-slate-900">Cursos</h3>
+        <h3 class="font-semibold text-slate-900">Curs acadèmic</h3>
         <p class="mt-1 text-sm text-slate-500">
           Selecciona el curs actiu, bloqueja els tancats o elimina completament un curs de proves.
         </p>
