@@ -212,7 +212,8 @@ function parseGvizResponse(text) {
 }
 
 async function llegirSheets(nomPestanya, sheetsId = DEFAULT_SHEETS_ID) {
-  const url = `https://docs.google.com/spreadsheets/d/${sheetsId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(nomPestanya)}`;
+  const cacheBust = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const url = `https://docs.google.com/spreadsheets/d/${sheetsId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(nomPestanya)}&_=${cacheBust}`;
   const res = await fetch(url);
   const text = await res.text();
   return parseGvizResponse(text);
@@ -269,6 +270,129 @@ async function guardarEstatFontSincronitzada(cursId, estatFont, resultat, actor)
   );
 }
 
+async function ajustarEstatFontSenseCanvis(cursId, estatFont) {
+  await setDoc(
+    syncStateRef(cursId),
+    {
+      sourceSignature: estatFont.signatura,
+      sheetsId: estatFont.sheetsId,
+      totalClasses: estatFont.totalClasses,
+      totalProfessors: estatFont.totalProfessors,
+      checkedAt: estatFont.checkedAt,
+      baselineAdjustedAt: new Date().toISOString(),
+    },
+    { merge: true }
+  );
+}
+
+function resumCanvisBuit() {
+  return { noves: 0, modificades: 0, eliminades: 0, totalCanvis: 0 };
+}
+
+async function calcularDiscrepanciesClasses(cursId, classesSheets) {
+  const snapClasses = await getDocs(cc(cursId, 'classes'));
+
+  const existents = snapClasses.docs.map((d) => ({
+    id: d.id,
+    data: d.data(),
+  }));
+  const perClauUnica = new Map();
+  const perClauBase = new Map();
+
+  existents.forEach((item) => {
+    const data = item.data;
+    afegirAIndex(perClauUnica, clauUnica(data), item);
+    afegirAIndex(perClauBase, clauBase(data), item);
+  });
+  ordenarIndexPerAssignacio(perClauUnica);
+  ordenarIndexPerAssignacio(perClauBase);
+
+  let noves = 0;
+  let modificades = 0;
+  const idsEmparellats = new Set();
+
+  classesSheets.forEach((classe) => {
+    const exacte = trobarNoEmparellat(
+      perClauUnica,
+      clauUnica(classe),
+      idsEmparellats
+    );
+    const equivalent = trobarNoEmparellat(
+      perClauBase,
+      clauBase(classe),
+      idsEmparellats
+    );
+    const existent = exacte || equivalent || null;
+
+    if (!existent) {
+      noves++;
+      return;
+    }
+
+    idsEmparellats.add(existent.id);
+
+    if (
+      Number(existent.data.hores) !== Number(classe.hores) ||
+      n(existent.data.tipus) !== n(classe.tipus) ||
+      n(existent.data.curs) !== n(classe.curs) ||
+      n(normalitzarGrup(existent.data.grup)) !== n(classe.grup) ||
+      n(existent.data.materia) !== n(classe.materia) ||
+      n(existent.data.departament) !== n(classe.departament) ||
+      !existent.data.departaments
+    ) {
+      modificades++;
+    }
+  });
+
+  const eliminades = existents.filter(
+    (existent) => !idsEmparellats.has(existent.id)
+  ).length;
+
+  return {
+    totalSheets: classesSheets.length,
+    totalApp: snapClasses.size,
+    noves,
+    eliminades,
+    modificades,
+    totalCanvis: noves + eliminades + modificades,
+  };
+}
+
+async function calcularDiscrepanciesProfessors(cursId, professorsSheets) {
+  const snapProfs = await getDocs(cc(cursId, 'professors'));
+  const existentsPerNom = new Map(
+    snapProfs.docs.map((d) => [n(d.data().nom), d.data()])
+  );
+
+  let noves = 0;
+  let modificades = 0;
+
+  professorsSheets.forEach((professor) => {
+    const existent = existentsPerNom.get(n(professor.nom));
+    if (!existent) {
+      noves++;
+      return;
+    }
+
+    if (
+      n(existent.departament) !== n(professor.departament) ||
+      n(existent.jornada) !== n(professor.jornada) ||
+      n(existent.codiUntis) !== n(professor.codiUntis)
+    ) {
+      modificades++;
+    }
+  });
+
+  return {
+    totalSheets: professorsSheets.length,
+    totalApp: snapProfs.size,
+    noves,
+    modificades,
+    eliminades: 0,
+    totalCanvis: noves + modificades,
+  };
+}
+
 export async function comprovarEstatActualitzacioSheets(cursId, options = {}) {
   if (!cursId) {
     return {
@@ -287,20 +411,41 @@ export async function comprovarEstatActualitzacioSheets(cursId, options = {}) {
   const estatGuardat = stateSnap.exists() ? stateSnap.data() : null;
   const signaturaGuardada = estatGuardat?.sourceSignature || '';
   const origenCanviat = Boolean(signaturaGuardada && estatGuardat?.sheetsId && estatGuardat.sheetsId !== sheetsId);
-  const sheetsCanviat = Boolean(signaturaGuardada && signaturaGuardada !== estatFont.signatura);
+  const signaturaCanviada = Boolean(signaturaGuardada && signaturaGuardada !== estatFont.signatura);
   const senseReferencia = !signaturaGuardada;
+  let classes = resumCanvisBuit();
+  let professors = resumCanvisBuit();
+  let sheetsCanviat = signaturaCanviada;
+
+  if (signaturaCanviada && !origenCanviat) {
+    [classes, professors] = await Promise.all([
+      calcularDiscrepanciesClasses(cursId, estatFont.classes),
+      calcularDiscrepanciesProfessors(cursId, estatFont.professors),
+    ]);
+    sheetsCanviat = classes.totalCanvis > 0 || professors.totalCanvis > 0;
+    if (!sheetsCanviat) {
+      try {
+        await ajustarEstatFontSenseCanvis(cursId, estatFont);
+      } catch (error) {
+        console.warn("No s'ha pogut ajustar l'estat de Google Sheets:", error);
+      }
+    }
+  }
 
   return {
     desactualitzat: origenCanviat || sheetsCanviat,
     senseReferencia,
     origenCanviat,
     sheetsCanviat,
+    signaturaCanviada,
     signaturaActual: estatFont.signatura,
     signaturaGuardada,
     sheetsId,
     sheetsIdGuardat: estatGuardat?.sheetsId || '',
     totalClasses: estatFont.totalClasses,
     totalProfessors: estatFont.totalProfessors,
+    canvisClasses: classes,
+    canvisProfessors: professors,
     ultimaSync: estatGuardat?.syncedAt || '',
     checkedAt: estatFont.checkedAt,
   };
