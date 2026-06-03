@@ -1,24 +1,5 @@
 <template>
   <div class="space-y-6">
-    <section class="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800">
-      <div class="border-l-4 border-[#0024B6] px-5 py-4 dark:border-[#B7C5FF]">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p class="text-sm font-medium text-slate-500">
-            Origen: Google Sheets
-          </p>
-          <h2 class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">Dades importades</h2>
-          <p class="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-            Revisa les dades importades del full de càlcul. Els canvis estructurals es fan a Google Sheets i després se sincronitzen.
-          </p>
-        </div>
-        <div class="rounded-lg border border-blue-100 bg-blue-50 px-4 py-2 text-sm font-semibold text-[#0024B6] dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-200">
-          Revisió i sincronització
-        </div>
-      </div>
-      </div>
-    </section>
-
     <Sincronitzacio embedded />
 
     <section class="grid grid-cols-1 gap-3 md:grid-cols-3">
