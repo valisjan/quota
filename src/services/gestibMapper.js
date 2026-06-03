@@ -466,7 +466,8 @@ export async function previsualitzarMapeigGestib(cursId, gestibXmlText, gpu002Te
     seen.add(clau);
 
     const senseAmbdos = !classe.curs && !classe.grup;
-    const esCoordinacio = netejarText(classe.tipus || '').toUpperCase() === 'C';
+    const tipusClasse = netejarText(classe.tipus || '').toUpperCase();
+    const esCoordinacio = tipusClasse === 'C' || tipusClasse === 'CO';
     const esActivitatPerMateria = (classe.materia || '').startsWith('*');
     const esActivitat = senseAmbdos || esCoordinacio || esActivitatPerMateria;
 

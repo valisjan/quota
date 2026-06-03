@@ -323,7 +323,7 @@ import ProfessorCard from '../components/departament/ProfessorCard.vue';
 import DepartamentPrintModal from '../components/departament/DepartamentPrintModal.vue';
 import { limitsHoresProfessor, professorsClasse, classeAssignadaA, horesComputablesClasse, calcularHoresLectives } from '../utils/horesProfessor';
 import { esTutoriaPrincipal, esTutoriaAsterisc, trobarTutoriaAsterisc, trobarTutoriaPrincipal, trobarAssignaturesParelladesTutoria, esCapsEstudisClasse, trobarDedicacioPerCapEstudis } from '../utils/tutories';
-import { esGP, esPALIC, esOptativaCompartida, exclosaDelRepartiment } from '../utils/tipus';
+import { esGP, esPALIC, esOptativaCompartida, esCoordinacioAmbMembres, exclosaDelRepartiment } from '../utils/tipus';
 import { trobarGermanesBloc } from '../utils/grups';
 import { quotaGuardiesPatiDepartament } from '../utils/guardiesPati';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
@@ -441,7 +441,7 @@ const totalPALICAssignades = computed(() => {
 
 const coordinacions = computed(() => {
   return classes.value
-    .filter((c) => (c.tipus || '').toString().toUpperCase().trim() === 'C')
+    .filter((c) => esCoordinacioAmbMembres(c.tipus))
     .sort((a, b) => (a.materia || '').localeCompare(b.materia || ''));
 });
 

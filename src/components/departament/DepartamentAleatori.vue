@@ -369,7 +369,7 @@ function getTipusBadgeClass(tipus) {
   if (normal === 'S') return 'bg-emerald-50 text-slate-700 ring-1 ring-emerald-200';
   if (normal === 'F') return 'bg-violet-50 text-slate-700 ring-1 ring-violet-200';
   if (normal === 'D' || /^A\d*$/.test(normal)) return 'bg-amber-50 text-slate-700 ring-1 ring-amber-200';
-  if (normal === 'C') return 'bg-orange-50 text-slate-700 ring-1 ring-orange-200';
+  if (normal === 'C' || normal === 'CO') return 'bg-orange-50 text-slate-700 ring-1 ring-orange-200';
   return 'bg-slate-50 text-slate-600 ring-1 ring-slate-200';
 }
 

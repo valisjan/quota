@@ -188,7 +188,7 @@ import { useColSnapshot } from '../composables/useColSnapshot';
 
 const { items: classes, isConnected, lastUpdate } = useColSnapshot('classes');
 
-const TIPUS_CONEGUTS_SENSE_GRUP = ['C', 'GP', 'PALIC'];
+const TIPUS_CONEGUTS_SENSE_GRUP = ['C', 'CO', 'GP', 'PALIC'];
 const TIPUS_CONEGUTS_AMB_GRUP = ['D', 'S', 'F', 'A'];
 
 function normalitzarTipus(tipus) {
@@ -208,6 +208,11 @@ function normalitzarText(text) {
 function esOptativa(tipus) {
   const normal = normalitzarTipus(tipus);
   return normal.startsWith('O') || normal.startsWith('T');
+}
+
+function esCoordinacio(tipus) {
+  const normal = normalitzarTipus(tipus);
+  return normal === 'C' || normal === 'CO';
 }
 
 function esTutoria(classe) {
@@ -235,7 +240,7 @@ function teDepartament(classe) {
 
 const coordinacions = computed(() => {
   return classes.value
-    .filter((classe) => normalitzarTipus(classe.tipus) === 'C')
+    .filter((classe) => esCoordinacio(classe.tipus))
     .sort((a, b) => (a.materia || '').localeCompare(b.materia || ''));
 });
 
@@ -244,7 +249,7 @@ const altresHores = computed(() => {
     .filter((classe) => {
       const tipus = normalitzarTipus(classe.tipus);
 
-      if (tipus === 'C') return false;
+      if (esCoordinacio(tipus)) return false;
       if (esTutoria(classe)) return false;
       if (esCapDepartament(classe)) return false;
       if (!teDepartament(classe)) return true;

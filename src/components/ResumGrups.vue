@@ -431,7 +431,7 @@ function getCursCategoria(curs) {
   return 'fp';
 }
 
-const TIPUS_NO_COMPTEN_GRUP = ['D', 'F', 'PALIC', 'GP', 'C'];
+const TIPUS_NO_COMPTEN_GRUP = ['D', 'F', 'PALIC', 'GP', 'C', 'CO'];
 
 function updateLastUpdate() {
   lastUpdate.value = new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -624,7 +624,7 @@ function getTipusIcon(tipus) {
   const t = (tipus || '').toUpperCase().trim();
   if (t.startsWith('O') || t.startsWith('T')) return 'O';
   if (esAutodesdoble(t)) return 'A';
-  const m = { D: 'D', S: 'S', A: 'A', F: 'F', GP: 'GP', PALIC: 'PALIC', C: 'C' };
+  const m = { D: 'D', S: 'S', A: 'A', F: 'F', GP: 'GP', PALIC: 'PALIC', C: 'C', CO: 'CO' };
   return m[t] || 'Classe';
 }
 
@@ -642,6 +642,7 @@ function getTipusText(tipus) {
     GP: 'Guàrdies de Pati',
     PALIC: 'PALIC',
     C: 'Coordinació',
+    CO: 'Coordinació individual',
   };
   return m[t] || tipus;
 }
@@ -658,6 +659,7 @@ function getTipusBadgeClass(tipus) {
     GP: 'badge badge-red',
     PALIC: 'badge badge-orange',
     C: 'badge badge-purple',
+    CO: 'badge badge-purple',
   };
   return m[t] || 'badge badge-gray';
 }
@@ -680,7 +682,7 @@ function sortCoordinationActivities(activities) {
 const coordinationActivities = computed(() => {
   return classes.value.filter(
     (c) =>
-      (c.tipus || '').toString().toUpperCase().trim() !== 'C' &&
+      !['C', 'CO'].includes((c.tipus || '').toString().toUpperCase().trim()) &&
       (!c.curs || c.curs === '') &&
       (!c.grup || c.grup === '') &&
       c.materia &&

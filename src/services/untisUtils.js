@@ -1,4 +1,4 @@
-export const TIPUS_NO_LECTIUS = new Set(['C']);
+export const TIPUS_NO_LECTIUS = new Set(['C', 'CO']);
 
 export function netejarText(valor) {
   return (valor || '').toString().replace(/[\r\n]+/g, ' ').trim();

@@ -263,13 +263,13 @@ function construirInfoProfessor(professor) {
   const assignades = classes.value.filter((classe) => classeAssignadaA(classe, professor.nom));
   const palicAssignades = Number(professor.palicAssignades || 0) || sumarTipus(assignades, 'PALIC');
   const lectives = assignades
-    .filter((classe) => !['GP', 'PALIC', 'C'].includes(normalitzarTipus(classe.tipus)))
+    .filter((classe) => !['GP', 'PALIC', 'C', 'CO'].includes(normalitzarTipus(classe.tipus)))
     .reduce((total, classe) => total + horesComputablesClasse(classe), 0);
   const gp = Number(professor.gpAssignades || 0) || sumarTipus(assignades, 'GP');
   const palic = palicAssignades;
   const limits = limitsHoresProfessor(professor);
   const coordinador = classes.value.filter(
-    (classe) => normalitzarTipus(classe.tipus) === 'C' && classe.professorAssignat === professor.nom
+    (classe) => ['C', 'CO'].includes(normalitzarTipus(classe.tipus)) && classe.professorAssignat === professor.nom
   );
   const comissions = classes.value.filter(
     (classe) => normalitzarTipus(classe.tipus) === 'C' && classe.participants?.includes(professor.nom)
@@ -279,7 +279,7 @@ function construirInfoProfessor(professor) {
 
   return {
     professor,
-    classes: sortClasses(assignades.filter((classe) => normalitzarTipus(classe.tipus) !== 'C')),
+    classes: sortClasses(assignades.filter((classe) => !['C', 'CO'].includes(normalitzarTipus(classe.tipus)))),
     lectives,
     gp,
     palic,
@@ -370,6 +370,7 @@ function getTipusText(tipus) {
     GP: 'Guàrdia de pati',
     PALIC: 'PALIC',
     C: 'Coordinació',
+    CO: 'Coordinació individual',
   };
   if (/^A\d*$/.test(normal)) return 'Autodesdoble';
   return labels[normal] || tipus;

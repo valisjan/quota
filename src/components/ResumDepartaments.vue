@@ -101,7 +101,8 @@ function getTipusIcon(tipus) {
     'F': 'F', // Flexible
     'GP': 'GP', // Guàrdies de Pati
     'PALIC': 'PALIC', // PALIC
-    'C': 'C' // Coordinació
+    'C': 'C',
+    'CO': 'CO'
   };
   return iconMap[tipus] || 'Classe';
 }
@@ -115,7 +116,8 @@ function getTipusText(tipus) {
     'F': 'Flexible',
     'GP': 'Guàrdies de Pati',
     'PALIC': 'PALIC',
-    'C': 'Coordinació'
+    'C': 'Coordinació',
+    'CO': 'Coordinació individual'
   };
   return tipusMap[tipus] || tipus;
 }
@@ -129,7 +131,8 @@ function getTipusBadgeClass(tipus) {
     'F': 'badge badge-indigo',
     'GP': 'badge badge-red',
     'PALIC': 'badge badge-orange',
-    'C': 'badge badge-purple'
+    'C': 'badge badge-purple',
+    'CO': 'badge badge-purple'
   };
   return classMap[tipus] || 'badge badge-gray';
 }

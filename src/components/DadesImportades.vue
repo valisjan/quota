@@ -102,6 +102,7 @@
               <option value="S">Suport</option>
               <option value="F">Flexible</option>
               <option value="C">Coordinació</option>
+              <option value="CO">Coordinació individual</option>
               <option value="GP">Guàrdia de pati</option>
               <option value="PALIC">PALIC</option>
             </select>
@@ -302,6 +303,9 @@ const classesFiltrades = computed(() => {
       if (filtresClasses.tipus === 'normal' && (classe.tipus || '').toString().trim()) return false;
       if (filtresClasses.tipus && filtresClasses.tipus !== 'normal') {
         const tipus = (classe.tipus || '').toString().toUpperCase().trim();
+        if (filtresClasses.tipus === 'C' || filtresClasses.tipus === 'CO') {
+          return tipus === filtresClasses.tipus;
+        }
         if (!tipus.startsWith(filtresClasses.tipus)) return false;
       }
       if (filtresClasses.professor === 'sense-assignar' && professorsClasse(classe).length) return false;
@@ -439,6 +443,7 @@ function etiquetaTipus(tipus) {
     S: 'Suport',
     F: 'Flexible',
     C: 'Coordinació',
+    CO: 'Coordinació individual',
     GP: 'Guàrdia de pati',
     PALIC: 'PALIC',
   };
