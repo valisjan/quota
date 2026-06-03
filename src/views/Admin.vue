@@ -87,7 +87,7 @@
               !
             </div>
             <div class="min-w-0">
-              <p class="font-semibold">L'app no està actualitzada</p>
+              <p class="font-semibold">{{ titolAvisActualitzacio }}</p>
               <p class="mt-0.5 text-sm font-medium text-amber-900">
                 {{ detallAvisActualitzacio }}
               </p>
@@ -198,9 +198,17 @@ const tabs = [
 
 const pestanyaActual = computed(() => tabs.find((tab) => isActive(tab)) || tabs[0]);
 const colorActual = computed(() => pestanyaActual.value?.color || '#0024B6');
-const mostrarAvisDesactualitzat = computed(() => actualitzacioSheets.value?.desactualitzat === true);
+const mostrarAvisDesactualitzat = computed(() =>
+  actualitzacioSheets.value?.desactualitzat === true || actualitzacioSheets.value?.senseReferencia === true
+);
 const ultimaSyncSheets = computed(() => actualitzacioSheets.value?.ultimaSync || syncState.value?.syncedAt || '');
+const titolAvisActualitzacio = computed(() =>
+  actualitzacioSheets.value?.senseReferencia ? 'Cal sincronitzar Google Sheets' : "L'app no està actualitzada"
+);
 const detallAvisActualitzacio = computed(() => {
+  if (actualitzacioSheets.value?.senseReferencia) {
+    return "Encara no hi ha una referència de sincronització per a aquest curs. Sincronitza una vegada per activar l'avís automàtic.";
+  }
   if (actualitzacioSheets.value?.origenCanviat) {
     return 'Ha canviat el full de Google Sheets configurat. Cal sincronitzar abans de continuar.';
   }
