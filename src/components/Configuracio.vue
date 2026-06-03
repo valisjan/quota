@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-4xl space-y-6">
+  <div class="space-y-6">
     <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
       <div class="border-b border-slate-200 p-5">
         <h3 class="text-xl font-semibold text-slate-950">

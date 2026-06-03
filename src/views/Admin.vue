@@ -15,7 +15,7 @@
             v-for="tab in tabs"
             :key="tab.path"
             :to="tab.path"
-            class="admin-nav-item"
+            class="admin-nav-item relative"
             :class="{ 'admin-nav-item-active': isActive(tab) }"
             :style="isActive(tab) ? { '--section-color': tab.color } : null"
             :title="tab.nom"
@@ -27,6 +27,12 @@
               <span class="admin-nav-label">{{ tab.nom }}</span>
               <span class="admin-nav-help">{{ tab.help }}</span>
             </span>
+            <span
+              v-if="tab.path === '/admin/dades' && mostrarAvisDesactualitzat"
+              class="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-amber-300 ring-2 ring-slate-950 lg:right-3 lg:top-3"
+              title="Canvis pendents a Google Sheets"
+              aria-hidden="true"
+            ></span>
           </router-link>
         </nav>
 
@@ -79,7 +85,9 @@
 
       <section
         v-if="mostrarAvisDesactualitzat"
-        class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm"
+        role="status"
+        aria-live="polite"
+        class="sticky top-[5rem] z-40 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm"
       >
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex min-w-0 gap-3">
@@ -91,6 +99,27 @@
               <p class="mt-0.5 text-sm font-medium text-amber-900">
                 {{ detallAvisActualitzacio }}
               </p>
+              <ul
+                v-if="detallsAvisActualitzacio.length"
+                class="mt-2 space-y-1 text-sm text-amber-950"
+              >
+                <li
+                  v-for="(canvi, index) in detallsAvisActualitzacio"
+                  :key="`${canvi.tipus}-${index}-${canvi.resum}`"
+                  class="rounded-md border border-amber-200/80 bg-white/70 px-2.5 py-1.5"
+                >
+                  <span
+                    class="mr-2 inline-flex rounded px-1.5 py-0.5 text-xs font-bold"
+                    :class="classeCanviAvis(canvi.tipus)"
+                  >
+                    {{ etiquetaCanviAvis(canvi.tipus) }}
+                  </span>
+                  <span class="font-semibold">{{ canvi.resum }}</span>
+                  <span v-if="canvi.detall" class="mt-0.5 block text-xs font-medium text-amber-800">
+                    {{ canvi.detall }}
+                  </span>
+                </li>
+              </ul>
               <p v-if="ultimaSyncSheets" class="mt-1 text-xs font-medium text-amber-800">
                 Última sincronització: {{ formatDataHora(ultimaSyncSheets) }}.
               </p>
@@ -101,7 +130,7 @@
             to="/admin/dades"
             class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md bg-[#0024B6] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#001A8A]"
           >
-            Dades importades
+            Ves a sincronització
           </router-link>
         </div>
       </section>
@@ -138,6 +167,7 @@ const syncState = ref(null);
 const estatActualitzacio = ref('idle');
 const actualitzacioSheets = ref(null);
 const errorActualitzacio = ref('');
+const settingsReady = ref(false);
 
 let settingsUnsubscribe = null;
 let syncStateUnsubscribe = null;
@@ -199,15 +229,13 @@ const tabs = [
 
 const pestanyaActual = computed(() => tabs.find((tab) => isActive(tab)) || tabs[0]);
 const colorActual = computed(() => pestanyaActual.value?.color || '#0024B6');
-const mostrarAvisDesactualitzat = computed(() =>
-  actualitzacioSheets.value?.desactualitzat === true || actualitzacioSheets.value?.senseReferencia === true
-);
+const mostrarAvisDesactualitzat = computed(() => actualitzacioSheets.value?.desactualitzat === true);
 const mostrarBotoAvisSincronitzar = computed(() =>
   mostrarAvisDesactualitzat.value && route.path !== '/admin/dades'
 );
 const ultimaSyncSheets = computed(() => actualitzacioSheets.value?.ultimaSync || syncState.value?.syncedAt || '');
 const titolAvisActualitzacio = computed(() =>
-  actualitzacioSheets.value?.senseReferencia ? 'Cal sincronitzar Google Sheets' : "L'app no està actualitzada"
+  actualitzacioSheets.value?.senseReferencia ? 'Cal sincronitzar Google Sheets' : 'Canvis pendents a Google Sheets'
 );
 const detallAvisActualitzacio = computed(() => {
   if (actualitzacioSheets.value?.senseReferencia) {
@@ -217,8 +245,19 @@ const detallAvisActualitzacio = computed(() => {
     return 'Ha canviat el full de Google Sheets configurat. Cal sincronitzar abans de continuar.';
   }
   const classes = actualitzacioSheets.value?.totalClasses ?? 0;
-  const professors = actualitzacioSheets.value?.totalProfessors ?? 0;
-  return `Google Sheets té canvis pendents (${classes} classes i ${professors} professors). Sincronitza abans de repartir o exportar.`;
+  const canvis = actualitzacioSheets.value?.canvisClasses;
+  if (canvis?.totalCanvis) {
+    const verb = canvis.totalCanvis === 1 ? "S'ha detectat" : "S'han detectat";
+    const total = canvis.totalCanvis === 1 ? '1 canvi' : `${canvis.totalCanvis} canvis`;
+    return `${verb} ${total} a Classes: ${resumRecompteCanvis(canvis)}.`;
+  }
+  return `Google Sheets té canvis pendents a Classes (${classes} files). Sincronitza abans de repartir o exportar.`;
+});
+
+const detallsAvisActualitzacio = computed(() => {
+  const canvis = actualitzacioSheets.value?.canvisClasses;
+  if (!canvis?.detalls?.length || canvis.totalCanvis >= 10) return [];
+  return canvis.detalls;
 });
 
 const etiquetaRol = computed(() => {
@@ -250,11 +289,34 @@ function formatDataHora(ts) {
   });
 }
 
+function resumRecompteCanvis(canvis) {
+  const parts = [];
+  if (canvis.noves) parts.push(`${canvis.noves} ${canvis.noves === 1 ? 'nova' : 'noves'}`);
+  if (canvis.modificades) parts.push(`${canvis.modificades} ${canvis.modificades === 1 ? 'modificada' : 'modificades'}`);
+  if (canvis.eliminades) parts.push(`${canvis.eliminades} ${canvis.eliminades === 1 ? 'eliminada' : 'eliminades'}`);
+  return parts.join(', ') || '0 canvis';
+}
+
+function etiquetaCanviAvis(tipus) {
+  const etiquetes = {
+    nova: 'Nova',
+    modificada: 'Modificada',
+    eliminada: 'Eliminada',
+  };
+  return etiquetes[tipus] || 'Canvi';
+}
+
+function classeCanviAvis(tipus) {
+  if (tipus === 'nova') return 'bg-green-100 text-green-800';
+  if (tipus === 'eliminada') return 'bg-orange-100 text-orange-800';
+  return 'bg-blue-100 text-blue-800';
+}
+
 function reconciliarAvisAmbEstatGuardat() {
-  if (!actualitzacioSheets.value?.signaturaActual || !syncState.value?.sourceSignature) return;
+  if (!actualitzacioSheets.value?.signaturaActual || !syncState.value?.classesSignature) return;
   const mateixOrigen =
     !syncState.value.sheetsId || syncState.value.sheetsId === (settings.value.sheetsId || DEFAULT_APP_SETTINGS.sheetsId);
-  if (mateixOrigen && actualitzacioSheets.value.signaturaActual === syncState.value.sourceSignature) {
+  if (mateixOrigen && actualitzacioSheets.value.signaturaActual === syncState.value.classesSignature) {
     actualitzacioSheets.value = {
       ...actualitzacioSheets.value,
       desactualitzat: false,
@@ -266,15 +328,15 @@ function reconciliarAvisAmbEstatGuardat() {
 }
 
 function marcarAvisComSincronitzat(estatGuardat) {
-  if (!estatGuardat?.sourceSignature) return;
+  if (!estatGuardat?.classesSignature) return;
   actualitzacioSheets.value = {
     ...(actualitzacioSheets.value || {}),
     desactualitzat: false,
     senseReferencia: false,
     origenCanviat: false,
     sheetsCanviat: false,
-    signaturaActual: estatGuardat.sourceSignature,
-    signaturaGuardada: estatGuardat.sourceSignature,
+    signaturaActual: estatGuardat.classesSignature,
+    signaturaGuardada: estatGuardat.classesSignature,
     sheetsId: estatGuardat.sheetsId || settings.value.sheetsId,
     sheetsIdGuardat: estatGuardat.sheetsId || settings.value.sheetsId,
     totalClasses: estatGuardat.totalClasses ?? actualitzacioSheets.value?.totalClasses ?? 0,
@@ -288,6 +350,7 @@ function marcarAvisComSincronitzat(estatGuardat) {
 
 function programarComprovacio(delay = ACTIVITY_DELAY_MS, force = false) {
   if (!cursStore.cursActiuId) return;
+  if (!settingsReady.value) return;
   if (typeof document !== 'undefined' && document.hidden && !force) return;
   clearTimeout(activityTimer);
   activityTimer = setTimeout(() => {
@@ -297,23 +360,33 @@ function programarComprovacio(delay = ACTIVITY_DELAY_MS, force = false) {
 
 async function comprovarActualitzacioAutomatica({ force = false } = {}) {
   if (!cursStore.cursActiuId) return null;
+  if (!settingsReady.value) return null;
 
   const ara = Date.now();
   if (!force && ara - lastCheckAt < CHECK_INTERVAL_MS) return null;
-  if (checkPromise) return checkPromise;
+  if (checkPromise && !force) return checkPromise;
 
+  const cursIdComprovat = cursStore.cursActiuId;
+  const sheetsIdComprovat = settings.value.sheetsId;
   lastCheckAt = ara;
   estatActualitzacio.value = 'comprovant';
   errorActualitzacio.value = '';
 
-  checkPromise = comprovarEstatActualitzacioSheets(cursStore.cursActiuId, {
-    sheetsId: settings.value.sheetsId,
+  const currentPromise = comprovarEstatActualitzacioSheets(cursIdComprovat, {
+    sheetsId: sheetsIdComprovat,
   })
     .then((result) => {
+      if (
+        cursStore.cursActiuId !== cursIdComprovat ||
+        settings.value.sheetsId !== sheetsIdComprovat
+      ) {
+        return null;
+      }
+
       const estatGuardatActual = syncState.value;
       const mateixaSignatura =
-        estatGuardatActual?.sourceSignature
-        && result.signaturaActual === estatGuardatActual.sourceSignature
+        estatGuardatActual?.classesSignature
+        && result.signaturaActual === estatGuardatActual.classesSignature
         && (!estatGuardatActual.sheetsId || estatGuardatActual.sheetsId === result.sheetsId);
 
       actualitzacioSheets.value = mateixaSignatura
@@ -334,9 +407,10 @@ async function comprovarActualitzacioAutomatica({ force = false } = {}) {
       return null;
     })
     .finally(() => {
-      checkPromise = null;
+      if (checkPromise === currentPromise) checkPromise = null;
     });
 
+  checkPromise = currentPromise;
   return checkPromise;
 }
 
@@ -356,19 +430,19 @@ function setupAdminSubscriptions(cursId) {
   settings.value = { ...DEFAULT_APP_SETTINGS };
   syncState.value = null;
   actualitzacioSheets.value = null;
+  settingsReady.value = false;
   lastCheckAt = 0;
 
   if (!cursId) return;
 
   settingsUnsubscribe = subscribeAppSettings(cursId, (value) => {
     settings.value = value;
-    programarComprovacio(0, true);
+    settingsReady.value = true;
   });
   syncStateUnsubscribe = subscribeEstatSincronitzacio(cursId, (value) => {
     syncState.value = value;
     marcarAvisComSincronitzat(value);
   });
-  programarComprovacio(0, true);
 }
 
 watch(() => cursStore.cursActiuId, setupAdminSubscriptions, { immediate: true });
@@ -380,7 +454,6 @@ onMounted(() => {
   });
   window.addEventListener('focus', registrarActivitatAdmin);
   document.addEventListener('visibilitychange', onVisibilityChange);
-  programarComprovacio(0, true);
 });
 
 onUnmounted(() => {

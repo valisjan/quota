@@ -88,8 +88,8 @@ function textSignatura(valor) {
   return (valor ?? '').toString().trim();
 }
 
-function signaturaDadesSheets(classes, professors) {
-  const filesClasses = classes
+function filesSignaturaClasses(classes) {
+  return classes
     .map((c) => [
       textSignatura(c.curs),
       textSignatura(normalitzarGrup(c.grup)),
@@ -99,8 +99,10 @@ function signaturaDadesSheets(classes, professors) {
       textSignatura(c.tipus),
     ].join('\u001f'))
     .sort();
+}
 
-  const filesProfessors = professors
+function filesSignaturaProfessors(professors) {
+  return professors
     .map((p) => [
       textSignatura(p.nom),
       textSignatura(p.departament),
@@ -110,7 +112,19 @@ function signaturaDadesSheets(classes, professors) {
       textSignatura(p.rol),
     ].join('\u001f'))
     .sort();
+}
 
+function signaturaClasses(classes) {
+  return hashText(JSON.stringify(filesSignaturaClasses(classes)));
+}
+
+function signaturaProfessors(professors) {
+  return hashText(JSON.stringify(filesSignaturaProfessors(professors)));
+}
+
+function signaturaDadesSheets(classes, professors) {
+  const filesClasses = filesSignaturaClasses(classes);
+  const filesProfessors = filesSignaturaProfessors(professors);
   return hashText(JSON.stringify({ classes: filesClasses, professors: filesProfessors }));
 }
 
@@ -231,6 +245,8 @@ export async function llegirEstatFontSheets(sheetsId = DEFAULT_SHEETS_ID) {
     classes,
     professors,
     signatura: signaturaDadesSheets(classes, professors),
+    signaturaClasses: signaturaClasses(classes),
+    signaturaProfessors: signaturaProfessors(professors),
     totalClasses: classes.length,
     totalProfessors: professors.length,
     checkedAt: new Date().toISOString(),
@@ -254,6 +270,8 @@ async function guardarEstatFontSincronitzada(cursId, estatFont, resultat, actor)
     syncStateRef(cursId),
     {
       sourceSignature: estatFont.signatura,
+      classesSignature: estatFont.signaturaClasses,
+      professorsSignature: estatFont.signaturaProfessors,
       sheetsId: estatFont.sheetsId,
       totalClasses: estatFont.totalClasses,
       totalProfessors: estatFont.totalProfessors,
@@ -275,6 +293,8 @@ async function ajustarEstatFontSenseCanvis(cursId, estatFont) {
     syncStateRef(cursId),
     {
       sourceSignature: estatFont.signatura,
+      classesSignature: estatFont.signaturaClasses,
+      professorsSignature: estatFont.signaturaProfessors,
       sheetsId: estatFont.sheetsId,
       totalClasses: estatFont.totalClasses,
       totalProfessors: estatFont.totalProfessors,
@@ -286,7 +306,47 @@ async function ajustarEstatFontSenseCanvis(cursId, estatFont) {
 }
 
 function resumCanvisBuit() {
-  return { noves: 0, modificades: 0, eliminades: 0, totalCanvis: 0 };
+  return { noves: 0, modificades: 0, eliminades: 0, totalCanvis: 0, detalls: [] };
+}
+
+function valorVisible(valor, fallback = '-') {
+  const text = (valor ?? '').toString().trim();
+  return text || fallback;
+}
+
+function resumClasseCanvi(classe = {}) {
+  return [
+    classe.curs,
+    classe.grup,
+    classe.materia,
+    classe.hores ? `${classe.hores}h` : '',
+    classe.departament,
+    classe.tipus ? `tipus ${classe.tipus}` : '',
+  ]
+    .map((part) => (part ?? '').toString().trim())
+    .filter(Boolean)
+    .join(' | ');
+}
+
+function detallCanvisClasse(existent = {}, nova = {}) {
+  const detalls = [];
+  const afegir = (camp, abans, despres) => {
+    if (n(abans) !== n(despres)) {
+      detalls.push(`${camp}: ${valorVisible(abans)} -> ${valorVisible(despres)}`);
+    }
+  };
+
+  afegir('Curs', existent.curs, nova.curs);
+  afegir('Grup', normalitzarGrup(existent.grup), normalitzarGrup(nova.grup));
+  afegir('Materia', existent.materia, nova.materia);
+  if (Number(existent.hores) !== Number(nova.hores)) {
+    detalls.push(`Hores: ${Number(existent.hores) || 0} -> ${Number(nova.hores) || 0}`);
+  }
+  afegir('Departament', existent.departament, nova.departament);
+  afegir('Tipus', existent.tipus || 'Normal', nova.tipus || 'Normal');
+  if (!existent.departaments) detalls.push('Departaments interns');
+
+  return detalls;
 }
 
 async function calcularDiscrepanciesClasses(cursId, classesSheets) {
@@ -310,6 +370,7 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
   let noves = 0;
   let modificades = 0;
   const idsEmparellats = new Set();
+  const detalls = [];
 
   classesSheets.forEach((classe) => {
     const exacte = trobarNoEmparellat(
@@ -326,11 +387,16 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
 
     if (!existent) {
       noves++;
+      detalls.push({
+        tipus: 'nova',
+        resum: resumClasseCanvi(classe),
+      });
       return;
     }
 
     idsEmparellats.add(existent.id);
 
+    const campsCanviats = detallCanvisClasse(existent.data, classe);
     if (
       Number(existent.data.hores) !== Number(classe.hores) ||
       n(existent.data.tipus) !== n(classe.tipus) ||
@@ -341,12 +407,26 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
       !existent.data.departaments
     ) {
       modificades++;
+      detalls.push({
+        tipus: 'modificada',
+        resum: resumClasseCanvi(classe),
+        detall: campsCanviats.join(', '),
+      });
     }
   });
 
-  const eliminades = existents.filter(
+  const classesEliminades = existents.filter(
     (existent) => !idsEmparellats.has(existent.id)
-  ).length;
+  );
+  classesEliminades.forEach((existent) => {
+    detalls.push({
+      tipus: 'eliminada',
+      resum: resumClasseCanvi(existent.data),
+    });
+  });
+
+  const eliminades = classesEliminades.length;
+  const totalCanvis = noves + eliminades + modificades;
 
   return {
     totalSheets: classesSheets.length,
@@ -354,7 +434,8 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
     noves,
     eliminades,
     modificades,
-    totalCanvis: noves + eliminades + modificades,
+    totalCanvis,
+    detalls: totalCanvis > 0 && totalCanvis < 10 ? detalls : [],
   };
 }
 
@@ -409,25 +490,25 @@ export async function comprovarEstatActualitzacioSheets(cursId, options = {}) {
     llegirEstatFontSheets(sheetsId),
   ]);
   const estatGuardat = stateSnap.exists() ? stateSnap.data() : null;
-  const signaturaGuardada = estatGuardat?.sourceSignature || '';
+  const signaturaGuardada = estatGuardat?.classesSignature || '';
+  const signaturaCompletaGuardada = estatGuardat?.sourceSignature || '';
   const origenCanviat = Boolean(signaturaGuardada && estatGuardat?.sheetsId && estatGuardat.sheetsId !== sheetsId);
-  const signaturaCanviada = Boolean(signaturaGuardada && signaturaGuardada !== estatFont.signatura);
-  const senseReferencia = !signaturaGuardada;
+  const signaturaCanviada = Boolean(signaturaGuardada && signaturaGuardada !== estatFont.signaturaClasses);
+  let senseReferencia = !signaturaGuardada;
   let classes = resumCanvisBuit();
   let professors = resumCanvisBuit();
   let sheetsCanviat = signaturaCanviada;
 
-  if (signaturaCanviada && !origenCanviat) {
-    [classes, professors] = await Promise.all([
-      calcularDiscrepanciesClasses(cursId, estatFont.classes),
-      calcularDiscrepanciesProfessors(cursId, estatFont.professors),
-    ]);
-    sheetsCanviat = classes.totalCanvis > 0 || professors.totalCanvis > 0;
+  if ((senseReferencia || signaturaCanviada) && !origenCanviat) {
+    classes = await calcularDiscrepanciesClasses(cursId, estatFont.classes);
+    sheetsCanviat = classes.totalCanvis > 0;
     if (!sheetsCanviat) {
       try {
         await ajustarEstatFontSenseCanvis(cursId, estatFont);
+        senseReferencia = false;
       } catch (error) {
         console.warn("No s'ha pogut ajustar l'estat de Google Sheets:", error);
+        senseReferencia = false;
       }
     }
   }
@@ -438,8 +519,10 @@ export async function comprovarEstatActualitzacioSheets(cursId, options = {}) {
     origenCanviat,
     sheetsCanviat,
     signaturaCanviada,
-    signaturaActual: estatFont.signatura,
+    signaturaActual: estatFont.signaturaClasses,
     signaturaGuardada,
+    signaturaCompletaActual: estatFont.signatura,
+    signaturaCompletaGuardada,
     sheetsId,
     sheetsIdGuardat: estatGuardat?.sheetsId || '',
     totalClasses: estatFont.totalClasses,
@@ -477,73 +560,11 @@ export async function comprovarDiscrepancies(cursId, options = {}) {
   const sheetsId = options.sheetsId || DEFAULT_SHEETS_ID;
   const jsonClasses = await llegirSheets(SHEET_CLASSES, sheetsId);
   const classesSheets = llegirClassesDeResposta(jsonClasses);
-
-  const snapClasses = await getDocs(cc(cursId, 'classes'));
-
-  const existents = snapClasses.docs.map((d) => ({
-    id: d.id,
-    data: d.data(),
-  }));
-  const perClauUnica = new Map();
-  const perClauBase = new Map();
-
-  existents.forEach((item) => {
-    const data = item.data;
-    afegirAIndex(perClauUnica, clauUnica(data), item);
-    afegirAIndex(perClauBase, clauBase(data), item);
-  });
-  ordenarIndexPerAssignacio(perClauUnica);
-  ordenarIndexPerAssignacio(perClauBase);
-
-  let noves = 0;
-  let modificades = 0;
-  const idsEmparellats = new Set();
-
-  classesSheets.forEach((classe) => {
-    const exacte = trobarNoEmparellat(
-      perClauUnica,
-      clauUnica(classe),
-      idsEmparellats
-    );
-    const equivalent = trobarNoEmparellat(
-      perClauBase,
-      clauBase(classe),
-      idsEmparellats
-    );
-    const existent =
-      exacte || equivalent || null;
-
-    if (!existent) {
-      noves++;
-      return;
-    }
-
-    idsEmparellats.add(existent.id);
-
-    if (
-      Number(existent.data.hores) !== Number(classe.hores) ||
-      n(existent.data.tipus) !== n(classe.tipus) ||
-      n(existent.data.curs) !== n(classe.curs) ||
-      n(normalitzarGrup(existent.data.grup)) !== n(classe.grup) ||
-      n(existent.data.materia) !== n(classe.materia) ||
-      n(existent.data.departament) !== n(classe.departament) ||
-      !existent.data.departaments
-    ) {
-      modificades++;
-    }
-  });
-
-  const eliminades = existents.filter(
-    (existent) => !idsEmparellats.has(existent.id)
-  ).length;
+  const result = await calcularDiscrepanciesClasses(cursId, classesSheets);
 
   return {
-    totalSheets: classesSheets.length,
-    totalApp: snapClasses.size,
-    noves,
-    eliminades,
-    modificades,
-    alDia: noves === 0 && eliminades === 0 && modificades === 0,
+    ...result,
+    alDia: result.totalCanvis === 0,
     timestamp: new Date().toISOString(),
   };
 }

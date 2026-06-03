@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-4xl space-y-5">
+  <div class="space-y-5">
     <!-- Header card -->
     <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

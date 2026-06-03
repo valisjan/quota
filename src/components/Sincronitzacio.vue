@@ -1,5 +1,5 @@
 <template>
-  <div :class="embedded ? 'space-y-4' : 'max-w-2xl space-y-4'">
+  <div class="space-y-4">
     <!-- Capçalera -->
     <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
       <div class="border-b border-slate-200 bg-slate-50 px-5 py-4">
@@ -82,6 +82,21 @@
               </div>
               <div v-if="resultComprova.modificades > 0" class="text-blue-700 dark:text-blue-200">
                 != {{ resultComprova.modificades }} classes amb hores o tipus diferent (s'actualitzaran)
+              </div>
+            </div>
+            <div v-if="detallsComprova.length" class="mt-3 space-y-1 text-sm">
+              <div
+                v-for="(canvi, index) in detallsComprova"
+                :key="`${canvi.tipus}-${index}-${canvi.resum}`"
+                class="rounded-md border border-orange-200/80 bg-white/70 px-3 py-2 dark:border-orange-800 dark:bg-gray-900/40"
+              >
+                <span class="mr-2 font-bold" :class="classeCanviComprova(canvi.tipus)">
+                  {{ etiquetaCanviComprova(canvi.tipus) }}
+                </span>
+                <span class="font-semibold text-slate-800 dark:text-slate-100">{{ canvi.resum }}</span>
+                <span v-if="canvi.detall" class="mt-0.5 block text-xs text-slate-600 dark:text-slate-300">
+                  {{ canvi.detall }}
+                </span>
               </div>
             </div>
             <div class="mt-2 text-sm text-slate-500 dark:text-gray-400">
@@ -237,6 +252,11 @@ const resumCanvisSync = computed(() => [
   { label: 'Eliminades', valor: statsSync.value.eliminades || 0, color: 'text-orange-700 dark:text-orange-300' },
 ]);
 
+const detallsComprova = computed(() => {
+  if (!resultComprova.value?.detalls?.length || resultComprova.value.totalCanvis >= 10) return [];
+  return resultComprova.value.detalls;
+});
+
 function formatDataHora(ts) {
   if (!ts) return '?';
   return new Date(ts).toLocaleString('ca-ES', {
@@ -246,6 +266,21 @@ function formatDataHora(ts) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function etiquetaCanviComprova(tipus) {
+  const etiquetes = {
+    nova: 'Nova',
+    modificada: 'Modificada',
+    eliminada: 'Eliminada',
+  };
+  return etiquetes[tipus] || 'Canvi';
+}
+
+function classeCanviComprova(tipus) {
+  if (tipus === 'nova') return 'text-green-700 dark:text-green-300';
+  if (tipus === 'eliminada') return 'text-orange-700 dark:text-orange-300';
+  return 'text-blue-700 dark:text-blue-300';
 }
 
 async function comprovar() {

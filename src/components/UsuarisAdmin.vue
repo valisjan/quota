@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-3xl space-y-5">
+  <div class="space-y-5">
     <!-- Nota sobre pre-autorització -->
     <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
       Pots pre-autoritzar professorat des del full de Google Sheets. Afegeix les columnes <strong>EMAIL</strong> i <strong>ROL</strong> a la pestanya <em>Professorat</em> (columnes F i G). Els valors vàlids de ROL són <code class="rounded bg-slate-200 px-1">professor</code>, <code class="rounded bg-slate-200 px-1">cap_departament</code> i <code class="rounded bg-slate-200 px-1">admin</code>. La propera sincronització els activarà automàticament en fer login.
