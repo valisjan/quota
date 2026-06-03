@@ -77,6 +77,34 @@
 
       </header>
 
+      <section
+        v-if="mostrarAvisDesactualitzat"
+        class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm"
+      >
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex min-w-0 gap-3">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-100 text-lg font-black text-amber-800">
+              !
+            </div>
+            <div class="min-w-0">
+              <p class="font-semibold">L'app no està actualitzada</p>
+              <p class="mt-0.5 text-sm font-medium text-amber-900">
+                {{ detallAvisActualitzacio }}
+              </p>
+              <p v-if="ultimaSyncSheets" class="mt-1 text-xs font-medium text-amber-800">
+                Última sincronització: {{ formatDataHora(ultimaSyncSheets) }}.
+              </p>
+            </div>
+          </div>
+          <router-link
+            to="/admin/dades"
+            class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md bg-[#0024B6] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#001A8A]"
+          >
+            Sincronitza
+          </router-link>
+        </div>
+      </section>
+
       <main class="admin-content">
         <router-view />
       </main>
@@ -85,13 +113,36 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { useCursStore } from '../stores/curs';
+import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
+import {
+  comprovarEstatActualitzacioSheets,
+  subscribeEstatSincronitzacio,
+} from '../services/sincronitzacio.js';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const cursStore = useCursStore();
+
+const CHECK_INTERVAL_MS = 60 * 1000;
+const ACTIVITY_DELAY_MS = 900;
+const ACTIVITY_EVENTS = ['pointerdown', 'keydown'];
+
+const settings = ref({ ...DEFAULT_APP_SETTINGS });
+const syncState = ref(null);
+const estatActualitzacio = ref('idle');
+const actualitzacioSheets = ref(null);
+const errorActualitzacio = ref('');
+
+let settingsUnsubscribe = null;
+let syncStateUnsubscribe = null;
+let activityTimer = null;
+let lastCheckAt = 0;
+let checkPromise = null;
 
 const tabs = [
   {
@@ -147,6 +198,16 @@ const tabs = [
 
 const pestanyaActual = computed(() => tabs.find((tab) => isActive(tab)) || tabs[0]);
 const colorActual = computed(() => pestanyaActual.value?.color || '#0024B6');
+const mostrarAvisDesactualitzat = computed(() => actualitzacioSheets.value?.desactualitzat === true);
+const ultimaSyncSheets = computed(() => actualitzacioSheets.value?.ultimaSync || syncState.value?.syncedAt || '');
+const detallAvisActualitzacio = computed(() => {
+  if (actualitzacioSheets.value?.origenCanviat) {
+    return 'Ha canviat el full de Google Sheets configurat. Cal sincronitzar abans de continuar.';
+  }
+  const classes = actualitzacioSheets.value?.totalClasses ?? 0;
+  const professors = actualitzacioSheets.value?.totalProfessors ?? 0;
+  return `Google Sheets té canvis pendents (${classes} classes i ${professors} professors). Sincronitza abans de repartir o exportar.`;
+});
 
 const etiquetaRol = computed(() => {
   const etiquetes = {
@@ -165,6 +226,127 @@ const inicialUsuari = computed(() =>
 function isActive(tab) {
   return route.path === tab.path || tab.aliases?.includes(route.path);
 }
+
+function formatDataHora(ts) {
+  if (!ts) return '';
+  return new Date(ts).toLocaleString('ca-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function reconciliarAvisAmbEstatGuardat() {
+  if (!actualitzacioSheets.value?.signaturaActual || !syncState.value?.sourceSignature) return;
+  const mateixOrigen =
+    !syncState.value.sheetsId || syncState.value.sheetsId === (settings.value.sheetsId || DEFAULT_APP_SETTINGS.sheetsId);
+  if (mateixOrigen && actualitzacioSheets.value.signaturaActual === syncState.value.sourceSignature) {
+    actualitzacioSheets.value = {
+      ...actualitzacioSheets.value,
+      desactualitzat: false,
+      senseReferencia: false,
+      ultimaSync: syncState.value.syncedAt || actualitzacioSheets.value.ultimaSync,
+    };
+    estatActualitzacio.value = 'ok';
+  }
+}
+
+function programarComprovacio(delay = ACTIVITY_DELAY_MS, force = false) {
+  if (!cursStore.cursActiuId) return;
+  if (typeof document !== 'undefined' && document.hidden && !force) return;
+  clearTimeout(activityTimer);
+  activityTimer = setTimeout(() => {
+    comprovarActualitzacioAutomatica({ force });
+  }, delay);
+}
+
+async function comprovarActualitzacioAutomatica({ force = false } = {}) {
+  if (!cursStore.cursActiuId) return null;
+
+  const ara = Date.now();
+  if (!force && ara - lastCheckAt < CHECK_INTERVAL_MS) return null;
+  if (checkPromise) return checkPromise;
+
+  lastCheckAt = ara;
+  estatActualitzacio.value = 'comprovant';
+  errorActualitzacio.value = '';
+
+  checkPromise = comprovarEstatActualitzacioSheets(cursStore.cursActiuId, {
+    sheetsId: settings.value.sheetsId,
+  })
+    .then((result) => {
+      actualitzacioSheets.value = result;
+      estatActualitzacio.value = result.desactualitzat ? 'desactualitzat' : 'ok';
+      reconciliarAvisAmbEstatGuardat();
+      return result;
+    })
+    .catch((error) => {
+      errorActualitzacio.value = error.message || "No s'ha pogut comprovar Google Sheets.";
+      estatActualitzacio.value = 'error';
+      return null;
+    })
+    .finally(() => {
+      checkPromise = null;
+    });
+
+  return checkPromise;
+}
+
+function registrarActivitatAdmin() {
+  programarComprovacio();
+}
+
+function onVisibilityChange() {
+  if (!document.hidden) programarComprovacio(0, true);
+}
+
+function setupAdminSubscriptions(cursId) {
+  settingsUnsubscribe?.();
+  syncStateUnsubscribe?.();
+  settingsUnsubscribe = null;
+  syncStateUnsubscribe = null;
+  settings.value = { ...DEFAULT_APP_SETTINGS };
+  syncState.value = null;
+  actualitzacioSheets.value = null;
+  lastCheckAt = 0;
+
+  if (!cursId) return;
+
+  settingsUnsubscribe = subscribeAppSettings(cursId, (value) => {
+    settings.value = value;
+    programarComprovacio(0, true);
+  });
+  syncStateUnsubscribe = subscribeEstatSincronitzacio(cursId, (value) => {
+    syncState.value = value;
+    reconciliarAvisAmbEstatGuardat();
+  });
+  programarComprovacio(0, true);
+}
+
+watch(() => cursStore.cursActiuId, setupAdminSubscriptions, { immediate: true });
+watch(() => route.fullPath, () => programarComprovacio(0, true));
+
+onMounted(() => {
+  ACTIVITY_EVENTS.forEach((eventName) => {
+    window.addEventListener(eventName, registrarActivitatAdmin, { capture: true, passive: true });
+  });
+  window.addEventListener('focus', registrarActivitatAdmin);
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  programarComprovacio(0, true);
+});
+
+onUnmounted(() => {
+  clearTimeout(activityTimer);
+  settingsUnsubscribe?.();
+  syncStateUnsubscribe?.();
+  ACTIVITY_EVENTS.forEach((eventName) => {
+    window.removeEventListener(eventName, registrarActivitatAdmin, true);
+  });
+  window.removeEventListener('focus', registrarActivitatAdmin);
+  document.removeEventListener('visibilitychange', onVisibilityChange);
+});
 
 async function tancarSessio() {
   await authStore.tancarSessio();
