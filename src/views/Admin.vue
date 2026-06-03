@@ -97,10 +97,11 @@
             </div>
           </div>
           <router-link
+            v-if="mostrarBotoAvisSincronitzar"
             to="/admin/dades"
             class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md bg-[#0024B6] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#001A8A]"
           >
-            Sincronitza
+            Dades importades
           </router-link>
         </div>
       </section>
@@ -201,6 +202,9 @@ const colorActual = computed(() => pestanyaActual.value?.color || '#0024B6');
 const mostrarAvisDesactualitzat = computed(() =>
   actualitzacioSheets.value?.desactualitzat === true || actualitzacioSheets.value?.senseReferencia === true
 );
+const mostrarBotoAvisSincronitzar = computed(() =>
+  mostrarAvisDesactualitzat.value && route.path !== '/admin/dades'
+);
 const ultimaSyncSheets = computed(() => actualitzacioSheets.value?.ultimaSync || syncState.value?.syncedAt || '');
 const titolAvisActualitzacio = computed(() =>
   actualitzacioSheets.value?.senseReferencia ? 'Cal sincronitzar Google Sheets' : "L'app no està actualitzada"
@@ -261,6 +265,27 @@ function reconciliarAvisAmbEstatGuardat() {
   }
 }
 
+function marcarAvisComSincronitzat(estatGuardat) {
+  if (!estatGuardat?.sourceSignature) return;
+  actualitzacioSheets.value = {
+    ...(actualitzacioSheets.value || {}),
+    desactualitzat: false,
+    senseReferencia: false,
+    origenCanviat: false,
+    sheetsCanviat: false,
+    signaturaActual: estatGuardat.sourceSignature,
+    signaturaGuardada: estatGuardat.sourceSignature,
+    sheetsId: estatGuardat.sheetsId || settings.value.sheetsId,
+    sheetsIdGuardat: estatGuardat.sheetsId || settings.value.sheetsId,
+    totalClasses: estatGuardat.totalClasses ?? actualitzacioSheets.value?.totalClasses ?? 0,
+    totalProfessors: estatGuardat.totalProfessors ?? actualitzacioSheets.value?.totalProfessors ?? 0,
+    ultimaSync: estatGuardat.syncedAt || actualitzacioSheets.value?.ultimaSync || '',
+    checkedAt: estatGuardat.checkedAt || estatGuardat.syncedAt || new Date().toISOString(),
+  };
+  estatActualitzacio.value = 'ok';
+  lastCheckAt = Date.now();
+}
+
 function programarComprovacio(delay = ACTIVITY_DELAY_MS, force = false) {
   if (!cursStore.cursActiuId) return;
   if (typeof document !== 'undefined' && document.hidden && !force) return;
@@ -285,8 +310,21 @@ async function comprovarActualitzacioAutomatica({ force = false } = {}) {
     sheetsId: settings.value.sheetsId,
   })
     .then((result) => {
-      actualitzacioSheets.value = result;
-      estatActualitzacio.value = result.desactualitzat ? 'desactualitzat' : 'ok';
+      const estatGuardatActual = syncState.value;
+      const mateixaSignatura =
+        estatGuardatActual?.sourceSignature
+        && result.signaturaActual === estatGuardatActual.sourceSignature
+        && (!estatGuardatActual.sheetsId || estatGuardatActual.sheetsId === result.sheetsId);
+
+      actualitzacioSheets.value = mateixaSignatura
+        ? {
+            ...result,
+            desactualitzat: false,
+            senseReferencia: false,
+            ultimaSync: estatGuardatActual.syncedAt || result.ultimaSync,
+          }
+        : result;
+      estatActualitzacio.value = actualitzacioSheets.value.desactualitzat ? 'desactualitzat' : 'ok';
       reconciliarAvisAmbEstatGuardat();
       return result;
     })
@@ -328,7 +366,7 @@ function setupAdminSubscriptions(cursId) {
   });
   syncStateUnsubscribe = subscribeEstatSincronitzacio(cursId, (value) => {
     syncState.value = value;
-    reconciliarAvisAmbEstatGuardat();
+    marcarAvisComSincronitzat(value);
   });
   programarComprovacio(0, true);
 }
