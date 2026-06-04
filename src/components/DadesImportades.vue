@@ -1,16 +1,16 @@
 <template>
-  <div class="space-y-6">
+  <div class="sections space-y-6">
     <Sincronitzacio embedded />
 
     <section class="grid grid-cols-1 gap-3 md:grid-cols-3">
       <div
         v-for="item in resumDades"
         :key="item.label"
-        class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-gray-800"
+        class="card p-4 dark:border-slate-700 dark:bg-gray-800"
       >
-        <div class="text-2xl font-semibold text-slate-950 dark:text-white">{{ item.value }}</div>
+        <div class="text-primaryxl font-semibold text-slate-950 dark:text-white">{{ item.value }}</div>
         <div class="mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ item.label }}</div>
-        <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ item.detail }}</div>
+        <div class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ item.detail }}</div>
       </div>
     </section>
 
@@ -23,8 +23,8 @@
           @click="activa = tab.id"
           class="rounded-md px-4 py-2.5 text-sm font-semibold transition"
           :class="activa === tab.id
-            ? 'bg-[#0024B6] text-white dark:bg-[#3355CC]'
-            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-gray-700 dark:hover:text-white'"
+            ? 'bg-primary text-white dark:bg-primary-dark'
+            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-gray-700 dark:hover:text-white'"
         >
           {{ tab.label }}
         </button>
@@ -32,11 +32,11 @@
     </div>
 
     <section v-if="activa === 'classes'" class="space-y-4">
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-gray-800">
+      <div class="card p-5 dark:border-slate-700 dark:bg-gray-800">
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 class="text-lg font-bold text-slate-950 dark:text-white">Classes</h3>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
               Mostra totes les classes. Fes servir els filtres per acotar la revisió.
             </p>
           </div>
@@ -101,25 +101,25 @@
         </div>
 
         <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p class="text-sm text-slate-500 dark:text-slate-400">
+          <p class="text-sm text-slate-600 dark:text-slate-400">
             {{ classesFiltrades.length }} classes visibles de {{ classes.length }} carregades.
           </p>
         </div>
       </div>
 
-      <div v-if="carregantClasses" class="rounded-lg border border-slate-200 bg-white p-8 text-center text-slate-500 dark:border-slate-700 dark:bg-gray-800">
+      <div v-if="carregantClasses" class="rounded-lg border border-slate-200 bg-white p-8 text-center text-slate-600 dark:border-slate-700 dark:bg-gray-800">
         Carregant classes...
       </div>
 
       <div v-else-if="classesFiltrades.length === 0" class="rounded-lg border border-slate-200 bg-white p-10 text-center dark:border-slate-700 dark:bg-gray-800">
-        <p class="font-semibold text-slate-900 dark:text-white">No hi ha classes per mostrar.</p>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Canvia els filtres o revisa la sincronització.</p>
+        <p class="font-bold text-slate-950 dark:text-white">No hi ha classes per mostrar.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Canvia els filtres o revisa la sincronització.</p>
       </div>
 
-      <div v-else class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800">
+      <div v-else class="overflow-hidden card dark:border-slate-700 dark:bg-gray-800">
         <div class="overflow-x-auto">
           <table class="w-full text-sm" style="min-width: 900px">
-            <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-gray-700 dark:text-slate-300">
+            <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-600 dark:bg-gray-700 dark:text-slate-300">
               <tr>
                 <th class="px-4 py-3">Curs</th>
                 <th class="px-4 py-3">Grup</th>
@@ -135,7 +135,7 @@
                 <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ classe.curs || '-' }}</td>
                 <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ classe.grup || '-' }}</td>
                 <td class="px-4 py-3 text-slate-900 dark:text-white">{{ classe.materia || '-' }}</td>
-                <td class="px-4 py-3 text-center font-semibold text-slate-900 dark:text-white">{{ classe.hores || 0 }}</td>
+                <td class="px-4 py-3 text-center font-bold text-slate-950 dark:text-white">{{ classe.hores || 0 }}</td>
                 <td class="px-4 py-3">
                   <span class="rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700 dark:bg-gray-700 dark:text-slate-200">
                     {{ etiquetaTipus(classe.tipus) }}
@@ -146,7 +146,7 @@
                   <span v-if="professorsClasse(classe).length">
                     {{ professorsClasse(classe).join(', ') }}
                   </span>
-                  <span v-else class="text-red-600 dark:text-red-400">Sense assignar</span>
+                  <span v-else class="text-red-800 dark:text-red-400">Sense assignar</span>
                 </td>
               </tr>
             </tbody>
@@ -155,14 +155,14 @@
       </div>
     </section>
 
-    <section v-else-if="activa === 'professors'" class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800">
+    <section v-else-if="activa === 'professors'" class="overflow-hidden card dark:border-slate-700 dark:bg-gray-800">
       <div class="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
         <h3 class="text-lg font-bold text-slate-900 dark:text-white">Professorat</h3>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ professorsOrdenats.length }} professors importats.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ professorsOrdenats.length }} professors importats.</p>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm" style="min-width: 720px">
-          <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-gray-700 dark:text-slate-300">
+          <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-600 dark:bg-gray-700 dark:text-slate-300">
             <tr>
               <th class="px-4 py-3">Nom</th>
               <th class="px-4 py-3">Departament</th>
@@ -184,16 +184,16 @@
       </div>
     </section>
 
-    <section v-else class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800">
+    <section v-else class="overflow-hidden card dark:border-slate-700 dark:bg-gray-800">
       <div class="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
         <h3 class="text-lg font-bold text-slate-900 dark:text-white">Departaments</h3>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
           Llista generada a partir del professorat importat.
         </p>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
-          <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-gray-700 dark:text-slate-300">
+          <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-600 dark:bg-gray-700 dark:text-slate-300">
             <tr>
               <th class="px-4 py-3">Departament</th>
               <th class="px-4 py-3 text-center">Professors</th>

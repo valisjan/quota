@@ -4,7 +4,7 @@
       <h3 class="text-base font-semibold text-slate-950">
         Classes del departament
       </h3>
-      <p class="text-sm text-slate-500">
+      <p class="text-sm text-slate-600">
         {{ classesSenseAssignar.length }} pendents · {{ classesAssignades.length }} assignades
       </p>
     </div>
@@ -20,10 +20,10 @@
     <!-- Pendents -->
     <div
       v-if="classesSenseAssignar.length > 0"
-      class="overflow-hidden rounded-lg border border-slate-200 border-l-4 border-l-[#FF8040] bg-white"
+      class="overflow-hidden card shadow-danger-glow"
     >
-      <div class="border-b border-slate-200 bg-slate-50 px-3 py-2">
-        <h4 class="text-sm font-semibold text-slate-900">
+      <div class="border-b border-slate-200 bg-danger/5 px-3 py-2">
+        <h4 class="text-sm font-bold text-slate-950">
           Pendents d'assignar ({{ classesSenseAssignar.length }})
         </h4>
       </div>
@@ -46,7 +46,7 @@
             <div class="mt-1 flex flex-wrap items-center gap-2">
               <span
                 v-if="classe.tipus"
-                class="rounded-sm bg-slate-100 px-2 py-1 text-sm font-medium text-slate-700"
+                class="chip"
               >
                 {{ getTipusText(classe.tipus) }}
               </span>
@@ -97,10 +97,10 @@
     <!-- Assignades -->
     <div
       v-if="classesAssignades.length > 0"
-      class="overflow-hidden rounded-lg border border-slate-200 border-l-4 border-l-[#00BF33] bg-white"
+      class="overflow-hidden card shadow-success-glow"
     >
-      <div class="border-b border-slate-200 bg-slate-50 px-3 py-2">
-        <h4 class="text-sm font-semibold text-slate-900">
+      <div class="border-b border-slate-200 bg-success/5 px-3 py-2">
+        <h4 class="text-sm font-bold text-slate-950">
           Assignades ({{ classesAssignades.length }})
         </h4>
       </div>
@@ -123,7 +123,7 @@
             <div class="mt-1 flex flex-wrap items-center gap-2">
               <span
                 v-if="classe.tipus"
-                class="rounded-sm bg-slate-100 px-2 py-1 text-sm font-medium text-slate-700"
+                class="chip"
               >
                 {{ getTipusText(classe.tipus) }}
               </span>
@@ -172,7 +172,7 @@
               type="button"
               @click="desassignarProfessors(classe)"
               :disabled="bloquejat"
-              class="shrink-0 text-lg font-bold leading-none text-[#FF8040] hover:text-[#CC5020] dark:text-[#FF9060]"
+              class="shrink-0 text-lg font-bold leading-none text-danger hover:text-danger-dark dark:text-danger"
               :aria-label="`Desassignar ${formatClasseLabel(classe)}`"
             >x</button>
           </div>
@@ -180,7 +180,7 @@
             v-for="avis in avisosHores(classe)"
             :key="avis.nom"
             class="mt-1 text-xs font-medium"
-            :class="avis.tipus === 'limit' ? 'text-[#CC5020]' : 'text-[#FF8040]'"
+            :class="avis.tipus === 'limit' ? 'text-danger-dark' : 'text-danger'"
           >
             {{ avis.nom }}: {{ avis.tipus === 'limit' ? 'supera les hores permeses' : 'supera les hores recomanades' }}
           </p>
@@ -207,9 +207,9 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useCursStore } from '../stores/curs';
-import { limitsHoresProfessor, professorsClasse, calcularHoresLectives } from '../utils/horesProfessor';
+import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
 import { classeCompletamentAssignada, professorPrincipalClasse, professorSecundariClasse, normalitzarProfessorsAssignats } from '../utils/assignacions';
-import { esOptativaCompartida, exclosaDelRepartiment, getTipusText } from '../utils/tipus';
+import { esGP, esOptativaCompartida, exclosaDelRepartiment, getTipusText } from '../utils/tipus';
 import {
   esTutoriaPrincipal,
   trobarTutoriaAsterisc,
@@ -218,6 +218,7 @@ import {
   trobarDedicacioPerCapEstudis,
 } from '../utils/tutories';
 import { trobarGermanesBloc, normalitzarGrup } from '../utils/grups';
+import { classePertanyDepartament } from '../utils/departaments';
 
 const emit = defineEmits(['assignacionsActualitzades']);
 
@@ -245,7 +246,7 @@ const classesDepartament = computed(() => {
   if (!props.departamentSeleccionat) return [];
   return sortClasses(
     classes.value.filter((classe) =>
-      classe.departaments?.includes(props.departamentSeleccionat)
+      classePertanyDepartament(classe, props.departamentSeleccionat)
     )
   );
 });
@@ -273,6 +274,19 @@ const professorsDepartamentOrdenats = computed(() =>
     )
   )
 );
+
+const horesPorProfessorMap = computed(() => {
+  const map = new Map();
+  for (const c of classes.value) {
+    if (esGP(c.tipus)) continue;
+    const hores = horesComputablesClasse(c);
+    for (const nom of professorsClasse(c)) {
+      if (!nom) continue;
+      map.set(nom, (map.get(nom) || 0) + hores);
+    }
+  }
+  return map;
+});
 
 function sortClasses(llista) {
   return [...llista].sort((a, b) => {
@@ -323,7 +337,7 @@ function esConflicteSuport(classe, nomProfessor) {
 }
 
 function calcularHoresProfessor(nomProfessor) {
-  return calcularHoresLectives(classes.value, nomProfessor);
+  return horesPorProfessorMap.value.get(nomProfessor) || 0;
 }
 
 function getProfessor(nomProfessor) {

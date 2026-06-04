@@ -1,12 +1,12 @@
 <template>
-  <div class="space-y-4">
+  <div class="sections space-y-4">
     <!-- Capçalera -->
-    <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div class="border-b border-slate-200 bg-slate-50 px-5 py-4">
-        <h3 class="text-xl font-semibold text-slate-950">
+    <div class="card">
+      <div class="border-b border-slate-300 bg-slate-200 px-5 py-4">
+        <h3 class="text-xl font-bold text-slate-950">
           Sincronització amb Google Sheets
         </h3>
-        <p class="mt-1 text-base text-slate-600">
+        <p class="mt-1 text-base text-slate-700">
           Llegeix les pestanyes <strong>Classes</strong> i <strong>Professorat</strong>.
         </p>
       </div>
@@ -25,7 +25,7 @@
           <button
             @click="ferSync"
             :disabled="estatSync === 'sincronitzant' || settings.tancamentAdmin || cursStore.esBloqueig"
-            class="flex flex-1 items-center justify-center gap-2 rounded-md bg-[#0024B6] px-4 py-3 text-base font-medium text-white transition hover:bg-[#001A8A] disabled:opacity-50"
+            class="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-base font-medium text-white transition hover:bg-primary-dark disabled:opacity-50"
           >
             <span v-if="estatSync === 'sincronitzant'" class="animate-spin">&#9203;</span>
             {{ estatSync === 'sincronitzant' ? 'Sincronitzant...' : 'Sincronitza' }}
@@ -69,7 +69,7 @@
               >
                 {{ resultComprova.alDia ? 'L\'app està al dia' : `Atenció: ${totalDiscrepancies} discrepàncies` }}
               </span>
-              <span class="text-sm text-slate-500 dark:text-gray-400">
+              <span class="text-sm text-slate-600 dark:text-gray-400">
                 Sheets: {{ resultComprova.totalSheets }} · App: {{ resultComprova.totalApp }}
               </span>
             </div>
@@ -94,12 +94,12 @@
                   {{ etiquetaCanviComprova(canvi.tipus) }}
                 </span>
                 <span class="font-semibold text-slate-800 dark:text-slate-100">{{ canvi.resum }}</span>
-                <span v-if="canvi.detall" class="mt-0.5 block text-xs text-slate-600 dark:text-slate-300">
+                <span v-if="canvi.detall" class="mt-0.5 block text-xs text-slate-700 dark:text-slate-300">
                   {{ canvi.detall }}
                 </span>
               </div>
             </div>
-            <div class="mt-2 text-sm text-slate-500 dark:text-gray-400">
+            <div class="mt-2 text-sm text-slate-600 dark:text-gray-400">
               Comprovat: {{ formatDataHora(resultComprova.timestamp) }}
             </div>
           </template>
@@ -127,14 +127,14 @@
                 class="rounded-md border border-white/70 bg-white/80 px-3 py-2 dark:border-slate-700 dark:bg-slate-900/30"
               >
                 <div class="text-lg font-semibold" :class="item.color">{{ item.valor }}</div>
-                <div class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ item.label }}</div>
+                <div class="text-xs font-medium text-slate-700 dark:text-slate-300">{{ item.label }}</div>
               </div>
             </div>
-            <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-gray-400">
+            <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-700 dark:text-gray-400">
               <span>{{ statsSync.total }} classes totals</span>
               <span v-if="statsSync.assignacionsConservades">{{ statsSync.assignacionsConservades }} assignacions conservades</span>
             </div>
-            <div class="mt-1 text-sm text-slate-500 dark:text-gray-400">
+            <div class="mt-1 text-sm text-slate-600 dark:text-gray-400">
               {{ statsSync.totalProfs }} professors · {{ statsSync.totalDeps }} departaments ·
               Sincronitzat: {{ formatDataHora(ultimaSync) }}
             </div>
@@ -155,7 +155,7 @@
       </div>
     </div>
 
-    <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
+    <section class="card">
       <button
         type="button"
         class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
@@ -165,15 +165,15 @@
           <h3 class="text-lg font-semibold text-slate-950">
             Historial de sincronitzacions
           </h3>
-          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
             {{ historial.length }} registres de sincronització.
           </p>
         </div>
-        <span class="rounded-md border border-slate-200 px-2 py-1 text-sm font-semibold text-slate-600">
+        <span class="rounded-md border border-slate-200 px-2 py-1 text-sm font-semibold text-slate-700">
           {{ historialObert ? 'Amaga' : 'Mostra' }}
         </span>
       </button>
-      <div v-if="historialObert && historial.length === 0" class="border-t border-slate-100 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+      <div v-if="historialObert && historial.length === 0" class="border-t border-slate-100 p-5 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-400">
         {{ errorHistorialMsg || 'Encara no hi ha sincronitzacions registrades.' }}
       </div>
       <div v-else-if="historialObert" class="divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-700 dark:border-slate-700">
@@ -184,10 +184,10 @@
         >
           <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p class="font-semibold text-slate-900 dark:text-white">
+              <p class="font-bold text-slate-950 dark:text-white">
                 {{ formatDataHora(item.createdAt || item.timestamp) }}
               </p>
-              <p class="text-sm text-slate-500 dark:text-slate-400">
+              <p class="text-sm text-slate-600 dark:text-slate-400">
                 {{ item.actor || 'admin' }} · {{ item.total }} classes · {{ item.totalProfs }} professors · {{ item.totalDeps }} departaments
               </p>
             </div>

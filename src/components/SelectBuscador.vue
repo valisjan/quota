@@ -23,7 +23,7 @@
       <button
         v-if="modelValue"
         @mousedown.prevent="netejar"
-        class="absolute right-2 text-lg leading-none text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+        class="absolute right-2 text-lg leading-none text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
         tabindex="-1"
         title="Esborra selecció"
       >x</button>
@@ -40,18 +40,18 @@
           @mousedown.prevent="seleccionar(opcio)"
           class="flex w-full items-baseline gap-2 px-3 py-1.5 text-left text-sm"
           :class="i === actiu
-            ? 'bg-[#0024B6] text-white'
+            ? 'bg-primary text-white'
             : 'text-slate-800 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-gray-800'"
         >
           <span
             class="shrink-0 font-mono text-xs"
-            :class="i === actiu ? 'text-blue-200' : 'text-slate-500 dark:text-slate-400'"
+            :class="i === actiu ? 'text-blue-200' : 'text-slate-600 dark:text-slate-400'"
           >{{ opcio.value }}</span>
           <span class="min-w-0 truncate">{{ opcio.nom }}</span>
           <span v-if="opcio.suggerit" class="ml-auto shrink-0 opacity-60 dark:opacity-50">&#9733;</span>
         </button>
       </template>
-      <p v-else class="px-3 py-3 text-sm text-slate-400 dark:text-slate-500">
+      <p v-else class="px-3 py-3 text-sm text-slate-500 dark:text-slate-500">
         Cap resultat per a "{{ query }}"
       </p>
     </div>

@@ -1,11 +1,11 @@
 <template>
-  <div class="space-y-6">
-    <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
+  <div class="sections space-y-6">
+    <section class="card">
       <div class="border-b border-slate-200 p-5">
-        <h3 class="text-xl font-semibold text-slate-950">
+        <h3 class="text-xl font-bold text-slate-950">
           Guàrdies de pati
         </h3>
-        <p class="mt-1 text-sm text-slate-500">
+        <p class="mt-1 text-sm text-slate-600">
           Es reparteixen automàticament entre els departaments segons el nombre de professors. Educació Física, Agrària i Forneria no entren en el repartiment.
         </p>
       </div>
@@ -27,7 +27,7 @@
             <p class="text-sm font-semibold text-slate-800">
               Repartiment previst
             </p>
-            <span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+            <span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
               {{ totalPreviewAssignat }} / {{ totalGuardiesPatiFormulari }}
             </span>
           </div>
@@ -44,7 +44,7 @@
               </span>
             </div>
           </div>
-          <p v-else class="text-sm text-slate-500">
+          <p v-else class="text-sm text-slate-600">
             No hi ha professorat computable per repartir guàrdies.
           </p>
 
@@ -53,7 +53,7 @@
               type="button"
               @click="guardarGuardies"
               :disabled="guardant"
-              class="rounded-md bg-[#0024B6] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#001A8A] disabled:opacity-50"
+              class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-dark disabled:opacity-50"
             >
               {{ guardant ? 'Guardant...' : 'Guardar guàrdies' }}
             </button>
@@ -63,10 +63,10 @@
     </section>
 
     <!-- Secció: Full de càlcul -->
-    <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
+    <section class="card">
       <div class="border-b border-slate-200 p-5">
-        <h3 class="text-xl font-semibold text-slate-950">Full de càlcul (Google Sheets)</h3>
-        <p class="mt-1 text-sm text-slate-500">
+        <h3 class="text-xl font-bold text-slate-950">Full de càlcul (Google Sheets)</h3>
+        <p class="mt-1 text-sm text-slate-600">
           ID del full des d'on s'importen les classes i el professorat. Ha de ser públic (visible per a tothom amb l'enllaç).
         </p>
       </div>
@@ -101,7 +101,7 @@
             type="button"
             @click="tornarAnterior"
             :disabled="guardantSheets"
-            class="mt-3 text-sm font-semibold text-amber-700 underline hover:text-amber-900 disabled:opacity-50"
+            class="mt-3 text-sm font-semibold text-amber-900 underline hover:text-amber-900 disabled:opacity-50"
           >
             Tornar a l'ID anterior
           </button>
@@ -110,7 +110,7 @@
         <!-- Canviar ID -->
         <div>
           <p class="text-sm font-semibold text-slate-700">Canviar ID</p>
-          <p class="mt-0.5 text-xs text-slate-500">Enganxa l'ID o la URL completa del full.</p>
+          <p class="mt-0.5 text-xs text-slate-600">Enganxa l'ID o la URL completa del full.</p>
           <div class="mt-2 flex gap-2">
             <input
               v-model="nouSheetsIdRaw"
@@ -148,18 +148,18 @@
             <p class="text-sm text-slate-700">
               Nou ID verificat correctament.
             </p>
-            <code class="text-xs font-mono text-slate-500">{{ nouSheetsIdNorm }}</code>
+            <code class="text-xs font-mono text-slate-600">{{ nouSheetsIdNorm }}</code>
           </div>
           <div v-else class="text-sm text-slate-700">
             <p class="font-semibold">Confirmar el canvi?</p>
-            <p class="mt-0.5 text-xs text-slate-500">L'ID anterior quedarà guardat com a còpia de seguretat.</p>
+            <p class="mt-0.5 text-xs text-slate-600">L'ID anterior quedarà guardat com a còpia de seguretat.</p>
           </div>
           <div class="flex shrink-0 gap-2">
             <template v-if="!confirmantSheets">
               <button
                 type="button"
                 @click="confirmantSheets = true"
-                class="rounded-md bg-[#0024B6] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#001A8A]"
+                class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-dark"
               >
                 Guardar
               </button>
@@ -176,7 +176,7 @@
                 type="button"
                 @click="guardarSheets"
                 :disabled="guardantSheets"
-                class="rounded-md bg-[#0024B6] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#001A8A] disabled:opacity-50"
+                class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-dark disabled:opacity-50"
               >
                 {{ guardantSheets ? 'Guardant...' : 'Confirmar' }}
               </button>

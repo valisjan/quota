@@ -1,35 +1,35 @@
 <template>
-  <div class="space-y-5">
-    <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+  <div class="sections space-y-5">
+    <div class="card p-5">
       <div class="flex items-center justify-between gap-4">
         <div>
-          <h3 class="font-semibold text-slate-900">Crear curs acadèmic</h3>
-          <p class="mt-0.5 text-sm text-slate-500">
+          <h3 class="font-bold text-slate-950">Crear curs acadèmic</h3>
+          <p class="mt-0.5 text-sm text-slate-600">
             Següent curs: <strong>{{ cursSeguent }}</strong>
           </p>
         </div>
         <button
           @click="crearCurs"
           :disabled="!cursSeguent || creant || cursJaExisteix"
-          class="shrink-0 rounded-lg bg-[#0024B6] px-4 py-2 text-sm font-medium text-white hover:bg-[#001A8A] disabled:opacity-50"
+          class="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
         >
           {{ creant ? 'Creant...' : `Crear ${cursSeguent}` }}
         </button>
       </div>
-      <p v-if="cursJaExisteix" class="mt-2 text-sm font-medium text-amber-600">
+      <p v-if="cursJaExisteix" class="mt-2 text-sm font-medium text-amber-800">
         Aquest curs ja existeix.
       </p>
     </div>
 
-    <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div class="border-b border-slate-200 bg-slate-50 px-5 py-4">
-        <h3 class="font-semibold text-slate-900">Curs acadèmic</h3>
-        <p class="mt-1 text-sm text-slate-500">
+    <div class="overflow-hidden card">
+      <div class="border-b border-slate-300 bg-slate-200 px-5 py-4">
+        <h3 class="font-bold text-slate-950">Curs acadèmic</h3>
+        <p class="mt-1 text-sm text-slate-600">
           Selecciona el curs actiu, bloqueja els tancats o elimina completament un curs de proves.
         </p>
       </div>
 
-      <div v-if="cursStore.cursos.length === 0" class="p-5 text-sm text-slate-400">
+      <div v-if="cursStore.cursos.length === 0" class="p-5 text-sm text-slate-500">
         Encara no hi ha cap curs. Crea'n un per començar.
       </div>
 
@@ -42,14 +42,14 @@
         >
           <div>
             <div class="flex items-center gap-2">
-              <span class="font-semibold text-slate-900">{{ curs.nom || curs.id }}</span>
+              <span class="font-bold text-slate-950">{{ curs.nom || curs.id }}</span>
               <span
                 v-if="curs.id === cursStore.cursActiuId"
-                class="rounded-full bg-[#00BF33] px-2 py-0.5 text-[10px] font-semibold text-white"
+                class="rounded-full bg-success px-2 py-0.5 text-[10px] font-semibold text-white"
               >actiu</span>
               <span
                 v-if="curs.bloqueig"
-                class="rounded-full bg-[#FF8040] px-2 py-0.5 text-[10px] font-semibold text-white"
+                class="rounded-full bg-danger px-2 py-0.5 text-[10px] font-semibold text-white"
               >bloquejat</span>
             </div>
           </div>
@@ -67,7 +67,7 @@
               class="rounded-md border px-3 py-1.5 text-xs font-medium transition"
               :class="curs.bloqueig
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'"
+                : 'border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100'"
             >
               {{ curs.bloqueig ? 'Desbloquejar' : 'Bloquejar' }}
             </button>
@@ -90,7 +90,7 @@
     >
       <div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
         <h4 class="text-lg font-semibold text-red-700">Borrat total del curs acadèmic</h4>
-        <p class="mt-2 text-sm text-slate-600">
+        <p class="mt-2 text-sm text-slate-700">
           Aquesta acció eliminarà definitivament el curs
           <strong>{{ cursABorrarTotal.nom || cursABorrarTotal.id }}</strong>
           i tots els seus rastres: classes, professorat, departaments, historial de sincronització,
@@ -100,7 +100,7 @@
           <input
             v-model="eliminarPreautoritzats"
             type="checkbox"
-            class="mt-0.5 h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500"
+            class="mt-0.5 h-4 w-4 rounded border-slate-300 text-red-800 focus:ring-red-500"
             :disabled="Boolean(eliminant)"
           />
           <span>
@@ -116,7 +116,7 @@
         <input
           v-model="confirmacioBorratTotal"
           type="text"
-          class="mt-4 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+          class="mt-4 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-primary focus:ring-red-100"
           :placeholder="textConfirmacioBorrat"
           @keyup.enter="potConfirmarBorrat && eliminarCurs(cursABorrarTotal)"
         />

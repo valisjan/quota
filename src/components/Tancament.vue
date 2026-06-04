@@ -1,29 +1,29 @@
 <template>
-  <div class="space-y-5">
-    <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 class="text-2xl font-semibold text-slate-950">
+  <div class="sections space-y-5">
+    <div class="card p-5">
+      <h3 class="text-xl font-bold text-slate-950">
         Mode tancament
       </h3>
-      <p class="mt-2 text-base text-slate-600 dark:text-slate-300">
+      <p class="mt-2 text-base text-slate-700 dark:text-slate-300">
         Bloqueja les edicions quan el repartiment ja està revisat o pendent de passar a horaris.
       </p>
     </div>
 
-    <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+    <div class="card">
       <div class="divide-y divide-slate-200 dark:divide-slate-700">
         <label class="flex cursor-pointer items-start justify-between gap-4 p-5">
           <div>
             <p class="text-lg font-semibold text-slate-950">
               Bloquejar administració
             </p>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
               Les pantalles d'administració queden en mode lectura. Aquesta pantalla sempre queda disponible per desbloquejar.
             </p>
           </div>
           <input
             v-model="formulari.tancamentAdmin"
             type="checkbox"
-            class="mt-1 h-6 w-6 rounded border-slate-300 text-[#0024B6] focus:ring-[#0024B6]"
+            class="mt-1 h-6 w-6 rounded border-slate-300 text-primary focus:ring-primary"
           />
         </label>
       </div>
@@ -41,25 +41,25 @@
       </div>
 
       <div class="flex flex-col gap-3 border-t border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700">
-        <p class="text-sm text-slate-500 dark:text-slate-400">
+        <p class="text-sm text-slate-600 dark:text-slate-400">
           {{ estatText }}
         </p>
         <button
           @click="guardar"
           :disabled="guardant"
-          class="rounded-md bg-[#00BF33] px-5 py-3 text-base font-medium text-white transition hover:bg-[#009928] disabled:opacity-50"
+          class="rounded-md bg-success px-5 py-3 text-base font-medium text-white transition hover:bg-success-dark disabled:opacity-50"
         >
           {{ guardant ? 'Guardant...' : 'Guardar configuració' }}
         </button>
       </div>
     </div>
 
-    <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
+    <section class="card">
       <div class="border-b border-slate-200 p-5 dark:border-slate-700">
-        <h3 class="text-xl font-semibold text-slate-950">
+        <h3 class="text-xl font-bold text-slate-950">
           Tancament per departament
         </h3>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
           Els departaments poden tancar-se ells mateixos. Només l'administració pot desbloquejar-los.
         </p>
       </div>
@@ -71,10 +71,10 @@
           class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <div>
-            <p class="font-semibold text-slate-900 dark:text-white">
+            <p class="font-bold text-slate-950 dark:text-white">
               {{ departament.nom }}
             </p>
-            <p class="text-sm text-slate-500 dark:text-slate-400">
+            <p class="text-sm text-slate-600 dark:text-slate-400">
               <span v-if="departament.tancat">
                 Tancat per {{ infoDepartament(departament.nom).tancatPer || 'usuari' }}
                 <span v-if="infoDepartament(departament.nom).tancatAt">
@@ -96,7 +96,7 @@
             <button
               v-else
               type="button"
-              class="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 transition hover:bg-amber-100"
+              class="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 transition hover:bg-amber-100"
               @click="bloquejarDepartament(departament)"
             >
               Tanca

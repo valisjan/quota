@@ -2,7 +2,7 @@
   <div class="fulla-repartiment">
     <!-- Capçalera pantalla -->
     <div class="print-hide mb-4 flex items-center justify-between">
-      <p class="text-sm text-slate-500 dark:text-slate-400">
+      <p class="text-sm text-slate-600 dark:text-slate-400">
         {{ departament }} · {{ dataAvui }}
       </p>
       <div class="flex gap-2">
@@ -30,30 +30,30 @@
     <!-- Resum numèric -->
     <div class="mb-4 flex flex-wrap gap-x-6 gap-y-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800/50">
       <div>
-        <span class="text-slate-500 dark:text-slate-400">Hores lectives:</span>
-        <strong class="ml-1.5" :class="totalHoresAssignades === totalHoresDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'">
+        <span class="text-slate-600 dark:text-slate-400">Hores lectives:</span>
+        <strong class="ml-1.5" :class="totalHoresAssignades === totalHoresDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'">
           {{ totalHoresAssignades }} / {{ totalHoresDepartament }}h
         </strong>
       </div>
       <div>
-        <span class="text-slate-500 dark:text-slate-400">Professors:</span>
+        <span class="text-slate-600 dark:text-slate-400">Professors:</span>
         <strong class="ml-1.5 text-slate-900 dark:text-white">{{ professors.length }}</strong>
-        <span class="ml-1 text-slate-400 dark:text-slate-500">(~{{ professorsNecessaris }} necessaris)</span>
+        <span class="ml-1 text-slate-500 dark:text-slate-500">(~{{ professorsNecessaris }} necessaris)</span>
       </div>
       <div v-if="totalGpDepartament > 0">
-        <span class="text-slate-500 dark:text-slate-400">GP:</span>
-        <strong class="ml-1.5" :class="totalGpAssignades === totalGpDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'">
+        <span class="text-slate-600 dark:text-slate-400">GP:</span>
+        <strong class="ml-1.5" :class="totalGpAssignades === totalGpDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'">
           {{ totalGpAssignades }} / {{ totalGpDepartament }}
         </strong>
       </div>
       <div v-if="totalPalicDepartament > 0">
-        <span class="text-slate-500 dark:text-slate-400">PALIC:</span>
-        <strong class="ml-1.5" :class="totalPalicAssignades === totalPalicDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'">
+        <span class="text-slate-600 dark:text-slate-400">PALIC:</span>
+        <strong class="ml-1.5" :class="totalPalicAssignades === totalPalicDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'">
           {{ totalPalicAssignades }} / {{ totalPalicDepartament }}
         </strong>
       </div>
       <div>
-        <span class="text-slate-500 dark:text-slate-400">Sense assignar:</span>
+        <span class="text-slate-600 dark:text-slate-400">Sense assignar:</span>
         <strong class="ml-1.5" :class="classesNoAssignades.length > 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'">
           {{ classesNoAssignades.length }}
         </strong>
@@ -112,14 +112,14 @@
               >
                 {{ professor.preferencia === 'pronto' ? 'Entrar prest' : 'Entrar tard' }}
               </div>
-              <div v-if="professor.comentaris" class="mt-0.5 text-xs italic text-slate-400 dark:text-gray-500">
+              <div v-if="professor.comentaris" class="mt-0.5 text-xs italic text-slate-500 dark:text-gray-500">
                 {{ professor.comentaris }}
               </div>
             </td>
 
             <!-- Matèries -->
             <td class="border-b border-r border-slate-200 px-3 py-2 align-top dark:border-gray-700">
-              <div v-if="getClassesProfessor(professor.nom).length === 0" class="italic text-slate-400 dark:text-gray-500">
+              <div v-if="getClassesProfessor(professor.nom).length === 0" class="italic text-slate-500 dark:text-gray-500">
                 Sense assignació
               </div>
               <div
@@ -127,11 +127,11 @@
                 :key="c.id"
                 class="flex items-baseline gap-1 leading-relaxed"
               >
-                <span class="w-12 shrink-0 text-xs text-slate-400 dark:text-gray-500">
+                <span class="w-12 shrink-0 text-xs text-slate-500 dark:text-gray-500">
                   {{ c.curs }}{{ c.grup ? ' ' + c.grup : '' }}
                 </span>
                 <span class="text-slate-800 dark:text-gray-200">{{ c.materia }}</span>
-                <span v-if="c.tipus" class="rounded bg-slate-100 px-1 text-[10px] text-slate-500 dark:bg-gray-700 dark:text-gray-400">
+                <span v-if="c.tipus" class="rounded bg-slate-100 px-1 text-[10px] text-slate-600 dark:bg-gray-700 dark:text-gray-400">
                   {{ c.tipus }}
                 </span>
                 <span
@@ -140,7 +140,7 @@
                 >
                   codocent
                 </span>
-                <span class="ml-auto shrink-0 font-mono text-xs text-slate-500 dark:text-gray-400">
+                <span class="ml-auto shrink-0 font-mono text-xs text-slate-600 dark:text-gray-400">
                   {{ c.hores }}h
                 </span>
               </div>
@@ -187,31 +187,31 @@
 
           <!-- Fila de totals -->
           <tr class="bg-slate-100 font-semibold dark:bg-gray-700">
-            <td class="border-t-2 border-slate-300 px-3 py-2.5 text-slate-700 dark:border-gray-500 dark:text-gray-200">
+            <td class="border-t-primary border-slate-300 px-3 py-2.5 text-slate-700 dark:border-gray-500 dark:text-gray-200">
               TOTAL
             </td>
-            <td class="border-t-2 border-slate-300 px-3 py-2.5 dark:border-gray-500"></td>
-            <td class="border-t-2 border-slate-300 px-3 py-2.5 text-center font-mono dark:border-gray-500">
-              <span :class="totalHoresAssignades === totalHoresDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'">
+            <td class="border-t-primary border-slate-300 px-3 py-2.5 dark:border-gray-500"></td>
+            <td class="border-t-primary border-slate-300 px-3 py-2.5 text-center font-mono dark:border-gray-500">
+              <span :class="totalHoresAssignades === totalHoresDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'">
                 {{ totalHoresAssignades }}
               </span>
-              <span class="text-xs font-normal text-slate-400"> / {{ totalHoresDepartament }}</span>
+              <span class="text-xs font-normal text-slate-500"> / {{ totalHoresDepartament }}</span>
             </td>
             <td
               v-if="totalGpDepartament > 0"
-              class="border-t-2 border-slate-300 px-3 py-2.5 text-center font-mono dark:border-gray-500"
-              :class="totalGpAssignades === totalGpDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'"
+              class="border-t-primary border-slate-300 px-3 py-2.5 text-center font-mono dark:border-gray-500"
+              :class="totalGpAssignades === totalGpDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'"
             >
               {{ totalGpAssignades }} / {{ totalGpDepartament }}
             </td>
             <td
               v-if="totalPalicDepartament > 0"
-              class="border-t-2 border-slate-300 px-3 py-2.5 text-center font-mono dark:border-gray-500"
-              :class="totalPalicAssignades === totalPalicDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'"
+              class="border-t-primary border-slate-300 px-3 py-2.5 text-center font-mono dark:border-gray-500"
+              :class="totalPalicAssignades === totalPalicDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'"
             >
               {{ totalPalicAssignades }} / {{ totalPalicDepartament }}
             </td>
-            <td class="border-t-2 border-slate-300 px-3 py-2.5 dark:border-gray-500" colspan="2"></td>
+            <td class="border-t-primary border-slate-300 px-3 py-2.5 dark:border-gray-500" colspan="2"></td>
           </tr>
         </tbody>
       </table>
@@ -259,7 +259,7 @@
               <td class="border-b border-red-100 px-3 py-2 text-slate-700 dark:border-red-900/20 dark:text-gray-300">{{ c.grup }}</td>
               <td class="border-b border-red-100 px-3 py-2 font-medium text-slate-900 dark:border-red-900/20 dark:text-white">{{ c.materia }}</td>
               <td class="border-b border-red-100 px-3 py-2 text-center dark:border-red-900/20">
-                <span v-if="c.tipus" class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600 dark:bg-gray-700 dark:text-gray-400">
+                <span v-if="c.tipus" class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700 dark:bg-gray-700 dark:text-gray-400">
                   {{ c.tipus }}
                 </span>
                 <span v-else class="text-slate-300">-</span>
@@ -341,7 +341,7 @@ function estatBadgeClass(professor) {
   if (h === lim.ideal) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300';
   if (h > lim.maxim) return 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300';
   if (h > lim.ideal) return 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300';
-  return 'bg-slate-100 text-slate-600 dark:bg-gray-700 dark:text-gray-400';
+  return 'bg-slate-100 text-slate-700 dark:bg-gray-700 dark:text-gray-400';
 }
 
 function rowAccentClass(professor) {
@@ -358,7 +358,7 @@ function totalColorClass(professor) {
   const lim = limitsProf(professor);
   if (h === lim.ideal) return 'text-emerald-700 dark:text-emerald-400';
   if (h > lim.maxim) return 'text-red-700 dark:text-red-400';
-  if (h > lim.ideal) return 'text-amber-700 dark:text-amber-400';
+  if (h > lim.ideal) return 'text-amber-900 dark:text-amber-400';
   return 'text-slate-900 dark:text-white';
 }
 

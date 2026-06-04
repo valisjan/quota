@@ -1,6 +1,6 @@
 <template>
   <div
-    class="overflow-hidden rounded-lg border border-l-4 shadow-sm transition-colors duration-200"
+    class="overflow-hidden rounded-lg border transition-all duration-200"
     :class="cardClass"
   >
     <div class="px-4 pb-3 pt-4" :class="headerClass">
@@ -33,12 +33,12 @@
     <div class="space-y-4 p-4" :class="bodyClass">
       <div class="grid gap-2 text-center" :class="resumGridClass">
         <div class="rounded-md bg-slate-100 px-3 py-2">
-          <div class="text-xs font-medium text-slate-500">Lectives</div>
-          <div class="text-xl font-semibold text-slate-900">{{ horesLectives }}</div>
+          <div class="text-xs font-medium text-slate-600">Lectives</div>
+          <div class="text-xl font-bold text-slate-950">{{ horesLectives }}</div>
         </div>
 
         <div v-if="mostraGp" class="rounded-md bg-slate-100 px-3 py-2">
-          <div class="text-xs font-medium text-slate-500">GP</div>
+          <div class="text-xs font-medium text-slate-600">GP</div>
           <div class="mt-1 flex items-center justify-center gap-1.5">
             <button
               type="button"
@@ -49,7 +49,7 @@
             >
               -
             </button>
-            <span class="w-6 font-semibold text-slate-900" aria-live="polite">{{ horesGp }}</span>
+            <span class="w-6 font-bold text-slate-950" aria-live="polite">{{ horesGp }}</span>
             <button
               type="button"
               class="h-7 w-7 rounded-sm border border-slate-200 bg-white font-medium text-slate-700 disabled:opacity-40"
@@ -63,7 +63,7 @@
         </div>
 
         <div v-if="totalPalicDepartament > 0" class="rounded-md bg-slate-100 px-3 py-2">
-          <div class="text-xs font-medium text-slate-500">PALIC</div>
+          <div class="text-xs font-medium text-slate-600">PALIC</div>
           <div class="mt-1 flex items-center justify-center gap-1.5">
             <button
               type="button"
@@ -74,7 +74,7 @@
             >
               -
             </button>
-            <span class="w-6 font-semibold text-slate-900" aria-live="polite">{{ horesPalic }}</span>
+            <span class="w-6 font-bold text-slate-950" aria-live="polite">{{ horesPalic }}</span>
             <button
               type="button"
               class="h-7 w-7 rounded-sm border border-slate-200 bg-white font-medium text-slate-700 disabled:opacity-40"
@@ -92,28 +92,28 @@
         <h5 class="mb-2 text-sm font-semibold text-slate-700">
           Matèries assignades
         </h5>
-        <div v-if="classes.length === 0" class="rounded bg-slate-50 p-3 text-sm italic text-slate-500">
+        <div v-if="classes.length === 0" class="rounded bg-slate-50 p-3 text-sm italic text-slate-600">
           Sense matèries assignades
         </div>
         <div v-else class="divide-y divide-slate-100 rounded border border-slate-200">
           <div
             v-for="classe in classes"
             :key="classe.id"
-            class="flex items-center gap-2 px-2.5 py-1.5 text-xs"
+            class="flex items-center gap-2 px-2.5 py-1.5 text-sm"
           >
-            <span class="shrink-0 font-mono text-slate-400">{{ classe.curs }} {{ classe.grup }}</span>
+            <span class="shrink-0 font-mono text-slate-500">{{ classe.curs }} {{ classe.grup }}</span>
             <span class="min-w-0 flex-1 truncate font-medium text-slate-800">{{ classe.materia }}</span>
-            <span v-if="classe.tipus" class="shrink-0 rounded-sm bg-slate-100 px-1 font-medium text-slate-600">{{ classe.tipus }}</span>
+            <span v-if="classe.tipus" class="shrink-0 rounded-sm bg-slate-100 px-1 font-medium text-slate-700">{{ classe.tipus }}</span>
             <span
               v-if="rolClasse(classe)"
-              class="shrink-0 rounded-sm bg-slate-100 px-1.5 font-medium text-slate-600"
+              class="shrink-0 rounded-sm bg-slate-100 px-1.5 font-medium text-slate-700"
             >
               {{ rolClasse(classe) }}
             </span>
-            <span class="shrink-0 font-mono font-semibold text-slate-600">{{ horesComputablesClasse(classe) }}h</span>
+            <span class="shrink-0 font-mono font-semibold text-slate-700">{{ horesComputablesClasse(classe) }}h</span>
             <button
               type="button"
-              class="shrink-0 text-slate-400 hover:text-slate-950"
+              class="shrink-0 text-slate-500 hover:text-slate-950"
               :aria-label="`Desassignar ${classe.materia} de ${professor.nom}`"
               :disabled="bloquejat"
               @click="$emit('desassignar-classe', { professor, classe })"
@@ -132,7 +132,7 @@
           </h5>
           <button
             type="button"
-            class="rounded-md bg-[#00BF33] px-3 py-1.5 text-sm font-medium text-white shadow-sm disabled:opacity-40 hover:bg-[#009928]"
+            class="rounded-md bg-success px-3 py-1.5 text-sm font-medium text-white shadow-sm disabled:opacity-40 hover:bg-success-dark"
             :disabled="bloquejat || coordinacionsSeleccionades.length === 0"
             @click="afegirCoordinacions"
           >
@@ -165,14 +165,14 @@
           >
             <span class="text-slate-900">
               {{ coordinacio.materia }}
-              <span class="text-xs text-slate-500">
+              <span class="text-xs text-slate-600">
                 {{ esCoordinador(coordinacio) ? 'coordinador' : 'membre' }}
               </span>
             </span>
             <button
               v-if="!esCoordinador(coordinacio)"
               type="button"
-              class="text-sm text-slate-600 hover:text-slate-950 hover:underline"
+              class="text-sm text-slate-700 hover:text-slate-950 hover:underline"
               :disabled="bloquejat"
               @click="
                 $emit('toggle-coordinacio', {
@@ -302,10 +302,10 @@ const isOverLimit = computed(
 const isOver18 = computed(() => totalHoresProfessor.value > 18);
 
 const cardClass = computed(() => {
-  if (isOverLimit.value || isOver18.value) return 'border-l-[#CC5020] border-amber-200 bg-amber-50/70';
-  if (isOverRecommended.value) return 'border-l-[#FF8040] border-amber-200 bg-amber-50/50';
-  if (isPerfectHours.value) return 'border-l-[#00BF33] border-emerald-200 bg-emerald-50/70';
-  return 'border-l-[#0024B6] border-slate-200 bg-white';
+  if (isOverLimit.value || isOver18.value) return 'shadow-danger-dark-glow border-amber-200 bg-amber-50/70';
+  if (isOverRecommended.value) return 'shadow-danger-glow border-amber-200 bg-amber-50/50';
+  if (isPerfectHours.value) return 'shadow-success-glow border-emerald-200 bg-emerald-50/70';
+  return 'shadow-primary-glow border-slate-200 bg-white';
 });
 
 const headerClass = computed(() => {

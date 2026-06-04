@@ -2,29 +2,29 @@
   <div>
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex flex-col gap-2">
-        <p class="text-sm text-slate-600">
+        <p class="text-sm text-slate-700">
           Proposta orientativa de repartiment. No modifica les dades actuals.
         </p>
         <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
           <input
             type="checkbox"
             v-model="partirActual"
-            class="h-4 w-4 rounded border-slate-300 accent-[#0024B6]"
+            class="h-4 w-4 rounded border-slate-300 accent-primary"
           />
           Partir del repartiment actual (manté les classes ja assignades)
         </label>
-        <p v-if="proposta" class="text-xs text-slate-400">
+        <p v-if="proposta" class="text-xs text-slate-500">
           Millor resultat de {{ iteracionsProvades }} combinacions ·
           {{ totalClassesFixadesActuals }} ja fixades · {{ classesPerDistribuir.length }} redistribuïdes
         </p>
-        <p v-if="professorsExclosos > 0" class="text-xs text-amber-600">
+        <p v-if="professorsExclosos > 0" class="text-xs text-amber-800">
           {{ professorsExclosos }} {{ professorsExclosos === 1 ? 'professor exclòs' : 'professors exclosos' }} per jornada reduïda - no apareixen a la proposta
         </p>
       </div>
       <button
         @click="generar"
         :disabled="!teProfessors || !teClasses || calculant"
-        class="shrink-0 rounded-md bg-[#0024B6] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#001A8A] disabled:opacity-40"
+        class="shrink-0 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-dark disabled:opacity-40"
       >
         {{ calculant ? 'Calculant...' : proposta ? 'Regenera' : 'Genera proposta' }}
       </button>
@@ -33,7 +33,7 @@
     <!-- Empty / no data -->
     <div
       v-if="!teProfessors || !teClasses"
-      class="rounded-lg border border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-400"
+      class="rounded-lg border border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500"
     >
       {{ !teProfessors ? 'No hi ha professors al departament' : 'No hi ha classes per distribuir' }}
     </div>
@@ -42,14 +42,14 @@
       <div>Calculant la millor proposta... {{ iteracionsProvades }} combinacions provades</div>
       <div class="mt-3 h-2 overflow-hidden rounded-full bg-blue-100">
         <div
-          class="h-full rounded-full bg-[#0024B6] transition-[width] duration-150"
+          class="h-full rounded-full bg-primary transition-[width] duration-150"
           :style="{ width: `${progresCalcul}%` }"
         />
       </div>
       <div class="mt-1 text-xs text-blue-700">{{ progresCalcul }}%</div>
     </div>
 
-    <div v-else-if="!proposta" class="rounded-lg border border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-400">
+    <div v-else-if="!proposta" class="rounded-lg border border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
       Encara no hi ha cap proposta generada.
     </div>
 
@@ -60,26 +60,26 @@
 
       <!-- Stats -->
       <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div class="rounded-lg border border-slate-200 bg-white p-3 text-center">
+        <div class="card p-3 text-center">
           <div class="text-xl font-bold text-green-700">{{ statsIdeal }}</div>
-          <div class="text-xs text-slate-500">En quota</div>
+          <div class="text-xs text-slate-600">En quota</div>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-white p-3 text-center">
-          <div class="text-xl font-bold text-amber-600">{{ statsOverIdeal }}</div>
-          <div class="text-xs text-slate-500">Per sobre</div>
+        <div class="card p-3 text-center">
+          <div class="text-xl font-bold text-amber-800">{{ statsOverIdeal }}</div>
+          <div class="text-xs text-slate-600">Per sobre</div>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-white p-3 text-center">
+        <div class="card p-3 text-center">
           <div class="text-xl font-bold text-blue-600">{{ statsUnderIdeal }}</div>
-          <div class="text-xs text-slate-500">Per sota</div>
+          <div class="text-xs text-slate-600">Per sota</div>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-white p-3 text-center">
+        <div class="card p-3 text-center">
           <div
             class="text-xl font-bold"
             :class="totalHoresCobertes === totalHoresDepartament ? 'text-green-700' : 'text-rose-600'"
           >
             {{ totalHoresCobertes }}/{{ totalHoresDepartament }}h
           </div>
-          <div class="text-xs text-slate-500">Hores repartides</div>
+          <div class="text-xs text-slate-600">Hores repartides</div>
           <div
             class="mt-1 text-[11px] font-semibold leading-snug"
             :class="totalHoresPerRepartir === 0 ? 'text-green-700' : 'text-rose-600'"
@@ -104,7 +104,7 @@
               :class="badgeClass(slot)"
             >{{ slot.hores }}h</span>
           </div>
-          <p class="mb-3 text-xs text-slate-400">
+          <p class="mb-3 text-xs text-slate-500">
             Ideal: {{ slot.ideal }}h · Màx: {{ slot.maxim }}h
             <span v-if="slot.horesFixades > 0" class="ml-1">({{ slot.horesFixades }}h fixes)</span>
           </p>
@@ -116,7 +116,7 @@
               :key="'fix-' + classe.id"
               class="flex items-baseline justify-between text-xs opacity-55"
             >
-              <span class="mr-2 flex min-w-0 items-center gap-1.5 truncate italic text-slate-600">
+              <span class="mr-2 flex min-w-0 items-center gap-1.5 truncate italic text-slate-700">
                 <span class="min-w-0 truncate">{{ classe.materia }}</span>
                 <span
                   v-if="classe.tipus"
@@ -125,11 +125,11 @@
                 >
                   {{ getTipusText(classe.tipus) }}
                 </span>
-                <span v-if="classe.curs || classe.grup" class="text-slate-400">
+                <span v-if="classe.curs || classe.grup" class="text-slate-500">
                   {{ classe.curs }} {{ classe.grup }}
                 </span>
               </span>
-              <span class="shrink-0 font-medium text-slate-400">{{ classe.hores }}h</span>
+              <span class="shrink-0 font-medium text-slate-500">{{ classe.hores }}h</span>
             </div>
 
             <!-- Divider -->
@@ -153,14 +153,14 @@
                 >
                   {{ getTipusText(classe.tipus) }}
                 </span>
-                <span v-if="classe.curs || classe.grup" class="text-slate-400">
+                <span v-if="classe.curs || classe.grup" class="text-slate-500">
                   {{ classe.curs }} {{ classe.grup }}
                 </span>
               </span>
-              <span class="shrink-0 font-medium text-slate-500">{{ classe.hores }}h</span>
+              <span class="shrink-0 font-medium text-slate-600">{{ classe.hores }}h</span>
             </div>
           </div>
-          <p v-else class="text-xs italic text-slate-400">Sense classes assignades</p>
+          <p v-else class="text-xs italic text-slate-500">Sense classes assignades</p>
         </div>
       </div>
 
@@ -191,7 +191,7 @@ import {
   trobarAssignaturesParelladesTutoria,
   esDedicacioPrefacturaClasse,
 } from '../../utils/tutories';
-import { esGP, esPALIC, esCoordinacio, esOptativaCompartida, getTipusText } from '../../utils/tipus';
+import { esGP, esPALIC, esOptativaCompartida, getTipusText } from '../../utils/tipus';
 import { trobarGermanesBloc } from '../../utils/grups';
 
 const props = defineProps({
@@ -223,22 +223,16 @@ function professorsDeClasse(classe) {
   return fromProfessors;
 }
 
-// Assignable classes: all except GP, PALIC, C, *Majors de 55, and *Dedicació a prefactura (all fixed)
+// Assignable classes: all except GP, PALIC, *Majors de 55, and *Dedicació a prefactura (fixed)
 const assignables = computed(() =>
   props.classes.filter(
     (c) =>
       !esGP(c.tipus) &&
       !esPALIC(c.tipus) &&
-      !esCoordinacio(c.tipus) &&
       !esMajorDe55Classe(c) &&
       !esDedicacioPrefacturaClasse(c) &&
       !teTutoriaPrincipalParellada(c, props.classes)
   )
-);
-
-// Coordination classes: always fixed, always count toward hours
-const classesCoordinacio = computed(() =>
-  props.classes.filter((c) => esCoordinacio(c.tipus))
 );
 
 // Majors de 55 classes: always fixed, count toward the assigned teacher's hours
@@ -251,7 +245,7 @@ const classesDedicacioPrefactura = computed(() =>
   props.classes.filter((c) => esDedicacioPrefacturaClasse(c))
 );
 
-// Already-assigned non-C classes (only relevant when partirActual = true)
+// Already-assigned classes (only relevant when partirActual = true)
 const classesJaAssignades = computed(() =>
   partirActual.value
     ? assignables.value.filter((c) => classeCompletamentAssignada(c))
@@ -283,7 +277,7 @@ const professorsExclosos = computed(() =>
 const teProfessors = computed(() => professorsElegibles.value.length > 0);
 const teClasses = computed(() => assignables.value.length > 0);
 
-// Total distributable hours (non-C, non-GP, non-PALIC)
+// Total distributable hours (non-GP, non-PALIC)
 const totalHoresDisponibles = computed(() =>
   classesUnicesPerPaquets(assignables.value).reduce((sum, c) => sum + (Number(c.hores) || 0), 0)
 );
@@ -370,7 +364,7 @@ function getTipusBadgeClass(tipus) {
   if (normal === 'F') return 'bg-violet-50 text-slate-700 ring-1 ring-violet-200';
   if (normal === 'D' || /^A\d*$/.test(normal)) return 'bg-amber-50 text-slate-700 ring-1 ring-amber-200';
   if (normal === 'C' || normal === 'CO') return 'bg-orange-50 text-slate-700 ring-1 ring-orange-200';
-  return 'bg-slate-50 text-slate-600 ring-1 ring-slate-200';
+  return 'bg-slate-50 text-slate-700 ring-1 ring-slate-200';
 }
 
 function badgeClass(slot) {
@@ -414,7 +408,6 @@ function classeEsAssignable(classe) {
   return (
     !esGP(classe.tipus) &&
     !esPALIC(classe.tipus) &&
-    !esCoordinacio(classe.tipus) &&
     !esMajorDe55Classe(classe) &&
     !esDedicacioPrefacturaClasse(classe) &&
     !teTutoriaPrincipalParellada(classe, props.classes)
@@ -586,25 +579,11 @@ async function generar() {
     maxim: limitsHoresProfessor(p).maxim,
   }));
 
-  // Build fixed hours map: coord classes (always) + already-assigned classes (when partirActual)
+  // Build fixed hours map: fixed special classes + already-assigned classes (when partirActual)
   // horesEspecials tracks non-assignable fixed hours (coord + majors55 + dedicació)
   const fixatMap = new Map(
     profLimits.map((p) => [p.nom, { hores: 0, horesCoord: 0, horesEspecials: 0, classesFixades: [] }])
   );
-
-  // 1. Coordination classes - always fixed, check participants[] too
-  for (const classe of classesCoordinacio.value) {
-    const profs = professorsDeClasse(classe);
-    const h = Number(classe.hores) || 0;
-    for (const nom of profs) {
-      if (!fixatMap.has(nom)) continue;
-      const entry = fixatMap.get(nom);
-      entry.hores += h;
-      entry.horesCoord += h;
-      entry.horesEspecials += h;
-      entry.classesFixades.push(classe);
-    }
-  }
 
   // 1b. Majors de 55 classes - always fixed, count toward assigned teacher's hours
   for (const classe of classesMajors55.value) {
@@ -632,7 +611,7 @@ async function generar() {
     }
   }
 
-  // 2. Already-assigned non-C classes (only when partirActual)
+  // 2. Already-assigned classes (only when partirActual)
   const classesFixadesIds = new Set();
   for (const classe of classesJaAssignades.value) {
     if (classesFixadesIds.has(classe.id)) continue;

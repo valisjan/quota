@@ -5,16 +5,19 @@ let nextId = 0;
 
 export const useToastStore = defineStore('toast', () => {
   const toasts = ref([]);
+  const timers = new Map();
 
   function add(message, type = 'info', duration = 4000) {
     const id = ++nextId;
     toasts.value.push({ id, message, type });
-    setTimeout(() => remove(id), duration);
+    timers.set(id, setTimeout(() => remove(id), duration));
   }
 
   function remove(id) {
     const i = toasts.value.findIndex((t) => t.id === id);
     if (i !== -1) toasts.value.splice(i, 1);
+    clearTimeout(timers.get(id));
+    timers.delete(id);
   }
 
   return {

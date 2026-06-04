@@ -1,13 +1,13 @@
 <template>
-  <div class="space-y-5">
+  <div class="sections space-y-5">
     <!-- Header card -->
-    <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <div class="card p-5">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 class="text-2xl font-semibold text-slate-950">
+          <h3 class="text-xl font-bold text-slate-950">
             Flux de treball Untis
           </h3>
-          <p class="mt-2 text-base text-slate-600 dark:text-slate-300">
+          <p class="mt-2 text-base text-slate-700 dark:text-slate-300">
             Carrega l'XML de GestIB a Untis i usa aquesta pantalla per generar
             el GPU002.TXT amb professor, matèria, grup i hores.
           </p>
@@ -15,32 +15,32 @@
         <button
           @click="generar"
           :disabled="carregant || !referenciaGestibXmlText"
-          class="rounded-md bg-[#0024B6] px-5 py-3 text-base font-medium text-white transition hover:bg-[#001A8A] disabled:opacity-50"
+          class="rounded-md bg-primary px-5 py-3 text-base font-medium text-white transition hover:bg-primary-dark disabled:opacity-50"
         >
-          {{ carregant ? 'Generant...' : simular ? 'Genera simulació' : 'Genera GPU002' }}
+          {{ carregant ? 'Generant...' : 'Genera GPU002' }}
         </button>
       </div>
 
       <div class="mt-5 grid gap-3 sm:grid-cols-5">
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
-          <p class="text-xs font-medium text-slate-500">1. GestIB</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Descarregar XML</p>
+        <div class="rounded-lg border border-primary/20 bg-primary/5 p-3 dark:border-primary/20 dark:bg-primary/10">
+          <p class="text-xs font-medium text-primary/70">1. GestIB</p>
+          <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">Descarregar XML</p>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
-          <p class="text-xs font-medium text-slate-500">2. App</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Carregar referència</p>
+        <div class="rounded-lg border border-primary/20 bg-primary/5 p-3 dark:border-primary/20 dark:bg-primary/10">
+          <p class="text-xs font-medium text-primary/70">2. App</p>
+          <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">Carregar XML</p>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
-          <p class="text-xs font-medium text-slate-500">3. Simular</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Muntar GPU002</p>
+        <div class="rounded-lg border border-primary/20 bg-primary/5 p-3 dark:border-primary/20 dark:bg-primary/10">
+          <p class="text-xs font-medium text-primary/70">3. App</p>
+          <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">Generar GPU002</p>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
-          <p class="text-xs font-medium text-slate-500">4. Baixar</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">GPU002.TXT</p>
+        <div class="rounded-lg border border-success/20 bg-success/5 p-3 dark:border-success/20 dark:bg-success/10">
+          <p class="text-xs font-medium text-success/70">4. Baixar</p>
+          <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">GPU002.TXT</p>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
-          <p class="text-xs font-medium text-slate-500">5. Untis</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Importar i testar</p>
+        <div class="rounded-lg border border-success/20 bg-success/5 p-3 dark:border-success/20 dark:bg-success/10">
+          <p class="text-xs font-medium text-success/70">5. Untis</p>
+          <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">Importar fitxer</p>
         </div>
       </div>
 
@@ -52,10 +52,10 @@
           <input
             type="file"
             accept=".xml,text/xml,application/xml"
-            class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-[#0024B6] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-[#001A8A] dark:text-slate-300 dark:file:bg-[#3355CC]"
+            class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-primary file:bg-primary file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-primary-dark dark:text-slate-300 dark:file:bg-primary-dark"
             @change="carregarGestibXml"
           />
-          <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+          <p class="mt-2 text-xs text-slate-600 dark:text-slate-400">
             <span v-if="gestibXmlNom">{{ gestibXmlNom }}</span>
             <span v-else>exportacioDadesHoraris de GestIB</span>
           </p>
@@ -67,10 +67,10 @@
           <input
             type="file"
             accept=".txt,text/plain"
-            class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-slate-700 dark:text-slate-300 dark:file:bg-slate-500"
+            class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-primary file:bg-slate-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-slate-700 dark:text-slate-300 dark:file:bg-slate-500"
             @change="carregarGpu002Referencia"
           />
-          <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+          <p class="mt-2 text-xs text-slate-600 dark:text-slate-400">
             <span v-if="gpu002ReferenciaNom">{{ gpu002ReferenciaNom }}</span>
             <span v-else>GPU002 anterior (opcional, per numeració i resolució automàtica)</span>
           </p>
@@ -78,7 +78,7 @@
       </div>
 
       <!-- Mapeig manual de matèries -->
-      <div v-if="analitzant" class="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+      <div v-if="analitzant" class="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
         Analitzant correspondències GestIB...
       </div>
 
@@ -88,7 +88,7 @@
       >
         <div class="flex flex-col gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p class="text-sm font-semibold text-slate-900 dark:text-white">
+            <p class="text-sm font-bold text-slate-950 dark:text-white">
               Correspondències GestIB
               <span
                 v-if="pendentsCount > 0"
@@ -96,7 +96,7 @@
               >{{ pendentsCount }} pendents</span>
             </p>
             <div class="mt-0.5 flex items-center gap-3">
-              <p class="text-xs text-slate-500 dark:text-slate-400">
+              <p class="text-xs text-slate-600 dark:text-slate-400">
                 Selecciona la matèria de GestIB per a les pendents. Es guarda automàticament.
               </p>
               <button
@@ -112,10 +112,10 @@
               @click="filtreMapateg = tab.valor"
               class="rounded px-2.5 py-1 text-xs font-medium transition"
               :class="filtreMapateg === tab.valor
-                ? (tab.valor === 'pendents' && pendentsCount > 0 ? 'bg-amber-500 text-white' : 'bg-[#0024B6] text-white')
+                ? (tab.valor === 'pendents' && pendentsCount > 0 ? 'bg-amber-500 text-white' : 'bg-primary text-white')
                 : (tab.valor === 'pendents' && pendentsCount > 0
                     ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-300'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700')"
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700')"
             >
               {{ tab.etiqueta }}
               <span class="ml-1 opacity-80">{{ tab.count }}</span>
@@ -134,12 +134,12 @@
               :class="estatMapeigBadgeClass(m)"
             >{{ estatMapeigEtiqueta(m) }}</span>
             <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ m.materia }}</p>
-              <p class="text-xs text-slate-500 dark:text-slate-400">
+              <p class="text-sm font-bold text-slate-950 dark:text-white">{{ m.materia }}</p>
+              <p class="text-xs text-slate-600 dark:text-slate-400">
                 <span v-if="m.curs">{{ m.curs }}</span>
                 <span v-if="m.grup" class="ml-1 font-medium text-slate-700 dark:text-slate-300">· {{ m.grup }}</span>
-                <span v-else-if="m.senseAmbdos" class="ml-1 italic text-amber-600 dark:text-amber-400">· sense curs i grup</span>
-                <span v-else-if="!m.grup" class="ml-1 italic text-amber-600 dark:text-amber-400">· sense grup</span>
+                <span v-else-if="m.senseAmbdos" class="ml-1 italic text-amber-800 dark:text-amber-400">· sense curs i grup</span>
+                <span v-else-if="!m.grup" class="ml-1 italic text-amber-800 dark:text-amber-400">· sense grup</span>
               </p>
             </div>
             <div class="flex w-full items-center gap-2 sm:w-96">
@@ -156,25 +156,32 @@
               >&#10003;</span>
             </div>
           </div>
-          <p v-if="classesFiltrades.length === 0" class="px-4 py-6 text-center text-sm text-slate-400 dark:text-slate-500">
+          <p v-if="classesFiltrades.length === 0" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-500">
             <span v-if="filtreMapateg === 'pendents'">Totes les classes estan resoltes</span>
             <span v-else>Cap resultat</span>
           </p>
         </div>
       </div>
 
-      <!-- Simulació checkbox -->
-      <label class="mt-4 flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-gray-900">
+    </div>
+
+    <!-- Mode simulació -->
+    <section class="rounded-lg border border-amber-300 bg-amber-50 p-5" style="box-shadow:0 0 0 1px rgba(217,119,6,0.20),0 8px 24px 0 rgba(217,119,6,0.18)">
+      <div class="mb-3 flex items-center gap-2">
+        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-xs font-bold text-white">!</span>
+        <h3 class="text-sm font-bold uppercase tracking-wide text-amber-900">Mode simulació</h3>
+      </div>
+      <label class="flex cursor-pointer items-start gap-3">
         <input
           type="checkbox"
           v-model="simular"
-          class="h-4 w-4 rounded border-slate-300 text-[#0024B6] accent-[#0024B6]"
+          class="mt-0.5 h-4 w-4 shrink-0 rounded border-amber-400 accent-amber-600"
         />
-        <span class="text-sm font-medium text-slate-800 dark:text-slate-200">
-          Mode simulació: assigna codis de les places de l'XML a totes les classes exportables, sense guardar res a Firestore
+        <span class="text-sm text-amber-800">
+          Assigna codis de les places de l'XML a totes les classes exportables, <strong>sense guardar res a Firestore</strong>. Activa'l per verificar la generació abans d'aplicar els canvis.
         </span>
       </label>
-    </div>
+    </section>
 
     <div
       v-if="error"
@@ -186,13 +193,13 @@
     <!-- Generated files -->
     <div
       v-if="exportacio"
-      class="rounded-lg border border-slate-200 bg-white shadow-sm"
+      class="card"
     >
       <div class="border-b border-slate-200 p-5 dark:border-slate-700">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div class="flex items-center gap-2">
-              <h4 class="text-xl font-semibold text-slate-950">
+              <h4 class="text-xl font-bold text-slate-950">
                 Fitxers preparats
               </h4>
               <span
@@ -202,17 +209,17 @@
                 SIMULACIÓ
               </span>
             </div>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
               {{ exportacio.totals.professors }} professors ·
               {{ exportacio.totals.classes }} grups ·
               {{ exportacio.totals.materies }} matèries ·
               {{ exportacio.totals.llicons }} lliçons
               <span v-if="exportacio.totals.simulades"> · {{ exportacio.totals.simulades }} simulades</span>
             </p>
-            <p v-if="gestibXmlNom || gpu002ReferenciaNom" class="mt-1 text-sm font-medium text-slate-600 dark:text-slate-400">
+            <p v-if="gestibXmlNom || gpu002ReferenciaNom" class="mt-1 text-sm font-medium text-slate-700 dark:text-slate-400">
               {{ [gestibXmlNom && `GestIB: ${gestibXmlNom}`, gpu002ReferenciaNom && `GPU002: ${gpu002ReferenciaNom}`].filter(Boolean).join(' · ') }}
             </p>
-            <p v-if="exportacio.referenciaGestibStats" class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            <p v-if="exportacio.referenciaGestibStats" class="mt-1 text-sm text-slate-600 dark:text-slate-400">
               XML GestIB: {{ exportacio.referenciaGestibStats.materies }} matèries ·
               {{ exportacio.referenciaGestibStats.places }} places ·
               {{ exportacio.referenciaGestibStats.aules }} aules
@@ -220,7 +227,7 @@
           </div>
           <button
             @click="obrirVistaPreviaDescarga"
-            class="rounded-md bg-[#0024B6] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#001A8A]"
+            class="rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-primary-dark"
           >
             Revisa i descarrega GPU002
           </button>
@@ -236,7 +243,7 @@
             <h5 class="text-lg font-semibold text-slate-950">
               Vista prèvia de lliçons
             </h5>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
               {{ vistaPreviaFiltrada.length }} de {{ exportacio.vistaPrevia.length }} lliçons preparades per importar.
             </p>
           </div>
@@ -249,7 +256,7 @@
             />
             <button
               @click="descarregarGpu002"
-              class="rounded-md bg-[#0024B6] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#001A8A]"
+              class="rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-primary-dark"
             >
               Descarrega ara
             </button>
@@ -260,13 +267,13 @@
           <table class="w-full min-w-[860px] text-sm">
             <thead>
               <tr class="bg-slate-50 text-left dark:bg-gray-900">
-                <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-300">#</th>
-                <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-300">Grup</th>
-                <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-300">Matèria</th>
-                <th class="px-3 py-2 text-center font-semibold text-slate-600 dark:text-slate-300">Hores</th>
-                <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-300">Professors</th>
-                <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-300">Codis Untis</th>
-                <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-300">Origen</th>
+                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">#</th>
+                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Grup</th>
+                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Matèria</th>
+                <th class="px-3 py-2 text-center font-semibold text-slate-700 dark:text-slate-300">Hores</th>
+                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Professors</th>
+                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Codis Untis</th>
+                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Origen</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -275,12 +282,12 @@
                 :key="item.numero"
                 class="align-top hover:bg-slate-50 dark:hover:bg-gray-900/60"
               >
-                <td class="px-3 py-2 font-mono text-slate-500">{{ item.numero }}</td>
+                <td class="px-3 py-2 font-mono text-slate-600">{{ item.numero }}</td>
                 <td class="px-3 py-2">
-                  <div class="font-mono font-semibold text-slate-900 dark:text-white">
+                  <div class="font-mono font-bold text-slate-950 dark:text-white">
                     {{ item.codiGrups }}
                   </div>
-                  <div class="text-xs text-slate-500 dark:text-slate-400">
+                  <div class="text-xs text-slate-600 dark:text-slate-400">
                     {{ item.curs }} {{ item.grup }}
                   </div>
                 </td>
@@ -289,7 +296,7 @@
                   <div class="mt-1 flex flex-wrap gap-1">
                     <span
                       v-if="item.tipus"
-                      class="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-600 dark:bg-gray-700 dark:text-gray-300"
+                      class="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-700 dark:bg-gray-700 dark:text-gray-300"
                     >
                       {{ item.tipus }}
                     </span>
@@ -298,7 +305,7 @@
                     <div
                       v-for="(fila, index) in item.filesAgrupades"
                       :key="index"
-                      class="rounded bg-slate-50 px-2 py-1 text-xs text-slate-600 dark:bg-gray-900 dark:text-slate-300"
+                      class="rounded bg-slate-50 px-2 py-1 text-xs text-slate-700 dark:bg-gray-900 dark:text-slate-300"
                     >
                       {{ fila.curs }} {{ fila.grup }} · {{ fila.materia }} · {{ fila.hores }}h
                       <span v-if="fila.tipus">· {{ fila.tipus }}</span>
@@ -320,7 +327,7 @@
                     </div>
                   </div>
                 </td>
-                <td class="px-3 py-2 font-mono text-xs text-slate-600 dark:text-slate-300">
+                <td class="px-3 py-2 font-mono text-xs text-slate-700 dark:text-slate-300">
                   <div>{{ item.codiMateria }}</div>
                   <div>{{ item.codisProfessors.join(' + ') }}</div>
                 </td>
@@ -336,7 +343,7 @@
                 </td>
               </tr>
               <tr v-if="vistaPreviaFiltrada.length === 0">
-                <td colspan="7" class="px-3 py-6 text-center text-slate-400 dark:text-slate-500">
+                <td colspan="7" class="px-3 py-6 text-center text-slate-500 dark:text-slate-500">
                   Cap lliço coincideix amb el filtre.
                 </td>
               </tr>
@@ -352,10 +359,10 @@
           class="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between"
         >
           <div>
-            <p class="font-mono text-base font-semibold text-slate-900 dark:text-white">
+            <p class="font-mono text-base font-bold text-slate-950 dark:text-white">
               {{ fitxer.nom }}
             </p>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
               {{ fitxer.descripcio }}
             </p>
           </div>
@@ -374,7 +381,7 @@
       v-if="exportacio?.pendents?.length"
       class="rounded-lg border border-orange-200 bg-orange-50 p-5"
     >
-      <h4 class="text-lg font-semibold text-slate-900">
+      <h4 class="text-lg font-bold text-slate-950">
         Pendents de revisar: {{ exportacio.pendents.length }}
       </h4>
       <div class="mt-3 max-h-80 space-y-2 overflow-auto pr-2">
@@ -392,12 +399,12 @@
     </div>
 
     <!-- Comparador GPU002 -->
-    <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+    <div class="card">
       <div class="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
-        <h4 class="text-xl font-semibold text-slate-950">
+        <h4 class="text-xl font-bold text-slate-950">
           Comparador amb GPU002.TXT
         </h4>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
           Compara les dades de l'app amb un GPU002.TXT existent d'Untis.
         </p>
       </div>
@@ -411,10 +418,10 @@
             <input
               type="file"
               accept=".txt,text/plain"
-              class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-800 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-slate-700 dark:text-slate-300 dark:file:bg-slate-600"
+              class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-primary file:bg-slate-800 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-slate-700 dark:text-slate-300 dark:file:bg-slate-600"
               @change="carregarGpu002Comparar"
             />
-            <p v-if="gpu002ComparacioNom" class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <p v-if="gpu002ComparacioNom" class="mt-1 text-xs text-slate-600 dark:text-slate-400">
               {{ gpu002ComparacioNom }}
             </p>
           </div>
@@ -436,35 +443,35 @@
           <!-- Summary stats -->
           <div class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div class="rounded-lg bg-slate-50 p-3 text-center dark:bg-gray-900">
-              <div class="text-2xl font-extrabold text-slate-800 dark:text-slate-100">{{ comparacio.resum.total }}</div>
-              <div class="text-xs font-medium text-slate-500 dark:text-slate-400">Total GPU002</div>
+              <div class="text-xl font-extrabold text-slate-800 dark:text-slate-100">{{ comparacio.resum.total }}</div>
+              <div class="text-xs font-medium text-slate-600 dark:text-slate-400">Total GPU002</div>
             </div>
-            <div class="rounded-lg bg-[#00BF33]/10 p-3 text-center dark:bg-[#00BF33]/5">
-              <div class="text-2xl font-extrabold text-[#007820] dark:text-[#00BF33]">{{ comparacio.resum.ok }}</div>
-              <div class="text-xs font-medium text-[#007820] dark:text-[#33EE66]">Coincideix</div>
+            <div class="rounded-lg bg-success/10 p-3 text-center dark:bg-success/5">
+              <div class="text-xl font-extrabold text-[#007820] dark:text-success">{{ comparacio.resum.ok }}</div>
+              <div class="text-xs font-medium text-[#007820] dark:text-success">Coincideix</div>
             </div>
             <div class="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-950/20">
-              <div class="text-2xl font-extrabold text-blue-700 dark:text-blue-300">{{ comparacio.resum.diferentProf }}</div>
+              <div class="text-xl font-extrabold text-blue-700 dark:text-blue-300">{{ comparacio.resum.diferentProf }}</div>
               <div class="text-xs font-medium text-blue-600 dark:text-blue-400">Prof diferent</div>
             </div>
-            <div class="rounded-lg bg-[#FF8040]/10 p-3 text-center dark:bg-[#FF8040]/5">
-              <div class="text-2xl font-extrabold text-[#CC5020] dark:text-[#FF8040]">{{ comparacio.resum.noTrobat }}</div>
-              <div class="text-xs font-medium text-[#CC5020] dark:text-[#FF9060]">No a l'app</div>
+            <div class="rounded-lg bg-danger/10 p-3 text-center dark:bg-danger/5">
+              <div class="text-xl font-extrabold text-danger-dark dark:text-danger">{{ comparacio.resum.noTrobat }}</div>
+              <div class="text-xs font-medium text-danger-dark dark:text-danger">No a l'app</div>
             </div>
             <div class="rounded-lg bg-amber-50 p-3 text-center dark:bg-amber-950/20">
-              <div class="text-2xl font-extrabold text-amber-700 dark:text-amber-300">{{ comparacio.resum.diferentHores }}</div>
-              <div class="text-xs font-medium text-amber-600 dark:text-amber-400">Hores diferents</div>
+              <div class="text-xl font-extrabold text-amber-900 dark:text-amber-300">{{ comparacio.resum.diferentHores }}</div>
+              <div class="text-xs font-medium text-amber-800 dark:text-amber-400">Hores diferents</div>
             </div>
             <div class="rounded-lg bg-orange-50 p-3 text-center dark:bg-orange-950/20">
-              <div class="text-2xl font-extrabold text-orange-700 dark:text-orange-300">{{ comparacio.resum.senseProfGpu }}</div>
+              <div class="text-xl font-extrabold text-orange-700 dark:text-orange-300">{{ comparacio.resum.senseProfGpu }}</div>
               <div class="text-xs font-medium text-orange-600 dark:text-orange-400">Sense prof GPU</div>
             </div>
             <div class="rounded-lg bg-purple-50 p-3 text-center dark:bg-purple-950/20">
-              <div class="text-2xl font-extrabold text-purple-700 dark:text-purple-300">{{ comparacio.resum.senseProfApp }}</div>
+              <div class="text-xl font-extrabold text-purple-700 dark:text-purple-300">{{ comparacio.resum.senseProfApp }}</div>
               <div class="text-xs font-medium text-purple-600 dark:text-purple-400">Sense prof App</div>
             </div>
             <div class="rounded-lg bg-rose-50 p-3 text-center dark:bg-rose-950/20">
-              <div class="text-2xl font-extrabold text-rose-700 dark:text-rose-300">{{ comparacio.resum.senseEntrada }}</div>
+              <div class="text-xl font-extrabold text-rose-700 dark:text-rose-300">{{ comparacio.resum.senseEntrada }}</div>
               <div class="text-xs font-medium text-rose-600 dark:text-rose-400">No al GPU002</div>
             </div>
           </div>
@@ -478,7 +485,7 @@
               :class="[
                 'rounded-lg px-3 py-1.5 text-xs font-semibold transition',
                 filtreActiu === f.valor
-                  ? 'bg-[#0024B6] text-white dark:bg-[#3355CC]'
+                  ? 'bg-primary text-white dark:bg-primary-dark'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600',
               ]"
             >
@@ -491,14 +498,14 @@
             <table class="w-full min-w-[640px] text-xs">
               <thead>
                 <tr class="bg-slate-50 text-left dark:bg-gray-900">
-                  <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-400">#</th>
-                  <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-400">Classe GPU</th>
-                  <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-400">Matèria GPU</th>
-                  <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-400">Prof GPU</th>
-                  <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-400">Classe App</th>
-                  <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-400">Prof App</th>
-                  <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-400">H</th>
-                  <th class="px-3 py-2 font-semibold text-slate-600 dark:text-slate-400">Estat</th>
+                  <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-400">#</th>
+                  <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-400">Classe GPU</th>
+                  <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-400">Matèria GPU</th>
+                  <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-400">Prof GPU</th>
+                  <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-400">Classe App</th>
+                  <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-400">Prof App</th>
+                  <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-400">H</th>
+                  <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-400">Estat</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -507,29 +514,29 @@
                   :key="entrada.num"
                   :class="estatRowClass(entrada.estat)"
                 >
-                  <td class="px-3 py-2 font-mono text-slate-500">{{ entrada.num }}</td>
+                  <td class="px-3 py-2 font-mono text-slate-600">{{ entrada.num }}</td>
                   <td class="px-3 py-2 font-mono font-semibold text-slate-800 dark:text-slate-200">{{ entrada.classeGpu }}</td>
                   <td class="px-3 py-2 font-mono text-slate-700 dark:text-slate-300">{{ entrada.materiaGpu }}</td>
                   <td class="px-3 py-2">
                     <span v-if="entrada.profGpu" class="font-mono text-slate-700 dark:text-slate-300">{{ entrada.profGpu }}</span>
-                    <span v-if="entrada.profNomGpu && entrada.profNomGpu !== entrada.profGpu" class="ml-1 text-slate-400 dark:text-slate-500">{{ entrada.profNomGpu }}</span>
-                    <span v-if="!entrada.profGpu" class="text-slate-400">-</span>
+                    <span v-if="entrada.profNomGpu && entrada.profNomGpu !== entrada.profGpu" class="ml-1 text-slate-500 dark:text-slate-500">{{ entrada.profNomGpu }}</span>
+                    <span v-if="!entrada.profGpu" class="text-slate-500">-</span>
                   </td>
                   <td class="px-3 py-2">
                     <span v-if="entrada.classeApp" class="text-slate-700 dark:text-slate-300">
                       {{ entrada.classeApp.curs }} {{ entrada.classeApp.grup }}
                     </span>
-                    <span v-else class="text-slate-400">-</span>
+                    <span v-else class="text-slate-500">-</span>
                   </td>
                   <td class="px-3 py-2">
                     <span v-if="entrada.profNomApp" class="text-slate-700 dark:text-slate-300">
                       {{ entrada.profNomApp }}
-                      <span v-if="entrada.profCodeApp" class="ml-1 font-mono text-slate-400">({{ entrada.profCodeApp }})</span>
+                      <span v-if="entrada.profCodeApp" class="ml-1 font-mono text-slate-500">({{ entrada.profCodeApp }})</span>
                     </span>
-                    <span v-else class="text-slate-400">-</span>
+                    <span v-else class="text-slate-500">-</span>
                   </td>
                   <td class="px-3 py-2 text-center">
-                    <span v-if="entrada.classeApp && Number(entrada.horesGpu) !== Number(entrada.classeApp.hores)" class="font-semibold text-amber-700 dark:text-amber-300">
+                    <span v-if="entrada.classeApp && Number(entrada.horesGpu) !== Number(entrada.classeApp.hores)" class="font-semibold text-amber-900 dark:text-amber-300">
                       {{ entrada.horesGpu }}/{{ entrada.classeApp.hores }}
                     </span>
                     <span v-else>{{ entrada.horesGpu }}</span>
@@ -541,7 +548,7 @@
                   </td>
                 </tr>
                 <tr v-if="!entradesFiltrades.length">
-                  <td colspan="8" class="px-3 py-4 text-center text-slate-400 dark:text-slate-500">Cap entrada per al filtre seleccionat.</td>
+                  <td colspan="8" class="px-3 py-4 text-center text-slate-500 dark:text-slate-500">Cap entrada per al filtre seleccionat.</td>
                 </tr>
               </tbody>
             </table>
@@ -576,8 +583,8 @@
     @click.self="confirmarEsborra = false"
   >
     <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
-      <h4 class="text-lg font-semibold text-slate-900 dark:text-white">Esborra mapeig</h4>
-      <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+      <h4 class="text-lg font-bold text-slate-950 dark:text-white">Esborra mapeig</h4>
+      <p class="mt-2 text-sm text-slate-700 dark:text-slate-300">
         S'esborrarà tot el mapeig guardat per a aquest curs. Hauràs de tornar a assignar les correspondències manualment.
       </p>
       <div class="mt-4 flex justify-end gap-3">
@@ -721,7 +728,7 @@ function estatMapeigActual(m) {
 
 function estatMapeigBadgeClass(m) {
   const estat = estatMapeigActual(m);
-  if (estat === 'manual') return 'bg-[#0024B6]/10 text-[#0024B6] dark:bg-[#0024B6]/20 dark:text-blue-300';
+  if (estat === 'manual') return 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-blue-300';
   if (estat === 'autoMatch') return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
   if (estat === 'autoGpu002') return 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300';
   return 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300';
@@ -1072,20 +1079,20 @@ function resumClasse(classe) {
 
 function estatRowClass(estat) {
   const base = 'transition-colors';
-  if (estat === 'ok') return `${base} bg-[#00BF33]/5 dark:bg-[#00BF33]/5`;
+  if (estat === 'ok') return `${base} bg-success/5 dark:bg-success/5`;
   if (estat === 'diferentProf') return `${base} bg-blue-50 dark:bg-blue-950/20`;
   if (estat === 'diferentHores') return `${base} bg-amber-50 dark:bg-amber-950/20`;
-  if (estat === 'noTrobat') return `${base} bg-[#FF8040]/10 dark:bg-[#FF8040]/5`;
+  if (estat === 'noTrobat') return `${base} bg-danger/10 dark:bg-danger/5`;
   if (estat === 'senseProfGpu') return `${base} bg-orange-50 dark:bg-orange-950/20`;
   if (estat === 'senseProfApp') return `${base} bg-purple-50 dark:bg-purple-950/20`;
   return base;
 }
 
 function estatBadgeClass(estat) {
-  if (estat === 'ok') return 'bg-[#00BF33]/20 text-[#007820] dark:text-[#33EE66]';
+  if (estat === 'ok') return 'bg-success/20 text-[#007820] dark:text-success';
   if (estat === 'diferentProf') return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
   if (estat === 'diferentHores') return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200';
-  if (estat === 'noTrobat') return 'bg-[#FF8040]/20 text-[#CC5020] dark:text-[#FF9060]';
+  if (estat === 'noTrobat') return 'bg-danger/20 text-danger-dark dark:text-danger';
   if (estat === 'senseProfGpu') return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
   if (estat === 'senseProfApp') return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
   return 'bg-slate-100 text-slate-700';

@@ -65,7 +65,7 @@
       >
         <button
           type="button"
-          class="rounded-md bg-[#FF8040] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#CC5020] transition"
+          class="rounded-md bg-danger px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-danger-dark transition"
           @click="tancarDepartament"
         >
           Tancar aquest departament
@@ -83,7 +83,7 @@
           class="flex-1 rounded-sm px-4 py-2 text-sm font-medium transition-all"
           :class="activeTab === 'repartiment'
             ? 'bg-slate-900 text-white'
-            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'"
+            : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'"
         >
           Repartiment
         </button>
@@ -96,7 +96,7 @@
           class="flex-1 rounded-sm px-4 py-2 text-sm font-medium transition-all"
           :class="activeTab === 'fulla'
             ? 'bg-slate-900 text-white'
-            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'"
+            : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'"
         >
           Full de treball
         </button>
@@ -109,7 +109,7 @@
           class="flex-1 rounded-sm px-4 py-2 text-sm font-medium transition-all"
           :class="activeTab === 'aleatori'
             ? 'bg-slate-900 text-white'
-            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'"
+            : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'"
         >
           Proposta
         </button>
@@ -119,67 +119,67 @@
       <div v-show="activeTab === 'repartiment'" id="panel-repartiment" role="tabpanel" aria-labelledby="tab-repartiment">
         <!-- Resum GP, PALIC i hores del departament -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-          <div class="rounded-lg border border-slate-200 border-l-4 border-l-[#0024B6] bg-white p-3 shadow-sm">
+          <div class="card-stat-primary">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="font-semibold text-slate-900">Hores lectives</h3>
-                <p class="text-xs text-slate-500 dark:text-gray-400">Assignades als professors</p>
+                <h3 class="font-bold text-slate-950">Hores lectives</h3>
+                <p class="text-xs text-slate-600 dark:text-gray-400">Assignades als professors</p>
               </div>
               <div class="text-right">
-                <span class="text-2xl font-semibold text-slate-950">
+                <span class="text-xl font-bold text-slate-950">
                   {{ totalHoresAssignades }}
                 </span>
-                <span class="text-slate-400"> / {{ totalHoresDepartament }}</span>
+                <span class="text-slate-500"> / {{ totalHoresDepartament }}</span>
               </div>
             </div>
             <div class="mt-2 h-2 w-full overflow-hidden rounded bg-slate-200">
               <div
                 class="h-2 rounded-sm transition-all"
-                :class="totalHoresAssignades === totalHoresDepartament ? 'bg-[#00BF33]' : 'bg-[#FF8040]'"
+                :class="totalHoresAssignades === totalHoresDepartament ? 'bg-success' : 'bg-danger'"
                 :style="`width: ${totalHoresDepartament > 0 ? Math.min(100,(totalHoresAssignades/totalHoresDepartament)*100) : 0}%`"
               />
             </div>
           </div>
 
-          <div v-if="totalGPDepartament > 0" class="rounded-lg border border-slate-200 border-l-4 border-l-[#00BF33] bg-white p-3 shadow-sm">
+          <div v-if="totalGPDepartament > 0" class="card-stat-success">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="font-semibold text-slate-900">Guàrdies de pati</h3>
-                <p class="text-xs text-slate-500 dark:text-gray-400">Assignades als professors</p>
+                <h3 class="font-bold text-slate-950">Guàrdies de pati</h3>
+                <p class="text-xs text-slate-600 dark:text-gray-400">Assignades als professors</p>
               </div>
               <div class="text-right">
-                <span class="text-2xl font-semibold text-slate-950">
+                <span class="text-xl font-bold text-slate-950">
                   {{ totalGPAssignades }}
                 </span>
-                <span class="text-slate-400"> / {{ totalGPDepartament }}</span>
+                <span class="text-slate-500"> / {{ totalGPDepartament }}</span>
               </div>
             </div>
             <div class="mt-2 h-2 w-full overflow-hidden rounded bg-slate-200">
               <div
                 class="h-2 rounded-sm transition-all"
-                :class="totalGPAssignades === totalGPDepartament ? 'bg-[#00BF33]' : 'bg-[#FF8040]'"
+                :class="totalGPAssignades === totalGPDepartament ? 'bg-success' : 'bg-danger'"
                 :style="`width: ${totalGPDepartament > 0 ? Math.min(100,(totalGPAssignades/totalGPDepartament)*100) : 0}%`"
               />
             </div>
           </div>
 
-          <div v-if="totalPALICDepartament > 0" class="rounded-lg border border-slate-200 border-l-4 border-l-[#FF8040] bg-white p-3 shadow-sm">
+          <div v-if="totalPALICDepartament > 0" class="card-stat-danger">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="font-semibold text-slate-900">PALIC</h3>
-                <p class="text-xs text-slate-500 dark:text-gray-400">Hores assignades als professors</p>
+                <h3 class="font-bold text-slate-950">PALIC</h3>
+                <p class="text-xs text-slate-600 dark:text-gray-400">Hores assignades als professors</p>
               </div>
               <div class="text-right">
-                <span class="text-2xl font-semibold text-slate-950">
+                <span class="text-xl font-bold text-slate-950">
                   {{ totalPALICAssignades }}
                 </span>
-                <span class="text-slate-400"> / {{ totalPALICDepartament }}</span>
+                <span class="text-slate-500"> / {{ totalPALICDepartament }}</span>
               </div>
             </div>
             <div class="mt-2 h-2 w-full overflow-hidden rounded bg-slate-200">
               <div
                 class="h-2 rounded-sm transition-all"
-                :class="totalPALICAssignades === totalPALICDepartament ? 'bg-[#00BF33]' : 'bg-[#FF8040]'"
+                :class="totalPALICAssignades === totalPALICDepartament ? 'bg-success' : 'bg-danger'"
                 :style="`width: ${totalPALICDepartament > 0 ? Math.min(100,(totalPALICAssignades/totalPALICDepartament)*100) : 0}%`"
               />
             </div>
@@ -193,7 +193,7 @@
             class="mb-2 flex w-full items-center justify-between rounded-md border border-slate-200 bg-white px-4 py-3 transition-colors hover:bg-slate-50"
           >
             <h3 class="text-base font-semibold text-slate-950">Resum del departament</h3>
-            <span class="text-sm font-medium text-slate-500">{{ mostrarResumen ? 'Amaga' : 'Mostra' }}</span>
+            <span class="text-sm font-medium text-slate-600">{{ mostrarResumen ? 'Amaga' : 'Mostra' }}</span>
           </button>
           <div v-show="mostrarResumen">
             <DepartamentResumen
@@ -206,7 +206,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-5 items-start">
+        <div class="grid grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)] lg:grid-cols-[340px_minmax(0,1fr)] gap-5 items-start">
           <div class="lg:sticky lg:top-4">
             <RepartimentHores
               :departamentSeleccionat="departamentSeleccionat"
@@ -323,7 +323,8 @@ import ProfessorCard from '../components/departament/ProfessorCard.vue';
 import DepartamentPrintModal from '../components/departament/DepartamentPrintModal.vue';
 import { limitsHoresProfessor, professorsClasse, classeAssignadaA, horesComputablesClasse, calcularHoresLectives } from '../utils/horesProfessor';
 import { esTutoriaPrincipal, esTutoriaAsterisc, trobarTutoriaAsterisc, trobarTutoriaPrincipal, trobarAssignaturesParelladesTutoria, esCapsEstudisClasse, trobarDedicacioPerCapEstudis } from '../utils/tutories';
-import { esGP, esPALIC, esOptativaCompartida, esCoordinacioAmbMembres, exclosaDelRepartiment } from '../utils/tipus';
+import { esGP, esPALIC, esOptativaCompartida, esCoordinacioAmbMembres } from '../utils/tipus';
+import { classePertanyDepartament } from '../utils/departaments';
 import { trobarGermanesBloc } from '../utils/grups';
 import { quotaGuardiesPatiDepartament } from '../utils/guardiesPati';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
@@ -352,7 +353,7 @@ const totalGuardiesPatiConfigurades = computed(() =>
 );
 const totalHoresAssignades = computed(() => {
   return classesDepartament.value
-    .filter((c) => !exclosaDelRepartiment(c.tipus))
+    .filter(comptaHoresDepartament)
     .reduce((total, c) => total + horesAssignadesClasse(c), 0);
 });
 
@@ -362,6 +363,7 @@ let departamentsUnsubscribe = null;
 let presenceUnsubscribe = null;
 let settingsUnsubscribe = null;
 let presenceInterval = null;
+let beforeunloadHandler = null;
 
 const sessionId = ref(
   `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -381,7 +383,7 @@ const professorsDepartament = computed(() => {
 
 const classesDepartament = computed(() => {
   return classes.value
-    .filter((c) => c.departaments?.includes(departamentSeleccionat.value))
+    .filter((c) => classePertanyDepartament(c, departamentSeleccionat.value))
     .sort((a, b) => {
       if (!a.curs && !b.curs) return 0;
       if (!a.curs) return 1;
@@ -397,7 +399,7 @@ const classesDepartament = computed(() => {
 
 const totalHoresDepartament = computed(() => {
   return classesDepartament.value
-    .filter((c) => !exclosaDelRepartiment(c.tipus))
+    .filter(comptaHoresDepartament)
     .reduce((total, c) => total + c.hores, 0);
 });
 
@@ -424,7 +426,7 @@ const totalPALICDepartament = computed(() => {
     .filter(
       (c) =>
         esPALIC(c.tipus) &&
-        c.departaments?.[0] === departamentSeleccionat.value &&
+        classePertanyDepartament(c, departamentSeleccionat.value) &&
         (!c.curs || c.curs === '') &&
         (!c.grup || c.grup === '')
     )
@@ -467,6 +469,10 @@ function esOptativaCompartidaClasse(classe) {
   return esOptativaCompartida(classe.tipus);
 }
 
+function comptaHoresDepartament(classe) {
+  return !esGP(classe.tipus) && !esPALIC(classe.tipus);
+}
+
 function horesAssignadesClasse(classe) {
   const assignats = professorsClasse(classe).length;
   if (!assignats) return 0;
@@ -476,18 +482,45 @@ function horesAssignadesClasse(classe) {
   return Number(classe.hores) || 0;
 }
 
-function getClassesProfessor(nomProfessor) {
-  return classes.value
-    .filter((c) => classeAssignadaA(c, nomProfessor) && !esGP(c.tipus) && !esPALIC(c.tipus))
-    .sort((a, b) => {
+const classesPorProfessorMap = computed(() => {
+  const map = new Map();
+  for (const c of classes.value) {
+    if (esGP(c.tipus) || esPALIC(c.tipus)) continue;
+    for (const nom of professorsClasse(c)) {
+      if (!nom) continue;
+      if (!map.has(nom)) map.set(nom, []);
+      map.get(nom).push(c);
+    }
+  }
+  for (const [, llista] of map) {
+    llista.sort((a, b) => {
       if (a.curs !== b.curs) return (a.curs || '').localeCompare(b.curs || '');
       if (a.materia !== b.materia) return a.materia.localeCompare(b.materia);
       return (a.grup || '').localeCompare(b.grup || '');
     });
+  }
+  return map;
+});
+
+const horesPorProfessorMap = computed(() => {
+  const map = new Map();
+  for (const c of classes.value) {
+    if (esGP(c.tipus)) continue;
+    const hores = horesComputablesClasse(c);
+    for (const nom of professorsClasse(c)) {
+      if (!nom) continue;
+      map.set(nom, (map.get(nom) || 0) + hores);
+    }
+  }
+  return map;
+});
+
+function getClassesProfessor(nomProfessor) {
+  return classesPorProfessorMap.value.get(nomProfessor) || [];
 }
 
 function calcularHoresProfessor(nomProfessor) {
-  return calcularHoresLectives(classes.value, nomProfessor);
+  return horesPorProfessorMap.value.get(nomProfessor) || 0;
 }
 
 const professorsMap = computed(() => new Map(professors.value.map((p) => [p.nom, p])));
@@ -843,10 +876,14 @@ function setupUserPresence() {
     }
   }, 10000);
 
-  window.addEventListener('beforeunload', () => {
+  if (beforeunloadHandler) {
+    window.removeEventListener('beforeunload', beforeunloadHandler);
+  }
+  beforeunloadHandler = () => {
     deleteDoc(presenceRef).catch(console.error);
     clearInterval(presenceInterval);
-  });
+  };
+  window.addEventListener('beforeunload', beforeunloadHandler);
 }
 
 function cleanupListeners() {
@@ -864,6 +901,10 @@ function cleanupListeners() {
   }
   settingsUnsubscribe?.();
   settingsUnsubscribe = null;
+  if (beforeunloadHandler) {
+    window.removeEventListener('beforeunload', beforeunloadHandler);
+    beforeunloadHandler = null;
+  }
 }
 
 // Print

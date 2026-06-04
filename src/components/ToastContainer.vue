@@ -10,9 +10,9 @@
         :key="toast.id"
         class="pointer-events-auto flex w-[calc(100vw-2rem)] items-start gap-3 rounded-lg px-4 py-3 shadow-lg sm:w-80"
         :class="{
-          'bg-[#00BF33] text-white': toast.type === 'ok',
+          'bg-success text-white': toast.type === 'ok',
           'bg-red-600 text-white': toast.type === 'error',
-          'bg-[#0024B6] text-white': toast.type === 'info',
+          'bg-primary text-white': toast.type === 'info',
         }"
         role="status"
       >

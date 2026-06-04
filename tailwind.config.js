@@ -21,6 +21,10 @@ export default {
       },
       boxShadow: {
         'card': 'var(--card-shadow)',
+        'primary-glow': 'var(--shadow-primary-glow)',
+        'success-glow': 'var(--shadow-success-glow)',
+        'danger-glow': 'var(--shadow-danger-glow)',
+        'danger-dark-glow': 'var(--shadow-danger-dark-glow)',
       },
       animation: {
         'fade-in': 'fadeIn 0.2s ease-in-out',

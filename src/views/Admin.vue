@@ -29,7 +29,7 @@
             </span>
             <span
               v-if="tab.path === '/admin/dades' && mostrarAvisDesactualitzat"
-              class="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-amber-300 ring-2 ring-slate-950 lg:right-3 lg:top-3"
+              class="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-amber-300 ring-primary ring-slate-950 lg:right-3 lg:top-3"
               title="Canvis pendents a Google Sheets"
               aria-hidden="true"
             ></span>
@@ -70,13 +70,13 @@
     <section class="admin-workspace">
       <header class="admin-commandbar" :style="{ borderTop: '4px solid ' + colorActual }">
         <div>
-          <p class="text-sm font-medium text-slate-500">
+          <p class="text-sm font-medium text-slate-600">
             Administració
           </p>
           <h2 class="mt-1 text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
             {{ pestanyaActual?.nom || 'Centre de control' }}
           </h2>
-          <p class="mt-1 text-sm text-slate-500">
+          <p class="mt-1 text-sm text-slate-600">
             {{ pestanyaActual?.descripcio || '' }}
           </p>
         </div>
@@ -128,7 +128,7 @@
           <router-link
             v-if="mostrarBotoAvisSincronitzar"
             to="/admin/dades"
-            class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md bg-[#0024B6] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#001A8A]"
+            class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-dark"
           >
             Ves a sincronització
           </router-link>
@@ -196,7 +196,7 @@ const tabs = [
   {
     path: '/admin/tancament',
     nom: 'Tancament',
-    color: '#FF8040',
+    color: '#E86F35',
     icon: 'M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z',
     help: 'Bloquejos',
     descripcio: 'Controla quan els departaments queden tancats o desbloquejats.',
@@ -212,7 +212,7 @@ const tabs = [
   {
     path: '/admin/untis',
     nom: 'Untis',
-    color: '#00BF33',
+    color: '#009E35',
     icon: 'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5',
     help: 'Exportació',
     descripcio: 'Prepara i revisa fitxers per importar les assignacions a Untis.',

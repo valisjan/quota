@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-slate-200 text-slate-950">
+  <div class="min-h-screen bg-slate-100 text-slate-950">
     <a href="#main-content" class="skip-link">Saltar al contingut</a>
     <nav class="sticky top-0 z-50 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -12,7 +12,7 @@
             />
             <div class="hidden sm:block">
               <h1 class="text-base font-semibold leading-tight text-slate-950">QUOTA</h1>
-              <p class="text-xs font-medium text-slate-500">IES Josep Sureda i Blanes</p>
+              <p class="text-xs font-medium text-slate-600">IES Josep Sureda i Blanes</p>
             </div>
           </router-link>
 
@@ -24,8 +24,8 @@
                 :to="link.to"
                 class="shrink-0 rounded px-3 py-1.5 text-sm font-semibold transition"
                 :class="isActive(link.to)
-                  ? 'bg-white text-[#0024B6] shadow-sm'
-                  : 'text-slate-600 hover:bg-white/70 hover:text-slate-950'"
+                  ? 'bg-white text-primary shadow-sm'
+                  : 'text-slate-700 hover:bg-white/70 hover:text-slate-950'"
               >
                 {{ link.label }}
               </router-link>
@@ -45,7 +45,7 @@
 
               <span
                 v-if="authStore.estaAutenticat"
-                class="max-w-[13rem] truncate border-l border-slate-200 pl-3 text-sm font-medium text-slate-600"
+                class="max-w-[13rem] truncate border-l border-slate-200 pl-3 text-sm font-medium text-slate-700"
               >
                 {{ authStore.usuari || authStore.email || authStore.rol }}
               </span>
@@ -54,7 +54,7 @@
                 v-if="authStore.estaAutenticat"
                 type="button"
                 @click="tancarSessio"
-                class="rounded-md px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
+                class="rounded-md px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
               >
                 Sortir
               </button>
@@ -86,8 +86,8 @@
               role="menuitem"
               class="flex items-center rounded-md px-3 py-3 text-sm font-semibold transition"
               :class="isActive(link.to)
-                ? 'bg-[#0024B6]/10 text-[#0024B6]'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'"
+                ? 'bg-primary/10 text-primary'
+                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'"
               @click="mobileMenuOpen = false"
             >
               {{ link.label }}
@@ -107,7 +107,7 @@
             </select>
 
             <div v-if="authStore.estaAutenticat" class="flex items-center justify-between gap-3">
-              <span class="truncate text-sm font-medium text-slate-600">
+              <span class="truncate text-sm font-medium text-slate-700">
                 {{ authStore.usuari || authStore.email || authStore.rol }}
               </span>
               <button
@@ -121,13 +121,13 @@
           </div>
         </div>
       </div>
-      <div class="h-0.5 bg-[#0024B6]"></div>
+      <div class="h-0.5 bg-primary"></div>
     </nav>
 
     <main id="main-content" :class="mainClass">
       <div
         v-if="esperantCurs"
-        class="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm font-medium text-slate-600 shadow-sm"
+        class="card p-8 text-center text-sm font-medium text-slate-700"
       >
         Carregant el curs actiu...
       </div>

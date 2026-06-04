@@ -91,7 +91,7 @@ export function getTipusText(tipus) {
 
 export function exclosaDelRepartiment(tipus) {
   const normal = normalitzarTipus(tipus);
-  return normal === TIPUS.GP || normal === TIPUS.PALIC || esCoordinacio(normal);
+  return normal === TIPUS.GP || normal === TIPUS.PALIC;
 }
 
 export function comptaPerGrupPerTipus(tipus) {
