@@ -405,4 +405,80 @@
   .home-step-photo p {
     @apply opacity-75;
   }
+
+  .resums-page {
+    @apply space-y-5;
+  }
+
+  .resums-tabs {
+    @apply mb-6 rounded-lg border border-slate-200 bg-white p-2 shadow-sm;
+  }
+
+  .resums-tab {
+    @apply min-h-10 rounded-md px-3 py-2 text-sm font-semibold transition;
+  }
+
+  .resums-tab-active {
+    @apply bg-primary text-white shadow-sm;
+  }
+
+  .resums-tab-idle {
+    @apply text-slate-700 hover:bg-slate-100 hover:text-slate-950;
+  }
+
+  .resums-page .card {
+    @apply overflow-hidden border-slate-200 bg-white shadow-sm;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 10px 24px rgb(15 23 42 / 0.05);
+  }
+
+  .resums-page .card > div[class*="border-b"] {
+    border-bottom-color: rgb(203 213 225);
+    background: linear-gradient(90deg, rgba(0, 36, 182, 0.09), rgb(248 250 252) 46%, rgb(241 245 249));
+  }
+
+  .resums-page table {
+    @apply w-full text-sm;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .resums-page thead {
+    background: linear-gradient(180deg, rgb(248 250 252), rgb(226 232 240));
+  }
+
+  .resums-page th {
+    @apply whitespace-nowrap border-b border-slate-300 px-4 py-3 text-left text-[11px] font-black uppercase tracking-wide text-slate-700;
+  }
+
+  .resums-page td {
+    @apply border-b border-slate-100 px-4 py-3 align-top text-slate-700;
+  }
+
+  .resums-page tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  :where(.resums-page) tbody tr:nth-child(even) {
+    background-color: rgb(248 250 252 / 0.72);
+  }
+
+  :where(.resums-page) tbody tr:hover {
+    background-color: rgb(239 246 255);
+  }
+
+  .resums-page tbody td:first-child,
+  .resums-page tbody td .font-medium {
+    @apply text-slate-950;
+  }
+
+  .resums-page .badge,
+  .resums-page .chip,
+  .resums-page span[class*="rounded-full"],
+  .resums-page span[class*="rounded-md"] {
+    @apply shadow-sm;
+  }
+
+  .resums-page .metric-card {
+    @apply rounded-lg border-slate-200 bg-white shadow-sm;
+  }
 }

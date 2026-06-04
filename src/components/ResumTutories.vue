@@ -63,6 +63,7 @@
  <th class="text-left px-6 py-3 font-bold text-slate-800">Curs</th>
  <th class="text-left px-6 py-3 font-bold text-slate-800">Grup</th>
  <th class="text-left px-6 py-3 font-bold text-slate-800">Tutor</th>
+ <th class="text-left px-6 py-3 font-bold text-slate-800">Departament</th>
  <th class="text-left px-6 py-3 font-bold text-slate-800">*Tutoria</th>
  <th class="text-center px-6 py-3 font-bold text-slate-800">Hores</th>
  </tr>
@@ -85,6 +86,14 @@
  </span>
  <span v-else class="text-red-800 font-medium">
  Sense tutor assignat
+ </span>
+ </td>
+ <td class="px-6 py-3">
+ <span v-if="textDepartamentsTutoria(tutoria)" class="text-slate-800">
+ {{ textDepartamentsTutoria(tutoria) }}
+ </span>
+ <span v-else class="text-amber-800 font-medium">
+ Sense departament
  </span>
  </td>
  <td class="px-6 py-3">
@@ -163,6 +172,27 @@ function tutoriaAsteriscAssignada(tutoria) {
  const asterisc = tutoriaAsterisc(tutoria);
  if (!asterisc?.professorAssignat) return null;
  return asterisc;
+}
+
+function departamentsClasse(classe) {
+ return [
+ ...new Set([
+ ...(Array.isArray(classe?.departaments) ? classe.departaments : []),
+ classe?.departament,
+ ]
+ .map((departament) => (departament || '').toString().trim())
+ .filter(Boolean)),
+ ];
+}
+
+function textDepartamentsTutoria(tutoria) {
+ const asterisc = tutoriaAsterisc(tutoria);
+ return [
+ ...new Set([
+ ...departamentsClasse(tutoria),
+ ...departamentsClasse(asterisc),
+ ]),
+ ].join(', ');
 }
 
 function setupRealtimeListeners() {

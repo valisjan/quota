@@ -11,6 +11,7 @@ const Tancament = () => import('../components/Tancament.vue');
 const UsuarisAdmin = () => import('../components/UsuarisAdmin.vue');
 const GestioCursos = () => import('../components/GestioCursos.vue');
 const Configuracio = () => import('../components/Configuracio.vue');
+const AdminSeguiment = () => import('../components/AdminSeguiment.vue');
 
 const routes = [
   { path: '/', component: Home },
@@ -28,7 +29,8 @@ const routes = [
       { path: 'tancament', component: Tancament },
       { path: 'parametres', component: Configuracio },
       { path: 'configuracio', redirect: '/admin/parametres' },
-      { path: 'estat', redirect: '/resums' },
+      { path: 'seguiment', component: AdminSeguiment },
+      { path: 'estat', redirect: '/admin/seguiment' },
       { path: 'cursos', component: GestioCursos },
       { path: 'usuaris', component: UsuarisAdmin },
       { path: '', redirect: '/admin/cursos' },

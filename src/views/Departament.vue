@@ -833,10 +833,14 @@ function setupUserPresence() {
     `${departamentSeleccionat.value}_${sessionId.value}`
   );
   setDoc(presenceRef, {
+    scope: 'departament',
     departament: departamentSeleccionat.value,
     sessionId: sessionId.value,
+    uid: authStore.uid || '',
     usuari: authStore.usuari || authStore.rol || 'Usuari',
+    email: authStore.email || '',
     rol: authStore.rol || '',
+    path: '/departament',
     timestamp: serverTimestamp(),
     lastSeen: serverTimestamp(),
   });
@@ -868,8 +872,11 @@ function setupUserPresence() {
         presenceRef,
         {
           lastSeen: serverTimestamp(),
+          uid: authStore.uid || '',
           usuari: authStore.usuari || authStore.rol || 'Usuari',
+          email: authStore.email || '',
           rol: authStore.rol || '',
+          path: '/departament',
         },
         { merge: true }
       ).catch(console.error);

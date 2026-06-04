@@ -145,10 +145,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 import { useCursStore } from './stores/curs';
+import { iniciarPresenciaGlobal } from './services/presencia';
 import ToastContainer from './components/ToastContainer.vue';
 
 const route = useRoute();
@@ -156,6 +157,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const cursStore = useCursStore();
 const mobileMenuOpen = ref(false);
+let stopPresenciaGlobal = null;
 
 const links = [
   { to: '/', label: 'Inici' },
@@ -175,6 +177,38 @@ function isActive(to) {
 }
 
 watch(() => route.path, () => { mobileMenuOpen.value = false; });
+
+watch(
+  () => [
+    authStore.estaAutenticat,
+    authStore.uid,
+    authStore.usuari,
+    authStore.email,
+    authStore.rol,
+    authStore.departament,
+    cursStore.cursActiuId,
+    route.fullPath,
+  ],
+  () => {
+    stopPresenciaGlobal?.();
+    stopPresenciaGlobal = null;
+
+    if (!authStore.estaAutenticat || !authStore.uid || !cursStore.cursActiuId) return;
+
+    stopPresenciaGlobal = iniciarPresenciaGlobal({
+      cursId: cursStore.cursActiuId,
+      user: {
+        uid: authStore.uid,
+        usuari: authStore.usuari,
+        email: authStore.email,
+        rol: authStore.rol,
+        departament: authStore.departament,
+      },
+      getPath: () => route.fullPath,
+    });
+  },
+  { immediate: true }
+);
 
 const rutaSenseCurs = computed(() =>
   route.path === '/' || route.path === '/admin/cursos'
@@ -197,5 +231,9 @@ function tancarSessio() {
 onMounted(() => {
   document.documentElement.classList.remove('dark');
   localStorage.setItem('darkMode', 'false');
+});
+
+onUnmounted(() => {
+  stopPresenciaGlobal?.();
 });
 </script>

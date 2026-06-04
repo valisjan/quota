@@ -31,6 +31,12 @@
               <p class="mt-1 text-xs font-medium text-slate-600">{{ etiquetaRol }}</p>
             </div>
 
+            <UsuarisConnectats
+              v-if="authStore.esAdmin()"
+              class="mt-4"
+              :limit="5"
+            />
+
             <div class="mt-4 space-y-2">
               <button
                 v-if="authStore.esAdmin()"
@@ -113,6 +119,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import UsuarisConnectats from '../components/UsuarisConnectats.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
