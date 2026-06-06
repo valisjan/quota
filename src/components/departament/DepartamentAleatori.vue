@@ -120,10 +120,10 @@
                 <span class="min-w-0 truncate">{{ classe.materia }}</span>
                 <span
                   v-if="classe.tipus"
-                  class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none not-italic"
-                  :class="getTipusBadgeClass(classe.tipus)"
+                  class="shrink-0 not-italic"
+                  :class="getTipusBadgeClass(classe.tipus, 'sm')"
                 >
-                  {{ getTipusText(classe.tipus) }}
+                  {{ getTipusLabel(classe.tipus) }}
                 </span>
                 <span v-if="classe.curs || classe.grup" class="text-slate-500">
                   {{ classe.curs }} {{ classe.grup }}
@@ -148,10 +148,10 @@
                 <span class="min-w-0 truncate">{{ classe.materia }}</span>
                 <span
                   v-if="classe.tipus"
-                  class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none"
-                  :class="getTipusBadgeClass(classe.tipus)"
+                  class="shrink-0"
+                  :class="getTipusBadgeClass(classe.tipus, 'sm')"
                 >
-                  {{ getTipusText(classe.tipus) }}
+                  {{ getTipusLabel(classe.tipus) }}
                 </span>
                 <span v-if="classe.curs || classe.grup" class="text-slate-500">
                   {{ classe.curs }} {{ classe.grup }}
@@ -191,7 +191,7 @@ import {
   trobarAssignaturesParelladesTutoria,
   esDedicacioPrefacturaClasse,
 } from '../../utils/tutories';
-import { esGP, esPALIC, esOptativaCompartida, getTipusText } from '../../utils/tipus';
+import { esGP, esPALIC, esOptativaCompartida, getTipusBadgeClass, getTipusLabel } from '../../utils/tipus';
 import { trobarGermanesBloc } from '../../utils/grups';
 
 const props = defineProps({
@@ -356,16 +356,6 @@ function sortClasses(classes) {
   });
 }
 
-
-function getTipusBadgeClass(tipus) {
-  const normal = (tipus || '').toString().toUpperCase().trim();
-  if (normal.startsWith('O') || normal.startsWith('T')) return 'bg-sky-50 text-slate-700 ring-1 ring-sky-200';
-  if (normal === 'S') return 'bg-emerald-50 text-slate-700 ring-1 ring-emerald-200';
-  if (normal === 'F') return 'bg-violet-50 text-slate-700 ring-1 ring-violet-200';
-  if (normal === 'D' || /^A\d*$/.test(normal)) return 'bg-amber-50 text-slate-700 ring-1 ring-amber-200';
-  if (normal === 'C' || normal === 'CO') return 'bg-orange-50 text-slate-700 ring-1 ring-orange-200';
-  return 'bg-slate-50 text-slate-700 ring-1 ring-slate-200';
-}
 
 function badgeClass(slot) {
   if (slot.hores > slot.maxim) return 'bg-rose-100 text-rose-800';

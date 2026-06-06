@@ -146,7 +146,7 @@
           size="4"
           :disabled="bloquejat"
           :aria-label="`Selecciona comissions per afegir a ${professor.nom}`"
-          class="form-input w-full bg-white py-2 text-sm"
+          class="form-input w-full py-2 text-sm"
         >
           <option
             v-for="coordinacio in coordinacionsDisponibles"
@@ -205,7 +205,7 @@
             :value="professor.preferencia"
             @change="updatePreferencia($event.target.value)"
             :disabled="bloquejat"
-            class="form-input mt-1 w-full bg-white py-2 text-sm"
+            class="form-input mt-1 w-full py-2 text-sm"
           >
             <option value="">Sense preferència</option>
             <option value="pronto">Entrar prest</option>
@@ -221,7 +221,7 @@
             :value="professor.motiuAllegat"
             @input="updateMotiuAllegat($event.target.value)"
             :disabled="bloquejat"
-            class="form-input mt-1 w-full bg-white text-sm"
+            class="form-input mt-1 w-full text-sm"
             rows="2"
           ></textarea>
         </label>
@@ -233,7 +233,7 @@
           :value="professor.comentaris"
           @input="updateComentaris($event.target.value)"
           :disabled="bloquejat"
-          class="form-input mt-1 w-full bg-white text-sm"
+          class="form-input mt-1 w-full text-sm"
           rows="2"
         ></textarea>
       </label>
@@ -300,29 +300,41 @@ const isOverLimit = computed(
   () => totalHoresProfessor.value > limits.value.maxim
 );
 const isOver18 = computed(() => totalHoresProfessor.value > 18);
+const isBelowIdeal = computed(
+  () => totalHoresProfessor.value > 0 && totalHoresProfessor.value < limits.value.ideal
+);
 
 const cardClass = computed(() => {
-  if (isOverLimit.value || isOver18.value) return 'shadow-danger-dark-glow border-amber-200 bg-amber-50/70';
-  if (isOverRecommended.value) return 'shadow-danger-glow border-amber-200 bg-amber-50/50';
-  if (isPerfectHours.value) return 'shadow-success-glow border-emerald-200 bg-emerald-50/70';
+  if (isOverLimit.value || isOver18.value) return 'shadow-danger-dark-glow border-amber-200 bg-amber-50/70 dark:border-orange-900/40 dark:bg-orange-950/25';
+  if (isOverRecommended.value) return 'shadow-danger-glow border-amber-200 bg-amber-50/50 dark:border-orange-900/30 dark:bg-orange-950/15';
+  if (isPerfectHours.value) return 'shadow-success-glow border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/40 dark:bg-emerald-950/20';
+  if (isBelowIdeal.value) return 'shadow-danger-glow border-rose-200 bg-rose-50/50 dark:border-rose-900/30 dark:bg-rose-950/15';
   return 'shadow-primary-glow border-slate-200 bg-white';
 });
 
 const headerClass = computed(() => {
-  if (isOverLimit.value || isOver18.value) return 'bg-amber-50/80 border-b border-amber-100';
-  if (isOverRecommended.value) return 'bg-amber-50/60 border-b border-amber-100';
-  if (isPerfectHours.value) return 'bg-emerald-50/80 border-b border-emerald-100';
+  if (isOverLimit.value || isOver18.value) return 'bg-amber-50/80 border-b border-amber-100 dark:bg-orange-950/30 dark:border-orange-900/30';
+  if (isOverRecommended.value) return 'bg-amber-50/60 border-b border-amber-100 dark:bg-orange-950/20 dark:border-orange-900/20';
+  if (isPerfectHours.value) return 'bg-emerald-50/80 border-b border-emerald-100 dark:bg-emerald-950/25 dark:border-emerald-900/30';
+  if (isBelowIdeal.value) return 'bg-rose-50/70 border-b border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/20';
   return 'bg-white border-b border-slate-100';
 });
 
 const bodyClass = computed(() => {
-  if (isOverLimit.value || isOver18.value) return 'bg-amber-50/35';
-  if (isOverRecommended.value) return 'bg-amber-50/25';
-  if (isPerfectHours.value) return 'bg-emerald-50/35';
+  if (isOverLimit.value || isOver18.value) return 'bg-amber-50/35 dark:bg-orange-950/15';
+  if (isOverRecommended.value) return 'bg-amber-50/25 dark:bg-orange-950/10';
+  if (isPerfectHours.value) return 'bg-emerald-50/35 dark:bg-emerald-950/15';
+  if (isBelowIdeal.value) return 'bg-rose-50/25 dark:bg-rose-950/10';
   return 'bg-white';
 });
 
-const horesBadgeClass = computed(() => 'bg-slate-100 text-slate-800');
+const horesBadgeClass = computed(() => {
+  if (isOverLimit.value || isOver18.value) return 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200';
+  if (isOverRecommended.value) return 'bg-amber-100 text-amber-900 dark:bg-amber-900/35 dark:text-amber-200';
+  if (isPerfectHours.value) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200';
+  if (isBelowIdeal.value) return 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200';
+  return 'bg-slate-100 text-slate-800';
+});
 
 const coordinacionsProfessor = computed(() => {
   return props.coordinacions.filter(

@@ -17,6 +17,15 @@
       <button type="button" class="ml-3 font-semibold hover:underline" @click="error = null">x</button>
     </div>
 
+    <!-- Totes assignades -->
+    <div
+      v-if="classesDepartament.length > 0 && classesSenseAssignar.length === 0"
+      class="flex items-center gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm font-medium text-emerald-800 dark:border-emerald-800/30 dark:bg-emerald-950/20 dark:text-emerald-300"
+    >
+      <span class="text-base leading-none">✓</span>
+      <span>Totes les classes assignades</span>
+    </div>
+
     <!-- Pendents -->
     <div
       v-if="classesSenseAssignar.length > 0"
@@ -34,25 +43,15 @@
           class="px-3 py-2"
         >
           <div class="mb-2">
-            <div class="flex flex-wrap items-start gap-x-2 gap-y-1 text-base leading-snug">
-              <span
-                v-if="formatGrup(classe)"
-                class="shrink-0 font-mono font-semibold text-slate-700"
-              >
-                {{ formatGrup(classe) }}
-              </span>
-              <span class="min-w-[12rem] flex-1 whitespace-normal break-words font-medium text-slate-800">{{ classe.materia }}</span>
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <span v-if="formatGrup(classe)" class="font-mono text-sm font-semibold text-slate-600">{{ formatGrup(classe) }}</span>
+                <span class="ml-1.5 font-medium text-slate-900">{{ classe.materia }}</span>
+              </div>
+              <span class="badge badge-gray shrink-0 font-semibold">{{ classe.hores }}h</span>
             </div>
-            <div class="mt-1 flex flex-wrap items-center gap-2">
-              <span
-                v-if="classe.tipus"
-                class="chip"
-              >
-                {{ getTipusText(classe.tipus) }}
-              </span>
-              <span class="rounded-sm bg-slate-100 px-2 py-1 text-base font-semibold text-slate-800">
-                {{ classe.hores }}h
-              </span>
+            <div v-if="classe.tipus" class="mt-1">
+              <span :class="getTipusBadgeClass(classe.tipus)">{{ getTipusLabel(classe.tipus) }}</span>
             </div>
           </div>
           <select
@@ -111,25 +110,15 @@
           class="px-3 py-2"
         >
           <div class="mb-2">
-            <div class="flex flex-wrap items-start gap-x-2 gap-y-1 text-base leading-snug">
-              <span
-                v-if="formatGrup(classe)"
-                class="shrink-0 font-mono font-semibold text-slate-700"
-              >
-                {{ formatGrup(classe) }}
-              </span>
-              <span class="min-w-[12rem] flex-1 whitespace-normal break-words font-medium text-slate-800">{{ classe.materia }}</span>
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <span v-if="formatGrup(classe)" class="font-mono text-sm font-semibold text-slate-600">{{ formatGrup(classe) }}</span>
+                <span class="ml-1.5 font-medium text-slate-900">{{ classe.materia }}</span>
+              </div>
+              <span class="badge badge-gray shrink-0 font-semibold">{{ classe.hores }}h</span>
             </div>
-            <div class="mt-1 flex flex-wrap items-center gap-2">
-              <span
-                v-if="classe.tipus"
-                class="chip"
-              >
-                {{ getTipusText(classe.tipus) }}
-              </span>
-              <span class="rounded-sm bg-slate-100 px-2 py-1 text-base font-semibold text-slate-800">
-                {{ classe.hores }}h
-              </span>
+            <div v-if="classe.tipus" class="mt-1">
+              <span :class="getTipusBadgeClass(classe.tipus)">{{ getTipusLabel(classe.tipus) }}</span>
             </div>
           </div>
           <select
@@ -209,7 +198,7 @@ import { db } from '../firebase';
 import { useCursStore } from '../stores/curs';
 import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
 import { classeCompletamentAssignada, professorPrincipalClasse, professorSecundariClasse, normalitzarProfessorsAssignats } from '../utils/assignacions';
-import { esGP, esOptativaCompartida, exclosaDelRepartiment, getTipusText } from '../utils/tipus';
+import { esGP, esOptativaCompartida, exclosaDelRepartiment, getTipusLabel, getTipusBadgeClass } from '../utils/tipus';
 import {
   esTutoriaPrincipal,
   trobarTutoriaAsterisc,
@@ -219,6 +208,7 @@ import {
 } from '../utils/tutories';
 import { trobarGermanesBloc, normalitzarGrup } from '../utils/grups';
 import { classePertanyDepartament } from '../utils/departaments';
+import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
 
 const emit = defineEmits(['assignacionsActualitzades']);
 
@@ -435,6 +425,12 @@ async function desassignarProfessors(classe) {
 
 function setupRealtimeListeners() {
   cleanupListeners();
+  if (E2E_AUTH_BYPASS) {
+    classes.value = getE2ECollection('classes');
+    professors.value = getE2ECollection('professors');
+    error.value = null;
+    return;
+  }
   if (!cursStore.cursActiuId) {
     classes.value = [];
     professors.value = [];

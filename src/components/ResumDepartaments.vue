@@ -47,8 +47,8 @@
  <div>
  <div class="flex items-center gap-2 mb-1">
  <p class="font-medium text-slate-950">{{ classe.materia }}</p>
- <span v-if="classe.tipus" :class="getTipusBadgeClass(classe.tipus)" class="inline-flex items-center gap-1">
- {{ getTipusIcon(classe.tipus) }} {{ getTipusText(classe.tipus) }}
+ <span v-if="classe.tipus" :class="getTipusBadgeClass(classe.tipus)">
+ {{ getTipusLabel(classe.tipus) }}
  </span>
  </div>
  <p class="text-sm text-slate-700">
@@ -79,6 +79,8 @@
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { onSnapshot, query } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
+import { getTipusBadgeClass, getTipusLabel } from '../utils/tipus';
+import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
 
 const cursStore = useCursStore();
 const classes = ref([]);
@@ -90,51 +92,6 @@ let classesUnsubscribe = null;
 
 function updateLastUpdate() {
  lastUpdate.value = new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
-function getTipusIcon(tipus) {
- const iconMap = {
- 'O': 'O', // Optativa
- 'D': 'D', // Desdoblament
- 'S': 'S', // Suport
- 'A': 'A', // Autodesdoble
- 'F': 'F', // Flexible
- 'GP': 'GP', // Guàrdies de Pati
- 'PALIC': 'PALIC', // PALIC
- 'C': 'C',
- 'CO': 'CO'
- };
- return iconMap[tipus] || 'Classe';
-}
-
-function getTipusText(tipus) {
- const tipusMap = {
- 'O': 'Optativa',
- 'D': 'Desdoblament',
- 'S': 'Suport',
- 'A': 'Autodesdoble',
- 'F': 'Flexible',
- 'GP': 'Guàrdies de Pati',
- 'PALIC': 'PALIC',
- 'C': 'Coordinació',
- 'CO': 'Coordinació individual'
- };
- return tipusMap[tipus] || tipus;
-}
-
-function getTipusBadgeClass(tipus) {
- const classMap = {
- 'O': 'badge badge-green',
- 'D': 'badge badge-blue',
- 'S': 'badge badge-yellow',
- 'A': 'badge badge-purple',
- 'F': 'badge badge-indigo',
- 'GP': 'badge badge-red',
- 'PALIC': 'badge badge-orange',
- 'C': 'badge badge-purple',
- 'CO': 'badge badge-purple'
- };
- return classMap[tipus] || 'badge badge-gray';
 }
 
 const departamentsInfo = computed(() => {
@@ -207,6 +164,12 @@ function getProfessorsClass(num) {
 function setupRealtimeListeners() {
  // Limpiar listeners existentes
  cleanupListeners();
+ if (E2E_AUTH_BYPASS) {
+ classes.value = getE2ECollection('classes');
+ updateLastUpdate();
+ isConnected.value = true;
+ return;
+ }
 
  // Listener para classes
  const classesQuery = query(cursStore.col('classes'));

@@ -1,5 +1,6 @@
 export const TIPUS = {
   DESDOBLAMENT: 'D',
+  CODOCENCIA: 'CD',
   SUPORT: 'S',
   FLEXIBLE: 'F',
   GP: 'GP',
@@ -11,6 +12,7 @@ export const TIPUS = {
 export const TIPUS_CONEGUTS = [
   '',
   TIPUS.DESDOBLAMENT,
+  TIPUS.CODOCENCIA,
   TIPUS.SUPORT,
   TIPUS.FLEXIBLE,
   TIPUS.GP,
@@ -33,6 +35,11 @@ export function esGP(tipus) {
 
 export function esPALIC(tipus) {
   return esTipus(tipus, TIPUS.PALIC);
+}
+
+export function esDesdoblament(tipus) {
+  const normal = normalitzarTipus(tipus);
+  return normal === TIPUS.DESDOBLAMENT || normal === TIPUS.CODOCENCIA;
 }
 
 export function esCoordinacio(tipus) {
@@ -72,21 +79,74 @@ export function clauFranjaOptativa(tipus) {
   return normal || 'O';
 }
 
-export function getTipusText(tipus) {
+function tipusBase(tipus) {
   const normal = normalitzarTipus(tipus);
-  if (normal.startsWith('T')) return 'Optativa compartida';
-  if (normal.startsWith('O') && normal !== TIPUS.COORDINACIO_INDIVIDUAL) return 'Optativa';
-  if (esAutodesdoble(normal)) return 'Autodesdoble';
+  if (normal.startsWith('T')) return { code: normal, text: 'Optativa compartida', group: 'optativa' };
+  if (normal.startsWith('O') && normal !== TIPUS.COORDINACIO_INDIVIDUAL) return { code: normal, text: 'Optativa', group: 'optativa' };
+  if (esAutodesdoble(normal)) return { code: normal, text: 'Autodesdoble', group: 'autodesdoble' };
+
   const map = {
-    D: 'Desdoblament',
-    S: 'Suport',
-    F: 'Flexible',
-    GP: 'Guàrdies de pati',
-    PALIC: 'PALIC',
-    C: 'Coordinació',
-    CO: 'Coordinació individual',
+    D: { text: 'Desdoblament', group: 'desdoblament' },
+    CD: { text: 'Codoc\u00e8ncia', group: 'desdoblament' },
+    S: { text: 'Suport', group: 'suport' },
+    F: { text: 'Flexible', group: 'flexible' },
+    GP: { text: 'Gu\u00e0rdies de pati', group: 'gp' },
+    PALIC: { text: 'PALIC', group: 'palic' },
+    C: { text: 'Coordinaci\u00f3', group: 'coordinacio' },
+    CO: { text: 'Coordinaci\u00f3 individual', group: 'coordinacio' },
   };
-  return map[normal] || tipus || '';
+
+  return {
+    code: normal,
+    text: map[normal]?.text || tipus || '',
+    group: map[normal]?.group || 'normal',
+  };
+}
+
+export function getTipusText(tipus, options = {}) {
+  const { includeCode = false, compact = false } = options;
+  const base = tipusBase(tipus);
+  if (!base.text) return '';
+  if (!includeCode || !base.code) return base.text;
+  if (compact && base.group === 'optativa' && base.code.startsWith('T')) return `Opt. compartida (${base.code})`;
+  if (compact && base.group === 'optativa') return `Optativa (${base.code})`;
+  if (compact && base.group === 'autodesdoble') return `Autodesdoble (${base.code})`;
+  return `${base.text} ${base.code}`;
+}
+
+
+const GRUP_ICONES = {
+  optativa:     '✦',
+  desdoblament: '⇄',
+  suport:       '⊕',
+  autodesdoble: '↺',
+  flexible:     '≈',
+  gp:           '◉',
+  palic:        '◆',
+  coordinacio:  '⊙',
+};
+
+export function getTipusLabel(tipus) {
+  const { group, text } = tipusBase(tipus);
+  if (!text) return '';
+  const icon = GRUP_ICONES[group];
+  return icon ? `${icon} ${text}` : text;
+}
+
+export function getTipusBadgeClass(tipus, variant = 'badge') {
+  const colors = {
+    optativa:     'badge-green',
+    desdoblament: 'badge-blue',
+    suport:       'badge-yellow',
+    autodesdoble: 'badge-purple',
+    flexible:     'badge-indigo',
+    gp:           'badge-red',
+    palic:        'badge-orange',
+    coordinacio:  'badge-purple',
+    normal:       'badge-gray',
+  };
+  const color = colors[tipusBase(tipus).group] ?? 'badge-gray';
+  return variant === 'sm' ? `badge-sm ${color}` : `badge ${color}`;
 }
 
 export function exclosaDelRepartiment(tipus) {
@@ -98,6 +158,7 @@ export function comptaPerGrupPerTipus(tipus) {
   const normal = normalitzarTipus(tipus);
   return ![
     TIPUS.DESDOBLAMENT,
+    TIPUS.CODOCENCIA,
     TIPUS.SUPORT,
     TIPUS.FLEXIBLE,
     TIPUS.PALIC,

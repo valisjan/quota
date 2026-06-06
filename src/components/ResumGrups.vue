@@ -1,19 +1,7 @@
 <template>
- <div class="sections space-y-5">
- <!-- Capçalera: connexió + filtre + botó -->
- <div class="flex flex-wrap items-center justify-between gap-3">
- <div class="flex flex-wrap items-center gap-2">
- <div
- class="flex items-center gap-2 rounded-md border px-3 py-1 text-sm"
- :class="isConnected
- ? 'border-slate-200 bg-white text-slate-700'
- : 'border-red-200 bg-red-50 text-slate-700'"
- >
- <div class="h-2 w-2 rounded-sm" :class="isConnected ? 'bg-green-500' : 'bg-red-500'"></div>
- {{ isConnected ? 'Sincronització activa' : 'Desconnectat' }}
- </div>
- <span class="text-sm text-slate-600">{{ lastUpdate }}</span>
- </div>
+ <div class="resum-grups sections space-y-5">
+ <!-- Capçalera: filtre + botó -->
+ <div class="flex justify-end">
  <button @click="imprimirGrups" class="btn-primary flex items-center gap-2 text-sm">
  Imprimir resum de grups
  </button>
@@ -74,8 +62,8 @@
  : 'border-slate-200 bg-white'"
  >
  <div class="mb-1.5 flex items-center justify-between">
- <span class="chip text-xs">
- O Optativa {{ item.tipus !== 'O' ? item.tipus : '' }} · {{ item.hores }}h
+ <span class="badge badge-green">
+ ✦ Optativa {{ item.tipus !== 'O' ? item.tipus : '' }} · {{ item.hores }}h
  </span>
  <span class="text-xs text-slate-600">mateixa franja</span>
  </div>
@@ -114,7 +102,7 @@
  >
  <div class="flex items-center gap-1.5">
  <span v-if="classe.tipus" :class="getTipusBadgeClass(classe.tipus)" class="inline-flex items-center gap-1">
- {{ getTipusText(classe.tipus) }}
+ {{ getTipusLabel(classe.tipus) }}
  </span>
  <span v-else class="badge badge-gray inline-flex items-center gap-1">🎓 Titular</span>
  <span v-if="classe.hores !== item.hores" class="text-slate-500">({{ classe.hores }}h)</span>
@@ -135,7 +123,7 @@
  <div class="flex min-w-0 flex-wrap items-center gap-1.5">
  <strong class="text-sm text-slate-900">{{ item.classe.materia }}</strong>
  <span v-if="item.classe.tipus" :class="getTipusBadgeClass(item.classe.tipus)" class="inline-flex items-center gap-1 text-xs">
- {{ getTipusText(item.classe.tipus) }}
+ {{ getTipusLabel(item.classe.tipus) }}
  </span>
  <span v-if="!comptaPerGrup(item.classe)" class="text-xs text-slate-500">(no compta grup)</span>
  </div>
@@ -181,7 +169,7 @@
  <div class="flex min-w-0 flex-wrap items-center gap-1.5">
  <strong class="text-sm text-slate-900">{{ activity.materia }}</strong>
  <span v-if="activity.tipus" :class="getTipusBadgeClass(activity.tipus)" class="inline-flex items-center gap-1 text-xs">
- {{ getTipusText(activity.tipus) }}
+ {{ getTipusLabel(activity.tipus) }}
  </span>
  </div>
  <span class="shrink-0 text-xs font-semibold text-slate-700">{{ activity.hores }}h</span>
@@ -251,11 +239,18 @@
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { onSnapshot, query } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
+import {
+ getTipusBadgeClass,
+ getTipusLabel,
+ clauFranjaOptativa,
+ esAutodesdoble,
+ esOptativa,
+ normalitzarTipus,
+} from '../utils/tipus';
+import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
 
 const cursStore = useCursStore();
 const classes = ref([]);
-const isConnected = ref(true);
-const lastUpdate = ref(new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
 const filtreActiu = ref(null);
 let classesUnsubscribe = null;
 
@@ -280,21 +275,6 @@ function getCursCategoria(curs) {
 
 const TIPUS_NO_COMPTEN_GRUP = ['D', 'F', 'PALIC', 'GP', 'C', 'CO'];
 
-function updateLastUpdate() {
- lastUpdate.value = new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
-function esOptativa(tipus) {
- const t = (tipus || '').toUpperCase().trim();
- return t.startsWith('O') || t.startsWith('T');
-}
-
-function clauFranjaOptativa(tipus) {
- const t = (tipus || '').toUpperCase().trim();
- if (!esOptativa(t)) return '';
- if (t.startsWith('T')) return `O${t.slice(1)}`;
- return t;
-}
 
 function professorsClasse(classe) {
  if (Array.isArray(classe.professors) && classe.professors.length > 0) {
@@ -308,10 +288,6 @@ function classeAssignada(classe) {
  const assignats = professorsClasse(classe).length;
  if (tipus.startsWith('T')) return assignats >= 2;
  return assignats > 0;
-}
-
-function esAutodesdoble(tipus) {
- return /^A\d+$/.test((tipus || '').toUpperCase().trim());
 }
 
 function getAutodesdobleN(tipus) {
@@ -374,12 +350,14 @@ function calcularHoresAssignades(classesDelGrup) {
 }
 
 function totsAssignats(classesDelGrup) {
- return classesDelGrup.every(c => classeAssignada(c));
+ const total = calcularTotalHoresGrup(classesDelGrup);
+ return total > 0 && calcularHoresAssignades(classesDelGrup) >= total;
 }
 
 function getHoresClass(classesDelGrup) {
- if (totsAssignats(classesDelGrup)) return 'text-emerald-700';
+ const total = calcularTotalHoresGrup(classesDelGrup);
  const assignades = calcularHoresAssignades(classesDelGrup);
+ if (total > 0 && assignades >= total) return 'text-emerald-700';
  if (assignades === 0) return 'text-rose-600';
  return 'text-amber-800';
 }
@@ -456,30 +434,6 @@ function getClasseStyle(classe) {
  return 'border-slate-300 bg-white';
 }
 
-function getTipusText(tipus) {
- const t = (tipus || '').toUpperCase().trim();
- if (t.startsWith('T')) return `Opt. compartida (${tipus})`;
- if (t.startsWith('O') && t.length > 1) return `Optativa (${tipus})`;
- if (esAutodesdoble(t)) return `Autodesdoble (${t})`;
- const m = {
- O: 'Optativa', D: 'Desdoblament', S: 'Suport', A: 'Autodesdoble',
- F: 'Flexible', GP: 'GP', PALIC: 'PALIC', C: 'Coordinació', CO: 'Coord. ind.',
- };
- return m[t] || tipus;
-}
-
-function getTipusBadgeClass(tipus) {
- const t = (tipus || '').toUpperCase().trim();
- if (t.startsWith('O') || t.startsWith('T')) return 'badge badge-green';
- if (esAutodesdoble(t)) return 'badge badge-purple';
- const m = {
- D: 'badge badge-blue', S: 'badge badge-yellow', A: 'badge badge-purple',
- F: 'badge badge-indigo', GP: 'badge badge-red', PALIC: 'badge badge-orange',
- C: 'badge badge-purple', CO: 'badge badge-purple',
- };
- return m[t] || 'badge badge-gray';
-}
-
 function grupTeBordeRojo(classes) {
  return classes.some(c => !classeAssignada(c));
 }
@@ -542,14 +496,13 @@ const classesAgrupadesPerCursFiltrades = computed(() => {
 
 function setupRealtimeListeners() {
  cleanupListeners();
+ if (E2E_AUTH_BYPASS) {
+ classes.value = getE2ECollection('classes');
+ return;
+ }
  classesUnsubscribe = onSnapshot(
  query(cursStore.col('classes')),
- snapshot => {
- classes.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
- updateLastUpdate();
- isConnected.value = true;
- },
- () => { isConnected.value = false; }
+ snapshot => { classes.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); },
  );
 }
 
