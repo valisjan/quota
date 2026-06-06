@@ -3,12 +3,13 @@ import { ref, computed } from 'vue';
 import { collection, doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { eliminarCursAcademicComplet } from '../services/cursCleanup';
+import { E2E_AUTH_BYPASS, E2E_CURS_ID, getE2ECursos } from '../services/e2e';
 
 const STORAGE_KEY = 'quota_curs_actiu';
 
 export const useCursStore = defineStore('curs', () => {
   const cursos = ref([]);
-  const cursActiuId = ref(localStorage.getItem(STORAGE_KEY) || null);
+  const cursActiuId = ref(localStorage.getItem(STORAGE_KEY) || (E2E_AUTH_BYPASS ? E2E_CURS_ID : null));
   const cursosReady = ref(false);
   const cursosError = ref('');
   let unsubCursos = null;
@@ -28,6 +29,14 @@ export const useCursStore = defineStore('curs', () => {
   }
 
   function inicialitzar() {
+    if (E2E_AUTH_BYPASS) {
+      cursos.value = getE2ECursos();
+      cursActiuId.value = E2E_CURS_ID;
+      cursosReady.value = true;
+      cursosError.value = '';
+      localStorage.setItem(STORAGE_KEY, E2E_CURS_ID);
+      return;
+    }
     if (unsubCursos) return;
     cursosReady.value = false;
     cursosError.value = '';
@@ -80,6 +89,7 @@ export const useCursStore = defineStore('curs', () => {
   }
 
   function aturar() {
+    if (E2E_AUTH_BYPASS) return;
     if (unsubCursos) {
       unsubCursos();
       unsubCursos = null;

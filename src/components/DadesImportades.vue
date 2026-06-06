@@ -8,7 +8,7 @@
         :key="item.label"
         class="card p-4 dark:border-slate-700 dark:bg-gray-800"
       >
-        <div class="text-primaryxl font-semibold text-slate-950 dark:text-white">{{ item.value }}</div>
+        <div class="text-3xl font-semibold text-slate-950 dark:text-white">{{ item.value }}</div>
         <div class="mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ item.label }}</div>
         <div class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ item.detail }}</div>
       </div>
@@ -80,6 +80,7 @@
               <option value="O">Optativa</option>
               <option value="T">Optativa compartida</option>
               <option value="D">Desdoblament</option>
+              <option value="CD">Codocència</option>
               <option value="S">Suport</option>
               <option value="F">Flexible</option>
               <option value="C">Coordinació</option>
@@ -220,6 +221,8 @@ import { computed, reactive, ref, watch } from 'vue';
 import { getDocs, query, where } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
 import { professorsClasse } from '../utils/horesProfessor';
+import { getTipusText } from '../utils/tipus';
+import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
 import Sincronitzacio from './Sincronitzacio.vue';
 
 const tabs = [
@@ -342,6 +345,10 @@ watch(() => cursStore.cursActiuId, async () => {
 watch(clauFiltresClasses, carregarClasses);
 
 async function carregarProfessorat() {
+  if (E2E_AUTH_BYPASS) {
+    professors.value = getE2ECollection('professors');
+    return;
+  }
   try {
     const snapshot = await getDocs(cursStore.col('professors'));
     professors.value = snapshot.docs.map((docu) => ({ id: docu.id, ...docu.data() }));
@@ -352,6 +359,10 @@ async function carregarProfessorat() {
 }
 
 async function carregarDepartaments() {
+  if (E2E_AUTH_BYPASS) {
+    departaments.value = getE2ECollection('departaments');
+    return;
+  }
   try {
     const snapshot = await getDocs(cursStore.col('departaments'));
     departaments.value = snapshot.docs.map((docu) => ({ id: docu.id, ...docu.data() }));
@@ -365,6 +376,11 @@ async function carregarClasses() {
   error.value = '';
 
   carregantClasses.value = true;
+  if (E2E_AUTH_BYPASS) {
+    classes.value = getE2ECollection('classes');
+    carregantClasses.value = false;
+    return;
+  }
   try {
     const constraints = [];
     if (filtresClasses.professor && filtresClasses.professor !== 'sense-assignar') {
@@ -417,18 +433,7 @@ function departamentClasse(classe) {
 function etiquetaTipus(tipus) {
   const normal = (tipus || '').toString().toUpperCase().trim();
   if (!normal) return 'Normal';
-  if (normal.startsWith('T')) return `Optativa compartida ${normal}`;
-  if (normal.startsWith('O')) return `Optativa ${normal}`;
-  const map = {
-    D: 'Desdoblament',
-    S: 'Suport',
-    F: 'Flexible',
-    C: 'Coordinació',
-    CO: 'Coordinació individual',
-    GP: 'Guàrdia de pati',
-    PALIC: 'PALIC',
-  };
-  return map[normal] || normal;
+  return getTipusText(normal, { includeCode: true });
 }
 
 function etiquetaJornada(jornada) {

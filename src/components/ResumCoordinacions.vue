@@ -38,7 +38,7 @@
  </p>
  </div>
  <div class="text-right">
- <div class="text-primaryxl font-bold text-slate-950">
+ <div class="text-3xl font-bold text-slate-950">
  {{ totalHoresCoordinacions }}h
  </div>
  <div class="text-sm text-slate-600">
@@ -120,7 +120,7 @@
  </p>
  </div>
  <div class="text-right">
- <div class="text-primaryxl font-bold text-slate-950">
+ <div class="text-3xl font-bold text-slate-950">
  {{ totalHoresAltres }}h
  </div>
  <div class="text-sm text-slate-600">
@@ -189,7 +189,7 @@ import { useColSnapshot } from '../composables/useColSnapshot';
 const { items: classes, isConnected, lastUpdate } = useColSnapshot('classes');
 
 const TIPUS_CONEGUTS_SENSE_GRUP = ['C', 'CO', 'GP', 'PALIC'];
-const TIPUS_CONEGUTS_AMB_GRUP = ['D', 'S', 'F', 'A'];
+const TIPUS_CONEGUTS_AMB_GRUP = ['D', 'CD', 'S', 'F', 'A'];
 
 function normalitzarTipus(tipus) {
  return (tipus || '').toString().trim().toUpperCase();

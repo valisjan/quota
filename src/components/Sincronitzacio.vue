@@ -215,6 +215,7 @@ import { useAuthStore } from '../stores/auth';
 import { useCursStore } from '../stores/curs';
 import { useToastStore } from '../stores/toast';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
+import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
 
 defineProps({
   embedded: { type: Boolean, default: false },
@@ -328,6 +329,11 @@ function setupCursSubscriptions(cursId) {
   historialUnsubscribe = null;
   settingsUnsubscribe = null;
   historial.value = [];
+  if (E2E_AUTH_BYPASS) {
+    settings.value = { ...DEFAULT_APP_SETTINGS };
+    historial.value = getE2ECollection('sync_history');
+    return;
+  }
   if (!cursId) {
     settings.value = { ...DEFAULT_APP_SETTINGS };
     return;

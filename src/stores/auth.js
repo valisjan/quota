@@ -4,6 +4,7 @@ import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, onAut
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useCursStore } from './curs';
+import { E2E_AUTH_BYPASS } from '../services/e2e';
 
 const DOMINI = 'iesjosepsuredaiblanes.com';
 
@@ -13,6 +14,7 @@ export const useAuthStore = defineStore('auth', () => {
   const rol = ref(null);
   const usuari = ref('');
   const email = ref('');
+  const photoURL = ref('');
   const departament = ref('');
   const uid = ref('');
   const authReady = ref(false);
@@ -22,6 +24,19 @@ export const useAuthStore = defineStore('auth', () => {
   let resolveAuthReady;
   const authReadyPromise = new Promise((r) => { resolveAuthReady = r; });
 
+  if (E2E_AUTH_BYPASS) {
+    uid.value = 'e2e-admin';
+    email.value = 'e2e.admin@iesjosepsuredaiblanes.com';
+    usuari.value = 'E2E Admin';
+    photoURL.value = '';
+    rol.value = 'admin';
+    departament.value = 'Catala';
+    estaAutenticat.value = true;
+    esPendent.value = false;
+    authReady.value = true;
+    resolveAuthReady?.();
+    queueMicrotask(() => useCursStore().inicialitzar());
+  } else {
   getRedirectResult(auth).catch(() => {});
 
   onAuthStateChanged(auth, async (firebaseUser) => {
@@ -52,14 +67,15 @@ export const useAuthStore = defineStore('auth', () => {
           uid.value = firebaseUser.uid;
           email.value = userEmail;
           usuari.value = data.nom || firebaseUser.displayName || userEmail;
+          photoURL.value = firebaseUser.photoURL || data.photoURL || '';
           rol.value = data.rol || null;
           departament.value = data.departament || '';
           estaAutenticat.value = !!data.rol;
           esPendent.value = !data.rol;
-          if (data.nom !== firebaseUser.displayName) {
+          if (data.nom !== firebaseUser.displayName || data.photoURL !== photoURL.value) {
             updateDoc(doc(db, 'usuaris', firebaseUser.uid), {
               nom: firebaseUser.displayName,
-              photoURL: firebaseUser.photoURL || '',
+              photoURL: photoURL.value,
             }).catch(() => {});
           }
         } else {
@@ -77,6 +93,7 @@ export const useAuthStore = defineStore('auth', () => {
           uid.value = firebaseUser.uid;
           email.value = userEmail;
           usuari.value = firebaseUser.displayName || userEmail;
+          photoURL.value = firebaseUser.photoURL || '';
           rol.value = pre?.rol || null;
           departament.value = pre?.departament || '';
           estaAutenticat.value = !!pre?.rol;
@@ -98,6 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
       else useCursStore().aturar();
     }
   });
+  }
 
   function _clear() {
     estaAutenticat.value = false;
@@ -105,6 +123,7 @@ export const useAuthStore = defineStore('auth', () => {
     rol.value = null;
     usuari.value = '';
     email.value = '';
+    photoURL.value = '';
     departament.value = '';
     uid.value = '';
   }
@@ -156,6 +175,7 @@ export const useAuthStore = defineStore('auth', () => {
     rol,
     usuari,
     email,
+    photoURL,
     departament,
     uid,
     authReady,

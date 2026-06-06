@@ -20,7 +20,17 @@
         class="flex min-w-0 items-center gap-2 rounded-md bg-slate-50 px-2.5 py-2"
         :title="titleUsuari(usuari)"
       >
-        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
+        <img
+          v-if="usuari.photoURL"
+          :src="usuari.photoURL"
+          :alt="usuari.usuari || usuari.email || 'Usuari'"
+          class="h-7 w-7 shrink-0 rounded-md object-cover"
+          referrerpolicy="no-referrer"
+        />
+        <span
+          v-else
+          class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary"
+        >
           {{ inicial(usuari) }}
         </span>
         <span class="min-w-0 flex-1">

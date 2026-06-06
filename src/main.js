@@ -3,7 +3,10 @@ import App from './App.vue';
 import router from './router';
 import { pinia } from './stores/pinia';
 import { useAuthStore } from './stores/auth';
+import { initTheme } from './composables/useTheme';
 import './style.css';
+
+initTheme();
 
 const app = createApp(App);
 app.use(pinia);

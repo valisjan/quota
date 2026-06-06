@@ -1,6 +1,7 @@
 import { db } from '../firebase';
 import { collection, writeBatch, doc, getDoc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { normalitzarJornada } from '../utils/horesProfessor';
+import { E2E_AUTH_BYPASS, getE2ECollection } from './e2e';
 
 const APPS_SCRIPT_URL =
   'https://script.google.com/macros/s/AKfycbykQQXn6_oZ1iTtkASuHSA1P1kr5eSqGlIEdm5IBfuxSvr0wDh2I6Ec_yjILnHCXDKe/exec';
@@ -254,6 +255,17 @@ export async function llegirEstatFontSheets(sheetsId = DEFAULT_SHEETS_ID) {
 }
 
 export function subscribeEstatSincronitzacio(cursId, callback, onError = console.error) {
+  if (E2E_AUTH_BYPASS) {
+    callback({
+      classesSignature: 'e2e',
+      sourceSignature: 'e2e',
+      sheetsId: DEFAULT_SHEETS_ID,
+      totalClasses: getE2ECollection('classes').length,
+      totalProfessors: getE2ECollection('professors').length,
+      syncedAt: new Date().toISOString(),
+    });
+    return () => {};
+  }
   if (!cursId) {
     callback(null);
     return () => {};
@@ -475,6 +487,22 @@ async function calcularDiscrepanciesProfessors(cursId, professorsSheets) {
 }
 
 export async function comprovarEstatActualitzacioSheets(cursId, options = {}) {
+  if (E2E_AUTH_BYPASS) {
+    return {
+      desactualitzat: false,
+      senseReferencia: false,
+      origenCanviat: false,
+      sheetsCanviat: false,
+      signaturaActual: 'e2e',
+      signaturaGuardada: 'e2e',
+      totalClasses: getE2ECollection('classes').length,
+      totalProfessors: getE2ECollection('professors').length,
+      canvisClasses: resumCanvisBuit(),
+      canvisProfessors: resumCanvisBuit(),
+      ultimaSync: new Date().toISOString(),
+      checkedAt: new Date().toISOString(),
+    };
+  }
   if (!cursId) {
     return {
       desactualitzat: false,
@@ -557,6 +585,19 @@ export async function provarConnexioSheets(sheetsId) {
 // Comprovacio de discrepancies (sense escriure)
 
 export async function comprovarDiscrepancies(cursId, options = {}) {
+  if (E2E_AUTH_BYPASS) {
+    return {
+      totalSheets: getE2ECollection('classes').length,
+      totalApp: getE2ECollection('classes').length,
+      noves: 0,
+      eliminades: 0,
+      modificades: 0,
+      totalCanvis: 0,
+      detalls: [],
+      alDia: true,
+      timestamp: new Date().toISOString(),
+    };
+  }
   const sheetsId = options.sheetsId || DEFAULT_SHEETS_ID;
   const jsonClasses = await llegirSheets(SHEET_CLASSES, sheetsId);
   const classesSheets = llegirClassesDeResposta(jsonClasses);
@@ -572,6 +613,24 @@ export async function comprovarDiscrepancies(cursId, options = {}) {
 // Sincronitzacio principal
 
 export async function sincronitzar(cursId, options = {}) {
+  if (E2E_AUTH_BYPASS) {
+    return {
+      total: getE2ECollection('classes').length,
+      afegides: 0,
+      actualitzades: 0,
+      eliminades: 0,
+      assignacionsConservades: 0,
+      depsAfegits: 0,
+      depsEliminats: 0,
+      profsAfegits: 0,
+      profsMigrats: 0,
+      totalDeps: getE2ECollection('departaments').length,
+      totalProfs: getE2ECollection('professors').length,
+      timestamp: new Date().toISOString(),
+      historialGuardat: true,
+      estatFontGuardat: true,
+    };
+  }
   const sheetsId = options.sheetsId || DEFAULT_SHEETS_ID;
 
   // 1. Activar Apps Script (per si ha de recalcular el full)

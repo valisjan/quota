@@ -1,5 +1,6 @@
 import { collection, deleteDoc, doc, onSnapshot, query, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { E2E_AUTH_BYPASS } from './e2e';
 
 const SESSION_KEY = 'quota_presence_session_id';
 const HEARTBEAT_MS = 20 * 1000;
@@ -37,6 +38,7 @@ function normalitzarEntrada(id, data, now = Date.now()) {
     sessionId: data.sessionId || '',
     usuari: data.usuari || data.email || data.rol || 'Usuari',
     email: data.email || '',
+    photoURL: data.photoURL || '',
     rol: data.rol || '',
     departament: data.departament || '',
     path: data.path || '',
@@ -74,6 +76,25 @@ export function etiquetaAreaPresencia(path = '') {
 }
 
 export function subscribePresencia(cursId, callback, onError = console.error) {
+  if (E2E_AUTH_BYPASS) {
+    callback([
+      {
+        id: 'e2e-admin',
+        uid: 'e2e-admin',
+        sessionId: 'e2e',
+        usuari: 'E2E Admin',
+        email: 'e2e.admin@iesjosepsuredaiblanes.com',
+        photoURL: '',
+        rol: 'admin',
+        departament: 'Catala',
+        path: '/admin/dades',
+        area: 'Administracio',
+        scope: 'app',
+        lastSeen: Date.now(),
+      },
+    ]);
+    return () => {};
+  }
   if (!cursId) {
     callback([]);
     return () => {};
@@ -122,6 +143,7 @@ export function subscribePresencia(cursId, callback, onError = console.error) {
 }
 
 export function iniciarPresenciaGlobal({ cursId, user, getPath }) {
+  if (E2E_AUTH_BYPASS) return () => {};
   if (!cursId || !user?.uid) return () => {};
 
   const currentSessionId = sessionId();
@@ -147,6 +169,7 @@ export function iniciarPresenciaGlobal({ cursId, user, getPath }) {
         sessionId: currentSessionId,
         usuari: user.usuari || user.email || 'Usuari',
         email: user.email || '',
+        photoURL: user.photoURL || '',
         rol: user.rol || '',
         departament: user.departament || '',
         path,

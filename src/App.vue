@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen bg-slate-100 text-slate-950">
+  <div class="app-shell min-h-screen">
     <a href="#main-content" class="skip-link">Saltar al contingut</a>
-    <nav class="sticky top-0 z-50 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+    <nav class="app-nav sticky top-0 z-50 border-b shadow-sm backdrop-blur">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between gap-4">
           <router-link to="/" class="flex shrink-0 items-center gap-3">
@@ -11,21 +11,21 @@
               class="h-9 w-auto object-contain"
             />
             <div class="hidden sm:block">
-              <h1 class="text-base font-semibold leading-tight text-slate-950">QUOTA</h1>
-              <p class="text-xs font-medium text-slate-600">IES Josep Sureda i Blanes</p>
+              <h1 class="app-brand-title text-base font-semibold leading-tight">QUOTA</h1>
+              <p class="app-brand-subtitle text-xs font-medium">IES Josep Sureda i Blanes</p>
             </div>
           </router-link>
 
           <div class="hidden flex-1 items-center justify-between gap-4 lg:flex">
-            <div class="flex items-center gap-1 rounded-md bg-slate-100 p-1" aria-label="Navegació principal">
+            <div class="app-nav-tabs flex items-center gap-1 rounded-md p-1" aria-label="Navegació principal">
               <router-link
                 v-for="link in links"
                 :key="link.to"
                 :to="link.to"
-                class="shrink-0 rounded px-3 py-1.5 text-sm font-semibold transition"
+                class="app-nav-link shrink-0 rounded px-3 py-1.5 text-sm font-semibold transition"
                 :class="isActive(link.to)
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-slate-700 hover:bg-white/70 hover:text-slate-950'"
+                  ? 'app-nav-link-active shadow-sm'
+                  : 'app-nav-link-idle'"
               >
                 {{ link.label }}
               </router-link>
@@ -36,7 +36,7 @@
                 v-if="authStore.estaAutenticat && cursStore.cursos.length"
                 :value="cursStore.cursActiuId"
                 @change="cursStore.canviarCursActiu($event.target.value)"
-                class="rounded-md border border-slate-200 bg-white py-1.5 pl-2 pr-6 text-sm font-semibold text-slate-800 shadow-sm focus:outline-none"
+                class="app-select rounded-md py-1.5 pl-2 pr-6 text-sm font-semibold shadow-sm focus:outline-none"
               >
                 <option v-for="c in cursStore.cursos" :key="c.id" :value="c.id">
                   {{ c.nom || c.id }}{{ c.bloqueig ? ' (bloquejat)' : '' }}
@@ -45,16 +45,32 @@
 
               <span
                 v-if="authStore.estaAutenticat"
-                class="max-w-[13rem] truncate border-l border-slate-200 pl-3 text-sm font-medium text-slate-700"
+                class="app-user-label max-w-[13rem] truncate border-l pl-3 text-sm font-medium"
               >
                 {{ authStore.usuari || authStore.email || authStore.rol }}
               </span>
 
               <button
+                type="button"
+                class="theme-toggle"
+                :aria-label="themeAriaLabel"
+                @click="toggleTheme"
+              >
+                <svg v-if="isDark" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2.2M12 19.8V22M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2 12h2.2M19.8 12H22M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" />
+                </svg>
+                <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="M20.5 14.4A7.5 7.5 0 0 1 9.6 3.5 8.5 8.5 0 1 0 20.5 14.4Z" />
+                </svg>
+                <span>{{ themeLabel }}</span>
+              </button>
+
+              <button
                 v-if="authStore.estaAutenticat"
                 type="button"
                 @click="tancarSessio"
-                class="rounded-md px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
+                class="app-nav-button rounded-md px-3 py-2 text-sm font-semibold transition"
               >
                 Sortir
               </button>
@@ -63,7 +79,7 @@
 
           <button
             type="button"
-            class="rounded-md p-2 text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 lg:hidden"
+            class="app-nav-button rounded-md p-2 transition lg:hidden"
             :aria-expanded="mobileMenuOpen"
             aria-label="Obrir menú"
             @click="mobileMenuOpen = !mobileMenuOpen"
@@ -77,29 +93,47 @@
           </button>
         </div>
 
-        <div v-if="mobileMenuOpen" class="border-t border-slate-200 pb-4 pt-2 lg:hidden">
+        <div v-if="mobileMenuOpen" class="app-mobile-menu border-t pb-4 pt-2 lg:hidden">
           <div class="space-y-0.5" role="menu" aria-label="Navegació principal">
             <router-link
               v-for="link in links"
               :key="link.to"
               :to="link.to"
               role="menuitem"
-              class="flex items-center rounded-md px-3 py-3 text-sm font-semibold transition"
+              class="app-nav-link flex items-center rounded-md px-3 py-3 text-sm font-semibold transition"
               :class="isActive(link.to)
-                ? 'bg-primary/10 text-primary'
-                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'"
+                ? 'app-nav-link-active'
+                : 'app-nav-link-idle'"
               @click="mobileMenuOpen = false"
             >
               {{ link.label }}
             </router-link>
           </div>
 
-          <div class="mt-3 space-y-3 border-t border-slate-200 px-1 pt-3">
+          <div class="app-mobile-user mt-3 border-t px-1 pt-3">
+            <button
+              type="button"
+              class="theme-toggle w-full justify-center"
+              :aria-label="themeAriaLabel"
+              @click="toggleTheme"
+            >
+              <svg v-if="isDark" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2.2M12 19.8V22M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2 12h2.2M19.8 12H22M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" />
+              </svg>
+              <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M20.5 14.4A7.5 7.5 0 0 1 9.6 3.5 8.5 8.5 0 1 0 20.5 14.4Z" />
+              </svg>
+              <span>{{ themeLabel }}</span>
+            </button>
+          </div>
+
+          <div class="app-mobile-user mt-3 space-y-3 border-t px-1 pt-3">
             <select
               v-if="authStore.estaAutenticat && cursStore.cursos.length"
               :value="cursStore.cursActiuId"
               @change="cursStore.canviarCursActiu($event.target.value)"
-              class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none"
+              class="app-select w-full rounded-md px-3 py-2 text-sm font-semibold focus:outline-none"
             >
               <option v-for="c in cursStore.cursos" :key="c.id" :value="c.id">
                 {{ c.nom || c.id }}{{ c.bloqueig ? ' (bloquejat)' : '' }}
@@ -107,13 +141,13 @@
             </select>
 
             <div v-if="authStore.estaAutenticat" class="flex items-center justify-between gap-3">
-              <span class="truncate text-sm font-medium text-slate-700">
+              <span class="app-user-label truncate text-sm font-medium">
                 {{ authStore.usuari || authStore.email || authStore.rol }}
               </span>
               <button
                 type="button"
                 @click="tancarSessio"
-                class="shrink-0 rounded-md border border-slate-200 px-4 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
+                class="app-nav-button shrink-0 rounded-md border px-4 py-1.5 text-sm font-semibold transition"
               >
                 Sortir
               </button>
@@ -145,11 +179,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 import { useCursStore } from './stores/curs';
 import { iniciarPresenciaGlobal } from './services/presencia';
+import { useTheme } from './composables/useTheme';
 import ToastContainer from './components/ToastContainer.vue';
 
 const route = useRoute();
@@ -157,6 +192,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const cursStore = useCursStore();
 const mobileMenuOpen = ref(false);
+const { isDark, themeLabel, themeAriaLabel, toggleTheme } = useTheme();
 let stopPresenciaGlobal = null;
 
 const links = [
@@ -184,6 +220,7 @@ watch(
     authStore.uid,
     authStore.usuari,
     authStore.email,
+    authStore.photoURL,
     authStore.rol,
     authStore.departament,
     cursStore.cursActiuId,
@@ -201,6 +238,7 @@ watch(
         uid: authStore.uid,
         usuari: authStore.usuari,
         email: authStore.email,
+        photoURL: authStore.photoURL,
         rol: authStore.rol,
         departament: authStore.departament,
       },
@@ -227,11 +265,6 @@ function tancarSessio() {
   authStore.tancarSessio();
   router.push('/');
 }
-
-onMounted(() => {
-  document.documentElement.classList.remove('dark');
-  localStorage.setItem('darkMode', 'false');
-});
 
 onUnmounted(() => {
   stopPresenciaGlobal?.();

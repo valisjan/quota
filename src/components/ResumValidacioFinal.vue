@@ -2,7 +2,7 @@
  <div class="space-y-6">
  <div class="flex flex-col gap-4 card p-5 lg:flex-row lg:items-center lg:justify-between">
  <div>
- <h2 class="text-primaryxl font-bold text-slate-900">
+ <h2 class="text-3xl font-bold text-slate-900">
  Validació final
  </h2>
  <p class="mt-1 text-base text-slate-700">
@@ -30,7 +30,7 @@
  :class="card.class"
  >
  <p class="text-sm font-semibold">{{ card.label }}</p>
- <p class="mt-2 text-secondaryxl font-bold">{{ card.value }}</p>
+ <p class="mt-2 text-4xl font-bold">{{ card.value }}</p>
  <p class="mt-1 text-sm opacity-80">{{ card.detail }}</p>
  </div>
  </div>

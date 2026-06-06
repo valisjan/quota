@@ -47,7 +47,7 @@
  :class="card.class"
  >
  <p class="text-sm font-semibold">{{ card.label }}</p>
- <p class="mt-2 text-secondaryxl font-bold">{{ card.value }}</p>
+ <p class="mt-2 text-4xl font-bold">{{ card.value }}</p>
  <p class="mt-1 text-sm opacity-80">{{ card.detail }}</p>
  </div>
  </div>
@@ -189,6 +189,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useColSnapshot } from '../composables/useColSnapshot';
+import { getTipusText } from '../utils/tipus';
 import { limitsHoresProfessor, textJornada, horesComputablesClasse, classeAssignadaA } from '../utils/horesProfessor';
 
 const { items: classes, isConnected } = useColSnapshot('classes');
@@ -356,24 +357,6 @@ function esTutoria(classe) {
 
 function formatGrup(classe) {
  return `${classe.curs || ''} ${classe.grup || ''}`.trim() || 'Sense grup';
-}
-
-function getTipusText(tipus) {
- const normal = normalitzarTipus(tipus);
- if (!normal) return 'Normal';
- if (normal.startsWith('T')) return 'Optativa compartida';
- if (normal.startsWith('O')) return 'Optativa';
- const labels = {
- D: 'Desdoblament',
- S: 'Suport',
- F: 'Flexible',
- GP: 'Guàrdia de pati',
- PALIC: 'PALIC',
- C: 'Coordinació',
- CO: 'Coordinació individual',
- };
- if (/^A\d*$/.test(normal)) return 'Autodesdoble';
- return labels[normal] || tipus;
 }
 
 function getPreferenciaText(preferencia) {

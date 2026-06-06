@@ -11,7 +11,7 @@
     <div class="relative mx-auto grid min-h-[calc(100vh-4.125rem)] w-full max-w-7xl items-center gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:px-10">
       <div class="max-w-3xl text-white">
         <p class="text-sm font-semibold uppercase text-white/70">IES Josep Sureda i Blanes</p>
-        <h1 class="mt-4 text-secondaryxl font-semibold leading-none sm:text-primaryxl lg:text-7xl">QUOTA</h1>
+        <h1 class="mt-4 text-5xl font-semibold leading-none sm:text-6xl lg:text-7xl">QUOTA</h1>
         <p class="mt-5 max-w-2xl text-lg leading-8 text-white/85">
           Eina pròpia de l'IES Josep Sureda i Blanes per gestionar la quota i la distribució d'hores per departaments.
         </p>
@@ -21,7 +21,7 @@
         <div class="rounded-lg border border-white/15 bg-white p-5 text-slate-950 shadow-xl sm:p-6">
           <div class="mb-5 border-b border-slate-200 pb-5">
             <p class="text-xs font-semibold uppercase text-slate-600">Accés</p>
-            <h2 class="mt-1 text-primaryxl font-semibold">{{ titolAcces }}</h2>
+            <h2 class="mt-1 text-3xl font-semibold">{{ titolAcces }}</h2>
             <p v-if="textAcces" class="mt-2 text-sm leading-6 text-slate-700">{{ textAcces }}</p>
           </div>
 

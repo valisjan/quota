@@ -4,7 +4,7 @@
       <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div class="max-w-3xl">
           <p class="text-sm font-medium text-slate-600">Visió global</p>
-          <h2 class="mt-1 text-primaryxl font-semibold tracking-tight text-slate-950 sm:text-secondaryxl">
+          <h2 class="mt-1 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
             {{ titularEstat }}
           </h2>
           <p class="mt-2 text-sm leading-6 text-slate-700">
@@ -30,7 +30,7 @@
         <div class="flex items-end justify-between gap-4">
           <div>
             <p class="text-sm font-medium text-slate-600">Progrés del repartiment</p>
-            <p class="mt-1 text-secondaryxl font-semibold text-slate-950">{{ pctGlobal }}%</p>
+            <p class="mt-1 text-4xl font-semibold text-slate-950">{{ pctGlobal }}%</p>
           </div>
           <p class="text-right text-sm text-slate-600">
             {{ stats.horesAssignades }}h / {{ stats.horesTotals }}h assignades

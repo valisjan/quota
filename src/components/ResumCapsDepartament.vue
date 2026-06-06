@@ -38,7 +38,7 @@
  </p>
  </div>
  <div class="text-right">
- <div class="text-primaryxl font-bold text-slate-950">
+ <div class="text-3xl font-bold text-slate-950">
  {{ totalHores }}h
  </div>
  <div class="text-sm text-slate-600">
