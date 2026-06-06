@@ -435,6 +435,32 @@
   background-color: var(--surface-hover);
 }
 
+/* ── Hover state remaps (Tailwind hover: prefix classes need separate selectors) ── */
+.dark .hover\:bg-white:hover:not([class*="dark:hover:bg-"]),
+.dark .hover\:bg-white\/70:hover:not([class*="dark:hover:bg-"]),
+.dark .hover\:bg-slate-50:hover:not([class*="dark:hover:bg-"]),
+.dark .hover\:bg-gray-50:hover:not([class*="dark:hover:bg-"]) {
+  background-color: var(--surface-muted) !important;
+}
+
+.dark .hover\:bg-slate-100:hover:not([class*="dark:hover:bg-"]),
+.dark .hover\:bg-slate-200:hover:not([class*="dark:hover:bg-"]),
+.dark .hover\:bg-gray-100:hover:not([class*="dark:hover:bg-"]) {
+  background-color: var(--surface-hover) !important;
+}
+
+.dark .hover\:bg-amber-50:hover:not([class*="dark:hover:bg-"]) { background-color: rgb(120 53 15 / 0.20) !important; }
+.dark .hover\:bg-amber-100:hover:not([class*="dark:hover:bg-"]) { background-color: rgb(120 53 15 / 0.30) !important; }
+
+.dark .hover\:bg-red-50:hover:not([class*="dark:hover:bg-"]),
+.dark .hover\:bg-rose-50:hover:not([class*="dark:hover:bg-"]) { background-color: rgb(159 18 57 / 0.16) !important; }
+.dark .hover\:bg-red-100:hover:not([class*="dark:hover:bg-"]) { background-color: rgb(159 18 57 / 0.26) !important; }
+
+.dark .hover\:bg-emerald-50:hover:not([class*="dark:hover:bg-"]),
+.dark .hover\:bg-green-50:hover:not([class*="dark:hover:bg-"]) { background-color: rgb(6 78 59 / 0.20) !important; }
+.dark .hover\:bg-emerald-100:hover:not([class*="dark:hover:bg-"]),
+.dark .hover\:bg-green-100:hover:not([class*="dark:hover:bg-"]) { background-color: rgb(6 78 59 / 0.30) !important; }
+
 .dark .border-slate-100:not([class*="dark:border-"]),
 .dark .border-slate-200:not([class*="dark:border-"]),
 .dark .border-slate-300:not([class*="dark:border-"]),
