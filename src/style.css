@@ -707,25 +707,19 @@
    PRINT STYLES  –  sortida professional en paper / PDF
    ═══════════════════════════════════════════════════════════ */
 @media print {
-  /* Configuració de pàgina */
-  @page { size: A4 portrait; margin: 1.5cm 2cm; }
-  @page :first { margin-top: 1cm; }
+  /* Pàgina A4 amb marges petits */
+  @page { size: A4 portrait; margin: 1cm 1.2cm; }
 
-  /* Visibilitat bàsica */
+  /* Visibilitat */
   .print-hide { display: none !important; }
   .print-only { display: block !important; }
 
-  /* Ocultar tota la crosta de l'app */
-  .app-nav,
-  .app-nav-tabs,
-  .resums-tabs,
-  .skip-link,
-  [data-v-app] > nav { display: none !important; }
+  /* Ocultar crosta de l'app */
+  .app-nav, .app-nav-tabs, .resums-tabs,
+  .skip-link, nav { display: none !important; }
 
-  /* Reset de fons i ombres */
-  *,
-  *::before,
-  *::after {
+  /* Reset global: fons blanc, text negre, sense ombres */
+  *, *::before, *::after {
     background: white !important;
     color: #0f172a !important;
     box-shadow: none !important;
@@ -734,111 +728,116 @@
     print-color-adjust: exact;
   }
 
-  body, html { font-size: 10pt; line-height: 1.4; }
+  html, body { font-size: 9pt; line-height: 1.35; }
 
-  /* ── Capçalera del document imprimible ── */
+  /* Eliminar overflow que talla la taula */
+  .print-table-wrapper { overflow: visible !important; }
+
+  /* Contingut sense padding extra */
+  .form-container, .resums-page,
+  .fulla-repartiment { padding: 0 !important; margin: 0 !important; }
+
+  /* ── Capçalera del document ── */
   .print-doc-header {
     display: block !important;
-    border-bottom: 2pt solid #0024B6;
-    margin-bottom: 0.55cm;
-    padding-bottom: 0.3cm;
+    border-bottom: 1.5pt solid #0024B6;
+    margin-bottom: 0.4cm;
+    padding-bottom: 0.25cm;
   }
 
   .print-doc-header .print-school {
-    font-size: 7.5pt;
+    font-size: 6.5pt;
     font-weight: 700;
     color: #0024B6 !important;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
   }
 
   .print-doc-header .print-title {
-    font-size: 13pt;
+    font-size: 12pt;
     font-weight: 700;
     color: #020617 !important;
-    margin: 0.1cm 0 0;
+    margin: 0.08cm 0 0;
     line-height: 1.2;
   }
 
   .print-doc-header .print-meta {
-    font-size: 7.5pt;
+    font-size: 7pt;
     color: #475569 !important;
-    margin-top: 0.15cm;
+    margin-top: 0.1cm;
     display: flex;
-    gap: 0.8cm;
+    gap: 0.7cm;
   }
 
   /* ── Taules ── */
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 8.5pt;
-    page-break-inside: auto;
+    font-size: 7.5pt;
+    table-layout: fixed;
   }
 
   thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
 
   th {
     background: #f1f5f9 !important;
     color: #1e293b !important;
     border: 0.4pt solid #94a3b8 !important;
-    padding: 3.5pt 6pt !important;
-    font-size: 7.5pt;
+    padding: 3pt 5pt !important;
+    font-size: 7pt;
     font-weight: 700;
     text-align: left;
+    white-space: nowrap;
   }
 
   td {
     border: 0.4pt solid #cbd5e1 !important;
-    padding: 3pt 6pt !important;
+    padding: 2.5pt 5pt !important;
     color: #0f172a !important;
     vertical-align: top;
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   tr { page-break-inside: avoid; }
 
-  /* Accent esquerre de files (estat professor) */
-  tr[class*="border-l-emerald"] td:first-child { border-left: 3pt solid #10b981 !important; }
-  tr[class*="border-l-amber"]   td:first-child { border-left: 3pt solid #f59e0b !important; }
-  tr[class*="border-l-red"]     td:first-child { border-left: 3pt solid #ef4444 !important; }
+  /* Amplades de columna per a la taula de professors */
+  .fulla-repartiment table th:nth-child(1),
+  .fulla-repartiment table td:nth-child(1) { width: 18%; }
+  .fulla-repartiment table th:nth-child(2),
+  .fulla-repartiment table td:nth-child(2) { width: auto; }
+  .fulla-repartiment table th:nth-child(3),
+  .fulla-repartiment table td:nth-child(3),
+  .fulla-repartiment table th:nth-child(4),
+  .fulla-repartiment table td:nth-child(4),
+  .fulla-repartiment table th:nth-child(5),
+  .fulla-repartiment table td:nth-child(5),
+  .fulla-repartiment table th:nth-child(6),
+  .fulla-repartiment table td:nth-child(6) { width: 7%; text-align: center; }
+  .fulla-repartiment table th:last-child,
+  .fulla-repartiment table td:last-child { width: 14%; text-align: center; }
+
+  /* Accent esquerre per estat professor */
+  tr[class*="border-l-emerald"] td:first-child { border-left: 2.5pt solid #10b981 !important; }
+  tr[class*="border-l-amber"]   td:first-child { border-left: 2.5pt solid #f59e0b !important; }
+  tr[class*="border-l-red"]     td:first-child { border-left: 2.5pt solid #ef4444 !important; }
 
   /* Fila de totals */
-  tr.totals-row th,
-  tr.totals-row td {
+  tr.totals-row td, tr.totals-row th {
     background: #f8fafc !important;
     font-weight: 700;
-    border-top: 1.5pt solid #94a3b8 !important;
+    border-top: 1.2pt solid #64748b !important;
   }
-
-  /* ── Badges / pills d'estat ── */
-  .badge,
-  [class*="rounded-full"][class*="px-2"] {
-    border: 0.5pt solid currentColor !important;
-    background: transparent !important;
-    font-size: 7pt !important;
-    padding: 1pt 4pt !important;
-  }
-
-  /* Colors semàntics per a impressió en color */
-  .print-ok    { color: #059669 !important; }
-  .print-warn  { color: #b45309 !important; }
-  .print-error { color: #dc2626 !important; }
 
   /* ── Ocultar elements interactius ── */
   button, input, select, textarea,
-  [role="button"],
-  .resums-tab { display: none !important; }
+  [role="button"], .resums-tab { display: none !important; }
 
   /* ── Salts de pàgina ── */
   h2, h3 { page-break-after: avoid; }
   .page-break { page-break-before: always; }
-  .no-break   { page-break-inside: avoid; }
 
-  /* ── Contingut principal sense contenidors excessius ── */
-  .form-container,
-  .resums-page,
-  .fulla-repartiment { padding: 0 !important; margin: 0 !important; }
-
-  /* ── Resum de classes sense assignar ── */
-  .classes-sense-assignar { margin-top: 0.5cm; }
+  /* Classes sense assignar */
+  .classes-sense-assignar { margin-top: 0.4cm; }
 }

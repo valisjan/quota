@@ -16,7 +16,7 @@
           @click="imprimir"
           class="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500"
         >
-          Imprimir Imprimir
+          Imprimir
         </button>
       </div>
     </div>
@@ -32,8 +32,8 @@
       </div>
     </div>
 
-    <!-- Resum numèric -->
-    <div class="mb-4 flex flex-wrap gap-x-6 gap-y-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800/50">
+    <!-- Resum numèric (pantalla) -->
+    <div class="print-hide mb-4 flex flex-wrap gap-x-6 gap-y-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800/50">
       <div>
         <span class="text-slate-600 dark:text-slate-400">Hores lectives:</span>
         <strong class="ml-1.5" :class="totalHoresAssignades === totalHoresDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'">
@@ -66,7 +66,7 @@
     </div>
 
     <!-- Taula principal de professors -->
-    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-gray-700">
+    <div class="print-table-wrapper overflow-x-auto rounded-lg border border-slate-200 dark:border-gray-700">
       <table class="w-full border-collapse text-sm">
         <thead>
           <tr class="bg-slate-100 dark:bg-gray-700">
