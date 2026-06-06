@@ -22,7 +22,8 @@
  </button>
  </div>
 
- <!-- Seccions per curs -->
+ <!-- VISTA PANTALLA: quadrícula de targetes (oculta en impressió) -->
+ <div class="print-hide">
  <div
  v-for="(classesPorGrup, curs) in classesAgrupadesPerCursFiltrades"
  :key="curs"
@@ -52,58 +53,28 @@
 
  <div class="space-y-2 p-3">
  <template v-for="item in agruparClassesPerVista(classes)" :key="item.key">
-
- <!-- Bloc d'optatives agrupades -->
- <div
- v-if="item.esGrupOptatives"
- class="rounded-md border p-2.5"
- :class="item.classes.some(c => !c.professorAssignat)
- ? 'border-rose-300 bg-rose-50'
- : 'border-slate-200 bg-white'"
- >
+ <div v-if="item.esGrupOptatives" class="rounded-md border p-2.5" :class="item.classes.some(c => !c.professorAssignat) ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-white'">
  <div class="mb-1.5 flex items-center justify-between">
- <span class="badge badge-green">
- ✦ Optativa {{ item.tipus !== 'O' ? item.tipus : '' }} · {{ item.hores }}h
- </span>
+ <span class="badge badge-green">✦ Optativa {{ item.tipus !== 'O' ? item.tipus : '' }} · {{ item.hores }}h</span>
  <span class="text-xs text-slate-600">mateixa franja</span>
  </div>
  <div class="space-y-1">
- <div
- v-for="classe in item.classes"
- :key="classe.id"
- class="flex items-center justify-between rounded px-2 py-1 text-sm"
- :class="!classe.professorAssignat ? 'bg-rose-100' : 'bg-white'"
- >
+ <div v-for="classe in item.classes" :key="classe.id" class="flex items-center justify-between rounded px-2 py-1 text-sm" :class="!classe.professorAssignat ? 'bg-rose-100' : 'bg-white'">
  <span class="font-medium text-slate-800">{{ classe.materia }}</span>
  <span v-if="classe.professorAssignat" class="text-slate-600">{{ classe.professorAssignat }}</span>
  <span v-else class="font-medium text-rose-600">&#9888; Sense prof.</span>
  </div>
  </div>
  </div>
-
- <!-- Matèria amb múltiples professors (normal + D/S/F) -->
- <div
- v-else-if="item.esGrupMateria"
- class="rounded-md border p-2.5"
- :class="item.classes.some(c => !c.professorAssignat)
- ? 'border-amber-400 bg-amber-100'
- : 'border-slate-200 bg-white'"
- >
+ <div v-else-if="item.esGrupMateria" class="rounded-md border p-2.5" :class="item.classes.some(c => !c.professorAssignat) ? 'border-amber-400 bg-amber-100' : 'border-slate-200 bg-white'">
  <div class="mb-1.5 flex items-center justify-between">
  <strong class="text-sm text-slate-900">{{ item.materia }}</strong>
  <span class="text-xs font-semibold text-slate-700">{{ item.hores }}h</span>
  </div>
  <div class="space-y-1">
- <div
- v-for="classe in item.classes"
- :key="classe.id"
- class="flex items-center justify-between rounded px-2 py-1 text-sm"
- :class="!classe.professorAssignat ? 'bg-amber-200' : 'bg-white'"
- >
+ <div v-for="classe in item.classes" :key="classe.id" class="flex items-center justify-between rounded px-2 py-1 text-sm" :class="!classe.professorAssignat ? 'bg-amber-200' : 'bg-white'">
  <div class="flex items-center gap-1.5">
- <span v-if="classe.tipus" :class="getTipusBadgeClass(classe.tipus)" class="inline-flex items-center gap-1">
- {{ getTipusLabel(classe.tipus) }}
- </span>
+ <span v-if="classe.tipus" :class="getTipusBadgeClass(classe.tipus)" class="inline-flex items-center gap-1">{{ getTipusLabel(classe.tipus) }}</span>
  <span v-else class="badge badge-gray inline-flex items-center gap-1">🎓 Titular</span>
  <span v-if="classe.hores !== item.hores" class="text-slate-500">({{ classe.hores }}h)</span>
  </div>
@@ -112,19 +83,11 @@
  </div>
  </div>
  </div>
-
- <!-- Classe normal -->
- <div
- v-else
- class="rounded-md border p-2.5"
- :class="getClasseStyle(item.classe)"
- >
+ <div v-else class="rounded-md border p-2.5" :class="getClasseStyle(item.classe)">
  <div class="flex items-start justify-between gap-2">
  <div class="flex min-w-0 flex-wrap items-center gap-1.5">
  <strong class="text-sm text-slate-900">{{ item.classe.materia }}</strong>
- <span v-if="item.classe.tipus" :class="getTipusBadgeClass(item.classe.tipus)" class="inline-flex items-center gap-1 text-xs">
- {{ getTipusLabel(item.classe.tipus) }}
- </span>
+ <span v-if="item.classe.tipus" :class="getTipusBadgeClass(item.classe.tipus)" class="inline-flex items-center gap-1 text-xs">{{ getTipusLabel(item.classe.tipus) }}</span>
  <span v-if="!comptaPerGrup(item.classe)" class="text-xs text-slate-500">(no compta grup)</span>
  </div>
  <span class="shrink-0 text-sm font-semibold text-slate-700">{{ item.classe.hores }}h</span>
@@ -134,7 +97,6 @@
  <span v-else class="font-medium text-rose-600">&#9888; Sense professor assignat</span>
  </div>
  </div>
-
  </template>
  </div>
  </div>
@@ -142,10 +104,7 @@
  </div>
 
  <!-- Activitats de coordinació sense grup -->
- <div
- v-if="coordinationActivities.length > 0"
- class="overflow-hidden card"
- >
+ <div v-if="coordinationActivities.length > 0" class="overflow-hidden card">
  <div class="border-b border-slate-300 bg-slate-200 px-5 py-3">
  <div class="flex items-center gap-2">
  <h3 class="text-base font-bold text-slate-950">Activitats de coordinació</h3>
@@ -157,20 +116,11 @@
  </div>
  <div class="p-4">
  <div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
- <div
- v-for="activity in sortCoordinationActivities(coordinationActivities)"
- :key="activity.id"
- class="rounded-lg border p-3"
- :class="!activity.professorAssignat
- ? 'border-rose-300 bg-rose-50'
- : 'border-slate-200 bg-slate-50'"
- >
+ <div v-for="activity in sortCoordinationActivities(coordinationActivities)" :key="activity.id" class="rounded-lg border p-3" :class="!activity.professorAssignat ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-slate-50'">
  <div class="flex items-center justify-between gap-2">
  <div class="flex min-w-0 flex-wrap items-center gap-1.5">
  <strong class="text-sm text-slate-900">{{ activity.materia }}</strong>
- <span v-if="activity.tipus" :class="getTipusBadgeClass(activity.tipus)" class="inline-flex items-center gap-1 text-xs">
- {{ getTipusLabel(activity.tipus) }}
- </span>
+ <span v-if="activity.tipus" :class="getTipusBadgeClass(activity.tipus)" class="inline-flex items-center gap-1 text-xs">{{ getTipusLabel(activity.tipus) }}</span>
  </div>
  <span class="shrink-0 text-xs font-semibold text-slate-700">{{ activity.hores }}h</span>
  </div>
@@ -178,60 +128,58 @@
  <span v-if="activity.professorAssignat" class="text-slate-700">{{ activity.professorAssignat }}</span>
  <span v-else class="font-medium text-rose-600">&#9888; Sense professor assignat</span>
  </div>
- <div v-if="activity.departaments?.[0]" class="mt-1 text-xs text-slate-500">
- {{ activity.departaments[0] }}
+ <div v-if="activity.departaments?.[0]" class="mt-1 text-xs text-slate-500">{{ activity.departaments[0] }}</div>
  </div>
  </div>
  </div>
  </div>
- </div>
+ </div><!-- /print-hide -->
 
- <!-- Contingut d'impressió (ocult) -->
- <div id="print-grups-content" class="hidden">
- <div class="print-page">
- <div class="print-header">
- <h1>Resum de Grups i Assignacions</h1>
- <p>Data: {{ new Date().toLocaleDateString('ca-ES') }}</p>
- </div>
- <div v-for="(classesPorGrup, curs) in classesAgrupadesPerCurs" :key="curs" class="print-curs">
- <div class="curs-header"><h2>{{ curs }}</h2></div>
- <div class="grups-grid">
- <div v-for="(classes, grup) in classesPorGrup" :key="grup" class="print-grup">
- <div class="grup-header">
- <h3>Grup {{ grup }}</h3>
- <span class="total-hours" :class="{ 'hours-warning': !totsAssignats(classes) }">
- {{ calcularHoresAssignades(classes) }}h / {{ calcularTotalHoresGrup(classes) }}h
- </span>
- </div>
- <div class="classes-list">
- <template v-for="item in agruparClassesPerVista(classes)" :key="item.key">
- <div v-if="item.esGrupOptatives" class="class-item optativa-group">
- <span class="class-name">Optativa {{ item.tipus !== 'O' ? item.tipus : '' }} ({{ item.hores }}h)</span>
- <div v-for="c in item.classes" :key="c.id" style="padding-left:12px;font-size:12px">
- {{ c.materia }} - {{ c.professorAssignat || 'Sense assignar' }}
- </div>
- </div>
- <div v-else-if="item.esGrupMateria" class="class-item optativa-group" style="background:#f0f4ff;border-color:#90a4d4">
- <span class="class-name">{{ item.materia }} ({{ item.hores }}h)</span>
- <div v-for="c in item.classes" :key="c.id" style="padding-left:12px;font-size:12px">
- {{ c.tipus || 'Titular' }}<span v-if="c.hores !== item.hores"> ({{ c.hores }}h)</span>
- - {{ c.professorAssignat || 'Sense assignar' }}
- </div>
- </div>
- <div v-else class="class-item" :class="{ 'class-unassigned': !item.classe.professorAssignat }">
- <span class="class-name">{{ item.classe.materia }}</span>
- <span class="class-professor" :class="{ unassigned: !item.classe.professorAssignat }">
- {{ item.classe.professorAssignat || 'Sense assignar' }}
- </span>
- <span class="class-hours">{{ item.classe.hores }}h</span>
- </div>
+ <!-- VISTA IMPRESSIÓ: taula compacta (oculta en pantalla) -->
+ <div class="print-only">
+ <table>
+ <thead>
+ <tr>
+ <th style="width:6%">Grup</th>
+ <th>Matèria</th>
+ <th style="width:8%;text-align:center">Tipus</th>
+ <th style="width:7%;text-align:center">Hores</th>
+ <th style="width:30%">Professor/a</th>
+ </tr>
+ </thead>
+ <tbody>
+ <template v-for="(classesPorGrup, curs) in classesAgrupadesPerCurs" :key="curs + '-p'">
+ <tr>
+ <td colspan="5" class="print-curs-sep">{{ curs }}</td>
+ </tr>
+ <template v-for="(classes, grup) in classesPorGrup" :key="grup + '-p'">
+ <tr v-for="classe in classes" :key="classe.id + '-p'">
+ <td>{{ grup }}</td>
+ <td :class="!classe.professorAssignat ? 'print-unassigned' : ''">{{ classe.materia }}</td>
+ <td style="text-align:center">{{ classe.tipus || '—' }}</td>
+ <td style="text-align:center">{{ classe.hores }}h</td>
+ <td :class="!classe.professorAssignat ? 'print-unassigned' : ''">
+ {{ classe.professorAssignat || '⚠ Sense assignar' }}
+ </td>
+ </tr>
  </template>
- </div>
- </div>
- </div>
- </div>
- </div>
- </div>
+ </template>
+ <template v-if="coordinationActivities.length > 0">
+ <tr>
+ <td colspan="5" class="print-curs-sep">Activitats de coordinació i sense grup</td>
+ </tr>
+ <tr v-for="activity in sortCoordinationActivities(coordinationActivities)" :key="activity.id + '-p'">
+ <td>—</td>
+ <td>{{ activity.materia }}</td>
+ <td style="text-align:center">{{ activity.tipus || '—' }}</td>
+ <td style="text-align:center">{{ activity.hores }}h</td>
+ <td :class="!activity.professorAssignat ? 'print-unassigned' : ''">
+ {{ activity.professorAssignat || '⚠ Sense assignar' }}
+ </td>
+ </tr>
+ </template>
+ </tbody>
+ </table>
  </div>
 </template>
 

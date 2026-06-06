@@ -703,6 +703,9 @@
 .dark .badge-purple, .dark .badge-indigo { background-color: rgb(167 139 250 / 0.20); color: #ddd6fe; }
 .dark .badge-red,    .dark .badge-orange { background-color: rgb(251 113 133 / 0.18); color: #fecdd3; }
 
+/* Els elements print-only s'oculten en pantalla */
+.print-only { display: none; }
+
 /* ═══════════════════════════════════════════════════════════
    PRINT STYLES  –  sortida professional en paper / PDF
    ═══════════════════════════════════════════════════════════ */
@@ -843,4 +846,25 @@
 
   /* Classes sense assignar */
   .classes-sense-assignar { margin-top: 0.4cm; }
+
+  /* ── Departament: sempre imprimeix el full de treball, mai el repartiment ── */
+  #panel-repartiment, #panel-aleatori { display: none !important; }
+  #panel-fulla { display: block !important; }
+
+  /* ── Taula compacta de grups (print-only) ── */
+  td.print-curs-sep {
+    background: #dbeafe !important;
+    color: #1e3a8a !important;
+    font-weight: 700;
+    font-size: 8pt;
+    border: 0.4pt solid #93c5fd !important;
+    padding: 3pt 5pt !important;
+    page-break-after: avoid;
+  }
+  td.print-unassigned {
+    background: #fff1f2 !important;
+    color: #991b1b !important;
+    font-weight: 600;
+  }
+  td.print-grup-first { font-weight: 600; }
 }
