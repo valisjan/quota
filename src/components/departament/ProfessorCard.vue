@@ -1,6 +1,6 @@
 <template>
   <div
-    class="overflow-hidden rounded-lg border transition-all duration-200"
+    class="overflow-hidden rounded-lg transition-all duration-200"
     :class="cardClass"
   >
     <div class="px-4 pb-3 pt-4" :class="headerClass">
@@ -31,12 +31,7 @@
     </div>
 
     <div class="space-y-4 p-4" :class="bodyClass">
-      <div class="grid gap-2 text-center" :class="resumGridClass">
-        <div class="rounded-md bg-slate-100 px-3 py-2">
-          <div class="text-xs font-medium text-slate-600">Lectives</div>
-          <div class="text-xl font-bold text-slate-950">{{ horesLectives }}</div>
-        </div>
-
+      <div v-if="mostraGp || totalPalicDepartament > 0" class="grid gap-2 text-center" :class="resumGridClass">
         <div v-if="mostraGp" class="rounded-md bg-slate-100 px-3 py-2">
           <div class="text-xs font-medium text-slate-600">GP</div>
           <div class="mt-1 flex items-center justify-center gap-1.5">
@@ -274,12 +269,8 @@ const coordinacionsSeleccionades = ref([]);
 const bloquejat = computed(() => props.bloquejat);
 
 const resumGridClass = computed(() => {
-  const columnes = 1 + (props.mostraGp ? 1 : 0) + (props.totalPalicDepartament > 0 ? 1 : 0);
-  return {
-    1: 'grid-cols-1',
-    2: 'grid-cols-2',
-    3: 'grid-cols-3',
-  }[columnes];
+  const columnes = (props.mostraGp ? 1 : 0) + (props.totalPalicDepartament > 0 ? 1 : 0);
+  return { 1: 'grid-cols-1', 2: 'grid-cols-2' }[columnes] || 'grid-cols-1';
 });
 
 const totalHoresProfessor = computed(
@@ -301,25 +292,15 @@ const isOverLimit = computed(
 );
 
 const cardClass = computed(() => {
-  if (isOverLimit.value) return 'shadow-danger-dark-glow border-orange-300 bg-orange-50/80 dark:border-orange-800/50 dark:bg-orange-950/30';
-  if (isOverRecommended.value) return 'shadow-danger-glow border-amber-200 bg-amber-50/50 dark:border-orange-900/30 dark:bg-orange-950/15';
-  if (isPerfectHours.value) return 'shadow-success-glow border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/40 dark:bg-emerald-950/20';
-  return 'shadow-primary-glow border-slate-200 bg-white';
+  if (isOverLimit.value) return 'border-2 border-orange-400 dark:border-orange-500 bg-white';
+  if (isOverRecommended.value) return 'border-2 border-amber-300 dark:border-amber-400 bg-white';
+  if (isPerfectHours.value) return 'border-2 border-emerald-400 dark:border-emerald-500 bg-white';
+  return 'border border-slate-200 bg-white';
 });
 
-const headerClass = computed(() => {
-  if (isOverLimit.value) return 'bg-orange-50/90 border-b border-orange-200 dark:bg-orange-950/35 dark:border-orange-800/40';
-  if (isOverRecommended.value) return 'bg-amber-50/60 border-b border-amber-100 dark:bg-orange-950/20 dark:border-orange-900/20';
-  if (isPerfectHours.value) return 'bg-emerald-50/80 border-b border-emerald-100 dark:bg-emerald-950/25 dark:border-emerald-900/30';
-  return 'bg-white border-b border-slate-100';
-});
+const headerClass = computed(() => 'border-b border-slate-100');
 
-const bodyClass = computed(() => {
-  if (isOverLimit.value) return 'bg-orange-50/40 dark:bg-orange-950/20';
-  if (isOverRecommended.value) return 'bg-amber-50/25 dark:bg-orange-950/10';
-  if (isPerfectHours.value) return 'bg-emerald-50/35 dark:bg-emerald-950/15';
-  return 'bg-white';
-});
+const bodyClass = computed(() => 'bg-white');
 
 const horesBadgeClass = computed(() => {
   if (isOverLimit.value) return 'bg-orange-100 text-orange-900 dark:bg-orange-900/45 dark:text-orange-200';

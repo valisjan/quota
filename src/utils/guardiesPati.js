@@ -1,6 +1,7 @@
 export const TOTAL_GUARDIES_PATI = 30;
 
-const DEPARTAMENTS_SENSE_GUARDIES_PATI = [
+// Exclusions hardcoded usades quan l'admin no ha configurat res (gpExclusions === null)
+const DEPARTAMENTS_SENSE_GP_DEFAULT = [
   'educacio fisica',
   'agraria',
   'forneria',
@@ -11,26 +12,40 @@ function normalitzarText(text) {
   return (text || '')
     .toString()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .trim();
 }
 
-export function departamentFaGuardiesPati(departament) {
+export function departamentFaGuardiesPati(departament, gpExclusions = null) {
   const normal = normalitzarText(departament);
   if (!normal) return false;
-  return !DEPARTAMENTS_SENSE_GUARDIES_PATI.some((exclos) =>
-    normal.includes(exclos)
-  );
+  if (Array.isArray(gpExclusions)) {
+    return !gpExclusions.some((exc) => normalitzarText(exc) === normal);
+  }
+  // Fallback hardcoded
+  return !DEPARTAMENTS_SENSE_GP_DEFAULT.some((exclos) => normal.includes(exclos));
 }
 
-export function calcularQuotesGuardiesPati(professors = [], total = TOTAL_GUARDIES_PATI) {
+export function calcularQuotesGuardiesPati(professors = [], total = TOTAL_GUARDIES_PATI, options = {}) {
+  const { gpExclusions = null, gpReductions = {} } = options;
   const comptadors = new Map();
 
   for (const professor of professors) {
     const departament = (professor?.departament || '').toString().trim();
-    if (!departament || !departamentFaGuardiesPati(departament)) continue;
+    if (!departament || !departamentFaGuardiesPati(departament, gpExclusions)) continue;
     comptadors.set(departament, (comptadors.get(departament) || 0) + 1);
+  }
+
+  // Aplicar reduccions de membres efectius
+  for (const [dept, reduction] of Object.entries(gpReductions || {})) {
+    const red = Math.max(0, Math.round(Number(reduction) || 0));
+    if (red === 0) continue;
+    const current = comptadors.get(dept);
+    if (current === undefined) continue;
+    const reduced = Math.max(0, current - red);
+    if (reduced <= 0) comptadors.delete(dept);
+    else comptadors.set(dept, reduced);
   }
 
   const totalProfessorat = [...comptadors.values()].reduce((sum, count) => sum + count, 0);
@@ -63,7 +78,8 @@ export function calcularQuotesGuardiesPati(professors = [], total = TOTAL_GUARDI
   );
 }
 
-export function quotaGuardiesPatiDepartament(professors = [], departament, total = TOTAL_GUARDIES_PATI) {
-  if (!departamentFaGuardiesPati(departament)) return 0;
-  return calcularQuotesGuardiesPati(professors, total)[departament] || 0;
+export function quotaGuardiesPatiDepartament(professors = [], departament, total = TOTAL_GUARDIES_PATI, options = {}) {
+  const { gpExclusions = null } = options;
+  if (!departamentFaGuardiesPati(departament, gpExclusions)) return 0;
+  return calcularQuotesGuardiesPati(professors, total, options)[departament] || 0;
 }

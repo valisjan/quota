@@ -328,6 +328,7 @@ import { classePertanyDepartament } from '../utils/departaments';
 import { trobarGermanesBloc } from '../utils/grups';
 import { quotaGuardiesPatiDepartament } from '../utils/guardiesPati';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
+import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
 import { useToastStore } from '../stores/toast';
 import { useAuthStore } from '../stores/auth';
 import { useCursStore } from '../stores/curs';
@@ -403,12 +404,18 @@ const totalHoresDepartament = computed(() => {
     .reduce((total, c) => total + c.hores, 0);
 });
 
+const gpOptions = computed(() => ({
+  gpExclusions: Array.isArray(settings.value.gpExclusions) ? settings.value.gpExclusions : null,
+  gpReductions: settings.value.gpReductions || {},
+}));
+
 // GP: quota calculada proporcionalment al nombre de professors del curs.
 const totalGPDepartament = computed(() => {
   return quotaGuardiesPatiDepartament(
     professors.value,
     departamentSeleccionat.value,
-    totalGuardiesPatiConfigurades.value
+    totalGuardiesPatiConfigurades.value,
+    gpOptions.value
   );
 });
 
@@ -748,6 +755,18 @@ async function tancarDepartament() {
 
 function setupRealtimeListeners() {
   cleanupListeners();
+  if (E2E_AUTH_BYPASS) {
+    classes.value = getE2ECollection('classes');
+    professors.value = getE2ECollection('professors');
+    departaments.value = getE2ECollection('departaments');
+    settings.value = { ...DEFAULT_APP_SETTINGS };
+    if (!departamentSeleccionat.value) {
+      departamentSeleccionat.value = departaments.value[0]?.nom || '';
+    }
+    updateLastUpdate();
+    isConnected.value = true;
+    return;
+  }
   if (!cursStore.cursActiuId) {
     classes.value = [];
     professors.value = [];
@@ -816,6 +835,7 @@ function setupRealtimeListeners() {
 }
 
 function setupUserPresence() {
+  if (E2E_AUTH_BYPASS) return;
   if (!departamentSeleccionat.value || !cursStore.cursActiuId) return;
 
   presenceUnsubscribe?.();
@@ -839,6 +859,7 @@ function setupUserPresence() {
     uid: authStore.uid || '',
     usuari: authStore.usuari || authStore.rol || 'Usuari',
     email: authStore.email || '',
+    photoURL: authStore.photoURL || '',
     rol: authStore.rol || '',
     path: '/departament',
     timestamp: serverTimestamp(),
@@ -875,6 +896,7 @@ function setupUserPresence() {
           uid: authStore.uid || '',
           usuari: authStore.usuari || authStore.rol || 'Usuari',
           email: authStore.email || '',
+          photoURL: authStore.photoURL || '',
           rol: authStore.rol || '',
           path: '/departament',
         },
@@ -942,7 +964,7 @@ function imprimirDepartament() {
 
 watch(departamentSeleccionat, (newDept, oldDept) => {
   if (newDept !== oldDept) {
-    if (oldDept && presenceUnsubscribe && cursStore.cursActiuId) {
+    if (!E2E_AUTH_BYPASS && oldDept && presenceUnsubscribe && cursStore.cursActiuId) {
       deleteDoc(
         doc(db, 'cursos', cursStore.cursActiuId, 'presence', `${oldDept}_${sessionId.value}`)
       ).catch(console.error);
@@ -959,7 +981,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   cleanupListeners();
-  if (departamentSeleccionat.value && cursStore.cursActiuId) {
+  if (!E2E_AUTH_BYPASS && departamentSeleccionat.value && cursStore.cursActiuId) {
     deleteDoc(
       doc(db, 'cursos', cursStore.cursActiuId, 'presence', `${departamentSeleccionat.value}_${sessionId.value}`)
     ).catch(console.error);

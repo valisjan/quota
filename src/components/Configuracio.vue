@@ -6,22 +6,63 @@
           Guàrdies de pati
         </h3>
         <p class="mt-1 text-sm text-slate-600">
-          Es reparteixen automàticament entre els departaments segons el nombre de professors. Educació Física, Agrària i Forneria no entren en el repartiment.
+          Es reparteixen proporcionalment entre els departaments segons els membres efectius. Pots excloure departaments o reduir el nombre de membres comptables (director, orientador, PSC…).
         </p>
       </div>
 
-      <div class="grid gap-5 p-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <label class="block text-sm font-semibold text-slate-700">
+      <div class="space-y-5 p-5">
+        <!-- Total -->
+        <label class="block w-48 text-sm font-semibold text-slate-700">
           Total de guàrdies de pati
           <input
             v-model.number="formulari.totalGuardiesPati"
             type="number"
             min="0"
             step="1"
-            class="form-input mt-2 w-full bg-white text-lg font-semibold"
+            class="form-input mt-2 w-full text-lg font-semibold"
           />
         </label>
 
+        <!-- Departaments participants -->
+        <div>
+          <p class="mb-2 text-sm font-semibold text-slate-700">Departaments participants</p>
+          <div class="grid gap-1.5 sm:grid-cols-2">
+            <div
+              v-for="item in departamentsGP"
+              :key="item.dept"
+              class="flex items-center gap-2.5 rounded-md px-3 py-2 ring-1 transition-colors"
+              :class="item.excloit ? 'bg-slate-50 ring-slate-200 opacity-60' : 'bg-white ring-slate-200'"
+            >
+              <input
+                type="checkbox"
+                :id="`gp-${item.dept}`"
+                :checked="!item.excloit"
+                @change="toggleExclusio(item.dept)"
+                class="h-4 w-4 shrink-0 rounded border-slate-300 accent-primary"
+              />
+              <label :for="`gp-${item.dept}`" class="min-w-0 flex-1 cursor-pointer">
+                <span class="block truncate text-sm font-medium text-slate-800">{{ item.dept }}</span>
+                <span class="text-xs text-slate-500">{{ item.membres }} prof.</span>
+              </label>
+              <div v-if="!item.excloit" class="flex shrink-0 items-center gap-1.5">
+                <label :for="`red-${item.dept}`" class="text-xs text-slate-500">−</label>
+                <input
+                  :id="`red-${item.dept}`"
+                  type="number"
+                  min="0"
+                  :max="item.membres"
+                  :value="item.reduccio"
+                  @change="setReduccio(item.dept, $event.target.valueAsNumber)"
+                  class="w-12 rounded border border-slate-200 px-1.5 py-0.5 text-center text-sm focus:border-primary focus:outline-none"
+                  :title="`Membres exclosos de GP (director, orientador…)`"
+                />
+                <span v-if="item.reduccio > 0" class="text-xs text-slate-500">= {{ item.efectius }} ef.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Repartiment previst -->
         <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <div class="mb-3 flex items-center justify-between gap-3">
             <p class="text-sm font-semibold text-slate-800">
@@ -194,7 +235,7 @@ import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import { onSnapshot, query } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
 import { useToastStore } from '../stores/toast';
-import { calcularQuotesGuardiesPati } from '../utils/guardiesPati';
+import { calcularQuotesGuardiesPati, departamentFaGuardiesPati } from '../utils/guardiesPati';
 import {
   DEFAULT_APP_SETTINGS,
   DEFAULT_SHEETS_ID,
@@ -279,8 +320,51 @@ const totalGuardiesPatiFormulari = computed(() =>
   Math.max(0, Math.round(Number(formulari.totalGuardiesPati ?? 30) || 0))
 );
 
+// Tots els departaments del professorat, ordenats
+const departamentsGP = computed(() => {
+  const depts = [...new Set(professors.value.map((p) => p.departament).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b)
+  );
+  return depts.map((dept) => {
+    const membres = professors.value.filter((p) => p.departament === dept).length;
+    const excloit = Array.isArray(formulari.gpExclusions)
+      ? formulari.gpExclusions.includes(dept)
+      : !departamentFaGuardiesPati(dept, null);
+    const reduccio = Math.max(0, Number((formulari.gpReductions || {})[dept] || 0));
+    const efectius = Math.max(0, membres - reduccio);
+    return { dept, membres, excloit, reduccio, efectius };
+  });
+});
+
+function getExclosionsActuals() {
+  if (Array.isArray(formulari.gpExclusions)) return [...formulari.gpExclusions];
+  // Primera vegada: inicialitzar des de l'estat visual actual (exclusions per defecte)
+  return departamentsGP.value.filter((d) => d.excloit).map((d) => d.dept);
+}
+
+function toggleExclusio(departament) {
+  if (!Array.isArray(formulari.gpExclusions)) {
+    formulari.gpExclusions = getExclosionsActuals();
+  }
+  const idx = formulari.gpExclusions.indexOf(departament);
+  if (idx === -1) formulari.gpExclusions.push(departament);
+  else formulari.gpExclusions.splice(idx, 1);
+}
+
+function setReduccio(departament, valor) {
+  if (!formulari.gpReductions) formulari.gpReductions = {};
+  const val = Math.max(0, Math.round(Number(valor) || 0));
+  if (val === 0) delete formulari.gpReductions[departament];
+  else formulari.gpReductions[departament] = val;
+}
+
+const gpOptionsPreview = computed(() => ({
+  gpExclusions: Array.isArray(formulari.gpExclusions) ? formulari.gpExclusions : null,
+  gpReductions: formulari.gpReductions || {},
+}));
+
 const quotesGuardies = computed(() => {
-  const quotes = calcularQuotesGuardiesPati(professors.value, totalGuardiesPatiFormulari.value);
+  const quotes = calcularQuotesGuardiesPati(professors.value, totalGuardiesPatiFormulari.value, gpOptionsPreview.value);
   return Object.entries(quotes)
     .map(([departament, quota]) => ({ departament, quota }))
     .filter((item) => item.quota > 0)
@@ -296,6 +380,8 @@ async function guardarGuardies() {
   try {
     await updateAppSettings(cursStore.cursActiuId, {
       totalGuardiesPati: totalGuardiesPatiFormulari.value,
+      gpExclusions: getExclosionsActuals(),
+      gpReductions: formulari.gpReductions || {},
     });
     toast.ok('Guàrdies de pati guardades.');
   } catch (err) {
