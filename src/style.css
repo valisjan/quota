@@ -702,3 +702,143 @@
 .dark .badge-yellow                      { background-color: rgb(245 158  11 / 0.20); color: #fde68a; }
 .dark .badge-purple, .dark .badge-indigo { background-color: rgb(167 139 250 / 0.20); color: #ddd6fe; }
 .dark .badge-red,    .dark .badge-orange { background-color: rgb(251 113 133 / 0.18); color: #fecdd3; }
+
+/* ═══════════════════════════════════════════════════════════
+   PRINT STYLES  –  sortida professional en paper / PDF
+   ═══════════════════════════════════════════════════════════ */
+@media print {
+  /* Configuració de pàgina */
+  @page { size: A4 portrait; margin: 1.5cm 2cm; }
+  @page :first { margin-top: 1cm; }
+
+  /* Visibilitat bàsica */
+  .print-hide { display: none !important; }
+  .print-only { display: block !important; }
+
+  /* Ocultar tota la crosta de l'app */
+  .app-nav,
+  .app-nav-tabs,
+  .resums-tabs,
+  .skip-link,
+  [data-v-app] > nav { display: none !important; }
+
+  /* Reset de fons i ombres */
+  *,
+  *::before,
+  *::after {
+    background: white !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body, html { font-size: 10pt; line-height: 1.4; }
+
+  /* ── Capçalera del document imprimible ── */
+  .print-doc-header {
+    display: block !important;
+    border-bottom: 2pt solid #0024B6;
+    margin-bottom: 0.55cm;
+    padding-bottom: 0.3cm;
+  }
+
+  .print-doc-header .print-school {
+    font-size: 7.5pt;
+    font-weight: 700;
+    color: #0024B6 !important;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .print-doc-header .print-title {
+    font-size: 13pt;
+    font-weight: 700;
+    color: #020617 !important;
+    margin: 0.1cm 0 0;
+    line-height: 1.2;
+  }
+
+  .print-doc-header .print-meta {
+    font-size: 7.5pt;
+    color: #475569 !important;
+    margin-top: 0.15cm;
+    display: flex;
+    gap: 0.8cm;
+  }
+
+  /* ── Taules ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+    page-break-inside: auto;
+  }
+
+  thead { display: table-header-group; }
+
+  th {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+    border: 0.4pt solid #94a3b8 !important;
+    padding: 3.5pt 6pt !important;
+    font-size: 7.5pt;
+    font-weight: 700;
+    text-align: left;
+  }
+
+  td {
+    border: 0.4pt solid #cbd5e1 !important;
+    padding: 3pt 6pt !important;
+    color: #0f172a !important;
+    vertical-align: top;
+  }
+
+  tr { page-break-inside: avoid; }
+
+  /* Accent esquerre de files (estat professor) */
+  tr[class*="border-l-emerald"] td:first-child { border-left: 3pt solid #10b981 !important; }
+  tr[class*="border-l-amber"]   td:first-child { border-left: 3pt solid #f59e0b !important; }
+  tr[class*="border-l-red"]     td:first-child { border-left: 3pt solid #ef4444 !important; }
+
+  /* Fila de totals */
+  tr.totals-row th,
+  tr.totals-row td {
+    background: #f8fafc !important;
+    font-weight: 700;
+    border-top: 1.5pt solid #94a3b8 !important;
+  }
+
+  /* ── Badges / pills d'estat ── */
+  .badge,
+  [class*="rounded-full"][class*="px-2"] {
+    border: 0.5pt solid currentColor !important;
+    background: transparent !important;
+    font-size: 7pt !important;
+    padding: 1pt 4pt !important;
+  }
+
+  /* Colors semàntics per a impressió en color */
+  .print-ok    { color: #059669 !important; }
+  .print-warn  { color: #b45309 !important; }
+  .print-error { color: #dc2626 !important; }
+
+  /* ── Ocultar elements interactius ── */
+  button, input, select, textarea,
+  [role="button"],
+  .resums-tab { display: none !important; }
+
+  /* ── Salts de pàgina ── */
+  h2, h3 { page-break-after: avoid; }
+  .page-break { page-break-before: always; }
+  .no-break   { page-break-inside: avoid; }
+
+  /* ── Contingut principal sense contenidors excessius ── */
+  .form-container,
+  .resums-page,
+  .fulla-repartiment { padding: 0 !important; margin: 0 !important; }
+
+  /* ── Resum de classes sense assignar ── */
+  .classes-sense-assignar { margin-top: 0.5cm; }
+}

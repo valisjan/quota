@@ -1,6 +1,6 @@
 <template>
   <div class="fulla-repartiment">
-    <!-- Capçalera pantalla -->
+    <!-- Capçalera pantalla (oculta en impressió) -->
     <div class="print-hide mb-4 flex items-center justify-between">
       <p class="text-sm text-slate-600 dark:text-slate-400">
         {{ departament }} · {{ dataAvui }}
@@ -22,9 +22,14 @@
     </div>
 
     <!-- Capçalera impressió -->
-    <div class="print-only mb-4 border-b-2 border-gray-800 pb-3">
-      <h1 class="text-xl font-bold">Full de repartiment - {{ departament }}</h1>
-      <p class="text-sm text-gray-500">{{ dataAvui }}</p>
+    <div class="print-only print-doc-header">
+      <div class="print-school">IES Josep Sureda i Blanes · Distribució de la càrrega lectiva</div>
+      <div class="print-title">Departament de {{ departament }}</div>
+      <div class="print-meta">
+        <span>Data: {{ dataAvui }}</span>
+        <span>Hores lectives: {{ totalHoresAssignades }} / {{ totalHoresDepartament }}h</span>
+        <span>Professors: {{ professors.length }}</span>
+      </div>
     </div>
 
     <!-- Resum numèric -->
@@ -186,7 +191,7 @@
           </tr>
 
           <!-- Fila de totals -->
-          <tr class="bg-slate-100 font-semibold dark:bg-gray-700">
+          <tr class="totals-row bg-slate-100 font-semibold dark:bg-gray-700">
             <td class="border-t-primary border-slate-300 px-3 py-2.5 text-slate-700 dark:border-gray-500 dark:text-gray-200">
               TOTAL
             </td>
@@ -218,7 +223,7 @@
     </div>
 
     <!-- Classes sense assignar -->
-    <div class="mt-6">
+    <div class="classes-sense-assignar mt-6">
       <div class="mb-2 flex items-center gap-2">
         <h3 class="font-semibold text-slate-700 dark:text-gray-200">Classes sense assignar</h3>
         <span
