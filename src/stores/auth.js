@@ -72,12 +72,11 @@ export const useAuthStore = defineStore('auth', () => {
           departament.value = data.departament || '';
           estaAutenticat.value = !!data.rol;
           esPendent.value = !data.rol;
-          if (data.nom !== firebaseUser.displayName || data.photoURL !== photoURL.value) {
-            updateDoc(doc(db, 'usuaris', firebaseUser.uid), {
-              nom: firebaseUser.displayName,
-              photoURL: photoURL.value,
-            }).catch(() => {});
-          }
+          updateDoc(doc(db, 'usuaris', firebaseUser.uid), {
+            nom: firebaseUser.displayName,
+            photoURL: photoURL.value,
+            lastLogin: new Date(),
+          }).catch(() => {});
         } else {
           // Primer login: comprova si el full té un rol pre-assignat
           const preSnap = await getDoc(doc(db, 'preautoritzats', userEmail));
@@ -89,6 +88,7 @@ export const useAuthStore = defineStore('auth', () => {
             rol: pre?.rol || null,
             departament: pre?.departament || null,
             createdAt: new Date(),
+            lastLogin: new Date(),
           });
           uid.value = firebaseUser.uid;
           email.value = userEmail;

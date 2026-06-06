@@ -136,6 +136,9 @@
                 >tu</span>
               </div>
               <p class="text-xs text-slate-600 dark:text-slate-400">{{ u.email }}</p>
+              <p v-if="u.lastLogin" class="text-xs text-slate-400 dark:text-slate-500">
+                Última activitat: {{ formatDate(u.lastLogin) }}
+              </p>
             </div>
           </div>
 
@@ -223,6 +226,11 @@ const emailsActius = computed(() => new Set(usuaris.value.map((u) => (u.email ||
 const preautoritzatsLlista = computed(() =>
   preautoritzats.value.filter((p) => !emailsActius.value.has((p.email || '').toLowerCase()))
 );
+
+function formatDate(ts) {
+  const d = ts?.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
 
 function etiquetaRol(rol) {
   const etiquetes = { admin: 'Admin', cap_departament: 'Cap de departament', departament: 'Cap de departament', professor: 'Professor' };
