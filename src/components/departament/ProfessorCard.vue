@@ -299,31 +299,30 @@ const isOverRecommended = computed(
 const isOverLimit = computed(
   () => totalHoresProfessor.value > limits.value.maxim
 );
-const isOver18 = computed(() => totalHoresProfessor.value > 18);
 
 const cardClass = computed(() => {
-  if (isOverLimit.value || isOver18.value) return 'shadow-danger-dark-glow border-amber-200 bg-amber-50/70 dark:border-orange-900/40 dark:bg-orange-950/25';
+  if (isOverLimit.value) return 'shadow-danger-dark-glow border-orange-300 bg-orange-50/80 dark:border-orange-800/50 dark:bg-orange-950/30';
   if (isOverRecommended.value) return 'shadow-danger-glow border-amber-200 bg-amber-50/50 dark:border-orange-900/30 dark:bg-orange-950/15';
   if (isPerfectHours.value) return 'shadow-success-glow border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/40 dark:bg-emerald-950/20';
   return 'shadow-primary-glow border-slate-200 bg-white';
 });
 
 const headerClass = computed(() => {
-  if (isOverLimit.value || isOver18.value) return 'bg-amber-50/80 border-b border-amber-100 dark:bg-orange-950/30 dark:border-orange-900/30';
+  if (isOverLimit.value) return 'bg-orange-50/90 border-b border-orange-200 dark:bg-orange-950/35 dark:border-orange-800/40';
   if (isOverRecommended.value) return 'bg-amber-50/60 border-b border-amber-100 dark:bg-orange-950/20 dark:border-orange-900/20';
   if (isPerfectHours.value) return 'bg-emerald-50/80 border-b border-emerald-100 dark:bg-emerald-950/25 dark:border-emerald-900/30';
   return 'bg-white border-b border-slate-100';
 });
 
 const bodyClass = computed(() => {
-  if (isOverLimit.value || isOver18.value) return 'bg-amber-50/35 dark:bg-orange-950/15';
+  if (isOverLimit.value) return 'bg-orange-50/40 dark:bg-orange-950/20';
   if (isOverRecommended.value) return 'bg-amber-50/25 dark:bg-orange-950/10';
   if (isPerfectHours.value) return 'bg-emerald-50/35 dark:bg-emerald-950/15';
   return 'bg-white';
 });
 
 const horesBadgeClass = computed(() => {
-  if (isOverLimit.value || isOver18.value) return 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200';
+  if (isOverLimit.value) return 'bg-orange-100 text-orange-900 dark:bg-orange-900/45 dark:text-orange-200';
   if (isOverRecommended.value) return 'bg-amber-100 text-amber-900 dark:bg-amber-900/35 dark:text-amber-200';
   if (isPerfectHours.value) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200';
   return 'bg-slate-100 text-slate-800';
@@ -352,7 +351,7 @@ function esCoordinador(coordinacio) {
 }
 
 function rolClasse(classe) {
-  if (classe.professorAssignat === props.professor.nom) return 'principal';
+  if (classe.professorAssignat === props.professor.nom) return '';
   if ((classe.professors || []).includes(props.professor.nom)) return 'codocent';
   return '';
 }
