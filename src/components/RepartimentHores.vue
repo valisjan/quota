@@ -165,14 +165,6 @@
               :aria-label="`Desassignar ${formatClasseLabel(classe)}`"
             >x</button>
           </div>
-          <p
-            v-for="avis in avisosHores(classe)"
-            :key="avis.nom"
-            class="mt-1 text-xs font-medium"
-            :class="avis.tipus === 'limit' ? 'text-danger-dark' : 'text-danger'"
-          >
-            {{ avis.nom }}: {{ avis.tipus === 'limit' ? 'supera les hores permeses' : 'supera les hores recomanades' }}
-          </p>
         </div>
       </div>
     </div>
