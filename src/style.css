@@ -730,8 +730,11 @@
 
   html, body { font-size: 9pt; line-height: 1.35; }
 
-  /* Eliminar overflow que talla la taula */
-  .print-table-wrapper { overflow: visible !important; }
+  /* Eliminar overflow que talla taules i targetes */
+  .print-table-wrapper,
+  .overflow-x-auto,
+  .overflow-hidden,
+  .card, section { overflow: visible !important; }
 
   /* Contingut sense padding extra */
   .form-container, .resums-page,

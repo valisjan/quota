@@ -1,14 +1,14 @@
 <template>
  <div class="resum-grups sections space-y-5">
  <!-- Capçalera: filtre + botó -->
- <div class="flex justify-end">
+ <div class="print-hide flex justify-end">
  <button @click="imprimirGrups" class="btn-primary flex items-center gap-2 text-sm">
  Imprimir resum de grups
  </button>
  </div>
 
  <!-- Filtres per nivell -->
- <div class="flex flex-wrap items-center gap-1 rounded-md bg-slate-100 p-1 w-fit">
+ <div class="print-hide flex flex-wrap items-center gap-1 rounded-md bg-slate-100 p-1 w-fit">
  <button
  v-for="filtre in filtres"
  :key="filtre.id"
