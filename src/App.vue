@@ -155,7 +155,11 @@
           </div>
         </div>
       </div>
-      <div class="h-0.5 bg-primary"></div>
+      <div class="flex h-0.5">
+        <div class="flex-1 bg-danger"></div>
+        <div class="flex-1 bg-success"></div>
+        <div class="flex-1 bg-primary"></div>
+      </div>
     </nav>
 
     <main id="main-content" :class="mainClass">
