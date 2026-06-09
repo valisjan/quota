@@ -417,7 +417,7 @@ const classesAgrupadesPerCurs = computed(() => {
  const numGrups = grups.length;
  const tipusNorm = (classe.tipus || '').toUpperCase().trim();
  const esOpt = esOptativa(tipusNorm);
- const horesBase = (numGrups > 1 && !esOpt) ? Math.round(classe.hores / numGrups) : classe.hores;
+ const horesBase = (numGrups > 1 && comptaPerGrup(classe) && !esOpt) ? Math.round(classe.hores / numGrups) : classe.hores;
  const horesPerGrup = esAutodesdoble(tipusNorm) ? Math.max(0, horesBase - getAutodesdobleN(tipusNorm)) : horesBase;
  grups.forEach(grupNet => {
  if (!agrupades[classe.curs]) agrupades[classe.curs] = {};
