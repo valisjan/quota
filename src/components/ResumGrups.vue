@@ -29,7 +29,7 @@
  :key="curs"
  class="overflow-hidden card"
  >
- <div class="border-b border-slate-300 bg-slate-200 px-5 py-3">
+ <div class="border-b border-slate-200 bg-slate-50 px-5 py-3">
  <h3 class="text-base font-bold text-slate-950">{{ curs }}</h3>
  </div>
 
@@ -37,9 +37,9 @@
  <div
  v-for="(classes, grup) in classesPorGrup"
  :key="grup"
- class="overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm"
+ class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
  >
- <div class="flex items-center justify-between border-b border-slate-300 bg-slate-200 px-3 py-2">
+ <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2">
  <div class="flex items-center gap-1.5">
  <h4 class="text-sm font-bold text-slate-950">Grup {{ grup }}</h4>
  <span v-if="grupTeBordeRojo(classes)" class="text-rose-500 text-sm leading-none">&#9888;</span>
@@ -53,26 +53,26 @@
 
  <div class="space-y-2 p-3">
  <template v-for="item in agruparClassesPerVista(classes)" :key="item.key">
- <div v-if="item.esGrupOptatives" class="rounded-md border p-2.5" :class="item.classes.some(c => !c.professorAssignat) ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-white'">
+ <div v-if="item.esGrupOptatives" class="rounded-md border bg-white p-2.5" :class="item.classes.some(c => !c.professorAssignat) ? 'border-slate-200 border-l-4 border-l-rose-300' : 'border-slate-200'">
  <div class="mb-1.5 flex items-center justify-between">
  <span class="badge badge-green">✦ Optativa {{ item.tipus !== 'O' ? item.tipus : '' }} · {{ item.hores }}h</span>
  <span class="text-xs text-slate-600">mateixa franja</span>
  </div>
  <div class="space-y-1">
- <div v-for="classe in item.classes" :key="classe.id" class="flex items-center justify-between rounded px-2 py-1 text-sm" :class="!classe.professorAssignat ? 'bg-rose-100' : 'bg-white'">
+ <div v-for="classe in item.classes" :key="classe.id" class="flex items-center justify-between rounded px-2 py-1 text-sm" :class="!classe.professorAssignat ? 'bg-slate-50' : 'bg-white'">
  <span class="font-medium text-slate-800">{{ classe.materia }}</span>
  <span v-if="classe.professorAssignat" class="text-slate-600">{{ classe.professorAssignat }}</span>
  <span v-else class="font-medium text-rose-600">&#9888; Sense prof.</span>
  </div>
  </div>
  </div>
- <div v-else-if="item.esGrupMateria" class="rounded-md border p-2.5" :class="item.classes.some(c => !c.professorAssignat) ? 'border-amber-400 bg-amber-100' : 'border-slate-200 bg-white'">
+ <div v-else-if="item.esGrupMateria" class="rounded-md border bg-white p-2.5" :class="item.classes.some(c => !c.professorAssignat) ? 'border-slate-200 border-l-4 border-l-amber-300' : 'border-slate-200'">
  <div class="mb-1.5 flex items-center justify-between">
  <strong class="text-sm text-slate-900">{{ item.materia }}</strong>
  <span class="text-xs font-semibold text-slate-700">{{ item.hores }}h</span>
  </div>
  <div class="space-y-1">
- <div v-for="classe in item.classes" :key="classe.id" class="flex items-center justify-between rounded px-2 py-1 text-sm" :class="!classe.professorAssignat ? 'bg-amber-200' : 'bg-white'">
+ <div v-for="classe in item.classes" :key="classe.id" class="flex items-center justify-between rounded px-2 py-1 text-sm" :class="!classe.professorAssignat ? 'bg-slate-50' : 'bg-white'">
  <div class="flex items-center gap-1.5">
  <span v-if="classe.tipus" :class="getTipusBadgeClass(classe.tipus)" class="inline-flex items-center gap-1">{{ getTipusLabel(classe.tipus) }}</span>
  <span v-else class="badge badge-gray inline-flex items-center gap-1">🎓 Titular</span>
@@ -105,7 +105,7 @@
 
  <!-- Activitats de coordinació sense grup -->
  <div v-if="coordinationActivities.length > 0" class="overflow-hidden card">
- <div class="border-b border-slate-300 bg-slate-200 px-5 py-3">
+ <div class="border-b border-slate-200 bg-slate-50 px-5 py-3">
  <div class="flex items-center gap-2">
  <h3 class="text-base font-bold text-slate-950">Activitats de coordinació</h3>
  <span v-if="coordinationActivitiesSenseAssignar.length > 0" class="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
@@ -116,7 +116,7 @@
  </div>
  <div class="p-4">
  <div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
- <div v-for="activity in sortCoordinationActivities(coordinationActivities)" :key="activity.id" class="rounded-lg border p-3" :class="!activity.professorAssignat ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-slate-50'">
+ <div v-for="activity in sortCoordinationActivities(coordinationActivities)" :key="activity.id" class="rounded-lg border bg-white p-3" :class="!activity.professorAssignat ? 'border-slate-200 border-l-4 border-l-rose-300' : 'border-slate-200'">
  <div class="flex items-center justify-between gap-2">
  <div class="flex min-w-0 flex-wrap items-center gap-1.5">
  <strong class="text-sm text-slate-900">{{ activity.materia }}</strong>
@@ -378,9 +378,9 @@ function agruparClassesPerVista(classesDelGrup) {
 }
 
 function getClasseStyle(classe) {
- if (!classeAssignada(classe)) return 'border-rose-300 bg-rose-50';
- if (!comptaPerGrup(classe)) return 'border-slate-300 bg-slate-100 opacity-70';
- return 'border-slate-300 bg-white';
+ if (!classeAssignada(classe)) return 'border-slate-200 border-l-4 border-l-rose-300 bg-white';
+ if (!comptaPerGrup(classe)) return 'border-slate-200 bg-slate-50 opacity-80';
+ return 'border-slate-200 bg-white';
 }
 
 function grupTeBordeRojo(classes) {

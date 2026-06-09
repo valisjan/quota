@@ -1003,6 +1003,14 @@ html:not(.dark) .bg-gray-100 {
   border-color: var(--rg-rose-border);
 }
 
+.dark .resum-grups .border-l-rose-300 {
+  border-left-color: var(--rg-rose-border);
+}
+
+.dark .resum-grups .border-l-amber-300 {
+  border-left-color: var(--rg-amber-border);
+}
+
 .dark .resum-grups .text-rose-500,
 .dark .resum-grups .text-rose-600,
 .dark .resum-grups .text-rose-700,
