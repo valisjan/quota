@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen p-2 sm:p-4">
-    <div class="container mx-auto overflow-hidden">
+    <div class="container mx-auto overflow-x-clip">
     <Transition :name="transicioPantallaDepartament" mode="out-in">
     <section v-if="!pantallaDistribucio" key="selector" class="departament-screen">
       <!-- Selector de departamento -->
@@ -25,12 +25,23 @@
           <div class="flex min-w-0 items-center gap-3">
             <button
               type="button"
-              class="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+              class="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
               @click="tornarADepartaments"
             >
               <span aria-hidden="true">←</span>
-              Departaments
+              Torna
             </button>
+            <div
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-600"
+              aria-hidden="true"
+            >
+              <span v-if="deptIconText" class="dept-icon-text" :class="{ 'dept-icon-text-small': deptIconText.length > 1 }">{{ deptIconText }}</span>
+              <span v-else-if="deptFlagClass" class="dept-flag" :class="deptFlagClass"></span>
+              <svg v-else-if="deptIconPaths.length" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                <path v-for="path in deptIconPaths" :key="path" stroke-linecap="round" stroke-linejoin="round" :d="path" />
+              </svg>
+              <span v-else class="text-xs font-black">{{ deptInicials }}</span>
+            </div>
             <div class="min-w-0">
               <p class="truncate text-lg font-semibold text-slate-950">{{ departamentSeleccionat }}</p>
               <p class="text-sm font-medium text-slate-600">
@@ -267,7 +278,7 @@
                   :class="ordreProfessorat === 'necessitat' ? 'bg-white text-primary shadow-sm' : 'text-slate-600 hover:text-slate-950'"
                   @click="ordreProfessorat = 'necessitat'"
                 >
-                  Necessitat
+                  Menys hores
                 </button>
                 <button
                   type="button"
@@ -383,6 +394,7 @@ import DepartamentAleatori from '../components/departament/DepartamentAleatori.v
 import ProfessorCard from '../components/departament/ProfessorCard.vue';
 import DepartamentPrintModal from '../components/departament/DepartamentPrintModal.vue';
 import { limitsHoresProfessor, professorsClasse, classeAssignadaA, horesComputablesClasse, calcularHoresLectives } from '../utils/horesProfessor';
+import { departamentIconText, departamentFlagClass, departamentIconPaths, departamentInicials } from '../utils/departamentIcon';
 import { esTutoriaPrincipal, esTutoriaAsterisc, trobarTutoriaAsterisc, trobarTutoriaPrincipal, trobarAssignaturesParelladesTutoria, esCapsEstudisClasse, trobarDedicacioPerCapEstudis } from '../utils/tutories';
 import { esGP, esPALIC, esOptativaCompartida, esCoordinacioAmbMembres } from '../utils/tipus';
 import { classePertanyDepartament } from '../utils/departaments';
@@ -477,6 +489,11 @@ const departamentsAmbResum = computed(() =>
 const departamentSeleccionatResum = computed(() =>
   departamentsAmbResum.value.find((dep) => dep.nom === departamentSeleccionat.value) || null
 );
+
+const deptIconText = computed(() => departamentIconText(departamentSeleccionat.value || ''));
+const deptFlagClass = computed(() => departamentFlagClass(departamentSeleccionat.value || ''));
+const deptIconPaths = computed(() => departamentIconPaths(departamentSeleccionat.value || ''));
+const deptInicials = computed(() => departamentInicials(departamentSeleccionat.value || ''));
 const pantallaDistribucio = computed(() =>
   Boolean(departamentSeleccionat.value) && !mostrarSelectorDepartaments.value
 );

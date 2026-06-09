@@ -7,6 +7,9 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Roboto', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+      },
       colors: {
         primary: 'var(--primary)',
         'primary-dark': 'var(--primary-dark)',

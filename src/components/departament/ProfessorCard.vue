@@ -1,237 +1,199 @@
 <template>
-  <div
-    class="overflow-hidden rounded-lg transition-all duration-200"
-    :class="cardClass"
-  >
-    <div class="px-4 pb-3 pt-4" :class="headerClass">
-      <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0 flex-1">
-          <h4 class="text-lg font-semibold tracking-tight text-slate-950">
-            {{ professor.nom }}
-          </h4>
-          <div class="mt-2 flex flex-wrap items-center gap-2">
-            <span class="rounded-md px-2.5 py-1 text-sm font-medium" :class="horesBadgeClass">
-              {{ totalHoresProfessor }}h
-            </span>
-            <span
-              v-if="professor.jornada"
-              class="rounded-md bg-slate-100 px-2.5 py-1 text-sm font-medium text-slate-700"
-            >
-              {{ textJornada(professor) }}
-            </span>
-            <span
-              v-if="professor.preferencia"
-              class="rounded-md bg-slate-100 px-2.5 py-1 text-sm font-medium text-slate-700"
-            >
-              {{ professor.preferencia === 'pronto' ? 'Entrar prest' : 'Entrar tard' }}
-            </span>
-          </div>
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white transition-all duration-200 dark:border-slate-600 dark:bg-slate-800">
+
+    <!-- Capçalera: nom + hores -->
+    <div class="px-4 pt-3 pb-2">
+      <div class="flex items-start justify-between gap-2">
+        <h4 class="text-base font-semibold leading-tight text-slate-950 dark:text-white">{{ professor.nom }}</h4>
+        <span class="shrink-0 rounded-md px-2 py-0.5 text-sm font-bold" :class="horesBadgeClass">
+          {{ totalHoresProfessor }}h
+        </span>
+      </div>
+
+      <!-- Barra de progrés -->
+      <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+        <div
+          class="h-full rounded-full transition-all"
+          :class="barraClass"
+          :style="{ width: `${Math.min(100, (totalHoresProfessor / limits.ideal) * 100)}%` }"
+        />
+      </div>
+
+      <!-- Estat + etiquetes -->
+      <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+        <span class="text-xs font-semibold" :class="estatTextClass">{{ estatText }}</span>
+        <span v-if="professor.jornada" class="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+          {{ textJornada(professor) }}
+        </span>
+        <span v-if="professor.preferencia" class="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+          {{ professor.preferencia === 'pronto' ? '↑ Prest' : '↓ Tard' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Matèries -->
+    <div class="border-t border-slate-100 px-3 py-2 dark:border-slate-700">
+      <div v-if="classes.length === 0" class="py-1 text-center text-xs italic text-slate-400">
+        Sense matèries assignades
+      </div>
+      <div v-else class="space-y-0.5">
+        <div
+          v-for="classe in classes"
+          :key="classe.id"
+          class="flex items-center gap-1.5 rounded px-1 py-0.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700/50"
+        >
+          <span class="w-14 shrink-0 font-mono text-slate-400">{{ classe.curs }} {{ classe.grup }}</span>
+          <span class="min-w-0 flex-1 truncate font-medium text-slate-800 dark:text-slate-200">{{ classe.materia }}</span>
+          <span v-if="classe.tipus" class="shrink-0 rounded bg-slate-100 px-1 text-slate-500 dark:bg-slate-700 dark:text-slate-400">{{ classe.tipus }}</span>
+          <span v-if="rolClasse(classe)" class="shrink-0 text-[10px] italic text-slate-400">{{ rolClasse(classe) }}</span>
+          <span class="shrink-0 w-6 text-right font-semibold text-slate-600 dark:text-slate-300">{{ horesComputablesClasse(classe) }}h</span>
+          <button
+            type="button"
+            class="shrink-0 rounded px-1 text-slate-300 hover:bg-red-50 hover:text-red-500 disabled:opacity-30 dark:text-slate-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+            :disabled="bloquejat"
+            :aria-label="`Desassignar ${classe.materia}`"
+            @click="$emit('desassignar-classe', { professor, classe })"
+          >×</button>
         </div>
       </div>
     </div>
 
-    <div class="space-y-4 p-4" :class="bodyClass">
-      <div v-if="mostraGp || totalPalicDepartament > 0" class="grid gap-2 text-center" :class="resumGridClass">
-        <div v-if="mostraGp" class="rounded-md bg-slate-100 px-3 py-2">
-          <div class="text-xs font-medium text-slate-600">GP</div>
-          <div class="mt-1 flex items-center justify-center gap-1.5">
-            <button
-              type="button"
-              class="h-7 w-7 rounded-sm border border-slate-200 bg-white font-medium text-slate-700 disabled:opacity-40"
-              :disabled="bloquejat || horesGp === 0"
-              :aria-label="`Reduir GP de ${professor.nom}`"
-              @click="$emit('decrementar-gp', professor)"
-            >
-              -
-            </button>
-            <span class="w-6 font-bold text-slate-950" aria-live="polite">{{ horesGp }}</span>
-            <button
-              type="button"
-              class="h-7 w-7 rounded-sm border border-slate-200 bg-white font-medium text-slate-700 disabled:opacity-40"
-              :disabled="bloquejat || totalGpAssignades >= totalGpDepartament"
-              :aria-label="`Augmentar GP de ${professor.nom}`"
-              @click="$emit('incrementar-gp', professor)"
-            >
-              +
-            </button>
-          </div>
-        </div>
-
-        <div v-if="totalPalicDepartament > 0" class="rounded-md bg-slate-100 px-3 py-2">
-          <div class="text-xs font-medium text-slate-600">PALIC</div>
-          <div class="mt-1 flex items-center justify-center gap-1.5">
-            <button
-              type="button"
-              class="h-7 w-7 rounded-sm border border-slate-200 bg-white font-medium text-slate-700 disabled:opacity-40"
-              :disabled="bloquejat || horesPalic === 0"
-              :aria-label="`Reduir PALIC de ${professor.nom}`"
-              @click="$emit('decrementar-palic', professor)"
-            >
-              -
-            </button>
-            <span class="w-6 font-bold text-slate-950" aria-live="polite">{{ horesPalic }}</span>
-            <button
-              type="button"
-              class="h-7 w-7 rounded-sm border border-slate-200 bg-white font-medium text-slate-700 disabled:opacity-40"
-              :disabled="bloquejat || totalPalicAssignades >= totalPalicDepartament"
-              :aria-label="`Augmentar PALIC de ${professor.nom}`"
-              @click="$emit('incrementar-palic', professor)"
-            >
-              +
-            </button>
-          </div>
-        </div>
+    <!-- GP i PALIC: discrets, inline -->
+    <div
+      v-if="mostraGp || totalPalicDepartament > 0"
+      class="flex flex-wrap gap-3 border-t border-slate-100 bg-surface-soft px-4 py-2 dark:border-slate-700"
+    >
+      <div v-if="mostraGp" class="flex items-center gap-1.5">
+        <span class="text-xs font-medium text-slate-500">Guàrdies de pati</span>
+        <button
+          type="button"
+          class="h-5 w-5 rounded border border-slate-200 bg-white text-xs text-slate-600 hover:border-slate-300 disabled:opacity-30 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300"
+          :disabled="bloquejat || horesGp === 0"
+          @click="$emit('decrementar-gp', professor)"
+        >−</button>
+        <span class="w-4 text-center text-sm font-bold text-slate-800 dark:text-slate-200">{{ horesGp }}</span>
+        <button
+          type="button"
+          class="h-5 w-5 rounded border border-slate-200 bg-white text-xs text-slate-600 hover:border-slate-300 disabled:opacity-30 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300"
+          :disabled="bloquejat || totalGpAssignades >= totalGpDepartament"
+          @click="$emit('incrementar-gp', professor)"
+        >+</button>
       </div>
-
-      <div>
-        <h5 class="mb-2 text-sm font-semibold text-slate-700">
-          Matèries assignades
-        </h5>
-        <div v-if="classes.length === 0" class="rounded bg-slate-50 p-3 text-sm italic text-slate-600">
-          Sense matèries assignades
-        </div>
-        <div v-else class="divide-y divide-slate-100 rounded border border-slate-200">
-          <div
-            v-for="classe in classes"
-            :key="classe.id"
-            class="flex items-center gap-2 px-2.5 py-1.5 text-sm"
-          >
-            <span class="shrink-0 font-mono text-slate-500">{{ classe.curs }} {{ classe.grup }}</span>
-            <span class="min-w-0 flex-1 truncate font-medium text-slate-800">{{ classe.materia }}</span>
-            <span v-if="classe.tipus" class="shrink-0 rounded-sm bg-slate-100 px-1 font-medium text-slate-700">{{ classe.tipus }}</span>
-            <span
-              v-if="rolClasse(classe)"
-              class="shrink-0 rounded-sm bg-slate-100 px-1.5 font-medium text-slate-700"
-            >
-              {{ rolClasse(classe) }}
-            </span>
-            <span class="shrink-0 font-mono font-semibold text-slate-700">{{ horesComputablesClasse(classe) }}h</span>
-            <button
-              type="button"
-              class="shrink-0 text-slate-500 hover:text-slate-950"
-              :aria-label="`Desassignar ${classe.materia} de ${professor.nom}`"
-              :disabled="bloquejat"
-              @click="$emit('desassignar-classe', { professor, classe })"
-            >x</button>
-          </div>
-        </div>
+      <div v-if="totalPalicDepartament > 0" class="flex items-center gap-1.5">
+        <span class="text-xs font-medium text-slate-500">PALIC</span>
+        <button
+          type="button"
+          class="h-5 w-5 rounded border border-slate-200 bg-white text-xs text-slate-600 hover:border-slate-300 disabled:opacity-30 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300"
+          :disabled="bloquejat || horesPalic === 0"
+          @click="$emit('decrementar-palic', professor)"
+        >−</button>
+        <span class="w-4 text-center text-sm font-bold text-slate-800 dark:text-slate-200">{{ horesPalic }}</span>
+        <button
+          type="button"
+          class="h-5 w-5 rounded border border-slate-200 bg-white text-xs text-slate-600 hover:border-slate-300 disabled:opacity-30 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300"
+          :disabled="bloquejat || totalPalicAssignades >= totalPalicDepartament"
+          @click="$emit('incrementar-palic', professor)"
+        >+</button>
       </div>
+    </div>
 
-      <div
-        v-if="coordinacions.length > 0"
-        class="rounded-md border border-slate-200 bg-slate-50 p-3"
-      >
-        <div class="mb-2 flex items-center justify-between gap-2">
-          <h5 class="text-sm font-semibold text-slate-800">
-            Comissions
-          </h5>
-          <button
-            type="button"
-            class="rounded-md bg-success px-3 py-1.5 text-sm font-medium text-white shadow-sm disabled:opacity-40 hover:bg-success-dark"
-            :disabled="bloquejat || coordinacionsSeleccionades.length === 0"
-            @click="afegirCoordinacions"
-          >
-            Afegeix
-          </button>
-        </div>
+    <!-- Seccions col·lapsables -->
+    <div class="border-t border-slate-100 bg-surface-soft dark:border-slate-700">
 
-        <select
-          v-model="coordinacionsSeleccionades"
-          multiple
-          size="4"
-          :disabled="bloquejat"
-          :aria-label="`Selecciona comissions per afegir a ${professor.nom}`"
-          class="form-input w-full py-2 text-sm"
+      <!-- Comissions -->
+      <div v-if="coordinacions.length > 0">
+        <button
+          type="button"
+          class="flex w-full items-center justify-between px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-700/40"
+          @click="mostrarComissions = !mostrarComissions"
         >
-          <option
-            v-for="coordinacio in coordinacionsDisponibles"
-            :key="coordinacio.id"
-            :value="coordinacio.id"
-          >
-            {{ coordinacio.materia }}
-          </option>
-        </select>
-
-        <div v-if="coordinacionsProfessor.length > 0" class="mt-3 space-y-1.5">
-          <div
-            v-for="coordinacio in coordinacionsProfessor"
-            :key="coordinacio.id"
-            class="flex items-center justify-between gap-3 rounded bg-white px-2 py-1.5 text-sm"
-          >
-            <span class="text-slate-900">
-              {{ coordinacio.materia }}
-              <span class="text-xs text-slate-600">
-                {{ esCoordinador(coordinacio) ? 'coordinador' : 'membre' }}
+          <span>Comissions{{ coordinacionsProfessor.length ? ` (${coordinacionsProfessor.length})` : '' }}</span>
+          <span class="text-slate-300">{{ mostrarComissions ? '▲' : '▼' }}</span>
+        </button>
+        <div v-if="mostrarComissions" class="px-3 pb-3">
+          <div v-if="coordinacionsProfessor.length" class="mb-2 space-y-1">
+            <div
+              v-for="c in coordinacionsProfessor"
+              :key="c.id"
+              class="flex items-center justify-between gap-2 rounded bg-slate-50 px-2 py-1 text-xs dark:bg-slate-700/40"
+            >
+              <span class="text-slate-800 dark:text-slate-200">{{ c.materia }}
+                <span class="text-slate-400">· {{ esCoordinador(c) ? 'coord.' : 'membre' }}</span>
               </span>
-            </span>
-            <button
-              v-if="!esCoordinador(coordinacio)"
-              type="button"
-              class="text-sm text-slate-700 hover:text-slate-950 hover:underline"
+              <button
+                v-if="!esCoordinador(c)"
+                type="button"
+                class="text-slate-400 hover:text-red-500 disabled:opacity-30"
+                :disabled="bloquejat"
+                @click="$emit('toggle-coordinacio', { professor, coordinacio: c, participa: false })"
+              >×</button>
+            </div>
+          </div>
+          <div v-if="coordinacionsDisponibles.length">
+            <select
+              v-model="coordinacionsSeleccionades"
+              multiple
+              :size="Math.min(4, coordinacionsDisponibles.length)"
               :disabled="bloquejat"
-              @click="
-                $emit('toggle-coordinacio', {
-                  professor,
-                  coordinacio,
-                  participa: false,
-                })
-              "
+              class="form-input w-full py-1 text-xs"
             >
-              Elimina
-            </button>
+              <option v-for="c in coordinacionsDisponibles" :key="c.id" :value="c.id">{{ c.materia }}</option>
+            </select>
+            <button
+              type="button"
+              class="mt-2 w-full rounded-md bg-success py-1 text-xs font-semibold text-white disabled:opacity-40 hover:bg-success-dark"
+              :disabled="bloquejat || coordinacionsSeleccionades.length === 0"
+              @click="afegirCoordinacions"
+            >Afegeix seleccionades</button>
           </div>
         </div>
       </div>
 
-      <div
-        class="rounded-md border p-3"
-        :class="professor.preferencia
-          ? 'border-slate-300 bg-slate-50'
-          : 'border-slate-200 bg-slate-50'"
+      <!-- Preferències i comentaris -->
+      <button
+        type="button"
+        class="flex w-full items-center justify-between px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-700/40"
+        @click="mostrarPreferencies = !mostrarPreferencies"
       >
-        <h5 class="mb-3 text-sm font-semibold"
-          :class="professor.preferencia ? 'text-slate-900' : 'text-slate-700'"
-        >
-          Preferència horària
-        </h5>
-        <label class="block text-sm font-medium text-slate-700">
+        <span>Preferències i comentaris</span>
+        <span class="text-slate-300">{{ mostrarPreferencies ? '▲' : '▼' }}</span>
+      </button>
+      <div v-if="mostrarPreferencies" class="space-y-3 px-4 pb-4">
+        <label class="block text-xs font-medium text-slate-700 dark:text-slate-300">
           Horari preferit
           <select
             :value="professor.preferencia"
             @change="updatePreferencia($event.target.value)"
             :disabled="bloquejat"
-            class="form-input mt-1 w-full py-2 text-sm"
+            class="form-input mt-1 w-full py-1.5 text-xs"
           >
             <option value="">Sense preferència</option>
             <option value="pronto">Entrar prest</option>
             <option value="tarde">Entrar tard</option>
           </select>
         </label>
-        <label
-          v-if="professor.preferencia"
-          class="mt-3 block text-sm font-medium text-slate-700"
-        >
+        <label v-if="professor.preferencia" class="block text-xs font-medium text-slate-700 dark:text-slate-300">
           Motiu al·legat
           <textarea
             :value="professor.motiuAllegat"
             @input="updateMotiuAllegat($event.target.value)"
             :disabled="bloquejat"
-            class="form-input mt-1 w-full text-sm"
+            class="form-input mt-1 w-full text-xs"
             rows="2"
-          ></textarea>
+          />
+        </label>
+        <label class="block text-xs font-medium text-slate-700 dark:text-slate-300">
+          Comentaris
+          <textarea
+            :value="professor.comentaris"
+            @input="updateComentaris($event.target.value)"
+            :disabled="bloquejat"
+            class="form-input mt-1 w-full text-xs"
+            rows="2"
+          />
         </label>
       </div>
 
-      <label class="block text-sm font-medium text-slate-700">
-        Comentaris
-        <textarea
-          :value="professor.comentaris"
-          @input="updateComentaris($event.target.value)"
-          :disabled="bloquejat"
-          class="form-input mt-1 w-full text-sm"
-          rows="2"
-        ></textarea>
-      </label>
     </div>
   </div>
 </template>
@@ -265,72 +227,68 @@ const emit = defineEmits([
   'desassignar-classe',
 ]);
 
+const mostrarComissions = ref(false);
+const mostrarPreferencies = ref(false);
 const coordinacionsSeleccionades = ref([]);
 const bloquejat = computed(() => props.bloquejat);
 
-const resumGridClass = computed(() => {
-  const columnes = (props.mostraGp ? 1 : 0) + (props.totalPalicDepartament > 0 ? 1 : 0);
-  return { 1: 'grid-cols-1', 2: 'grid-cols-2' }[columnes] || 'grid-cols-1';
-});
-
-const totalHoresProfessor = computed(
-  () => props.horesLectives + props.horesPalic
-);
-
+const totalHoresProfessor = computed(() => props.horesLectives + props.horesPalic);
 const limits = computed(() => limitsHoresProfessor(props.professor));
 
-const isPerfectHours = computed(
-  () => totalHoresProfessor.value === limits.value.ideal
+const isPerfectHours = computed(() => totalHoresProfessor.value === limits.value.ideal);
+const isOverRecommended = computed(() =>
+  totalHoresProfessor.value > limits.value.ideal && totalHoresProfessor.value <= limits.value.maxim
 );
-const isOverRecommended = computed(
-  () =>
-    totalHoresProfessor.value > limits.value.ideal &&
-    totalHoresProfessor.value <= limits.value.maxim
-);
-const isOverLimit = computed(
-  () => totalHoresProfessor.value > limits.value.maxim
-);
+const isOverLimit = computed(() => totalHoresProfessor.value > limits.value.maxim);
+const isEmpty = computed(() => totalHoresProfessor.value === 0);
 
-const cardClass = computed(() => {
-  if (isOverLimit.value) return 'border-2 border-orange-400 dark:border-orange-500 bg-white';
-  if (isOverRecommended.value) return 'border-2 border-amber-300 dark:border-amber-400 bg-white';
-  if (isPerfectHours.value) return 'border-2 border-emerald-400 dark:border-emerald-500 bg-white';
-  return 'border border-slate-200 bg-white';
+
+const barraClass = computed(() => {
+  if (isOverLimit.value) return 'bg-red-400';
+  if (isOverRecommended.value) return 'bg-orange-400';
+  if (isPerfectHours.value) return 'bg-emerald-400';
+  if (isEmpty.value) return 'bg-slate-200';
+  return 'bg-primary';
 });
-
-const headerClass = computed(() => 'border-b border-slate-100');
-
-const bodyClass = computed(() => 'bg-white');
 
 const horesBadgeClass = computed(() => {
-  if (isOverLimit.value) return 'bg-orange-100 text-orange-900 dark:bg-orange-900/45 dark:text-orange-200';
-  if (isOverRecommended.value) return 'bg-amber-100 text-amber-900 dark:bg-amber-900/35 dark:text-amber-200';
-  if (isPerfectHours.value) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200';
-  return 'bg-slate-100 text-slate-800';
+  if (isOverLimit.value) return 'bg-slate-100 text-red-600 dark:bg-slate-700 dark:text-red-400';
+  if (isOverRecommended.value) return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
+  if (isPerfectHours.value) return 'bg-slate-100 text-emerald-600 dark:bg-slate-700 dark:text-emerald-400';
+  return 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400';
 });
 
-const coordinacionsProfessor = computed(() => {
-  return props.coordinacions.filter(
-    (coordinacio) =>
-      esCoordinador(coordinacio) || participaEnCoordinacio(coordinacio)
-  );
+const estatTextClass = computed(() => {
+  if (isOverLimit.value) return 'text-red-600 dark:text-red-400';
+  if (isOverRecommended.value) return 'text-orange-600 dark:text-orange-400';
+  if (isPerfectHours.value) return 'text-emerald-600 dark:text-emerald-400';
+  if (isEmpty.value) return 'text-slate-400';
+  return 'text-primary';
 });
 
-const coordinacionsDisponibles = computed(() => {
-  return props.coordinacions.filter(
-    (coordinacio) =>
-      !esCoordinador(coordinacio) && !participaEnCoordinacio(coordinacio)
-  );
+const estatText = computed(() => {
+  const diff = totalHoresProfessor.value - limits.value.ideal;
+  if (isOverLimit.value) return `+${diff}h (sobre màxim)`;
+  if (isOverRecommended.value) return `+${diff}h`;
+  if (isPerfectHours.value) return '✓ Complet';
+  if (isEmpty.value) return 'Sense hores';
+  if (diff < 0) return `Falta ${Math.abs(diff)}h`;
+  return `${totalHoresProfessor.value}h`;
 });
 
-function participaEnCoordinacio(coordinacio) {
-  return (coordinacio.participants || []).includes(props.professor.nom);
+const coordinacionsProfessor = computed(() =>
+  props.coordinacions.filter((c) => esCoordinador(c) || participaEnCoordinacio(c))
+);
+const coordinacionsDisponibles = computed(() =>
+  props.coordinacions.filter((c) => !esCoordinador(c) && !participaEnCoordinacio(c))
+);
+
+function participaEnCoordinacio(c) {
+  return (c.participants || []).includes(props.professor.nom);
 }
-
-function esCoordinador(coordinacio) {
-  return coordinacio.professorAssignat === props.professor.nom;
+function esCoordinador(c) {
+  return c.professorAssignat === props.professor.nom;
 }
-
 function rolClasse(classe) {
   if (classe.professorAssignat === props.professor.nom) return '';
   if ((classe.professors || []).includes(props.professor.nom)) return 'codocent';
@@ -339,18 +297,9 @@ function rolClasse(classe) {
 
 function afegirCoordinacions() {
   if (props.bloquejat) return;
-  const seleccionades = props.coordinacions.filter((item) =>
-    coordinacionsSeleccionades.value.includes(item.id)
-  );
-
-  seleccionades.forEach((coordinacio) => {
-    emit('toggle-coordinacio', {
-      professor: props.professor,
-      coordinacio,
-      participa: true,
-    });
-  });
-
+  props.coordinacions
+    .filter((c) => coordinacionsSeleccionades.value.includes(c.id))
+    .forEach((c) => emit('toggle-coordinacio', { professor: props.professor, coordinacio: c, participa: true }));
   coordinacionsSeleccionades.value = [];
 }
 
@@ -358,12 +307,10 @@ function updatePreferencia(value) {
   if (props.bloquejat) return;
   emit('actualitzar-professor', { ...props.professor, preferencia: value });
 }
-
 function updateMotiuAllegat(value) {
   if (props.bloquejat) return;
   emit('actualitzar-professor', { ...props.professor, motiuAllegat: value });
 }
-
 function updateComentaris(value) {
   if (props.bloquejat) return;
   emit('actualitzar-professor', { ...props.professor, comentaris: value });
