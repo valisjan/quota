@@ -23,116 +23,164 @@
  </div>
 
  <!-- VISTA PANTALLA: quadrícula de targetes (oculta en impressió) -->
- <div class="print-hide">
- <div
+ <div class="print-hide space-y-5">
+ <section
  v-for="(classesPorGrup, curs) in classesAgrupadesPerCursFiltrades"
  :key="curs"
  class="overflow-hidden card"
  >
- <div class="border-b border-slate-200 bg-slate-50 px-5 py-3">
+ <div class="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
  <h3 class="text-base font-bold text-slate-950">{{ curs }}</h3>
+ <span class="text-xs font-semibold text-slate-500">{{ Object.keys(classesPorGrup).length }} grups</span>
  </div>
 
- <div class="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 lg:grid-cols-3">
- <div
+ <div class="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
+ <article
  v-for="(classes, grup) in classesPorGrup"
  :key="grup"
  class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
  >
- <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2">
+ <header class="px-3 pt-3">
+ <div class="flex items-start justify-between gap-3">
+ <div>
  <div class="flex items-center gap-1.5">
  <h4 class="text-sm font-bold text-slate-950">Grup {{ grup }}</h4>
  <span v-if="grupTeBordeRojo(classes)" class="text-rose-500 text-sm leading-none">&#9888;</span>
  </div>
- <div class="text-sm font-semibold" :class="getHoresClass(classes)">
- {{ calcularHoresAssignades(classes) }}h / {{ calcularTotalHoresGrup(classes) }}h
- <span v-if="totsAssignats(classes)">&#10004;</span>
- <span v-else>&#9888;</span>
+ <p class="mt-0.5 text-xs font-medium" :class="totsAssignats(classes) ? 'text-emerald-700' : 'text-slate-500'">
+ {{ resumPendentsGrup(classes) }}
+ </p>
+ </div>
+ <div class="text-right">
+ <p class="text-sm font-bold" :class="getHoresClass(classes)">
+ {{ calcularHoresAssignades(classes) }} / {{ calcularTotalHoresGrup(classes) }}h
+ </p>
+ <p class="text-[11px] font-medium text-slate-500">assignades</p>
  </div>
  </div>
+ <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
+ <div
+ class="h-full rounded-full transition-all"
+ :class="barraHoresClass(classes)"
+ :style="{ width: `${percentatgeAssignat(classes)}%` }"
+ ></div>
+ </div>
+ </header>
 
  <div class="space-y-2 p-3">
  <template v-for="item in agruparClassesPerVista(classes)" :key="item.key">
- <div v-if="item.esGrupOptatives" class="rounded-md border bg-white p-2.5" :class="item.classes.some(c => !c.professorAssignat) ? 'border-slate-200 border-l-4 border-l-rose-300' : 'border-slate-200'">
- <div class="mb-1.5 flex items-center justify-between">
- <span class="badge badge-green">✦ Optativa {{ item.tipus !== 'O' ? item.tipus : '' }} · {{ item.hores }}h</span>
- <span class="text-xs text-slate-600">mateixa franja</span>
+ <section
+ v-if="item.esGrupOptatives"
+ class="overflow-hidden rounded-lg border bg-white"
+ :class="itemTeAssignacionsPendents(item) ? 'border-slate-200 border-l-4 border-l-rose-300' : 'border-slate-200'"
+ >
+ <div class="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2">
+ <span class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-200 dark:ring-emerald-800/60">
+ ✦ Optativa {{ item.tipus !== 'O' ? item.tipus : '' }} · {{ item.hores }}h
+ </span>
+ <span class="shrink-0 text-[11px] font-semibold text-slate-500">mateixa franja</span>
  </div>
- <div class="space-y-1">
- <div v-for="classe in item.classes" :key="classe.id" class="flex items-center justify-between rounded px-2 py-1 text-sm" :class="!classe.professorAssignat ? 'bg-slate-50' : 'bg-white'">
- <span class="font-medium text-slate-800">{{ classe.materia }}</span>
- <span v-if="classe.professorAssignat" class="text-slate-600">{{ classe.professorAssignat }}</span>
- <span v-else class="font-medium text-rose-600">&#9888; Sense prof.</span>
- </div>
- </div>
- </div>
- <div v-else-if="item.esGrupMateria" class="rounded-md border bg-white p-2.5" :class="item.classes.some(c => !c.professorAssignat) ? 'border-slate-200 border-l-4 border-l-amber-300' : 'border-slate-200'">
- <div class="mb-1.5 flex items-center justify-between">
- <strong class="text-sm text-slate-900">{{ item.materia }}</strong>
- <span class="text-xs font-semibold text-slate-700">{{ item.hores }}h</span>
- </div>
- <div class="space-y-1">
- <div v-for="classe in item.classes" :key="classe.id" class="flex items-center justify-between rounded px-2 py-1 text-sm" :class="!classe.professorAssignat ? 'bg-slate-50' : 'bg-white'">
- <div class="flex items-center gap-1.5">
- <span v-if="classe.tipus" :class="getTipusBadgeClass(classe.tipus)" class="inline-flex items-center gap-1">{{ getTipusLabel(classe.tipus) }}</span>
- <span v-else class="badge badge-gray inline-flex items-center gap-1">🎓 Titular</span>
- <span v-if="classe.hores !== item.hores" class="text-slate-500">({{ classe.hores }}h)</span>
- </div>
- <span v-if="classe.professorAssignat" class="text-slate-600">{{ classe.professorAssignat }}</span>
- <span v-else class="font-medium text-rose-600">&#9888; Sense prof.</span>
+ <div class="divide-y divide-slate-100">
+ <div
+ v-for="classe in item.classes"
+ :key="classe.id"
+ class="px-3 py-2 text-sm"
+ :class="rowAssignacioClass(classe)"
+ >
+ <p class="font-semibold leading-snug text-slate-900">{{ formatMateriaVista(classe.materia) }}</p>
+ <p class="mt-1 text-xs leading-snug" :class="classeAssignada(classe) ? 'text-slate-600' : 'font-semibold text-rose-600'">
+ {{ professoratClasseText(classe) || '⚠ Sense professor' }}
+ </p>
  </div>
  </div>
+ </section>
+
+ <section
+ v-else-if="item.esGrupMateria"
+ class="overflow-hidden rounded-lg border bg-white"
+ :class="itemTeAssignacionsPendents(item) ? 'border-slate-200 border-l-4 border-l-amber-300' : 'border-slate-200'"
+ >
+ <div class="flex items-start justify-between gap-3 border-b border-slate-100 bg-slate-50 px-3 py-2">
+ <strong class="min-w-0 text-sm font-bold leading-snug text-slate-950">{{ formatMateriaVista(item.materia) }}</strong>
+ <span class="shrink-0 text-xs font-bold text-slate-700">{{ item.hores }}h</span>
  </div>
- <div v-else class="rounded-md border p-2.5" :class="getClasseStyle(item.classe)">
- <div class="flex items-start justify-between gap-2">
+ <div class="divide-y divide-slate-100">
+ <div
+ v-for="classe in item.classes"
+ :key="classe.id"
+ class="px-3 py-2"
+ :class="rowAssignacioClass(classe)"
+ >
+ <div class="flex flex-wrap items-center gap-1.5">
+ <span v-if="classe.tipus" :class="getTipusChipClass(classe.tipus)">{{ getTipusLabel(classe.tipus) }}</span>
+ <span v-else class="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-600">🎓 Titular</span>
+ <span v-if="classe.hores !== item.hores" class="text-[11px] font-semibold text-slate-500">{{ classe.hores }}h</span>
+ <span v-if="!comptaPerGrup(classe)" class="text-[11px] font-medium text-slate-500">no compta grup</span>
+ </div>
+ <p class="mt-1 text-xs leading-snug" :class="classeAssignada(classe) ? 'text-slate-600' : 'font-semibold text-rose-600'">
+ {{ professoratClasseText(classe) || '⚠ Sense professor' }}
+ </p>
+ </div>
+ </div>
+ </section>
+
+ <section v-else class="rounded-lg border bg-white p-3" :class="getClasseStyle(item.classe)">
+ <div class="flex items-start justify-between gap-3">
+ <div class="min-w-0">
  <div class="flex min-w-0 flex-wrap items-center gap-1.5">
- <strong class="text-sm text-slate-900">{{ item.classe.materia }}</strong>
- <span v-if="item.classe.tipus" :class="getTipusBadgeClass(item.classe.tipus)" class="inline-flex items-center gap-1 text-xs">{{ getTipusLabel(item.classe.tipus) }}</span>
- <span v-if="!comptaPerGrup(item.classe)" class="text-xs text-slate-500">(no compta grup)</span>
+ <strong class="text-sm font-bold leading-snug text-slate-950">{{ formatMateriaVista(item.classe.materia) }}</strong>
+ <span v-if="item.classe.tipus" :class="getTipusChipClass(item.classe.tipus)">{{ getTipusLabel(item.classe.tipus) }}</span>
+ <span v-if="!comptaPerGrup(item.classe)" class="text-[11px] font-medium text-slate-500">no compta grup</span>
  </div>
- <span class="shrink-0 text-sm font-semibold text-slate-700">{{ item.classe.hores }}h</span>
+ <p class="mt-1 text-xs leading-snug" :class="classeAssignada(item.classe) ? 'text-slate-600' : 'font-semibold text-rose-600'">
+ {{ professoratClasseText(item.classe) || '⚠ Sense professor assignat' }}
+ </p>
  </div>
- <div class="mt-1 text-sm">
- <span v-if="item.classe.professorAssignat" class="text-slate-700">{{ item.classe.professorAssignat }}</span>
- <span v-else class="font-medium text-rose-600">&#9888; Sense professor assignat</span>
+ <span class="shrink-0 text-sm font-bold text-slate-700">{{ item.classe.hores }}h</span>
  </div>
- </div>
+ </section>
  </template>
  </div>
+ </article>
  </div>
- </div>
- </div>
+ </section>
 
  <!-- Activitats de coordinació sense grup -->
- <div v-if="coordinationActivities.length > 0" class="overflow-hidden card">
- <div class="border-b border-slate-200 bg-slate-50 px-5 py-3">
- <div class="flex items-center gap-2">
+ <section v-if="coordinationActivities.length > 0" class="overflow-hidden card">
+ <div class="border-b border-slate-200 bg-white px-5 py-3">
+ <div class="flex flex-wrap items-center gap-2">
  <h3 class="text-base font-bold text-slate-950">Activitats de coordinació</h3>
- <span v-if="coordinationActivitiesSenseAssignar.length > 0" class="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
+ <span v-if="coordinationActivitiesSenseAssignar.length > 0" class="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 dark:bg-rose-950/30 dark:text-rose-200 dark:ring-rose-800/60">
  {{ coordinationActivitiesSenseAssignar.length }} sense assignar
  </span>
  </div>
  <p class="mt-0.5 text-xs text-slate-600">Tutories, caps de departament, PALIC i altres activitats sense grup específic</p>
  </div>
  <div class="p-4">
- <div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
- <div v-for="activity in sortCoordinationActivities(coordinationActivities)" :key="activity.id" class="rounded-lg border bg-white p-3" :class="!activity.professorAssignat ? 'border-slate-200 border-l-4 border-l-rose-300' : 'border-slate-200'">
- <div class="flex items-center justify-between gap-2">
+ <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+ <article
+ v-for="activity in sortCoordinationActivities(coordinationActivities)"
+ :key="activity.id"
+ class="rounded-lg border bg-white p-3"
+ :class="!classeAssignada(activity) ? 'border-slate-200 border-l-4 border-l-rose-300' : 'border-slate-200'"
+ >
+ <div class="flex items-start justify-between gap-3">
+ <div class="min-w-0">
  <div class="flex min-w-0 flex-wrap items-center gap-1.5">
- <strong class="text-sm text-slate-900">{{ activity.materia }}</strong>
- <span v-if="activity.tipus" :class="getTipusBadgeClass(activity.tipus)" class="inline-flex items-center gap-1 text-xs">{{ getTipusLabel(activity.tipus) }}</span>
+ <strong class="text-sm font-bold leading-snug text-slate-950">{{ formatMateriaVista(activity.materia) }}</strong>
+ <span v-if="activity.tipus" :class="getTipusChipClass(activity.tipus)">{{ getTipusLabel(activity.tipus) }}</span>
  </div>
- <span class="shrink-0 text-xs font-semibold text-slate-700">{{ activity.hores }}h</span>
+ <p class="mt-1 text-xs leading-snug" :class="classeAssignada(activity) ? 'text-slate-600' : 'font-semibold text-rose-600'">
+ {{ professoratClasseText(activity) || '⚠ Sense professor assignat' }}
+ </p>
+ <p v-if="activity.departaments?.[0]" class="mt-1 text-xs font-medium text-slate-500">{{ activity.departaments[0] }}</p>
  </div>
- <div class="mt-1 text-xs">
- <span v-if="activity.professorAssignat" class="text-slate-700">{{ activity.professorAssignat }}</span>
- <span v-else class="font-medium text-rose-600">&#9888; Sense professor assignat</span>
+ <span class="shrink-0 text-xs font-bold text-slate-700">{{ activity.hores }}h</span>
  </div>
- <div v-if="activity.departaments?.[0]" class="mt-1 text-xs text-slate-500">{{ activity.departaments[0] }}</div>
+ </article>
  </div>
  </div>
- </div>
- </div>
+ </section>
  </div><!-- /print-hide -->
 
  <!-- VISTA IMPRESSIÓ: taula compacta (oculta en pantalla) -->
@@ -189,7 +237,6 @@ import { ref, computed, watch, onUnmounted } from 'vue';
 import { onSnapshot, query } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
 import {
- getTipusBadgeClass,
  getTipusLabel,
  clauFranjaOptativa,
  esAutodesdoble,
@@ -309,6 +356,67 @@ function getHoresClass(classesDelGrup) {
  if (total > 0 && assignades >= total) return 'text-emerald-700';
  if (assignades === 0) return 'text-rose-600';
  return 'text-amber-800';
+}
+
+function classesPendentsGrup(classesDelGrup) {
+ return classesDelGrup.filter(classe => !classeAssignada(classe)).length;
+}
+
+function resumPendentsGrup(classesDelGrup) {
+ const pendents = classesPendentsGrup(classesDelGrup);
+ if (pendents === 0) return 'Tot assignat';
+ return `${pendents} ${pendents === 1 ? 'pendent' : 'pendents'}`;
+}
+
+function percentatgeAssignat(classesDelGrup) {
+ const total = calcularTotalHoresGrup(classesDelGrup);
+ if (total <= 0) return 0;
+ return Math.min(100, Math.round((calcularHoresAssignades(classesDelGrup) / total) * 100));
+}
+
+function barraHoresClass(classesDelGrup) {
+ const total = calcularTotalHoresGrup(classesDelGrup);
+ const assignades = calcularHoresAssignades(classesDelGrup);
+ if (total > 0 && assignades >= total) return 'bg-emerald-400';
+ if (assignades === 0) return 'bg-rose-400';
+ return 'bg-amber-400';
+}
+
+function itemTeAssignacionsPendents(item) {
+ const llista = item.esGrupOptatives || item.esGrupMateria ? item.classes : [item.classe];
+ return llista.some(classe => !classeAssignada(classe));
+}
+
+function rowAssignacioClass(classe) {
+ return classeAssignada(classe) ? 'bg-white' : 'bg-slate-50';
+}
+
+function professoratClasseText(classe) {
+ return professorsClasse(classe).join(', ');
+}
+
+function formatMateriaVista(value) {
+ const text = (value || '').toString().trim();
+ if (!text) return '';
+ const letters = text.match(/[A-Za-zÀ-ÖØ-öø-ÿ]/g) || [];
+ if (letters.length > 3 && text === text.toLocaleUpperCase('ca-ES')) {
+ const lower = text.toLocaleLowerCase('ca-ES');
+ return lower.charAt(0).toLocaleUpperCase('ca-ES') + lower.slice(1);
+ }
+ return text;
+}
+
+function getTipusChipClass(tipus) {
+ const base = 'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1';
+ const normal = normalitzarTipus(tipus);
+ if (normal === 'S') return `${base} bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/30 dark:text-amber-200 dark:ring-amber-800/60`;
+ if (normal === 'F') return `${base} bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-200 dark:ring-indigo-800/60`;
+ if (normal === 'D' || normal === 'CD') return `${base} bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-950/30 dark:text-blue-200 dark:ring-blue-800/60`;
+ if (normal === 'C' || normal === 'CO') return `${base} bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-950/30 dark:text-violet-200 dark:ring-violet-800/60`;
+ if (normal === 'GP') return `${base} bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-950/30 dark:text-rose-200 dark:ring-rose-800/60`;
+ if (normal === 'PALIC') return `${base} bg-orange-50 text-orange-700 ring-orange-200 dark:bg-orange-950/30 dark:text-orange-200 dark:ring-orange-800/60`;
+ if (normal.startsWith('O') || normal.startsWith('T')) return `${base} bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-200 dark:ring-emerald-800/60`;
+ return `${base} bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-600`;
 }
 
 function agruparClassesPerVista(classesDelGrup) {
