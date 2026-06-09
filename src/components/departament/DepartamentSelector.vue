@@ -1,11 +1,11 @@
 <template>
-  <section class="mb-6 rounded-lg border border-slate-200 bg-white/95 p-4 shadow-sm">
+  <section class="mb-6 rounded-lg border border-border-soft bg-surface p-4 shadow-card">
     <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-xs font-semibold uppercase text-primary">Departaments</p>
-        <h2 class="mt-1 text-xl font-semibold text-slate-950">Espai de distribució</h2>
-        <p class="mt-1 text-sm font-medium text-slate-600">
-          Canvia de departament des del mateix mapa de treball.
+        <h2 class="mt-1 text-xl font-semibold text-text-main">Espai de distribució</h2>
+        <p class="mt-1 text-sm font-medium text-text-secondary">
+          Tria un departament per començar la distribució d'hores.
         </p>
       </div>
 
@@ -32,12 +32,17 @@
         type="button"
         role="option"
         :aria-selected="dep.nom === modelValue"
-        class="group relative overflow-hidden rounded-lg border px-4 py-3 text-left transition"
+        class="group relative overflow-hidden rounded-lg border py-3 pl-5 pr-4 text-left transition"
         :class="dep.nom === modelValue
-          ? 'border-primary bg-white shadow-primary-glow'
-          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'"
+          ? 'border-primary bg-surface shadow-primary-glow'
+          : 'border-border-soft bg-surface hover:border-primary hover:shadow-sm'"
         @click="seleccionarDepartament(dep.nom)"
       >
+        <span
+          class="absolute inset-y-2 left-0 w-1 rounded-r"
+          :class="accentClass(dep)"
+          aria-hidden="true"
+        ></span>
         <div class="flex items-start gap-3">
           <div
             class="dept-icon-box flex h-10 w-10 shrink-0 items-center justify-center rounded-md border"
@@ -78,27 +83,33 @@
 
           <div class="min-w-0 flex-1">
             <div class="flex items-start justify-between gap-2">
-              <h3 class="text-base font-semibold leading-tight text-slate-950">
+              <h3 class="text-base font-semibold leading-tight text-text-main">
                 {{ dep.nom }}
               </h3>
-              <span class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide" :class="estatClass(dep.estat)">
+              <span
+                v-if="mostraEstat(dep)"
+                class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                :class="estatClass(dep.estat)"
+              >
                 {{ estatText(dep.estat) }}
               </span>
             </div>
 
-            <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-slate-500">
-              <span><strong class="font-semibold text-slate-800">{{ dep.professorsCount ?? 0 }}</strong> prof.</span>
-              <span><strong class="font-semibold text-slate-800">{{ formatHores(dep.horesAssignades) }}/{{ formatHores(dep.totalHores) }}</strong> h</span>
-              <span v-if="dep.classesPendents > 0" class="text-red-600">
-                <strong class="font-semibold">{{ dep.classesPendents }}</strong> pendents
+            <div class="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs font-medium text-text-muted">
+              <span class="text-base font-bold leading-none text-text-main">
+                {{ formatHores(dep.horesAssignades) }}/{{ formatHores(dep.totalHores) }} h
+              </span>
+              <span>{{ dep.professorsCount ?? 0 }} prof.</span>
+              <span v-if="classesPendents(dep) > 0" class="font-semibold text-red-600">
+                {{ classesPendents(dep) }} pendents
               </span>
             </div>
 
-            <div class="mt-3 h-1.5 overflow-hidden rounded bg-slate-200">
+            <div class="mt-3 h-1.5 overflow-hidden rounded bg-surface-muted">
               <div
                 class="h-1.5 rounded transition-all"
                 :class="barraClass(dep.estat)"
-                :style="{ width: `${dep.percentatge || 0}%` }"
+                :style="{ width: `${ampladaBarra(dep)}%` }"
               ></div>
             </div>
           </div>
@@ -106,8 +117,8 @@
       </button>
     </div>
 
-    <div v-else class="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
-      <p class="font-semibold text-slate-950">No hi ha cap departament amb aquest filtre.</p>
+    <div v-else class="rounded-lg border border-dashed border-border-soft bg-surface-soft px-4 py-8 text-center">
+      <p class="font-semibold text-text-main">No hi ha cap departament amb aquest filtre.</p>
       <button type="button" class="mt-2 text-sm font-semibold text-primary hover:underline" @click="cerca = ''">
         Neteja la cerca
       </button>
@@ -139,10 +150,12 @@ const emit = defineEmits(['update:modelValue']);
 
 const cerca = ref('');
 
+const departamentsOrdenats = computed(() => [...props.departaments].sort(ordenarDepartaments));
+
 const departamentsFiltrats = computed(() => {
   const text = normalitza(cerca.value);
-  if (!text) return props.departaments;
-  return props.departaments.filter((dep) => normalitza(dep.nom).includes(text));
+  if (!text) return departamentsOrdenats.value;
+  return departamentsOrdenats.value.filter((dep) => normalitza(dep.nom).includes(text));
 });
 
 function seleccionarDepartament(nom) {
@@ -164,7 +177,37 @@ function iconPaths(dep) { return departamentIconPaths(dep.nom); }
 function inicials(nom) { return departamentInicials(nom); }
 
 function iconClass(dep) {
-  return 'border-slate-200 bg-white text-slate-600';
+  return 'border-border-soft bg-surface-soft text-text-secondary';
+}
+
+function classesPendents(dep) {
+  return Number(dep?.classesPendents) || 0;
+}
+
+function mostraEstat(dep) {
+  return dep?.estat && dep.estat !== 'pendent';
+}
+
+function prioritatDepartament(dep) {
+  if (classesPendents(dep) > 0) return 0;
+  if (dep.estat === 'exces') return 1;
+  if (dep.estat === 'buit') return 2;
+  if (dep.estat === 'tancat') return 3;
+  if (dep.estat === 'complet') return 4;
+  return 2;
+}
+
+function ordenarDepartaments(a, b) {
+  const prioritat = prioritatDepartament(a) - prioritatDepartament(b);
+  if (prioritat !== 0) return prioritat;
+
+  const pendents = classesPendents(b) - classesPendents(a);
+  if (pendents !== 0) return pendents;
+
+  const percentatge = (Number(a.percentatge) || 0) - (Number(b.percentatge) || 0);
+  if (percentatge !== 0) return percentatge;
+
+  return (a.nom || '').localeCompare(b.nom || '', 'ca');
 }
 
 function estatText(estat) {
@@ -198,6 +241,21 @@ function barraClass(estat) {
     buit: 'bg-slate-200',
   };
   return classes[estat] || classes.pendent;
+}
+
+function accentClass(dep) {
+  if (classesPendents(dep) > 0) return 'bg-slate-300';
+  const classes = {
+    complet: 'bg-emerald-400',
+    exces: 'bg-red-400',
+    tancat: 'bg-slate-400',
+    buit: 'bg-slate-200',
+  };
+  return classes[dep.estat] || 'bg-slate-300';
+}
+
+function ampladaBarra(dep) {
+  return Math.max(0, Math.min(Number(dep.percentatge) || 0, 100));
 }
 
 function formatHores(value) {
