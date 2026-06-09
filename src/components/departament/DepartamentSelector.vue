@@ -188,25 +188,7 @@ function mostraEstat(dep) {
   return dep?.estat && dep.estat !== 'pendent';
 }
 
-function prioritatDepartament(dep) {
-  if (classesPendents(dep) > 0) return 0;
-  if (dep.estat === 'exces') return 1;
-  if (dep.estat === 'buit') return 2;
-  if (dep.estat === 'tancat') return 3;
-  if (dep.estat === 'complet') return 4;
-  return 2;
-}
-
 function ordenarDepartaments(a, b) {
-  const prioritat = prioritatDepartament(a) - prioritatDepartament(b);
-  if (prioritat !== 0) return prioritat;
-
-  const pendents = classesPendents(b) - classesPendents(a);
-  if (pendents !== 0) return pendents;
-
-  const percentatge = (Number(a.percentatge) || 0) - (Number(b.percentatge) || 0);
-  if (percentatge !== 0) return percentatge;
-
   return (a.nom || '').localeCompare(b.nom || '', 'ca');
 }
 
