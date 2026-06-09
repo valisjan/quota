@@ -1,5 +1,5 @@
 function normalitza(nom) {
-  return (nom || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  return (nom || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
 export function departamentCategoria(nom) {
@@ -14,13 +14,13 @@ export function departamentCategoria(nom) {
   if (/(matemat|mates)/.test(n)) return 'mates';
   if (/(agraria|agrari|agric|jardi|forestal|hort)/.test(n)) return 'agraria';
   if (/(biologia|geologia|\bbg\b)/.test(n)) return 'biogeo';
+  if (/(educacio fisica|esport|\be\.?f\.?\b)/.test(n)) return 'ef';
   if (/(fisica|quimica|\bf\.?q\.?\b)/.test(n)) return 'fisicaQuimica';
   if (/cienc/.test(n)) return 'ciencies';
   if (/(geografia|historia|social)/.test(n)) return 'socials';
   if (/(tecnologia|informatica|digital)/.test(n)) return 'tecnologia';
   if (/(musica|arts esceniques)/.test(n)) return 'musica';
   if (/(plastica|dibuix|visual|art)/.test(n)) return 'arts';
-  if (/(educacio fisica|esport|\be\.?f\.?\b)/.test(n)) return 'ef';
   if (/(orientacio|orientador|suport)/.test(n)) return 'orientacio';
   if (/(religio|religion)/.test(n)) return 'religio';
   if (/(filosofia|valors|etica)/.test(n)) return 'humanitats';
@@ -39,13 +39,11 @@ export function departamentIconText(nom) {
     classiques: 'ΑΩ',
     agraria: '🌱',
     biogeo: '🌿',
-    fisicaQuimica: '⚛',
     ciencies: '🧪',
     socials: '🌍',
     tecnologia: '⚙',
     musica: '♪',
     arts: '🎨',
-    ef: '⚽',
     orientacio: '🧭',
     humanitats: 'Φ',
     religio: '✝',
