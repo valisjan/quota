@@ -52,7 +52,7 @@
                 class="portal-action"
               >
                 Departament
-                <span>Repartiment d'hores</span>
+                <span>Distribució d'hores</span>
               </button>
               <button
                 @click="router.push('/resums')"

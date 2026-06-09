@@ -12,7 +12,7 @@
  <button
  @click="$emit('imprimir')"
  class="btn-primary flex items-center gap-2"
- aria-label="Imprimir repartiment del departament"
+ aria-label="Imprimir distribució del departament"
  >
  <span aria-hidden="true">🖨️</span> Imprimir
  </button>

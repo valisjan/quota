@@ -19,14 +19,14 @@ function savedTheme() {
 }
 
 function initialTheme() {
-  return savedTheme() || 'dark';
+  return savedTheme() || 'light';
 }
 
 const theme = ref(initialTheme());
 
 export function applyTheme(value = theme.value) {
   if (!hasBrowser()) return;
-  const next = VALID_THEMES.has(value) ? value : 'dark';
+  const next = VALID_THEMES.has(value) ? value : 'light';
   document.documentElement.classList.toggle('dark', next === 'dark');
   document.documentElement.dataset.theme = next;
   localStorage.setItem(THEME_KEY, next);

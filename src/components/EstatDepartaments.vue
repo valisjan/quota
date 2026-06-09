@@ -29,7 +29,7 @@
       <div class="mt-6">
         <div class="flex items-end justify-between gap-4">
           <div>
-            <p class="text-sm font-medium text-slate-600">Progrés del repartiment</p>
+            <p class="text-sm font-medium text-slate-600">Progrés de la distribució</p>
             <p class="mt-1 text-4xl font-semibold text-slate-950">{{ pctGlobal }}%</p>
           </div>
           <p class="text-right text-sm text-slate-600">
@@ -281,7 +281,7 @@ const titularEstat = computed(() => {
   if (!stats.value.classesTotal) return 'Encara no hi ha quota importada.';
   if (stats.value.senseAssignar === 0) return 'Totes les classes estan assignades.';
   if (pctGlobal.value >= 75) return 'Queda poca feina per fer.';
-  if (pctGlobal.value >= 35) return 'El repartiment va avançant.';
+  if (pctGlobal.value >= 35) return 'La distribució va avançant.';
   return 'Moltes classes encara sense assignar.';
 });
 
@@ -322,7 +322,7 @@ const passos = computed(() => [
   {
     num: '2',
     titol: 'Repartir',
-    text: stats.value.senseAssignar ? `${stats.value.senseAssignar} pendents` : 'Repartiment complet',
+    text: stats.value.senseAssignar ? `${stats.value.senseAssignar} pendents` : 'Distribució completa',
     actiu: Boolean(stats.value.classesTotal && stats.value.senseAssignar),
   },
   {

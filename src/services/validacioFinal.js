@@ -232,7 +232,7 @@ export function calcularValidacioFinal({ classes = [], professors = [], departam
     .map((departament) => ({
       key: `dept-obert-${departament.id || departament.nom}`,
       title: departament.nom || 'Departament sense nom',
-      detail: 'El departament no ha tancat el repartiment.',
+      detail: 'El departament no ha tancat la distribució.',
       context: 'No tancat',
     }));
 

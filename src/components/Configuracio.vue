@@ -6,7 +6,7 @@
           Guàrdies de pati
         </h3>
         <p class="mt-1 text-sm text-slate-600">
-          Es reparteixen proporcionalment entre els departaments segons els membres efectius. Pots excloure departaments o reduir el nombre de membres comptables (director, orientador, PSC…).
+          Es distribueixen proporcionalment entre els departaments segons els membres efectius. Pots excloure departaments o reduir el nombre de membres comptables (director, orientador, PSC…).
         </p>
       </div>
 
@@ -62,11 +62,11 @@
           </div>
         </div>
 
-        <!-- Repartiment previst -->
+        <!-- Distribució prevista -->
         <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <div class="mb-3 flex items-center justify-between gap-3">
             <p class="text-sm font-semibold text-slate-800">
-              Repartiment previst
+              Distribució prevista
             </p>
             <span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
               {{ totalPreviewAssignat }} / {{ totalGuardiesPatiFormulari }}
@@ -86,7 +86,7 @@
             </div>
           </div>
           <p v-else class="text-sm text-slate-600">
-            No hi ha professorat computable per repartir guàrdies.
+            No hi ha professorat computable per distribuir guàrdies.
           </p>
 
           <div class="mt-4 flex justify-end">

@@ -1,24 +1,65 @@
 <template>
   <div class="min-h-screen p-2 sm:p-4">
-    <div class="container mx-auto">
-    <!-- Selector de departamento -->
-    <DepartamentSelector
-      v-model="departamentSeleccionat"
-      :departaments="departamentsSorted"
-    />
+    <div class="container mx-auto overflow-hidden">
+    <Transition :name="transicioPantallaDepartament" mode="out-in">
+    <section v-if="!pantallaDistribucio" key="selector" class="departament-screen">
+      <!-- Selector de departamento -->
+      <DepartamentSelector
+        v-model="departamentSeleccionat"
+        :departaments="departamentsAmbResum"
+      />
 
-    <div v-if="!departamentSeleccionat" class="text-center py-12">
-      <p class="text-xl text-gray-600 dark:text-gray-400">
-        Selecciona un departament per veure la informació
-      </p>
-    </div>
+      <div v-if="!departamentSeleccionat" class="rounded-lg border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
+        <p class="text-xl font-semibold text-slate-950">
+          Tria un departament per començar la distribució
+        </p>
+        <p class="mt-2 text-sm font-medium text-slate-600">
+          Les targetes mostren l'estat de cada departament abans d'entrar-hi.
+        </p>
+      </div>
+    </section>
 
-    <div v-else>
+    <section v-else key="distribucio" class="departament-screen">
+      <div class="sticky top-20 z-30 mb-4 rounded-lg border border-primary/30 bg-white/95 p-3 shadow-primary-glow backdrop-blur print-hide">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              class="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+              @click="tornarADepartaments"
+            >
+              <span aria-hidden="true">←</span>
+              Departaments
+            </button>
+            <div class="min-w-0">
+              <p class="truncate text-lg font-semibold text-slate-950">{{ departamentSeleccionat }}</p>
+              <p class="text-sm font-medium text-slate-600">
+                {{ departamentSeleccionatResum?.professorsCount ?? 0 }} professors ·
+                {{ formatHores(departamentSeleccionatResum?.horesAssignades) }}/{{ formatHores(departamentSeleccionatResum?.totalHores) }} hores ·
+                {{ departamentSeleccionatResum?.classesPendents ?? 0 }} pendents
+              </p>
+            </div>
+          </div>
+          <div class="min-w-[12rem]">
+            <div class="mb-1 flex items-center justify-between text-xs font-semibold text-slate-600">
+              <span>Progrés</span>
+              <span>{{ departamentSeleccionatResum?.percentatge || 0 }}%</span>
+            </div>
+            <div class="h-2 overflow-hidden rounded bg-slate-200">
+              <div
+                class="h-2 rounded bg-primary transition-all"
+                :style="{ width: `${departamentSeleccionatResum?.percentatge || 0}%` }"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div
         v-if="departamentTancat"
         class="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-slate-800"
       >
-        Aquest departament està tancat. El repartiment es pot consultar, però no modificar.
+        Aquest departament està tancat. La distribució es pot consultar, però no modificar.
         <span v-if="settings.missatgeTancament" class="ml-1 font-normal">{{ settings.missatgeTancament }}</span>
       </div>
 
@@ -63,17 +104,17 @@
       <div class="mb-5 flex items-center gap-2 print-hide">
         <div class="flex flex-1 gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1" role="tablist" aria-label="Seccions del departament">
           <button
-            id="tab-repartiment"
+            id="tab-distribucio"
             role="tab"
-            :aria-selected="activeTab === 'repartiment'"
-            aria-controls="panel-repartiment"
-            @click="activeTab = 'repartiment'"
+            :aria-selected="activeTab === 'distribucio'"
+            aria-controls="panel-distribucio"
+            @click="activeTab = 'distribucio'"
             class="flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all"
-            :class="activeTab === 'repartiment'
+            :class="activeTab === 'distribucio'
               ? 'bg-primary text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900'"
           >
-            Repartiment
+            Distribució
           </button>
           <button
             id="tab-fulla"
@@ -114,8 +155,8 @@
         </button>
       </div>
 
-      <!-- Pestanya: Repartiment -->
-      <div v-show="activeTab === 'repartiment'" id="panel-repartiment" role="tabpanel" aria-labelledby="tab-repartiment">
+      <!-- Pestanya: Distribució -->
+      <div v-show="activeTab === 'distribucio'" id="panel-distribucio" role="tabpanel" aria-labelledby="tab-distribucio">
         <!-- Resum GP, PALIC i hores del departament -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
           <div class="card-stat-primary">
@@ -214,9 +255,29 @@
             />
           </div>
           <div>
-            <div class="mb-3 flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
-              <h3 class="text-base font-semibold text-slate-950">Professorat</h3>
-              <span class="rounded-md bg-slate-100 px-2 py-0.5 text-sm font-medium text-slate-700">{{ professorsDepartament.length }}</span>
+            <div class="mb-3 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div class="flex items-center gap-2">
+                <h3 class="text-base font-semibold text-slate-950">Professorat</h3>
+                <span class="rounded-md bg-slate-100 px-2 py-0.5 text-sm font-medium text-slate-700">{{ professorsDepartament.length }}</span>
+              </div>
+              <div class="flex rounded-md border border-slate-200 bg-slate-50 p-1 text-xs font-semibold">
+                <button
+                  type="button"
+                  class="rounded px-2.5 py-1 transition"
+                  :class="ordreProfessorat === 'necessitat' ? 'bg-white text-primary shadow-sm' : 'text-slate-600 hover:text-slate-950'"
+                  @click="ordreProfessorat = 'necessitat'"
+                >
+                  Necessitat
+                </button>
+                <button
+                  type="button"
+                  class="rounded px-2.5 py-1 transition"
+                  :class="ordreProfessorat === 'nom' ? 'bg-white text-primary shadow-sm' : 'text-slate-600 hover:text-slate-950'"
+                  @click="ordreProfessorat = 'nom'"
+                >
+                  A-Z
+                </button>
+              </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
               <ProfessorCard
@@ -273,7 +334,8 @@
           :get-hores-palic="getHoresPALIC"
         />
       </div>
-    </div>
+    </section>
+    </Transition>
 
     <!-- Modal de impresión -->
     <DepartamentPrintModal
@@ -346,7 +408,10 @@ const activeUsers = ref(1);
 const usuarisActius = ref([]);
 const lastUpdate = ref(new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
 const mostrarResumen = ref(false); // col·lapsat per defecte
-const activeTab = ref('repartiment');
+const activeTab = ref('distribucio');
+const ordreProfessorat = ref('necessitat');
+const mostrarSelectorDepartaments = ref(true);
+const transicioPantallaDepartament = ref('departament-slide-forward');
 const settings = ref({ ...DEFAULT_APP_SETTINGS });
 const totalGuardiesPatiConfigurades = computed(() =>
   Math.max(0, Math.round(Number(settings.value.totalGuardiesPati ?? 30) || 0))
@@ -375,10 +440,61 @@ const departamentsSorted = computed(() => {
   return [...departaments.value].sort((a, b) => a.nom.localeCompare(b.nom));
 });
 
+const departamentsAmbResum = computed(() =>
+  departamentsSorted.value.map((dep) => {
+    const nom = dep.nom || '';
+    const classesDept = classes.value.filter((classe) => classePertanyDepartament(classe, nom));
+    const classesComputables = classesDept.filter(comptaHoresDepartament);
+    const totalHores = classesComputables.reduce((total, classe) => total + (Number(classe.hores) || 0), 0);
+    const horesAssignades = classesComputables.reduce((total, classe) => total + horesAssignadesClasse(classe), 0);
+    const classesPendents = classesComputables.filter(
+      (classe) => horesAssignadesClasse(classe) < (Number(classe.hores) || 0)
+    ).length;
+    const professorsCount = professors.value.filter((professor) => professor.departament === nom).length;
+    const percentatge = totalHores > 0
+      ? Math.min(100, Math.round((horesAssignades / totalHores) * 100))
+      : 0;
+    const estat = estatDepartamentResum(dep, {
+      totalHores,
+      horesAssignades,
+      classesPendents,
+      professorsCount,
+    });
+
+    return {
+      ...dep,
+      classesCount: classesDept.length,
+      classesPendents,
+      professorsCount,
+      totalHores,
+      horesAssignades,
+      percentatge,
+      estat,
+    };
+  })
+);
+
+const departamentSeleccionatResum = computed(() =>
+  departamentsAmbResum.value.find((dep) => dep.nom === departamentSeleccionat.value) || null
+);
+const pantallaDistribucio = computed(() =>
+  Boolean(departamentSeleccionat.value) && !mostrarSelectorDepartaments.value
+);
+
 const professorsDepartament = computed(() => {
   return professors.value
     .filter((p) => p.departament === departamentSeleccionat.value)
-    .sort((a, b) => a.nom.localeCompare(b.nom));
+    .sort((a, b) => {
+      if (ordreProfessorat.value === 'nom') return a.nom.localeCompare(b.nom);
+
+      const prioritat = prioritatRepartimentProfessor(a) - prioritatRepartimentProfessor(b);
+      if (prioritat !== 0) return prioritat;
+
+      const distancia = distanciaIdealProfessor(b) - distanciaIdealProfessor(a);
+      if (distancia !== 0) return distancia;
+
+      return a.nom.localeCompare(b.nom);
+    });
 });
 
 const classesDepartament = computed(() => {
@@ -465,6 +581,16 @@ function updateLastUpdate() {
   lastUpdate.value = new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+function tornarADepartaments() {
+  transicioPantallaDepartament.value = 'departament-slide-back';
+  mostrarSelectorDepartaments.value = true;
+}
+
+function formatHores(value) {
+  const number = Number(value) || 0;
+  return Number.isInteger(number) ? number.toString() : number.toFixed(1);
+}
+
 function formatProfessorsNecessaris() {
   const totalHores = totalHoresDepartament.value;
   const exactProfessors = totalHores / 18;
@@ -547,6 +673,20 @@ function calcularHoresComputablesProfessor(nomProfessor) {
   return calcularHoresProfessor(nomProfessor) + getHoresPALIC(nomProfessor);
 }
 
+function distanciaIdealProfessor(professor) {
+  const limits = limitsHoresProfessor(professor);
+  return limits.ideal - calcularHoresComputablesProfessor(professor.nom);
+}
+
+function prioritatRepartimentProfessor(professor) {
+  const hores = calcularHoresComputablesProfessor(professor.nom);
+  const limits = limitsHoresProfessor(professor);
+  if (hores < limits.ideal) return 0;
+  if (hores === limits.ideal) return 1;
+  if (hores <= limits.maxim) return 2;
+  return 3;
+}
+
 function isPerfectHours(nomProfessor) {
   const limits = limitsHoresProfessor(getProfessor(nomProfessor));
   return calcularHoresComputablesProfessor(nomProfessor) === limits.ideal;
@@ -561,6 +701,16 @@ function isOverRecommended(nomProfessor) {
 function isOverLimit(nomProfessor) {
   const limits = limitsHoresProfessor(getProfessor(nomProfessor));
   return calcularHoresComputablesProfessor(nomProfessor) > limits.maxim;
+}
+
+function estatDepartamentResum(departament, resum) {
+  if (departament.tancat) return 'tancat';
+  if (!resum.professorsCount && !resum.totalHores) return 'buit';
+  if (resum.horesAssignades > resum.totalHores) return 'exces';
+  if (resum.totalHores > 0 && resum.horesAssignades === resum.totalHores && resum.classesPendents === 0) {
+    return 'complet';
+  }
+  return 'pendent';
 }
 
 // GP
@@ -734,7 +884,7 @@ function handleAssignacionsActualitzades() {
 async function tancarDepartament() {
   if (!departamentSeleccionat.value || departamentTancat.value || !departamentActual.value?.id) return;
   const ok = confirm(
-    `Vols tancar el repartiment de ${departamentSeleccionat.value}? Després només l'administració el podrà desbloquejar.`
+    `Vols tancar la distribució de ${departamentSeleccionat.value}? Després només l'administració el podrà desbloquejar.`
   );
   if (!ok) return;
 
@@ -968,6 +1118,13 @@ function imprimirDepartament() {
 
 watch(departamentSeleccionat, (newDept, oldDept) => {
   if (newDept !== oldDept) {
+    if (newDept) {
+      transicioPantallaDepartament.value = 'departament-slide-forward';
+      mostrarSelectorDepartaments.value = false;
+      activeTab.value = 'distribucio';
+    } else {
+      mostrarSelectorDepartaments.value = true;
+    }
     if (!E2E_AUTH_BYPASS && oldDept && presenceUnsubscribe && cursStore.cursActiuId) {
       deleteDoc(
         doc(db, 'cursos', cursStore.cursActiuId, 'presence', `${oldDept}_${sessionId.value}`)
@@ -992,3 +1149,52 @@ onUnmounted(() => {
   }
 });
 </script>
+
+<style scoped>
+.departament-screen {
+  min-width: 0;
+}
+
+.departament-slide-forward-enter-active,
+.departament-slide-forward-leave-active,
+.departament-slide-back-enter-active,
+.departament-slide-back-leave-active {
+  transition: opacity 220ms ease, transform 260ms ease;
+}
+
+.departament-slide-forward-enter-from {
+  opacity: 0;
+  transform: translateX(3rem);
+}
+
+.departament-slide-forward-leave-to {
+  opacity: 0;
+  transform: translateX(-3rem);
+}
+
+.departament-slide-back-enter-from {
+  opacity: 0;
+  transform: translateX(-3rem);
+}
+
+.departament-slide-back-leave-to {
+  opacity: 0;
+  transform: translateX(3rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .departament-slide-forward-enter-active,
+  .departament-slide-forward-leave-active,
+  .departament-slide-back-enter-active,
+  .departament-slide-back-leave-active {
+    transition: opacity 120ms ease;
+  }
+
+  .departament-slide-forward-enter-from,
+  .departament-slide-forward-leave-to,
+  .departament-slide-back-enter-from,
+  .departament-slide-back-leave-to {
+    transform: none;
+  }
+}
+</style>

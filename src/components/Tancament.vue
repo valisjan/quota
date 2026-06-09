@@ -5,7 +5,7 @@
         Mode tancament
       </h3>
       <p class="mt-2 text-base text-slate-700 dark:text-slate-300">
-        Bloqueja les edicions quan el repartiment ja està revisat o pendent de passar a horaris.
+        Bloqueja les edicions quan la distribució ja està revisada o pendent de passar a horaris.
       </p>
     </div>
 
@@ -35,7 +35,7 @@
             v-model="formulari.missatgeTancament"
             rows="3"
             class="form-input mt-2 w-full bg-white dark:bg-gray-900"
-            placeholder="Ex.: Repartiment tancat pendent de validació final."
+            placeholder="Ex.: Distribució tancada pendent de validació final."
           ></textarea>
         </label>
       </div>
