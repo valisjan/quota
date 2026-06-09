@@ -155,43 +155,6 @@
         </button>
       </div>
 
-      <!-- Barra sticky de resum del departament -->
-      <div class="sticky top-[66px] z-30 -mx-2 sm:-mx-4 mb-4 print-hide">
-        <div class="border-b border-slate-200 bg-white/95 px-4 py-2 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/95">
-          <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-1">
-            <span class="font-semibold text-slate-950 dark:text-white">{{ departamentSeleccionat }}</span>
-            <span v-if="departamentTancat" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">Tancat</span>
-            <div class="ml-auto flex flex-wrap items-center gap-4">
-              <!-- Hores lectives -->
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-slate-500 dark:text-slate-400">Hores:</span>
-                <span class="text-sm font-bold" :class="totalHoresAssignades === totalHoresDepartament ? 'text-success' : totalHoresAssignades > totalHoresDepartament ? 'text-danger' : 'text-slate-700 dark:text-slate-200'">
-                  {{ totalHoresAssignades }}
-                </span>
-                <span class="text-xs text-slate-400">/ {{ totalHoresDepartament }}</span>
-                <div class="hidden h-1.5 w-20 overflow-hidden rounded-full bg-slate-200 sm:block dark:bg-slate-700">
-                  <div
-                    class="h-full rounded-full transition-all"
-                    :class="totalHoresAssignades === totalHoresDepartament ? 'bg-success' : 'bg-danger'"
-                    :style="`width: ${totalHoresDepartament > 0 ? Math.min(100, (totalHoresAssignades / totalHoresDepartament) * 100) : 0}%`"
-                  />
-                </div>
-              </div>
-              <!-- GP -->
-              <div v-if="totalGPDepartament > 0" class="flex items-center gap-1.5">
-                <span class="text-xs text-slate-500 dark:text-slate-400">GP:</span>
-                <span class="text-sm font-semibold" :class="totalGPAssignades === totalGPDepartament ? 'text-success' : 'text-danger'">{{ totalGPAssignades }}/{{ totalGPDepartament }}</span>
-              </div>
-              <!-- PALIC -->
-              <div v-if="totalPALICDepartament > 0" class="flex items-center gap-1.5">
-                <span class="text-xs text-slate-500 dark:text-slate-400">PALIC:</span>
-                <span class="text-sm font-semibold" :class="totalPALICAssignades === totalPALICDepartament ? 'text-success' : 'text-danger'">{{ totalPALICAssignades }}/{{ totalPALICDepartament }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Pestanya: Distribució -->
       <div v-show="activeTab === 'distribucio'" id="panel-distribucio" role="tabpanel" aria-labelledby="tab-distribucio">
         <!-- Resum GP, PALIC i hores del departament -->
