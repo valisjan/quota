@@ -4,59 +4,84 @@
 
 :root {
   font-family: system-ui, -apple-system, sans-serif;
-  /* IES Josep Sureda i Blanes - base azul con acentos suavizados para interfaz */
-  --primary: #0024B6;
-  --primary-dark: #001A8A;
-  --secondary: #3355CC;
-  --danger: #E86F35;
-  --danger-dark: #B84A1D;
-  --success: #009E35;
-  --success-dark: #007A28;
-  --app-bg: #f1f5f9;
-  --surface: #ffffff;
-  --surface-soft: #f8fafc;
-  --surface-muted: #f1f5f9;
-  --surface-hover: #e2e8f0;
-  --surface-active: #ffffff;
-  --border-soft: #e2e8f0;
+  /* IES Josep Sureda i Blanes - versión pastel para una UI de trabajo */
+  --brand-blue: #0024B6;
+  --brand-green: #00BF33;
+  --brand-orange: #FF8040;
+  --primary: #5f75d6;
+  --primary-dark: #475dbc;
+  --secondary: #9aa9eb;
+  --danger: #e8a077;
+  --danger-dark: #cf7f55;
+  --success: #75c996;
+  --success-dark: #4fae76;
+  --app-bg: #dfeaf7;
+  --surface: #fffaf1;
+  --surface-soft: #f7f1e7;
+  --surface-muted: #edf3fb;
+  --surface-hover: #e3edf9;
+  --surface-active: #fffdf8;
+  --border-soft: #b7c8dd;
+  --border-strong: #94abc8;
   --text-main: #020617;
   --text-secondary: #334155;
   --text-muted: #64748b;
-  --nav-bg: rgb(255 255 255 / 0.95);
-  --card-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 10px 24px rgb(15 23 42 / 0.05);
+  --nav-bg: rgb(255 250 241 / 0.94);
+  --card-shadow: 0 1px 0 rgb(255 255 255 / 0.88) inset, 0 18px 34px rgb(45 67 101 / 0.16), 0 4px 10px rgb(45 67 101 / 0.10);
+  --card-shadow-soft: 0 1px 0 rgb(255 255 255 / 0.84) inset, 0 10px 22px rgb(45 67 101 / 0.12), 0 2px 6px rgb(45 67 101 / 0.08);
+  --card-shadow-hover: 0 1px 0 rgb(255 255 255 / 0.9) inset, 0 24px 44px rgb(45 67 101 / 0.19), 0 6px 14px rgb(45 67 101 / 0.12);
+  --pastel-blue-bg: #e9efff;
+  --pastel-blue-border: #b8c6f2;
+  --pastel-green-bg: #e7f7ed;
+  --pastel-green-border: #addfc0;
+  --pastel-orange-bg: #fff0e4;
+  --pastel-orange-border: #edc0a5;
+  --pastel-rose-bg: #ffedf0;
+  --pastel-rose-border: #efb8c1;
 
   /* Colored card shadows — source of truth (referenced by tailwind.config.js) */
-  --shadow-primary-glow: 0 0 0 1px rgba(0,36,182,0.10), 0 2px 8px 0 rgba(0,36,182,0.12);
-  --shadow-success-glow: 0 0 0 1px rgba(0,158,53,0.10), 0 2px 8px 0 rgba(0,158,53,0.12);
-  --shadow-danger-glow: 0 0 0 1px rgba(232,111,53,0.12), 0 2px 8px 0 rgba(232,111,53,0.14);
-  --shadow-danger-dark-glow: 0 0 0 1px rgba(184,74,29,0.14), 0 2px 8px 0 rgba(184,74,29,0.16);
+  --shadow-primary-glow: 0 0 0 1px rgb(95 117 214 / 0.22), 0 14px 28px rgb(95 117 214 / 0.14);
+  --shadow-success-glow: 0 0 0 1px rgb(117 201 150 / 0.26), 0 14px 28px rgb(75 153 105 / 0.12);
+  --shadow-danger-glow: 0 0 0 1px rgb(232 160 119 / 0.28), 0 14px 28px rgb(207 127 85 / 0.13);
+  --shadow-danger-dark-glow: 0 0 0 1px rgb(207 127 85 / 0.34), 0 14px 28px rgb(207 127 85 / 0.15);
 }
 
 .dark {
   color-scheme: dark;
-  --primary: #7EA2FF;
-  --primary-dark: #5D7FF2;
-  --secondary: #A8BEFF;
-  --danger: #FF9060;
-  --danger-dark: #FF8040;
-  --success: #46D17B;
-  --success-dark: #21B660;
-  --app-bg: #111827;
-  --surface: #1f2937;
-  --surface-soft: #172033;
-  --surface-muted: #263244;
-  --surface-hover: #334155;
-  --surface-active: #0f172a;
-  --border-soft: #334155;
+  --primary: #a8b8ff;
+  --primary-dark: #8da0f5;
+  --secondary: #c3cffd;
+  --danger: #ffc09c;
+  --danger-dark: #ffa477;
+  --success: #92e2b0;
+  --success-dark: #6fd193;
+  --app-bg: #101b2e;
+  --surface: #1b2740;
+  --surface-soft: #152037;
+  --surface-muted: #22304d;
+  --surface-hover: #2b3a5a;
+  --surface-active: #243250;
+  --border-soft: #435273;
+  --border-strong: #5b6b8c;
   --text-main: #f8fafc;
-  --text-secondary: #dbe4f0;
-  --text-muted: #9aa8bb;
-  --nav-bg: rgb(31 41 55 / 0.94);
-  --card-shadow: 0 1px 2px rgb(0 0 0 / 0.24), 0 14px 30px rgb(0 0 0 / 0.22);
-  --shadow-primary-glow: 0 0 0 1px rgba(126,162,255,0.18), 0 8px 22px rgba(0,0,0,0.24);
-  --shadow-success-glow: 0 0 0 1px rgba(70,209,123,0.16), 0 8px 22px rgba(0,0,0,0.22);
-  --shadow-danger-glow: 0 0 0 1px rgba(255,144,96,0.16), 0 8px 22px rgba(0,0,0,0.22);
-  --shadow-danger-dark-glow: 0 0 0 1px rgba(255,128,64,0.18), 0 8px 22px rgba(0,0,0,0.24);
+  --text-secondary: #d8e1f1;
+  --text-muted: #a9b7ce;
+  --nav-bg: rgb(27 39 64 / 0.94);
+  --card-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 18px 34px rgb(0 0 0 / 0.28), 0 4px 10px rgb(0 0 0 / 0.18);
+  --card-shadow-soft: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 10px 22px rgb(0 0 0 / 0.22), 0 2px 6px rgb(0 0 0 / 0.14);
+  --card-shadow-hover: 0 1px 0 rgb(255 255 255 / 0.05) inset, 0 24px 44px rgb(0 0 0 / 0.34), 0 6px 14px rgb(0 0 0 / 0.20);
+  --pastel-blue-bg: rgb(168 184 255 / 0.14);
+  --pastel-blue-border: rgb(168 184 255 / 0.34);
+  --pastel-green-bg: rgb(146 226 176 / 0.13);
+  --pastel-green-border: rgb(146 226 176 / 0.32);
+  --pastel-orange-bg: rgb(255 192 156 / 0.14);
+  --pastel-orange-border: rgb(255 192 156 / 0.34);
+  --pastel-rose-bg: rgb(255 176 190 / 0.14);
+  --pastel-rose-border: rgb(255 176 190 / 0.34);
+  --shadow-primary-glow: 0 0 0 1px rgb(168 184 255 / 0.24), 0 16px 32px rgb(0 0 0 / 0.28);
+  --shadow-success-glow: 0 0 0 1px rgb(146 226 176 / 0.24), 0 16px 32px rgb(0 0 0 / 0.26);
+  --shadow-danger-glow: 0 0 0 1px rgb(255 192 156 / 0.26), 0 16px 32px rgb(0 0 0 / 0.26);
+  --shadow-danger-dark-glow: 0 0 0 1px rgb(255 164 119 / 0.30), 0 16px 32px rgb(0 0 0 / 0.28);
 }
 
 @layer base {
@@ -147,29 +172,40 @@
 
   /* ── Cards ────────────────────────────────────────────────── */
   .card {
-    @apply rounded-lg border shadow-sm;
+    @apply rounded-lg border;
     background: var(--surface);
     border-color: var(--border-soft);
+    box-shadow: var(--card-shadow);
     color: var(--text-main);
+  }
+  .card:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--card-shadow-hover);
   }
   /* Alternating brand-color shadows on sibling cards inside .sections */
   .sections > .card:nth-child(3n+2) {
-    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.08);
+    box-shadow: var(--card-shadow);
   }
   .sections > .card:nth-child(3n) {
-    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.08);
+    box-shadow: var(--card-shadow);
   }
   .card-stat-primary {
-    @apply rounded-lg border border-blue-100 p-3 shadow-sm;
-    background-color: rgba(0, 36, 182, 0.035);
+    @apply rounded-lg border p-3;
+    background: var(--pastel-blue-bg);
+    border-color: var(--pastel-blue-border);
+    box-shadow: var(--card-shadow-soft);
   }
   .card-stat-success {
-    @apply rounded-lg border border-emerald-100 p-3 shadow-sm;
-    background-color: rgba(0, 158, 53, 0.04);
+    @apply rounded-lg border p-3;
+    background: var(--pastel-green-bg);
+    border-color: var(--pastel-green-border);
+    box-shadow: var(--card-shadow-soft);
   }
   .card-stat-danger {
-    @apply rounded-lg border border-orange-100 p-3 shadow-sm;
-    background-color: rgba(232, 111, 53, 0.045);
+    @apply rounded-lg border p-3;
+    background: var(--pastel-orange-bg);
+    border-color: var(--pastel-orange-border);
+    box-shadow: var(--card-shadow-soft);
   }
 
   .skip-link {
@@ -210,22 +246,24 @@
     @apply inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium leading-none;
   }
 
-  .badge-blue   { @apply bg-blue-50   text-blue-800;   }
-  .badge-green  { @apply bg-green-50  text-green-800;  }
-  .badge-yellow { @apply bg-amber-50  text-amber-800;  }
-  .badge-purple { @apply bg-purple-50 text-purple-800; }
-  .badge-indigo { @apply bg-indigo-50 text-indigo-800; }
-  .badge-gray   { @apply bg-slate-100 text-slate-700;  }
-  .badge-red    { @apply bg-red-50    text-red-800;    }
-  .badge-orange { @apply bg-orange-50 text-orange-800; }
+  .badge-blue   { background: var(--pastel-blue-bg);   color: #3447a2; border: 1px solid var(--pastel-blue-border); }
+  .badge-green  { background: var(--pastel-green-bg);  color: #2f7d50; border: 1px solid var(--pastel-green-border); }
+  .badge-yellow { background: #fff6d8;                 color: #8a6415; border: 1px solid #ead18a; }
+  .badge-purple { background: #f2ecff;                 color: #6d52a2; border: 1px solid #cfbdf2; }
+  .badge-indigo { background: #ecf0ff;                 color: #4d5ea3; border: 1px solid #c3cff6; }
+  .badge-gray   { background: var(--surface-muted);    color: var(--text-secondary); border: 1px solid var(--border-soft); }
+  .badge-red    { background: var(--pastel-rose-bg);   color: #9b4555; border: 1px solid var(--pastel-rose-border); }
+  .badge-orange { background: var(--pastel-orange-bg); color: #9b5a37; border: 1px solid var(--pastel-orange-border); }
 
   .admin-shell {
     @apply grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-6;
   }
 
   .admin-sidebar {
-    @apply overflow-hidden rounded-lg bg-slate-950 p-3 shadow-sm
+    @apply overflow-hidden rounded-lg p-3
            lg:flex lg:flex-col lg:justify-between lg:p-4 lg:min-h-[calc(100vh-8rem)];
+    background: linear-gradient(180deg, #25345f, #192541);
+    box-shadow: var(--card-shadow);
   }
 
   .admin-sidebar-body {
@@ -256,7 +294,7 @@
   }
 
   .admin-nav-item {
-    @apply relative flex min-h-10 shrink-0 items-center justify-center rounded-md px-3 py-2.5 text-white/70 transition hover:bg-white/10 hover:text-white
+    @apply relative flex min-h-10 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 px-3 py-2.5 text-left text-white/70 transition hover:bg-white/10 hover:text-white
            lg:min-h-12 lg:w-full lg:shrink lg:justify-start lg:gap-3 lg:px-3 lg:py-3;
   }
 
@@ -267,7 +305,7 @@
   .admin-nav-item-active::before {
     content: "";
     @apply absolute left-0 top-2 hidden h-8 w-1 rounded-r lg:block;
-    background: var(--section-color, #0024B6);
+    background: var(--secondary);
   }
 
   .admin-nav-label {
@@ -295,7 +333,117 @@
   }
 
   .admin-commandbar {
-    @apply flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-primary-glow sm:p-5 lg:flex-row lg:items-center lg:justify-between;
+    @apply flex flex-col gap-4 rounded-lg border p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between;
+    background: var(--surface);
+    border-color: var(--border-soft);
+    border-top: 4px solid var(--primary);
+    box-shadow: var(--card-shadow);
+  }
+
+  .admin-flow-panel {
+    @apply rounded-lg border p-3 sm:p-4;
+    background:
+      linear-gradient(135deg, rgba(236, 244, 255, 0.95), rgba(255, 247, 237, 0.78)),
+      var(--surface);
+    border-color: color-mix(in srgb, var(--primary) 22%, var(--border-soft));
+    box-shadow: var(--card-shadow);
+  }
+
+  .admin-flow-heading {
+    @apply mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  .admin-flow-kicker {
+    @apply text-xs font-semibold uppercase;
+    color: var(--primary);
+  }
+
+  .admin-flow-title-main {
+    @apply mt-0.5 text-base font-semibold;
+    color: var(--text-main);
+  }
+
+  .admin-flow-current {
+    @apply inline-flex w-fit items-center rounded-md border px-2.5 py-1 text-xs font-semibold;
+    background: rgba(255, 255, 255, 0.72);
+    border-color: color-mix(in srgb, var(--primary) 18%, var(--border-soft));
+    color: var(--text-secondary);
+  }
+
+  .admin-flow {
+    @apply grid gap-2 md:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .admin-flow-step {
+    @apply relative grid min-h-24 cursor-pointer grid-cols-[auto_1fr] items-start gap-3 rounded-lg border p-3 pr-16 text-left transition;
+    background: rgba(255, 255, 255, 0.82);
+    border-color: color-mix(in srgb, var(--primary) 16%, var(--border-soft));
+    box-shadow: var(--card-shadow-soft);
+  }
+
+  .admin-flow-step:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--primary) 34%, var(--border-soft));
+    box-shadow: 0 16px 30px rgba(40, 50, 83, 0.12);
+  }
+
+  .admin-flow-step-active {
+    background: linear-gradient(135deg, rgba(232, 239, 255, 0.96), rgba(255, 255, 255, 0.92));
+    border-color: color-mix(in srgb, var(--primary) 42%, var(--border-soft));
+    box-shadow: 0 18px 34px rgba(0, 36, 182, 0.14);
+  }
+
+  .admin-flow-step-warning {
+    background: linear-gradient(135deg, rgba(255, 247, 224, 0.96), rgba(255, 255, 255, 0.92));
+    border-color: color-mix(in srgb, #d97706 38%, var(--border-soft));
+  }
+
+  .admin-flow-step-muted {
+    background: rgba(248, 250, 252, 0.82);
+  }
+
+  .admin-flow-number {
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm font-bold;
+    background: color-mix(in srgb, var(--primary) 12%, white);
+    color: var(--primary);
+  }
+
+  .admin-flow-copy {
+    @apply min-w-0;
+  }
+
+  .admin-flow-title {
+    @apply block text-sm font-semibold leading-tight;
+    color: var(--text-main);
+  }
+
+  .admin-flow-help {
+    @apply mt-1 block text-xs font-medium leading-snug;
+    color: var(--text-secondary);
+  }
+
+  .admin-flow-badge {
+    @apply absolute right-3 top-3 shrink-0 rounded-md px-2 py-1 text-[11px] font-bold;
+  }
+
+  .admin-flow-badge-ok {
+    @apply bg-emerald-100 text-emerald-800;
+  }
+
+  .admin-flow-badge-warning {
+    @apply bg-amber-100 text-amber-800;
+  }
+
+  .admin-flow-badge-info {
+    @apply bg-sky-100 text-sky-800;
+  }
+
+  .admin-flow-badge-accent {
+    @apply bg-orange-100 text-orange-800;
+  }
+
+  .admin-flow-badge-muted {
+    @apply bg-slate-100 text-slate-700;
   }
 
   .admin-content {
@@ -303,7 +451,10 @@
   }
 
   .metric-card {
-    @apply overflow-hidden rounded-lg border bg-white p-5 shadow-sm dark:bg-gray-800;
+    @apply overflow-hidden rounded-lg border p-5;
+    background: var(--surface);
+    border-color: var(--border-soft);
+    box-shadow: var(--card-shadow-soft);
   }
 
   .metric-label {
@@ -339,7 +490,10 @@
   }
 
   .resums-tabs {
-    @apply mb-6 rounded-lg border border-slate-200 bg-white p-2 shadow-sm;
+    @apply mb-6 rounded-lg border p-2;
+    background: var(--surface);
+    border-color: var(--border-soft);
+    box-shadow: var(--card-shadow-soft);
   }
 
   .resums-tab {
@@ -347,21 +501,30 @@
   }
 
   .resums-tab-active {
-    @apply bg-primary text-white shadow-sm;
+    @apply text-white;
+    background: var(--primary);
+    box-shadow: var(--shadow-primary-glow);
   }
 
   .resums-tab-idle {
-    @apply text-slate-700 hover:bg-slate-100 hover:text-slate-950;
+    color: var(--text-secondary);
+  }
+
+  .resums-tab-idle:hover {
+    background: var(--surface-hover);
+    color: var(--text-main);
   }
 
   .resums-page .card {
-    @apply overflow-hidden border-slate-200 bg-white shadow-sm;
-    box-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 10px 24px rgb(15 23 42 / 0.05);
+    @apply overflow-hidden;
+    background: var(--surface);
+    border-color: var(--border-soft);
+    box-shadow: var(--card-shadow);
   }
 
   .resums-page .card > div[class*="border-b"] {
-    border-bottom-color: rgb(203 213 225);
-    background: linear-gradient(90deg, rgba(0, 36, 182, 0.09), rgb(248 250 252) 46%, rgb(241 245 249));
+    border-bottom-color: var(--border-soft);
+    background: linear-gradient(90deg, var(--pastel-blue-bg), var(--surface) 46%, var(--surface-soft));
   }
 
   .resums-page table {
@@ -371,15 +534,19 @@
   }
 
   .resums-page thead {
-    background: linear-gradient(180deg, rgb(248 250 252), rgb(226 232 240));
+    background: linear-gradient(180deg, var(--surface-soft), var(--surface-muted));
   }
 
   .resums-page th {
-    @apply whitespace-nowrap border-b border-slate-300 px-4 py-3 text-left text-[11px] font-black uppercase tracking-wide text-slate-700;
+    @apply whitespace-nowrap border-b px-4 py-3 text-left text-[11px] font-black uppercase tracking-wide;
+    border-color: var(--border-soft);
+    color: var(--text-secondary);
   }
 
   .resums-page td {
-    @apply border-b border-slate-100 px-4 py-3 align-top text-slate-700;
+    @apply border-b px-4 py-3 align-top;
+    border-color: color-mix(in srgb, var(--border-soft) 62%, transparent);
+    color: var(--text-secondary);
   }
 
   .resums-page tbody tr:last-child td {
@@ -387,16 +554,16 @@
   }
 
   :where(.resums-page) tbody tr:nth-child(even) {
-    background-color: rgb(248 250 252 / 0.72);
+    background-color: color-mix(in srgb, var(--surface-soft) 58%, transparent);
   }
 
   :where(.resums-page) tbody tr:hover {
-    background-color: rgb(239 246 255);
+    background-color: var(--surface-hover);
   }
 
   .resums-page tbody td:first-child,
   .resums-page tbody td .font-medium {
-    @apply text-slate-950;
+    color: var(--text-main);
   }
 
   .resums-page .badge,
@@ -405,8 +572,102 @@
   }
 
   .resums-page .metric-card {
-    @apply rounded-lg border-slate-200 bg-white shadow-sm;
+    background: var(--surface);
+    border-color: var(--border-soft);
+    box-shadow: var(--card-shadow-soft);
   }
+}
+
+/* Light theme bridge for Tailwind-heavy templates. It gives old bg-white/border/shadow
+   cards the same pastel surface without editing every component at once. */
+html:not(.dark) .card,
+html:not(.dark) .form-section,
+html:not(.dark) .list-container,
+html:not(.dark) .metric-card,
+html:not(.dark) .admin-commandbar,
+html:not(.dark) .rounded-lg.border.bg-white,
+html:not(.dark) .rounded-xl.border.bg-white,
+html:not(.dark) .overflow-hidden.rounded-lg.border.bg-white,
+html:not(.dark) .overflow-hidden.rounded-xl.border.bg-white {
+  background: var(--surface);
+  border-color: var(--border-soft);
+  box-shadow: var(--card-shadow);
+}
+
+html:not(.dark) .shadow-sm:is(.card, .metric-card, .rounded-lg, .rounded-xl, .overflow-hidden) {
+  box-shadow: var(--card-shadow-soft);
+}
+
+html:not(.dark) .border-slate-200:is(.card, .rounded-lg, .rounded-xl, .overflow-hidden, section) {
+  border-color: var(--border-soft);
+}
+
+html:not(.dark) .bg-slate-50:not(.app-nav-tabs),
+html:not(.dark) .bg-gray-50 {
+  background-color: var(--surface-soft);
+}
+
+html:not(.dark) .bg-slate-100:not(.app-nav-tabs),
+html:not(.dark) .bg-gray-100 {
+  background-color: var(--surface-muted);
+}
+
+.dark .admin-flow-panel {
+  background:
+    linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(49, 46, 129, 0.38)),
+    var(--surface);
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--border-soft));
+}
+
+.dark .admin-flow-current,
+.dark .admin-flow-step {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: var(--border-soft);
+}
+
+.dark .admin-flow-step:hover {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border-soft));
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.24);
+}
+
+.dark .admin-flow-step-active {
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.34), rgba(15, 23, 42, 0.88));
+  border-color: color-mix(in srgb, var(--primary) 48%, var(--border-soft));
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
+}
+
+.dark .admin-flow-step-warning {
+  background: linear-gradient(135deg, rgba(120, 53, 15, 0.34), rgba(15, 23, 42, 0.88));
+  border-color: color-mix(in srgb, #f59e0b 42%, var(--border-soft));
+}
+
+.dark .admin-flow-step-muted {
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.dark .admin-flow-number {
+  background: rgba(147, 197, 253, 0.14);
+  color: #bfdbfe;
+}
+
+.dark .admin-flow-badge-ok {
+  @apply bg-emerald-900/50 text-emerald-200;
+}
+
+.dark .admin-flow-badge-warning {
+  @apply bg-amber-900/50 text-amber-200;
+}
+
+.dark .admin-flow-badge-info {
+  @apply bg-sky-900/50 text-sky-200;
+}
+
+.dark .admin-flow-badge-accent {
+  @apply bg-orange-900/50 text-orange-200;
+}
+
+.dark .admin-flow-badge-muted {
+  @apply bg-slate-800 text-slate-200;
 }
 
 /* Central dark-mode bridge for existing Tailwind-heavy templates.
@@ -741,7 +1002,7 @@
 
   /* Contingut sense padding extra */
   .form-container, .resums-page,
-  .fulla-repartiment { padding: 0 !important; margin: 0 !important; }
+  .fulla-distribucio { padding: 0 !important; margin: 0 !important; }
 
   /* ── Capçalera del document ── */
   .print-doc-header {
@@ -809,20 +1070,20 @@
   tr { page-break-inside: avoid; }
 
   /* Amplades de columna per a la taula de professors */
-  .fulla-repartiment table th:nth-child(1),
-  .fulla-repartiment table td:nth-child(1) { width: 18%; }
-  .fulla-repartiment table th:nth-child(2),
-  .fulla-repartiment table td:nth-child(2) { width: auto; }
-  .fulla-repartiment table th:nth-child(3),
-  .fulla-repartiment table td:nth-child(3),
-  .fulla-repartiment table th:nth-child(4),
-  .fulla-repartiment table td:nth-child(4),
-  .fulla-repartiment table th:nth-child(5),
-  .fulla-repartiment table td:nth-child(5),
-  .fulla-repartiment table th:nth-child(6),
-  .fulla-repartiment table td:nth-child(6) { width: 7%; text-align: center; }
-  .fulla-repartiment table th:last-child,
-  .fulla-repartiment table td:last-child { width: 14%; text-align: center; }
+  .fulla-distribucio table th:nth-child(1),
+  .fulla-distribucio table td:nth-child(1) { width: 18%; }
+  .fulla-distribucio table th:nth-child(2),
+  .fulla-distribucio table td:nth-child(2) { width: auto; }
+  .fulla-distribucio table th:nth-child(3),
+  .fulla-distribucio table td:nth-child(3),
+  .fulla-distribucio table th:nth-child(4),
+  .fulla-distribucio table td:nth-child(4),
+  .fulla-distribucio table th:nth-child(5),
+  .fulla-distribucio table td:nth-child(5),
+  .fulla-distribucio table th:nth-child(6),
+  .fulla-distribucio table td:nth-child(6) { width: 7%; text-align: center; }
+  .fulla-distribucio table th:last-child,
+  .fulla-distribucio table td:last-child { width: 14%; text-align: center; }
 
   /* Accent esquerre per estat professor */
   tr[class*="border-l-emerald"] td:first-child { border-left: 2.5pt solid #10b981 !important; }
@@ -847,8 +1108,8 @@
   /* Classes sense assignar */
   .classes-sense-assignar { margin-top: 0.4cm; }
 
-  /* ── Departament: sempre imprimeix el full de treball, mai el repartiment ── */
-  #panel-repartiment, #panel-aleatori { display: none !important; }
+  /* ── Departament: sempre imprimeix el full de treball, mai la distribució ── */
+  #panel-distribucio, #panel-aleatori { display: none !important; }
   #panel-fulla { display: block !important; }
 
   /* ── Taula compacta de grups (print-only) ── */

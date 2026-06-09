@@ -10,6 +10,35 @@
     </div>
 
     <div
+      v-if="classesDepartament.length > 0"
+      class="card p-3"
+    >
+      <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">
+        Cerca classes
+        <input
+          v-model="cerca"
+          type="search"
+          class="form-input mt-1.5 py-1.5 text-sm"
+          placeholder="Matèria, curs, grup, tipus..."
+        />
+      </label>
+      <div class="mt-3 grid grid-cols-3 gap-2 text-center">
+        <div class="rounded-md bg-blue-50 px-2 py-1.5 ring-1 ring-blue-100">
+          <div class="text-sm font-bold text-blue-900">{{ classesFiltrades.length }}</div>
+          <div class="text-[10px] font-semibold uppercase tracking-wide text-blue-700">Visibles</div>
+        </div>
+        <div class="rounded-md bg-orange-50 px-2 py-1.5 ring-1 ring-orange-100">
+          <div class="text-sm font-bold text-orange-900">{{ classesSenseAssignarFiltrades.length }}</div>
+          <div class="text-[10px] font-semibold uppercase tracking-wide text-orange-700">Pendents</div>
+        </div>
+        <div class="rounded-md bg-emerald-50 px-2 py-1.5 ring-1 ring-emerald-100">
+          <div class="text-sm font-bold text-emerald-900">{{ classesAssignadesFiltrades.length }}</div>
+          <div class="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Fetes</div>
+        </div>
+      </div>
+    </div>
+
+    <div
       v-if="error"
       class="flex items-center justify-between rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800"
     >
@@ -26,19 +55,26 @@
       <span>Totes les classes assignades</span>
     </div>
 
+    <div
+      v-if="classesDepartament.length > 0 && classesFiltrades.length === 0"
+      class="rounded-lg border border-slate-200 bg-white p-5 text-center text-sm font-medium text-slate-500"
+    >
+      Cap classe coincideix amb la cerca.
+    </div>
+
     <!-- Pendents -->
     <div
-      v-if="classesSenseAssignar.length > 0"
+      v-if="classesSenseAssignarFiltrades.length > 0"
       class="overflow-hidden card shadow-danger-glow"
     >
       <div class="border-b border-slate-200 bg-danger/5 px-3 py-2">
         <h4 class="text-sm font-bold text-slate-950">
-          Pendents d'assignar ({{ classesSenseAssignar.length }})
+          Pendents d'assignar ({{ classesSenseAssignarFiltrades.length }}<span v-if="cercaNormalitzada">/{{ classesSenseAssignar.length }}</span>)
         </h4>
       </div>
       <div class="divide-y divide-slate-100">
         <div
-          v-for="classe in classesSenseAssignar"
+          v-for="classe in classesSenseAssignarFiltrades"
           :key="classe.id"
           class="px-3 py-2"
         >
@@ -68,9 +104,12 @@
               :value="professor.nom"
               :disabled="esConflicteSuport(classe, professor.nom)"
             >
-              {{ professor.nom }} · {{ calcularHoresProfessor(professor.nom) }}h{{ esConflicteSuport(classe, professor.nom) ? ' (ja té el grup)' : '' }}
+              {{ opcioProfessorText(classe, professor.nom) }}{{ esConflicteSuport(classe, professor.nom) ? ' (ja té el grup)' : '' }}
             </option>
           </select>
+          <p v-if="classe.professors?.length" class="mt-1 text-xs font-medium text-slate-500">
+            Assignació actual: {{ classe.professors.join(', ') }}
+          </p>
           <select
             v-if="esOptativaCompartidaClasse(classe)"
             :value="professorSecundariClasse(classe)"
@@ -86,7 +125,7 @@
               :value="professor.nom"
               :disabled="professor.nom === professorPrincipalClasse(classe)"
             >
-              {{ professor.nom }} · {{ calcularHoresProfessor(professor.nom) }}h
+              {{ opcioProfessorText(classe, professor.nom, 1) }}
             </option>
           </select>
         </div>
@@ -95,17 +134,17 @@
 
     <!-- Assignades -->
     <div
-      v-if="classesAssignades.length > 0"
+      v-if="classesAssignadesFiltrades.length > 0"
       class="overflow-hidden card shadow-success-glow"
     >
       <div class="border-b border-slate-200 bg-success/5 px-3 py-2">
         <h4 class="text-sm font-bold text-slate-950">
-          Assignades ({{ classesAssignades.length }})
+          Assignades ({{ classesAssignadesFiltrades.length }}<span v-if="cercaNormalitzada">/{{ classesAssignades.length }}</span>)
         </h4>
       </div>
       <div class="divide-y divide-slate-100">
         <div
-          v-for="classe in classesAssignades"
+          v-for="classe in classesAssignadesFiltrades"
           :key="classe.id"
           class="px-3 py-2"
         >
@@ -136,7 +175,7 @@
               :value="professor.nom"
               :disabled="professor.nom === professorPrincipalClasse(classe)"
             >
-              {{ professor.nom }} · {{ calcularHoresProfessor(professor.nom) }}h
+              {{ opcioProfessorText(classe, professor.nom, 1) }}
             </option>
           </select>
           <div class="flex items-center gap-1">
@@ -154,7 +193,7 @@
                 :value="professor.nom"
                 :disabled="esConflicteSuport(classe, professor.nom)"
               >
-                {{ professor.nom }} · {{ calcularHoresProfessor(professor.nom) }}h{{ esConflicteSuport(classe, professor.nom) ? ' (ja té el grup)' : '' }}
+                {{ opcioProfessorText(classe, professor.nom) }}{{ esConflicteSuport(classe, professor.nom) ? ' (ja té el grup)' : '' }}
               </option>
             </select>
             <button
@@ -220,6 +259,7 @@ const cursStore = useCursStore();
 const classes = ref([]);
 const professors = ref([]);
 const error = ref(null);
+const cerca = ref('');
 
 let classesUnsubscribe = null;
 let professorsUnsubscribe = null;
@@ -247,6 +287,23 @@ const classesAssignades = computed(() =>
       classeCompletamentAssignada(classe) &&
       !exclosaDelRepartiment(classe.tipus)
   )
+);
+
+const cercaNormalitzada = computed(() => normalitzarCerca(cerca.value));
+
+const classesFiltrades = computed(() => {
+  if (!cercaNormalitzada.value) return classesDepartament.value;
+  return classesDepartament.value.filter((classe) =>
+    normalitzarCerca(formatClasseCerca(classe)).includes(cercaNormalitzada.value)
+  );
+});
+
+const classesSenseAssignarFiltrades = computed(() =>
+  classesSenseAssignar.value.filter((classe) => classesFiltrades.value.includes(classe))
+);
+
+const classesAssignadesFiltrades = computed(() =>
+  classesAssignades.value.filter((classe) => classesFiltrades.value.includes(classe))
 );
 
 const professorsDepartamentOrdenats = computed(() =>
@@ -295,6 +352,27 @@ function formatClasseLabel(classe) {
   return [classe.materia, formatGrup(classe)].filter(Boolean).join(' ');
 }
 
+function formatClasseCerca(classe) {
+  return [
+    classe.curs,
+    classe.grup,
+    classe.materia,
+    classe.departament,
+    classe.tipus,
+    getTipusLabel(classe.tipus),
+    ...(classe.professors || []),
+  ].filter(Boolean).join(' ');
+}
+
+function normalitzarCerca(text) {
+  return (text || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
 function netejarGrupBuit(valor) {
   const text = (valor || '').toString().trim();
   return /^sense grup( assignat)?$/i.test(text) ? '' : text;
@@ -320,6 +398,59 @@ function esConflicteSuport(classe, nomProfessor) {
 
 function calcularHoresProfessor(nomProfessor) {
   return horesPorProfessorMap.value.get(nomProfessor) || 0;
+}
+
+function horesClasseAmbProfessors(classe, professorsAssignats) {
+  const profs = professorsAssignats.filter(Boolean);
+  if (esOptativaCompartidaClasse(classe) && profs.length > 1) {
+    return (Number(classe.hores) || 0) / profs.length;
+  }
+  return Number(classe.hores) || 0;
+}
+
+function professorsAmbAssignacio(classe, nomProfessor, index = 0) {
+  if (index === 0 && !esOptativaCompartidaClasse(classe)) {
+    return nomProfessor ? [nomProfessor] : [];
+  }
+  const profs = professorsClasse(classe);
+  profs[index] = nomProfessor;
+  return profs.filter(Boolean);
+}
+
+function horesResultantsProfessor(classe, nomProfessor, index = 0) {
+  const actuals = professorsClasse(classe);
+  const noves = professorsAmbAssignacio(classe, nomProfessor, index);
+  const totalActual = calcularHoresProfessor(nomProfessor);
+  const horesActualsClasse = actuals.includes(nomProfessor)
+    ? horesClasseAmbProfessors(classe, actuals)
+    : 0;
+  const horesNovesClasse = noves.includes(nomProfessor)
+    ? horesClasseAmbProfessors(classe, noves)
+    : 0;
+
+  return totalActual - horesActualsClasse + horesNovesClasse;
+}
+
+function estatHoresProfessor(nomProfessor, hores) {
+  const limits = limitsHoresProfessor(getProfessor(nomProfessor));
+  if (hores > limits.maxim) return `excedeix ${formatHores(limits.maxim)}h`;
+  if (hores > limits.ideal) return `sobre ${formatHores(limits.ideal)}h`;
+  if (hores === limits.ideal) return 'ideal';
+  return `${formatHores(limits.ideal - hores)}h fins ideal`;
+}
+
+function formatHores(value) {
+  const rounded = Math.round((Number(value) || 0) * 10) / 10;
+  return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1);
+}
+
+function opcioProfessorText(classe, nomProfessor, index = 0) {
+  const actual = calcularHoresProfessor(nomProfessor);
+  const resultat = horesResultantsProfessor(classe, nomProfessor, index);
+  const canvi = resultat === actual
+    ? `${formatHores(actual)}h`
+    : `${formatHores(actual)}h -> ${formatHores(resultat)}h`;
+  return `${nomProfessor} · ${canvi} · ${estatHoresProfessor(nomProfessor, resultat)}`;
 }
 
 function getProfessor(nomProfessor) {

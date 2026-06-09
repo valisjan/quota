@@ -6,7 +6,7 @@
  Validació final
  </h2>
  <p class="mt-1 text-base text-slate-700">
- Revisió del repartiment abans de donar-lo per tancat.
+ Revisió de la distribució abans de donar-la per tancada.
  </p>
  </div>
  <div class="flex flex-wrap gap-2 text-sm">
@@ -168,7 +168,7 @@ const blocs = computed(() => [
  {
  id: 'critiques',
  title: 'Incidències crítiques',
- description: "S'haurien de resoldre abans de tancar el repartiment.",
+ description: "S'haurien de resoldre abans de tancar la distribució.",
  items: [...critiques.value, ...critiquesProfessorat.value],
  borderClass: 'border-red-200 ',
  headerClass: 'bg-red-200 text-red-950',
@@ -184,7 +184,7 @@ const blocs = computed(() => [
  {
  id: 'organitzacio',
  title: "Avisos d'organització",
- description: 'Tutories emparellades, tancaments i coherència del repartiment.',
+ description: 'Tutories emparellades, tancaments i coherència de la distribució.',
  items: avisosOrganitzacio.value,
  borderClass: 'border-blue-200 ',
  headerClass: 'bg-blue-200 text-blue-950',

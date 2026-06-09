@@ -3,7 +3,7 @@
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex flex-col gap-2">
         <p class="text-sm text-slate-700">
-          Proposta orientativa de repartiment. No modifica les dades actuals.
+          Proposta orientativa de distribució. No modifica les dades actuals.
         </p>
         <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
           <input
@@ -11,7 +11,7 @@
             v-model="partirActual"
             class="h-4 w-4 rounded border-slate-300 accent-primary"
           />
-          Partir del repartiment actual (manté les classes ja assignades)
+          Partir de la distribució actual (manté les classes ja assignades)
         </label>
         <p v-if="proposta" class="text-xs text-slate-500">
           Millor resultat de {{ iteracionsProvades }} combinacions ·
@@ -84,7 +84,7 @@
             class="mt-1 text-[11px] font-semibold leading-snug"
             :class="totalHoresPerRepartir === 0 ? 'text-green-700' : 'text-rose-600'"
           >
-            {{ totalHoresPerRepartir }}h per repartir
+            {{ totalHoresPerRepartir }}h per distribuir
           </div>
         </div>
       </div>

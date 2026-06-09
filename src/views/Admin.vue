@@ -11,14 +11,14 @@
         </div>
 
         <nav class="admin-nav">
-          <router-link
+          <button
             v-for="tab in tabs"
             :key="tab.path"
-            :to="tab.path"
+            type="button"
             class="admin-nav-item relative"
             :class="{ 'admin-nav-item-active': isActive(tab) }"
-            :style="isActive(tab) ? { '--section-color': tab.color } : null"
             :title="tab.nom"
+            @click="anarAdmin(tab.path)"
           >
             <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" :d="tab.icon" />
@@ -33,7 +33,7 @@
               title="Canvis pendents a Google Sheets"
               aria-hidden="true"
             ></span>
-          </router-link>
+          </button>
         </nav>
 
         <!-- Compact user area visible only on mobile -->
@@ -68,7 +68,7 @@
     </aside>
 
     <section class="admin-workspace">
-      <header class="admin-commandbar" :style="{ borderTop: '4px solid ' + colorActual }">
+      <header class="admin-commandbar">
         <div>
           <p class="text-sm font-medium text-slate-600">
             Administració
@@ -87,6 +87,40 @@
           compact
         />
       </header>
+
+      <section class="admin-flow-panel" aria-label="Flux de treball d'administració">
+        <div class="admin-flow-heading">
+          <div>
+            <p class="admin-flow-kicker">Flux de treball</p>
+            <h3 class="admin-flow-title-main">Administració del curs</h3>
+          </div>
+          <span class="admin-flow-current">{{ etiquetaCursActiu }}</span>
+        </div>
+
+        <div class="admin-flow">
+          <button
+            v-for="(pas, index) in passosAdministracio"
+            :key="pas.path"
+            type="button"
+            class="admin-flow-step"
+            :class="{
+              'admin-flow-step-active': isActive(pas),
+              'admin-flow-step-warning': pas.estat === 'warning',
+              'admin-flow-step-muted': pas.estat === 'neutral',
+            }"
+            @click="anarAdmin(pas.path)"
+          >
+            <span class="admin-flow-number">{{ index + 1 }}</span>
+            <span class="admin-flow-copy">
+              <span class="admin-flow-title">{{ pas.nom }}</span>
+              <span class="admin-flow-help">{{ pas.workflowHelp }}</span>
+            </span>
+            <span class="admin-flow-badge" :class="pas.badgeClass">
+              {{ pas.badge }}
+            </span>
+          </button>
+        </div>
+      </section>
 
       <section
         v-if="mostrarAvisDesactualitzat"
@@ -205,7 +239,7 @@ const tabs = [
     color: '#0024B6',
     icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 0 1 9.75 19.875V8.625ZM16.5 4.125C16.5 3.504 17.004 3 17.625 3h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z',
     help: 'Validació',
-    descripcio: 'Revisa estat global, validació final i informes interns del repartiment.',
+    descripcio: 'Revisa estat global, validació final i informes interns de la distribució.',
   },
   {
     path: '/admin/tancament',
@@ -220,8 +254,8 @@ const tabs = [
     nom: 'Paràmetres',
     color: '#0024B6',
     icon: 'M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.36.78.757.943.097.04.193.08.287.126.38.184.828.139 1.17-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.247.342-.292.79-.108 1.17.046.094.086.19.126.287.163.397.519.687.943.757l.894.149c.542.09.94.56.94 1.11v1.093c0 .55-.398 1.02-.94 1.11l-.894.149c-.424.07-.78.36-.943.757-.04.097-.08.193-.126.287-.184.38-.139.828.108 1.17l.527.737c.32.448.27 1.061-.12 1.45l-.773.774a1.125 1.125 0 0 1-1.45.12l-.737-.527c-.342-.247-.79-.292-1.17-.108a6.52 6.52 0 0 1-.287.126c-.397.163-.687.519-.757.943l-.149.894c-.09.542-.56.94-1.11.94h-1.093c-.55 0-1.02-.398-1.11-.94l-.149-.894c-.07-.424-.36-.78-.757-.943a6.52 6.52 0 0 1-.287-.126c-.38-.184-.828-.139-1.17.108l-.737.527a1.125 1.125 0 0 1-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.247-.342.292-.79.108-1.17a6.52 6.52 0 0 1-.126-.287c-.163-.397-.519-.687-.943-.757l-.894-.149a1.125 1.125 0 0 1-.94-1.11v-1.093c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.78-.36.943-.757.04-.097.08-.193.126-.287.184-.38.139-.828-.108-1.17l-.527-.737a1.125 1.125 0 0 1 .12-1.45l.773-.774a1.125 1.125 0 0 1 1.45-.12l.737.527c.342.247.79.292 1.17.108.094-.046.19-.086.287-.126.397-.163.687-.519.757-.943l.149-.894ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
-    help: 'Repartiment',
-    descripcio: 'Configura paràmetres generals del repartiment del curs.',
+    help: 'Distribució',
+    descripcio: 'Configura paràmetres generals de la distribució del curs.',
   },
   {
     path: '/admin/untis',
@@ -242,7 +276,6 @@ const tabs = [
 ];
 
 const pestanyaActual = computed(() => tabs.find((tab) => isActive(tab)) || tabs[0]);
-const colorActual = computed(() => pestanyaActual.value?.color || '#0024B6');
 const mostrarAvisDesactualitzat = computed(() => actualitzacioSheets.value?.desactualitzat === true);
 const mostrarBotoAvisSincronitzar = computed(() =>
   mostrarAvisDesactualitzat.value && route.path !== '/admin/dades'
@@ -265,7 +298,7 @@ const detallAvisActualitzacio = computed(() => {
     const total = canvis.totalCanvis === 1 ? '1 canvi' : `${canvis.totalCanvis} canvis`;
     return `${verb} ${total} a Classes: ${resumRecompteCanvis(canvis)}.`;
   }
-  return `Google Sheets té canvis pendents a Classes (${classes} files). Sincronitza abans de repartir o exportar.`;
+  return `Google Sheets té canvis pendents a Classes (${classes} files). Sincronitza abans de distribuir o exportar.`;
 });
 
 const detallsAvisActualitzacio = computed(() => {
@@ -287,9 +320,68 @@ const etiquetaRol = computed(() => {
 const inicialUsuari = computed(() =>
   (authStore.usuari || authStore.email || authStore.rol || 'U').toString().trim().charAt(0).toUpperCase()
 );
+const etiquetaCursActiu = computed(() =>
+  cursStore.cursActiu?.nom || cursStore.cursActiu?.id || cursStore.cursActiuId || 'Sense curs actiu'
+);
+const passosAdministracio = computed(() => tabs.map((tab) => {
+  const badge = badgePasAdministracio(tab.path);
+  return {
+    ...tab,
+    workflowHelp: helpPasAdministracio(tab.path, tab.help),
+    estat: estatPasAdministracio(tab.path),
+    badge: badge.text,
+    badgeClass: badge.class,
+  };
+}));
 
 function isActive(tab) {
   return route.path === tab.path || tab.aliases?.includes(route.path);
+}
+
+function anarAdmin(path) {
+  if (!path || route.path === path) return;
+  router.push(path);
+}
+
+function estatPasAdministracio(path) {
+  if (path === '/admin/dades' && mostrarAvisDesactualitzat.value) return 'warning';
+  if (path === '/admin/cursos' && !cursStore.cursActiuId) return 'warning';
+  if (path === '/admin/usuaris') return 'neutral';
+  return 'ready';
+}
+
+function badgePasAdministracio(path) {
+  if (path === '/admin/cursos') {
+    return cursStore.cursActiuId
+      ? { text: 'Actiu', class: 'admin-flow-badge-ok' }
+      : { text: 'Pendent', class: 'admin-flow-badge-warning' };
+  }
+  if (path === '/admin/dades') {
+    return mostrarAvisDesactualitzat.value
+      ? { text: 'Revisar', class: 'admin-flow-badge-warning' }
+      : { text: 'Al dia', class: 'admin-flow-badge-ok' };
+  }
+  const badges = {
+    '/admin/seguiment': { text: 'Control', class: 'admin-flow-badge-info' },
+    '/admin/tancament': { text: 'Final', class: 'admin-flow-badge-accent' },
+    '/admin/parametres': { text: 'Regles', class: 'admin-flow-badge-info' },
+    '/admin/untis': { text: 'Sortida', class: 'admin-flow-badge-ok' },
+    '/admin/usuaris': { text: 'Accés', class: 'admin-flow-badge-muted' },
+  };
+  return badges[path] || { text: 'Obrir', class: 'admin-flow-badge-muted' };
+}
+
+function helpPasAdministracio(path, fallback) {
+  const ajudes = {
+    '/admin/cursos': 'Tria o crea el curs actiu.',
+    '/admin/dades': 'Importa i valida la base abans de distribuir.',
+    '/admin/seguiment': 'Detecta desviacions i punts pendents.',
+    '/admin/tancament': 'Bloqueja quan la distribució estigui revisada.',
+    '/admin/parametres': 'Ajusta regles, hores i connexions.',
+    '/admin/untis': 'Prepara els fitxers finals.',
+    '/admin/usuaris': 'Mantén rols i permisos.',
+  };
+  return ajudes[path] || fallback;
 }
 
 function formatDataHora(ts) {

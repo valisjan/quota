@@ -1,5 +1,5 @@
 <template>
-  <div class="fulla-repartiment">
+  <div class="fulla-distribucio">
     <!-- Capçalera pantalla (oculta en impressió) -->
     <div class="print-hide mb-4 flex items-center justify-between">
       <p class="text-sm text-slate-600 dark:text-slate-400">
@@ -373,11 +373,11 @@ function imprimir() {
 
 function exportarExcel() {
   const data = new Date().toLocaleDateString('ca-ES');
-  const nomFitxer = `repartiment_${props.departament}_${new Date().toISOString().slice(0, 10)}`;
+  const nomFitxer = `distribucio_${props.departament}_${new Date().toISOString().slice(0, 10)}`;
 
   // Full 1: Resum per professor
-  const capRepartiment = ['Professor', 'H. Lectives', 'GP', 'PALIC', 'Total', 'Estat'];
-  const filesRepartiment = props.professors.map((p) => [
+  const capDistribucio = ['Professor', 'H. Lectives', 'GP', 'PALIC', 'Total', 'Estat'];
+  const filesDistribucio = props.professors.map((p) => [
     p.nom,
     props.calcularHoresProfessor(p.nom),
     props.getHoresGp(p.nom) || 0,
@@ -385,14 +385,14 @@ function exportarExcel() {
     totalComputable(p.nom),
     estatText(p),
   ]);
-  filesRepartiment.push(['TOTAL', props.totalHoresAssignades, props.totalGpAssignades, props.totalPalicAssignades, '', '']);
+  filesDistribucio.push(['TOTAL', props.totalHoresAssignades, props.totalGpAssignades, props.totalPalicAssignades, '', '']);
 
-  const fullRepartiment = [
-    [`Full de repartiment - ${props.departament}`, '', '', '', '', ''],
+  const fullDistribucio = [
+    [`Full de distribució - ${props.departament}`, '', '', '', '', ''],
     [`Data: ${data}`, '', '', '', '', ''],
     [],
-    capRepartiment,
-    ...filesRepartiment,
+    capDistribucio,
+    ...filesDistribucio,
   ];
 
   // Full 2: Detall d'assignacions
@@ -416,7 +416,7 @@ function exportarExcel() {
     : [['(Totes les classes estan assignades)', '', '', '', '']];
 
   descarregarExcel([
-    { nom: 'Repartiment', dades: fullRepartiment },
+    { nom: 'Distribució', dades: fullDistribucio },
     { nom: 'Assignacions', dades: [capAssig, ...filesAssig] },
     { nom: 'Sense assignar', dades: [capSense, ...filesSense] },
   ], nomFitxer);
@@ -428,11 +428,11 @@ function exportarExcel() {
   body > * {
     visibility: hidden;
   }
-  .fulla-repartiment,
-  .fulla-repartiment * {
+  .fulla-distribucio,
+  .fulla-distribucio * {
     visibility: visible;
   }
-  .fulla-repartiment {
+  .fulla-distribucio {
     position: absolute;
     inset: 0;
     padding: 1.5rem;
