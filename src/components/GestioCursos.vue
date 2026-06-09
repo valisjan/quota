@@ -21,6 +21,32 @@
       </p>
     </div>
 
+    <div class="card p-5">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 class="font-bold text-slate-950">Neteja d'assignacions</h3>
+          <p class="mt-1 text-sm text-slate-600">
+            Reinicia el repartiment del curs actiu sense esborrar les dades importades.
+          </p>
+          <p class="mt-2 text-xs font-semibold text-slate-500">
+            Curs actiu: {{ etiquetaCursActiu }}
+          </p>
+        </div>
+        <button
+          type="button"
+          @click="confirmarBorratAssignacions(cursActiuPerOperacions)"
+          :disabled="!cursActiuPerOperacions || Boolean(eliminantAssignacions)"
+          class="shrink-0 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+        >
+          {{ eliminantAssignacions ? 'Esborrant...' : 'Esborrar assignacions' }}
+        </button>
+      </div>
+      <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-900">
+        Es buidaran professors assignats a classes, tutories, suports, desdoblaments, optatives i coordinacions.
+        També es reiniciaran les guàrdies de pati i PALIC assignades al professorat.
+      </div>
+    </div>
+
     <div class="overflow-hidden card">
       <div class="border-b border-slate-300 bg-slate-200 px-5 py-4">
         <h3 class="font-bold text-slate-950">Curs acadèmic</h3>
@@ -79,6 +105,65 @@
               {{ eliminant === curs.id ? 'Esborrant...' : 'Borrat total' }}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="cursAssignacionsABorrar"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      @click.self="tancarBorratAssignacions"
+    >
+      <div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+        <h4 class="text-lg font-semibold text-red-700">Esborrar assignacions</h4>
+        <p class="mt-2 text-sm text-slate-700">
+          Aquesta acció deixarà sense professor assignat totes les classes i activitats del curs
+          <strong>{{ cursAssignacionsABorrar.nom || cursAssignacionsABorrar.id }}</strong>.
+          No elimina classes, professorat, departaments, configuració, usuaris ni historial de sincronització.
+        </p>
+
+        <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <template v-if="carregantResumAssignacions">
+            Calculant assignacions actuals...
+          </template>
+          <template v-else-if="errorResumAssignacions">
+            No s'ha pogut calcular el resum: {{ errorResumAssignacions }}
+          </template>
+          <template v-else-if="resumAssignacions">
+            Es netejaran {{ resumAssignacions.classesAmbAssignacions }} classes amb professorat assignat,
+            {{ resumAssignacions.participantsCoordinacio }} participants de coordinacions,
+            {{ resumAssignacions.gpAssignades }} guàrdies de pati i
+            {{ resumAssignacions.palicAssignades }} hores PALIC.
+          </template>
+        </div>
+
+        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          No es pot desfer. Escriu exactament
+          <strong>{{ textConfirmacioAssignacions }}</strong>
+          per activar el botó.
+        </div>
+        <input
+          v-model="confirmacioAssignacions"
+          type="text"
+          class="mt-4 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-primary focus:ring-red-100"
+          :placeholder="textConfirmacioAssignacions"
+          @keyup.enter="potConfirmarAssignacions && eliminarAssignacions(cursAssignacionsABorrar)"
+        />
+        <div class="mt-5 flex justify-end gap-3">
+          <button
+            @click="tancarBorratAssignacions"
+            :disabled="Boolean(eliminantAssignacions)"
+            class="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Cancel·lar
+          </button>
+          <button
+            @click="eliminarAssignacions(cursAssignacionsABorrar)"
+            :disabled="!potConfirmarAssignacions || carregantResumAssignacions || Boolean(errorResumAssignacions) || eliminantAssignacions === cursAssignacionsABorrar.id"
+            class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {{ eliminantAssignacions === cursAssignacionsABorrar.id ? 'Esborrant...' : 'Esborrar assignacions' }}
+          </button>
         </div>
       </div>
     </div>
@@ -145,14 +230,25 @@
 import { ref, computed } from 'vue';
 import { useCursStore } from '../stores/curs';
 import { useToastStore } from '../stores/toast';
+import {
+  eliminarAssignacionsCurs,
+  obtenirResumAssignacionsCurs,
+} from '../services/assignacionsCleanup';
 
 const cursStore = useCursStore();
 const toast = useToastStore();
 const creant = ref(false);
 const eliminant = ref(null);
+const eliminantAssignacions = ref(null);
 const cursABorrarTotal = ref(null);
+const cursAssignacionsABorrar = ref(null);
 const confirmacioBorratTotal = ref('');
+const confirmacioAssignacions = ref('');
 const eliminarPreautoritzats = ref(true);
+const resumAssignacions = ref(null);
+const carregantResumAssignacions = ref(false);
+const errorResumAssignacions = ref('');
+const textConfirmacioAssignacions = 'ESBORRAR ASSIGNACIONS';
 
 const cursSeguent = computed(() => {
   if (cursStore.cursos.length === 0) return '2025/2026';
@@ -170,12 +266,24 @@ const cursJaExisteix = computed(() =>
   )
 );
 
+const cursActiuPerOperacions = computed(() =>
+  cursStore.cursActiu || (cursStore.cursActiuId ? { id: cursStore.cursActiuId, nom: cursStore.cursActiuId } : null)
+);
+
+const etiquetaCursActiu = computed(() =>
+  cursActiuPerOperacions.value ? (cursActiuPerOperacions.value.nom || cursActiuPerOperacions.value.id) : 'cap curs seleccionat'
+);
+
 const textConfirmacioBorrat = computed(() =>
   cursABorrarTotal.value ? (cursABorrarTotal.value.nom || cursABorrarTotal.value.id) : ''
 );
 
 const potConfirmarBorrat = computed(() =>
   confirmacioBorratTotal.value.trim() === textConfirmacioBorrat.value
+);
+
+const potConfirmarAssignacions = computed(() =>
+  confirmacioAssignacions.value.trim().toUpperCase() === textConfirmacioAssignacions
 );
 
 async function crearCurs() {
@@ -212,6 +320,59 @@ function tancarBorratTotal() {
   cursABorrarTotal.value = null;
   confirmacioBorratTotal.value = '';
   eliminarPreautoritzats.value = true;
+}
+
+async function confirmarBorratAssignacions(curs) {
+  if (!curs?.id) return;
+  cursAssignacionsABorrar.value = curs;
+  confirmacioAssignacions.value = '';
+  resumAssignacions.value = null;
+  errorResumAssignacions.value = '';
+  carregantResumAssignacions.value = true;
+
+  try {
+    const resum = await obtenirResumAssignacionsCurs(curs.id);
+    if (cursAssignacionsABorrar.value?.id === curs.id) {
+      resumAssignacions.value = resum;
+    }
+  } catch (e) {
+    if (cursAssignacionsABorrar.value?.id === curs.id) {
+      errorResumAssignacions.value = e.message || String(e);
+    }
+  } finally {
+    if (cursAssignacionsABorrar.value?.id === curs.id) {
+      carregantResumAssignacions.value = false;
+    }
+  }
+}
+
+function tancarBorratAssignacions() {
+  if (eliminantAssignacions.value) return;
+  cursAssignacionsABorrar.value = null;
+  confirmacioAssignacions.value = '';
+  resumAssignacions.value = null;
+  errorResumAssignacions.value = '';
+  carregantResumAssignacions.value = false;
+}
+
+async function eliminarAssignacions(curs) {
+  if (!curs?.id || !potConfirmarAssignacions.value || carregantResumAssignacions.value || errorResumAssignacions.value) return;
+  const etiqueta = curs.nom || curs.id;
+  eliminantAssignacions.value = curs.id;
+  try {
+    const resum = await eliminarAssignacionsCurs(curs.id);
+    toast.ok(
+      `Assignacions de ${etiqueta} esborrades: ${resum.classesActualitzades} classes i ${resum.professorsActualitzats} professors reiniciats.`
+    );
+    cursAssignacionsABorrar.value = null;
+    confirmacioAssignacions.value = '';
+    resumAssignacions.value = null;
+    errorResumAssignacions.value = '';
+  } catch (e) {
+    toast.error('Error esborrant assignacions: ' + e.message);
+  } finally {
+    eliminantAssignacions.value = null;
+  }
 }
 
 async function eliminarCurs(curs) {
