@@ -1195,8 +1195,28 @@ html:not(.dark) .bg-gray-100 {
   #panel-fulla { display: block !important; }
 
   /* ── Taula compacta de grups (print-only) ── */
+  .resum-grups-print {
+    display: block !important;
+  }
+
+  table.resum-grups-print-table {
+    font-size: 7pt;
+    line-height: 1.25;
+  }
+
+  table.resum-grups-print-table td {
+    vertical-align: top;
+  }
+
+  table.resum-grups-print-table th:nth-child(3),
+  table.resum-grups-print-table th:nth-child(4),
+  table.resum-grups-print-table td:nth-child(3),
+  table.resum-grups-print-table td:nth-child(4) {
+    text-align: center;
+  }
+
   td.print-curs-sep {
-    background: #dbeafe !important;
+    background: #e0ecff !important;
     color: #1e3a8a !important;
     font-weight: 700;
     font-size: 8pt;
@@ -1204,10 +1224,42 @@ html:not(.dark) .bg-gray-100 {
     padding: 3pt 5pt !important;
     page-break-after: avoid;
   }
+
+  td.print-grup-sep {
+    background: #f8fafc !important;
+    color: #334155 !important;
+    font-weight: 700;
+    font-size: 7.2pt;
+    border: 0.4pt solid #cbd5e1 !important;
+    padding: 2.6pt 5pt !important;
+    page-break-after: avoid;
+  }
+
+  tr.print-materia-multi.print-materia-start > td {
+    border-top: 1.1pt solid #475569 !important;
+  }
+
+  tr.print-materia-multi.print-materia-end > td {
+    border-bottom: 1.1pt solid #475569 !important;
+  }
+
+  tr.print-materia-multi:not(.print-materia-start) > td {
+    border-top: 0.35pt solid #cbd5e1 !important;
+  }
+
+  td.print-block-main {
+    border-top: 1.1pt solid #475569 !important;
+    border-bottom: 1.1pt solid #475569 !important;
+    vertical-align: middle !important;
+  }
+
+  td.print-materia-name {
+    font-weight: 700;
+  }
+
   td.print-unassigned {
     background: #fff1f2 !important;
     color: #991b1b !important;
     font-weight: 600;
   }
-  td.print-grup-first { font-weight: 600; }
 }

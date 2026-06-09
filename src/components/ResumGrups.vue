@@ -184,15 +184,22 @@
  </div><!-- /print-hide -->
 
  <!-- VISTA IMPRESSIÓ: taula compacta (oculta en pantalla) -->
- <div class="print-only">
- <table>
+ <div class="print-only resum-grups-print">
+ <table class="resum-grups-print-table">
+ <colgroup>
+ <col style="width: 8%" />
+ <col style="width: 38%" />
+ <col style="width: 16%" />
+ <col style="width: 8%" />
+ <col style="width: 30%" />
+ </colgroup>
  <thead>
  <tr>
- <th style="width:6%">Grup</th>
+ <th>Grup</th>
  <th>Matèria</th>
- <th style="width:8%;text-align:center">Tipus</th>
- <th style="width:7%;text-align:center">Hores</th>
- <th style="width:30%">Professor/a</th>
+ <th>Tipus</th>
+ <th>Hores</th>
+ <th>Professor/a</th>
  </tr>
  </thead>
  <tbody>
@@ -201,15 +208,36 @@
  <td colspan="5" class="print-curs-sep">{{ curs }}</td>
  </tr>
  <template v-for="(classes, grup) in classesPorGrup" :key="grup + '-p'">
- <tr v-for="classe in classes" :key="classe.id + '-p'">
- <td>{{ grup }}</td>
- <td :class="!classe.professorAssignat ? 'print-unassigned' : ''">{{ classe.materia }}</td>
- <td style="text-align:center">{{ classe.tipus || '—' }}</td>
- <td style="text-align:center">{{ classe.hores }}h</td>
- <td :class="!classe.professorAssignat ? 'print-unassigned' : ''">
- {{ classe.professorAssignat || '⚠ Sense assignar' }}
+ <tr>
+ <td colspan="5" class="print-grup-sep">
+ Grup {{ grup }} · {{ calcularHoresAssignades(classes) }} / {{ calcularTotalHoresGrup(classes) }}h · {{ resumPendentsGrup(classes) }}
  </td>
  </tr>
+ <template v-for="bloc in blocsPrint(classes)" :key="bloc.key">
+ <tr
+ v-for="(classe, index) in bloc.classes"
+ :key="classe.id + '-p'"
+ :class="{
+ 'print-materia-multi': bloc.classes.length > 1,
+ 'print-materia-start': index === 0,
+ 'print-materia-end': index === bloc.classes.length - 1,
+ }"
+ >
+ <td v-if="index === 0" :rowspan="bloc.classes.length" :class="bloc.classes.length > 1 ? 'print-block-main' : ''">{{ grup }}</td>
+ <td
+ v-if="index === 0"
+ :rowspan="bloc.classes.length"
+ :class="[!bloc.assignada ? 'print-unassigned' : '', bloc.classes.length > 1 ? 'print-block-main print-materia-name' : '']"
+ >
+ {{ bloc.materia }}
+ </td>
+ <td>{{ tipusPrint(classe) }}</td>
+ <td v-if="index === 0" :rowspan="bloc.classes.length" :class="bloc.classes.length > 1 ? 'print-block-main' : ''">{{ bloc.horesText }}</td>
+ <td :class="!classeAssignada(classe) ? 'print-unassigned' : ''">
+ {{ professoratClasseText(classe) || 'Sense assignar' }}
+ </td>
+ </tr>
+ </template>
  </template>
  </template>
  <template v-if="coordinationActivities.length > 0">
@@ -218,11 +246,11 @@
  </tr>
  <tr v-for="activity in sortCoordinationActivities(coordinationActivities)" :key="activity.id + '-p'">
  <td>—</td>
- <td>{{ activity.materia }}</td>
- <td style="text-align:center">{{ activity.tipus || '—' }}</td>
- <td style="text-align:center">{{ activity.hores }}h</td>
- <td :class="!activity.professorAssignat ? 'print-unassigned' : ''">
- {{ activity.professorAssignat || '⚠ Sense assignar' }}
+ <td :class="!classeAssignada(activity) ? 'print-unassigned' : ''">{{ formatMateriaVista(activity.materia) }}</td>
+ <td>{{ tipusPrint(activity) }}</td>
+ <td>{{ activity.hores }}h</td>
+ <td :class="!classeAssignada(activity) ? 'print-unassigned' : ''">
+ {{ professoratClasseText(activity) || 'Sense assignar' }}
  </td>
  </tr>
  </template>
@@ -504,6 +532,82 @@ function sortCoordinationActivities(activities) {
  });
 }
 
+function classesOrdenadesPrint(classesDelGrup) {
+ return [...classesDelGrup].sort((a, b) => {
+ const aOpt = esOptativa(normalitzarTipus(a.tipus));
+ const bOpt = esOptativa(normalitzarTipus(b.tipus));
+ if (aOpt !== bOpt) return aOpt ? 1 : -1;
+ const materia = (a.materia || '').localeCompare(b.materia || '', 'ca');
+ if (materia !== 0) return materia;
+ const tipusOrdre = ordreTipusPrint(a) - ordreTipusPrint(b);
+ if (tipusOrdre !== 0) return tipusOrdre;
+ return normalitzarTipus(a.tipus).localeCompare(normalitzarTipus(b.tipus), 'ca');
+ });
+}
+
+function blocsPrint(classesDelGrup) {
+ const blocs = [];
+ const blocsPerClau = new Map();
+ for (const classe of classesOrdenadesPrint(classesDelGrup)) {
+ const key = clauBlocPrint(classe);
+ let bloc = blocsPerClau.get(key);
+ if (!bloc) {
+ bloc = {
+ key,
+ materia: formatMateriaVista(classe.materia),
+ classes: [],
+ };
+ blocsPerClau.set(key, bloc);
+ blocs.push(bloc);
+ }
+ bloc.classes.push(classe);
+ }
+
+ return blocs.map(bloc => {
+ const classesBloc = [...bloc.classes].sort((a, b) => {
+ const ordre = ordreTipusPrint(a) - ordreTipusPrint(b);
+ if (ordre !== 0) return ordre;
+ return normalitzarTipus(a.tipus).localeCompare(normalitzarTipus(b.tipus), 'ca');
+ });
+ return {
+ ...bloc,
+ classes: classesBloc,
+ horesText: horesBlocPrint(classesBloc),
+ assignada: classesBloc.every(classeAssignada),
+ };
+ });
+}
+
+function clauBlocPrint(classe) {
+ const materia = (classe.materia || '').toString().trim();
+ if (!materia) return `classe-${classe.id}`;
+ const tipus = normalitzarTipus(classe.tipus);
+ const franja = esOptativa(tipus) ? clauFranjaOptativa(tipus) : 'materia';
+ return `${franja}::${materia.toLocaleLowerCase('ca-ES')}`;
+}
+
+function ordreTipusPrint(classe) {
+ const tipus = normalitzarTipus(classe.tipus);
+ if (!tipus) return 0;
+ if (tipus === 'S') return 1;
+ if (tipus === 'D' || tipus === 'CD') return 2;
+ if (tipus === 'F') return 3;
+ if (esOptativa(tipus)) return 4;
+ return 5;
+}
+
+function horesBlocPrint(classesBloc) {
+ const horesQueCompten = classesBloc.filter(comptaPerGrup).map(c => Number(c.hores) || 0);
+ const hores = horesQueCompten.length > 0
+ ? horesQueCompten
+ : classesBloc.map(c => Number(c.hores) || 0);
+ return `${Math.max(...hores)}h`;
+}
+
+function tipusPrint(classe) {
+ return classe.tipus ? getTipusLabel(classe.tipus) : 'Titular';
+}
+
 const coordinationActivities = computed(() => {
  return classes.value.filter(c =>
  !['C', 'CO'].includes((c.tipus || '').toString().toUpperCase().trim()) &&
@@ -568,31 +672,7 @@ function cleanupListeners() {
 }
 
 function imprimirGrups() {
- const printWindow = window.open('', '_blank');
- const printContent = document.getElementById('print-grups-content').innerHTML;
- const printHTML = `<!DOCTYPE html><html><head><title>Resum de Grups</title>
-<style>
-body{font-family:Arial,sans-serif;line-height:1.4;color:#333;padding:20px}
-.print-header{text-align:center;margin-bottom:30px;border-bottom:2px solid #333;padding-bottom:15px}
-.print-curs{margin-bottom:30px}
-.curs-header h2{background:#f0f0f0;padding:10px;border-radius:5px}
-.grups-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
-.print-grup{border:1px solid #ddd;border-radius:5px;overflow:hidden;page-break-inside:avoid}
-.grup-header{display:flex;justify-content:space-between;padding:10px;background:#f8f9fa;border-bottom:1px solid #ddd}
-.grup-header h3{margin:0}
-.total-hours{padding:4px 8px;border-radius:4px;font-size:12px;font-weight:bold;background:#e8f5e8;color:#2e7d32}
-.hours-warning{background:#ffebee;color:#d32f2f}
-.classes-list{padding:10px}
-.class-item{display:grid;grid-template-columns:2fr 2fr 1fr;gap:8px;padding:5px 0;border-bottom:1px solid #eee}
-.class-item:last-child{border-bottom:none}
-.class-unassigned{background:#ffebee;border:1px solid #d32f2f;border-radius:4px;padding:5px}
-.optativa-group{background:#e8f5e8;border:1px solid #a5d6a7;border-radius:4px;padding:8px;margin:4px 0}
-.unassigned{color:#d32f2f;font-weight:bold}
-@media print{.grups-grid{grid-template-columns:repeat(2,1fr)}}
-</style></head><body>${printContent}</body></html>`;
- printWindow.document.write(printHTML);
- printWindow.document.close();
- printWindow.onload = () => { printWindow.print(); printWindow.close(); };
+ window.print();
 }
 
 watch(() => cursStore.cursActiuId, setupRealtimeListeners, { immediate: true });
