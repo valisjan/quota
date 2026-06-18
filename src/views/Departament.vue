@@ -400,20 +400,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, computed, onUnmounted, watch } from 'vue';
 import { db } from '../firebase';
-import {
-  collection,
-  doc,
-  writeBatch,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  where,
-  serverTimestamp,
-  setDoc,
-} from 'firebase/firestore';
+import { writeBatch, updateDoc, serverTimestamp } from 'firebase/firestore';
 import RepartimentHores from '../components/RepartimentHores.vue';
 import DepartamentSelector from '../components/departament/DepartamentSelector.vue';
 import DepartamentResumen from '../components/departament/DepartamentResumen.vue';
@@ -432,29 +421,90 @@ import { crearActualitzacionsDesassignacioProfessor } from '../services/assignac
 import { useToastStore } from '../stores/toast';
 import { useAuthStore } from '../stores/auth';
 import { useCursStore } from '../stores/curs';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
+import { usePresenceDepartament } from '../composables/usePresenceDepartament';
 
 const departamentSeleccionat = ref('');
 const authStore = useAuthStore();
 const cursStore = useCursStore();
 const toast = useToastStore();
 const solsLectura = computed(() => authStore.rol === 'professor');
-const departaments = ref([]);
-const classes = ref([]);
-const professors = ref([]);
-const classesReady = ref(false);
-const professorsReady = ref(false);
-const departamentsReady = ref(false);
-const errorMsg = ref(null);
-const isConnected = ref(true);
-const activeUsers = ref(1);
-const usuarisActius = ref([]);
-const lastUpdate = ref(new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
-const mostrarResumen = ref(false); // col·lapsat per defecte
+const mostrarResumen = ref(false);
 const activeTab = ref('distribucio');
 const ordreProfessorat = ref('necessitat');
 const mostrarSelectorDepartaments = ref(true);
 const transicioPantallaDepartament = ref('departament-slide-forward');
 const settings = ref({ ...DEFAULT_APP_SETTINGS });
+const sessionId = ref(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+
+// Subscripcions Firestore
+const {
+  items: classes,
+  isConnected: classesOk,
+  error: classesError,
+  lastUpdate,
+} = useCursCollectionSnapshot({
+  colName: 'classes',
+  mapDoc: (d) => {
+    const data = d.data();
+    return { id: d.id, ...data, professors: data.professors || [data.professorAssignat].filter(Boolean) };
+  },
+});
+const {
+  items: professors,
+  loading: profsLoading,
+  isConnected: profsOk,
+  error: profsError,
+} = useCursCollectionSnapshot({
+  colName: 'professors',
+  mapDoc: (d) => {
+    const data = d.data();
+    return {
+      id: d.id, ...data,
+      preferencia: data.preferencia || '',
+      jornada: data.jornada || '',
+      motiuAllegat: data.motiuAllegat || '',
+      comentaris: data.comentaris || '',
+      gpAssignades: data.gpAssignades || 0,
+      palicAssignades: data.palicAssignades || 0,
+    };
+  },
+});
+const {
+  items: departaments,
+  loading: deptLoading,
+  isConnected: deptsOk,
+  error: deptsError,
+} = useCursCollectionSnapshot({ colName: 'departaments' });
+
+const isConnected = computed(() => classesOk.value && profsOk.value && deptsOk.value);
+
+// errorMsg és dismissible — el watcher l'omple des dels errors del composable
+const errorMsg = ref(null);
+watch([classesError, profsError, deptsError], ([ce, pe, de]) => {
+  if (ce) { errorMsg.value = "No s'han pogut carregar les classes."; return; }
+  if (pe) { errorMsg.value = "No s'ha pogut carregar el professorat."; return; }
+  if (de) { errorMsg.value = "No s'han pogut carregar els departaments."; }
+});
+
+// Presència en temps real
+const { activeUsers, usuarisActius } = usePresenceDepartament({
+  departamentSeleccionat,
+  authStore,
+  cursStore,
+  sessionId,
+});
+
+// Settings
+let settingsUnsubscribe = null;
+watch(() => cursStore.cursActiuId, (cursId) => {
+  settingsUnsubscribe?.();
+  settingsUnsubscribe = null;
+  if (!cursId || E2E_AUTH_BYPASS) { settings.value = { ...DEFAULT_APP_SETTINGS }; return; }
+  settingsUnsubscribe = subscribeAppSettings(cursId, (v) => { settings.value = v; });
+}, { immediate: true });
+onUnmounted(() => settingsUnsubscribe?.());
+
 const totalGuardiesPatiConfigurades = computed(() =>
   Math.max(0, Math.round(Number(settings.value.totalGuardiesPati ?? 30) || 0))
 );
@@ -463,18 +513,6 @@ const totalHoresAssignades = computed(() => {
     .filter(comptaHoresDepartament)
     .reduce((total, c) => total + horesAssignadesClasse(c), 0);
 });
-
-let classesUnsubscribe = null;
-let professorsUnsubscribe = null;
-let departamentsUnsubscribe = null;
-let presenceUnsubscribe = null;
-let settingsUnsubscribe = null;
-let presenceInterval = null;
-let beforeunloadHandler = null;
-
-const sessionId = ref(
-  `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-);
 
 // Computed
 
@@ -528,7 +566,7 @@ const pantallaDistribucio = computed(() =>
   Boolean(departamentSeleccionat.value) && !mostrarSelectorDepartaments.value
 );
 const carregantDadesDepartament = computed(() =>
-  Boolean(cursStore.cursActiuId) && (!classesReady.value || !professorsReady.value || !departamentsReady.value)
+  Boolean(cursStore.cursActiuId) && (profsLoading.value || deptLoading.value)
 );
 const resumStickyDepartament = computed(() => {
   const resum = departamentSeleccionatResum.value;
@@ -630,10 +668,6 @@ const departamentActual = computed(() =>
 const departamentTancat = computed(() => Boolean(departamentActual.value?.tancat));
 
 // Funcions
-
-function updateLastUpdate() {
-  lastUpdate.value = new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
 
 function tornarADepartaments() {
   transicioPantallaDepartament.value = 'departament-slide-back';
@@ -860,7 +894,6 @@ async function toggleCoordinacioProfessor({ professor, coordinacio, participa })
       participants,
       lastModified: serverTimestamp(),
     });
-    updateLastUpdate();
   } catch (e) {
     console.error('Error actualitzant participants de coordinació:', e);
     toast.error("No s'ha pogut actualitzar la coordinació: " + (e.message || e.code || ''));
@@ -885,16 +918,13 @@ async function desassignarClasseProfessor({ professor, classe }) {
       });
     }
     await batch.commit();
-    updateLastUpdate();
   } catch (e) {
     console.error('Error desassignant classe:', e);
     toast.error('Error al desassignar. Torna-ho a intentar.');
   }
 }
 
-function handleAssignacionsActualitzades() {
-  updateLastUpdate();
-}
+function handleAssignacionsActualitzades() {}
 
 async function tancarDepartament() {
   if (!departamentSeleccionat.value || departamentTancat.value || !departamentActual.value?.id) return;
@@ -912,213 +942,6 @@ async function tancarDepartament() {
   } catch (error) {
     console.error('Error tancant departament:', error);
     toast.error("No s'ha pogut tancar el departament. Revisa els permisos.");
-  }
-}
-
-// Listeners
-
-function setupRealtimeListeners() {
-  cleanupListeners();
-  classesReady.value = false;
-  professorsReady.value = false;
-  departamentsReady.value = false;
-
-  if (E2E_AUTH_BYPASS) {
-    classes.value = getE2ECollection('classes');
-    professors.value = getE2ECollection('professors');
-    departaments.value = getE2ECollection('departaments');
-    classesReady.value = true;
-    professorsReady.value = true;
-    departamentsReady.value = true;
-    settings.value = { ...DEFAULT_APP_SETTINGS };
-    if (!departamentSeleccionat.value) {
-      departamentSeleccionat.value = departaments.value[0]?.nom || '';
-    }
-    updateLastUpdate();
-    isConnected.value = true;
-    return;
-  }
-  if (!cursStore.cursActiuId) {
-    classes.value = [];
-    professors.value = [];
-    departaments.value = [];
-    classesReady.value = true;
-    professorsReady.value = true;
-    departamentsReady.value = true;
-    return;
-  }
-
-  classesUnsubscribe = onSnapshot(
-    query(cursStore.col('classes')),
-    (snapshot) => {
-      classes.value = snapshot.docs.map((d) => {
-        const data = d.data();
-        return {
-          id: d.id,
-          ...data,
-          professors: data.professors || [data.professorAssignat].filter(Boolean),
-        };
-      });
-      classesReady.value = true;
-      updateLastUpdate();
-      isConnected.value = true;
-    },
-    (error) => {
-      classesReady.value = true;
-      isConnected.value = false;
-      errorMsg.value = "No s'han pogut carregar les classes.";
-      console.error('Error carregant classes:', error);
-    }
-  );
-
-  professorsUnsubscribe = onSnapshot(
-    query(cursStore.col('professors')),
-    (snapshot) => {
-      professors.value = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-        preferencia: d.data().preferencia || '',
-        jornada: d.data().jornada || '',
-        motiuAllegat: d.data().motiuAllegat || '',
-        comentaris: d.data().comentaris || '',
-        gpAssignades: d.data().gpAssignades || 0,
-        palicAssignades: d.data().palicAssignades || 0,
-      }));
-      professorsReady.value = true;
-      updateLastUpdate();
-      isConnected.value = true;
-    },
-    (error) => {
-      professorsReady.value = true;
-      isConnected.value = false;
-      errorMsg.value = "No s'ha pogut carregar el professorat.";
-      console.error('Error carregant professorat:', error);
-    }
-  );
-
-  departamentsUnsubscribe = onSnapshot(
-    query(cursStore.col('departaments')),
-    (snapshot) => {
-      departaments.value = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      }));
-      departamentsReady.value = true;
-      updateLastUpdate();
-      isConnected.value = true;
-    },
-    (error) => {
-      departamentsReady.value = true;
-      isConnected.value = false;
-      errorMsg.value = "No s'han pogut carregar els departaments.";
-      console.error('Error carregant departaments:', error);
-    }
-  );
-
-  settingsUnsubscribe = subscribeAppSettings(cursStore.cursActiuId, (value) => {
-    settings.value = value;
-  });
-}
-
-function setupUserPresence() {
-  if (E2E_AUTH_BYPASS) return;
-  if (!departamentSeleccionat.value || !cursStore.cursActiuId) return;
-
-  presenceUnsubscribe?.();
-  presenceUnsubscribe = null;
-  if (presenceInterval) {
-    clearInterval(presenceInterval);
-    presenceInterval = null;
-  }
-
-  const presenceRef = doc(
-    db,
-    'cursos',
-    cursStore.cursActiuId,
-    'presence',
-    `${departamentSeleccionat.value}_${sessionId.value}`
-  );
-  setDoc(presenceRef, {
-    scope: 'departament',
-    departament: departamentSeleccionat.value,
-    sessionId: sessionId.value,
-    uid: authStore.uid || '',
-    usuari: authStore.usuari || authStore.rol || 'Usuari',
-    email: authStore.email || '',
-    photoURL: authStore.photoURL || '',
-    rol: authStore.rol || '',
-    path: '/departament',
-    timestamp: serverTimestamp(),
-    lastSeen: serverTimestamp(),
-  });
-
-  presenceUnsubscribe = onSnapshot(
-    query(
-      collection(db, 'cursos', cursStore.cursActiuId, 'presence'),
-      where('departament', '==', departamentSeleccionat.value)
-    ),
-    (snapshot) => {
-      const now = Date.now();
-      let count = 0;
-      const noms = [];
-      snapshot.docs.forEach((d) => {
-        const lastSeen = d.data().lastSeen?.toMillis?.();
-        if (lastSeen && now - lastSeen < 30000) {
-          count++;
-          noms.push(d.data().usuari || d.data().rol || 'Usuari');
-        }
-      });
-      activeUsers.value = Math.max(1, count);
-      usuarisActius.value = [...new Set(noms)];
-    }
-  );
-
-  presenceInterval = setInterval(() => {
-    if (departamentSeleccionat.value) {
-      setDoc(
-        presenceRef,
-        {
-          lastSeen: serverTimestamp(),
-          uid: authStore.uid || '',
-          usuari: authStore.usuari || authStore.rol || 'Usuari',
-          email: authStore.email || '',
-          photoURL: authStore.photoURL || '',
-          rol: authStore.rol || '',
-          path: '/departament',
-        },
-        { merge: true }
-      ).catch(console.error);
-    }
-  }, 10000);
-
-  if (beforeunloadHandler) {
-    window.removeEventListener('beforeunload', beforeunloadHandler);
-  }
-  beforeunloadHandler = () => {
-    deleteDoc(presenceRef).catch(console.error);
-    clearInterval(presenceInterval);
-  };
-  window.addEventListener('beforeunload', beforeunloadHandler);
-}
-
-function cleanupListeners() {
-  classesUnsubscribe?.();
-  classesUnsubscribe = null;
-  professorsUnsubscribe?.();
-  professorsUnsubscribe = null;
-  departamentsUnsubscribe?.();
-  departamentsUnsubscribe = null;
-  presenceUnsubscribe?.();
-  presenceUnsubscribe = null;
-  if (presenceInterval) {
-    clearInterval(presenceInterval);
-    presenceInterval = null;
-  }
-  settingsUnsubscribe?.();
-  settingsUnsubscribe = null;
-  if (beforeunloadHandler) {
-    window.removeEventListener('beforeunload', beforeunloadHandler);
-    beforeunloadHandler = null;
   }
 }
 
@@ -1153,36 +976,13 @@ function imprimirDepartament() {
 
 // Lifecycle
 
-watch(departamentSeleccionat, (newDept, oldDept) => {
-  if (newDept !== oldDept) {
-    if (newDept) {
-      transicioPantallaDepartament.value = 'departament-slide-forward';
-      mostrarSelectorDepartaments.value = false;
-      activeTab.value = 'distribucio';
-    } else {
-      mostrarSelectorDepartaments.value = true;
-    }
-    if (!E2E_AUTH_BYPASS && oldDept && presenceUnsubscribe && cursStore.cursActiuId) {
-      deleteDoc(
-        doc(db, 'cursos', cursStore.cursActiuId, 'presence', `${oldDept}_${sessionId.value}`)
-      ).catch(console.error);
-    }
-    if (newDept) nextTick(() => setupUserPresence());
-  }
-});
-
-watch(() => cursStore.cursActiuId, setupRealtimeListeners, { immediate: true });
-
-onMounted(() => {
-  if (departamentSeleccionat.value) setupUserPresence();
-});
-
-onUnmounted(() => {
-  cleanupListeners();
-  if (!E2E_AUTH_BYPASS && departamentSeleccionat.value && cursStore.cursActiuId) {
-    deleteDoc(
-      doc(db, 'cursos', cursStore.cursActiuId, 'presence', `${departamentSeleccionat.value}_${sessionId.value}`)
-    ).catch(console.error);
+watch(departamentSeleccionat, (newDept) => {
+  if (newDept) {
+    transicioPantallaDepartament.value = 'departament-slide-forward';
+    mostrarSelectorDepartaments.value = false;
+    activeTab.value = 'distribucio';
+  } else {
+    mostrarSelectorDepartaments.value = true;
   }
 });
 </script>
