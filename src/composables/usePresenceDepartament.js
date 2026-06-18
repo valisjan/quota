@@ -14,10 +14,9 @@ import { E2E_AUTH_BYPASS } from '../services/e2e';
 
 /**
  * Gestiona la presència en temps real al departament actiu.
- * Crea un document de presència en entrar, l'actualitza cada 10s (heartbeat),
- * l'esborra en sortir i escolta qui més hi ha connectat.
+ * Reacciona tant al canvi de departament com al canvi de curs actiu.
  *
- * @param {object} opts
+ * @param {object}      opts
  * @param {Ref<string>} opts.departamentSeleccionat  Nom del departament actiu
  * @param {object}      opts.authStore               Store d'autenticació
  * @param {object}      opts.cursStore               Store del curs actiu
@@ -28,6 +27,7 @@ export function usePresenceDepartament({ departamentSeleccionat, authStore, curs
   const usuarisActius = ref([]);
 
   let presenceRef = null;
+  let presenceRefCursId = null; // cursId amb el qual es va crear presenceRef (per esborrar el doc correcte)
   let presenceUnsubscribe = null;
   let presenceInterval = null;
   let beforeunloadHandler = null;
@@ -52,19 +52,21 @@ export function usePresenceDepartament({ departamentSeleccionat, authStore, curs
       beforeunloadHandler = null;
     }
     presenceRef = null;
+    presenceRefCursId = null;
   }
 
-  function deletePresenceDoc(dept) {
-    if (!dept || !cursStore.cursActiuId) return;
-    deleteDoc(doc(db, 'cursos', cursStore.cursActiuId, 'presence', `${dept}_${sessionId.value}`))
+  function deletePresenceDoc(dept, cursId) {
+    if (!dept || !cursId) return;
+    deleteDoc(doc(db, 'cursos', cursId, 'presence', `${dept}_${sessionId.value}`))
       .catch(console.error);
   }
 
-  function setup(dept) {
+  function setup(dept, cursId) {
     cleanup();
-    if (!dept || !cursStore.cursActiuId) return;
+    if (!dept || !cursId) return;
 
-    presenceRef = doc(db, 'cursos', cursStore.cursActiuId, 'presence', `${dept}_${sessionId.value}`);
+    presenceRefCursId = cursId;
+    presenceRef = doc(db, 'cursos', cursId, 'presence', `${dept}_${sessionId.value}`);
 
     setDoc(presenceRef, {
       scope: 'departament',
@@ -73,11 +75,11 @@ export function usePresenceDepartament({ departamentSeleccionat, authStore, curs
       ...getUserData(),
       timestamp: serverTimestamp(),
       lastSeen: serverTimestamp(),
-    });
+    }).catch(console.error);
 
     presenceUnsubscribe = onSnapshot(
       query(
-        collection(db, 'cursos', cursStore.cursActiuId, 'presence'),
+        collection(db, 'cursos', cursId, 'presence'),
         where('departament', '==', dept)
       ),
       (snapshot) => {
@@ -93,7 +95,8 @@ export function usePresenceDepartament({ departamentSeleccionat, authStore, curs
         });
         activeUsers.value = Math.max(1, count);
         usuarisActius.value = [...new Set(noms)];
-      }
+      },
+      (err) => console.error('Error carregant presència:', err)
     );
 
     presenceInterval = setInterval(() => {
@@ -110,19 +113,27 @@ export function usePresenceDepartament({ departamentSeleccionat, authStore, curs
     window.addEventListener('beforeunload', beforeunloadHandler);
   }
 
-  watch(departamentSeleccionat, (newDept, oldDept) => {
-    if (E2E_AUTH_BYPASS) return;
-    if (oldDept) deletePresenceDoc(oldDept);
-    cleanup();
-    if (newDept) nextTick(() => setup(newDept));
-  });
+  // Reacciona tant al canvi de departament com al canvi de curs actiu
+  watch(
+    [departamentSeleccionat, () => cursStore.cursActiuId],
+    ([newDept, newCursId], [oldDept]) => {
+      if (E2E_AUTH_BYPASS) return;
+      if (oldDept && presenceRefCursId) deletePresenceDoc(oldDept, presenceRefCursId);
+      cleanup();
+      if (newDept && newCursId) nextTick(() => setup(newDept, newCursId));
+    }
+  );
 
   onMounted(() => {
-    if (!E2E_AUTH_BYPASS && departamentSeleccionat.value) setup(departamentSeleccionat.value);
+    if (!E2E_AUTH_BYPASS && departamentSeleccionat.value && cursStore.cursActiuId) {
+      setup(departamentSeleccionat.value, cursStore.cursActiuId);
+    }
   });
 
   onUnmounted(() => {
-    if (!E2E_AUTH_BYPASS) deletePresenceDoc(departamentSeleccionat.value);
+    if (!E2E_AUTH_BYPASS && departamentSeleccionat.value && presenceRefCursId) {
+      deletePresenceDoc(departamentSeleccionat.value, presenceRefCursId);
+    }
     cleanup();
   });
 

@@ -440,6 +440,7 @@ const sessionId = ref(`session_${Date.now()}_${Math.random().toString(36).substr
 // Subscripcions Firestore
 const {
   items: classes,
+  loading: classesLoading,
   isConnected: classesOk,
   error: classesError,
   lastUpdate,
@@ -566,7 +567,7 @@ const pantallaDistribucio = computed(() =>
   Boolean(departamentSeleccionat.value) && !mostrarSelectorDepartaments.value
 );
 const carregantDadesDepartament = computed(() =>
-  Boolean(cursStore.cursActiuId) && (profsLoading.value || deptLoading.value)
+  Boolean(cursStore.cursActiuId) && (classesLoading.value || profsLoading.value || deptLoading.value)
 );
 const resumStickyDepartament = computed(() => {
   const resum = departamentSeleccionatResum.value;
