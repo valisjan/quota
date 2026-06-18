@@ -140,31 +140,41 @@
 
       <section
         v-if="validacioDepartament.items.length"
-        class="app-card mb-4 overflow-hidden print-hide"
+        class="mb-3 overflow-hidden rounded-lg border px-3 py-2 print-hide"
         :class="validacioDepartament.estat === 'bloquejat' ? 'validation-panel-critical' : 'validation-panel-warning'"
       >
-        <div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-              <h3 class="text-base font-semibold text-text-main">Validació de distribució</h3>
-              <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="validacioEstatClass">
-                {{ validacioEstatText }}
-              </span>
-            </div>
-            <p class="mt-1 text-sm font-medium text-text-secondary">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <span class="text-sm font-semibold text-text-main">Validació</span>
+            <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="validacioEstatClass">
+              {{ validacioEstatText }}
+            </span>
+            <span class="text-xs font-semibold text-text-secondary">
               {{ validacioDepartament.critiques.length }} crítics · {{ validacioDepartament.avisos.length }} avisos
-            </p>
+            </span>
           </div>
-          <button
-            v-if="validacioDepartament.critiques.length"
-            type="button"
-            class="app-button-secondary shrink-0"
-            @click="anarAProblema(validacioDepartament.critiques[0])"
-          >
-            Primer problema
-          </button>
+          <div class="flex shrink-0 gap-2">
+            <button
+              v-if="validacioDepartament.critiques.length"
+              type="button"
+              class="rounded-md border border-border-soft bg-surface px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-surface-hover"
+              @click="anarAProblema(validacioDepartament.critiques[0])"
+            >
+              Primer problema
+            </button>
+            <button
+              type="button"
+              class="rounded-md border border-border-soft bg-surface px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-surface-hover"
+              @click="mostrarValidacioDistribucio = !mostrarValidacioDistribucio"
+            >
+              {{ mostrarValidacioDistribucio ? 'Amaga' : 'Veure' }}
+            </button>
+          </div>
         </div>
-        <div class="grid grid-cols-1 gap-2 border-t border-border-soft p-3 lg:grid-cols-2">
+        <div
+          v-if="mostrarValidacioDistribucio"
+          class="mt-2 grid grid-cols-1 gap-2 border-t border-border-soft pt-2 lg:grid-cols-2"
+        >
           <article
             v-for="item in validacioItemsVisibles"
             :key="item.id"
@@ -193,17 +203,12 @@
             </div>
           </article>
         </div>
-        <p v-if="validacioRestants > 0" class="border-t border-border-soft px-4 py-2 text-xs font-semibold text-text-muted">
+        <p
+          v-if="mostrarValidacioDistribucio && validacioRestants > 0"
+          class="border-t border-border-soft px-4 py-2 text-xs font-semibold text-text-muted"
+        >
           + {{ validacioRestants }} incidències més
         </p>
-      </section>
-
-      <section
-        v-else-if="!departamentTancat"
-        class="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 print-hide"
-      >
-        <span aria-hidden="true">✓</span>
-        Distribució llesta per tancar.
       </section>
 
       <!-- Pestanyes + botó imprimir -->
@@ -484,6 +489,8 @@ const authStore = useAuthStore();
 const cursStore = useCursStore();
 const toast = useToastStore();
 const solsLectura = computed(() => authStore.rol === 'professor');
+const mostrarResumen = ref(false);
+const mostrarValidacioDistribucio = ref(false);
 const activeTab = ref('distribucio');
 const ordreProfessorat = ref('necessitat');
 const focusClassId = ref('');
@@ -1151,6 +1158,7 @@ watch(departamentSeleccionat, (newDept) => {
     transicioPantallaDepartament.value = 'departament-slide-forward';
     mostrarSelectorDepartaments.value = false;
     activeTab.value = 'distribucio';
+    mostrarValidacioDistribucio.value = false;
   } else {
     mostrarSelectorDepartaments.value = true;
   }
