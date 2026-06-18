@@ -192,6 +192,8 @@ import {
   comprovarEstatActualitzacioSheets,
   subscribeEstatSincronitzacio,
 } from '../services/sincronitzacio.js';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
+import { exclosaDelRepartiment, esCoordinacio } from '../utils/tipus';
 
 const route = useRoute();
 const router = useRouter();
@@ -215,67 +217,88 @@ let activityTimer = null;
 let lastCheckAt = 0;
 let checkPromise = null;
 
+// ─── Stats live per al workflow ────────────────────────────────────────────────
+
+const { items: classesLive } = useCursCollectionSnapshot({ colName: 'classes' });
+const { items: departamentsLive } = useCursCollectionSnapshot({ colName: 'departaments' });
+
+const classesAssignables = computed(() =>
+  classesLive.value.filter((c) => !exclosaDelRepartiment(c.tipus) && !esCoordinacio(c.tipus))
+);
+const classesSenseAssignar = computed(() =>
+  classesAssignables.value.filter((c) => !c.professorAssignat && !c.professors?.length).length
+);
+const percentAssignat = computed(() => {
+  const total = classesAssignables.value.length;
+  if (!total) return null;
+  return Math.round(((total - classesSenseAssignar.value) / total) * 100);
+});
+const departamentsTancats = computed(() => departamentsLive.value.filter((d) => d.tancat).length);
+const totalDepartaments = computed(() => departamentsLive.value.length);
+
+// ──────────────────────────────────────────────────────────────────────────────
+
 const tabs = [
   {
     path: '/admin/cursos',
     nom: 'Curs acadèmic',
-    color: '#0024B6',
     icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5',
     help: 'Curs actiu',
     descripcio: 'Crea cursos acadèmics, bloqueja els tancats i canvia el curs actiu.',
   },
   {
     path: '/admin/dades',
-    nom: 'Dades importades',
-    color: '#0024B6',
-    icon: 'M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
-    help: 'Consulta segura',
-    descripcio: 'Revisa les dades importades sense editar la font original.',
+    nom: 'Importació',
+    icon: 'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3',
+    help: 'Sync Sheets',
+    descripcio: 'Importa classes i professors des de Google Sheets i valida les dades.',
     aliases: ['/admin/classes', '/admin/professors', '/admin/departaments'],
-  },
-  {
-    path: '/admin/seguiment',
-    nom: 'Seguiment',
-    color: '#0024B6',
-    icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 0 1 9.75 19.875V8.625ZM16.5 4.125C16.5 3.504 17.004 3 17.625 3h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z',
-    help: 'Validació',
-    descripcio: 'Revisa estat global, validació final i informes interns de la distribució.',
-  },
-  {
-    path: '/admin/tancament',
-    nom: 'Tancament',
-    color: '#E86F35',
-    icon: 'M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z',
-    help: 'Bloquejos',
-    descripcio: 'Controla quan els departaments queden tancats o desbloquejats.',
   },
   {
     path: '/admin/parametres',
     nom: 'Paràmetres',
-    color: '#0024B6',
     icon: 'M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.36.78.757.943.097.04.193.08.287.126.38.184.828.139 1.17-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.247.342-.292.79-.108 1.17.046.094.086.19.126.287.163.397.519.687.943.757l.894.149c.542.09.94.56.94 1.11v1.093c0 .55-.398 1.02-.94 1.11l-.894.149c-.424.07-.78.36-.943.757-.04.097-.08.193-.126.287-.184.38-.139.828.108 1.17l.527.737c.32.448.27 1.061-.12 1.45l-.773.774a1.125 1.125 0 0 1-1.45.12l-.737-.527c-.342-.247-.79-.292-1.17-.108a6.52 6.52 0 0 1-.287.126c-.397.163-.687.519-.757.943l-.149.894c-.09.542-.56.94-1.11.94h-1.093c-.55 0-1.02-.398-1.11-.94l-.149-.894c-.07-.424-.36-.78-.757-.943a6.52 6.52 0 0 1-.287-.126c-.38-.184-.828-.139-1.17.108l-.737.527a1.125 1.125 0 0 1-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.247-.342.292-.79.108-1.17a6.52 6.52 0 0 1-.126-.287c-.163-.397-.519-.687-.943-.757l-.894-.149a1.125 1.125 0 0 1-.94-1.11v-1.093c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.78-.36.943-.757.04-.097.08-.193.126-.287.184-.38.139-.828-.108-1.17l-.527-.737a1.125 1.125 0 0 1 .12-1.45l.773-.774a1.125 1.125 0 0 1 1.45-.12l.737.527c.342.247.79.292 1.17.108.094-.046.19-.086.287-.126.397-.163.687-.519.757-.943l.149-.894ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
     help: 'Distribució',
     descripcio: 'Configura paràmetres generals de la distribució del curs.',
   },
   {
+    path: '/admin/usuaris',
+    nom: 'Usuaris',
+    icon: 'M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z',
+    help: 'Accessos',
+    descripcio: 'Gestiona rols i permisos dels comptes Google autoritzats.',
+  },
+  {
+    path: '/departament',
+    nom: 'Repartiment',
+    icon: 'M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z',
+    help: 'Assignació',
+    descripcio: 'Caps de departament assignen les hores entre el professorat.',
+  },
+  {
+    path: '/admin/tancament',
+    nom: 'Tancament',
+    icon: 'M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z',
+    help: 'Bloquejos',
+    descripcio: 'Controla quan els departaments queden tancats o desbloquejats.',
+  },
+  {
     path: '/admin/untis',
     nom: 'Untis',
-    color: '#009E35',
     icon: 'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5',
     help: 'Exportació',
     descripcio: 'Prepara i revisa fitxers per importar les assignacions a Untis.',
   },
   {
-    path: '/admin/usuaris',
-    nom: 'Usuaris',
-    color: '#0024B6',
-    icon: 'M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z',
-    help: 'Accessos',
-    descripcio: 'Gestiona rols i permisos dels comptes Google autoritzats.',
+    path: '/admin/seguiment',
+    nom: 'Seguiment',
+    icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 0 1 9.75 19.875V8.625ZM16.5 4.125C16.5 3.504 17.004 3 17.625 3h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z',
+    help: 'Validació',
+    descripcio: 'Revisa estat global, validació final i informes interns de la distribució.',
   },
 ];
 
-const pestanyaActual = computed(() => tabs.find((tab) => isActive(tab)) || tabs[0]);
+const pestanyaActual = computed(() => tabs.find((tab) => isActive(tab)) || null);
 const mostrarAvisDesactualitzat = computed(() => actualitzacioSheets.value?.desactualitzat === true);
 const mostrarBotoAvisSincronitzar = computed(() =>
   mostrarAvisDesactualitzat.value && route.path !== '/admin/dades'
@@ -323,16 +346,81 @@ const inicialUsuari = computed(() =>
 const etiquetaCursActiu = computed(() =>
   cursStore.cursActiu?.nom || cursStore.cursActiu?.id || cursStore.cursActiuId || 'Sense curs actiu'
 );
-const passosAdministracio = computed(() => tabs.map((tab) => {
-  const badge = badgePasAdministracio(tab.path);
-  return {
-    ...tab,
-    workflowHelp: helpPasAdministracio(tab.path, tab.help),
-    estat: estatPasAdministracio(tab.path),
-    badge: badge.text,
-    badgeClass: badge.class,
-  };
-}));
+const passosAdministracio = computed(() => {
+  const pct = percentAssignat.value;
+  const tancats = departamentsTancats.value;
+  const total = totalDepartaments.value;
+  const sense = classesSenseAssignar.value;
+
+  const badgeRepartiment = pct === null
+    ? { text: 'Sense dades', cls: 'admin-flow-badge-muted' }
+    : pct === 100
+      ? { text: 'Complet', cls: 'admin-flow-badge-ok' }
+      : { text: `${pct}%`, cls: pct >= 80 ? 'admin-flow-badge-info' : 'admin-flow-badge-warning' };
+
+  const badgeTancament = !total
+    ? { text: 'Sense depts.', cls: 'admin-flow-badge-muted' }
+    : tancats === total
+      ? { text: 'Tot tancat', cls: 'admin-flow-badge-ok' }
+      : { text: `${tancats}/${total}`, cls: 'admin-flow-badge-info' };
+
+  const badgeUntis = sense === 0
+    ? { text: 'Llest', cls: pct === 100 ? 'admin-flow-badge-ok' : 'admin-flow-badge-muted' }
+    : { text: `${sense} pend.`, cls: 'admin-flow-badge-warning' };
+
+  return [
+    {
+      path: '/admin/cursos',
+      nom: 'Curs',
+      workflowHelp: 'Tria o crea el curs acadèmic actiu.',
+      estat: cursStore.cursActiuId ? 'ready' : 'warning',
+      badge: cursStore.cursActiuId ? etiquetaCursActiu.value : 'Pendent',
+      badgeClass: cursStore.cursActiuId ? 'admin-flow-badge-ok' : 'admin-flow-badge-warning',
+    },
+    {
+      path: '/admin/dades',
+      nom: 'Importació',
+      workflowHelp: 'Importa i valida les dades des de Google Sheets.',
+      estat: mostrarAvisDesactualitzat.value ? 'warning' : 'ready',
+      badge: mostrarAvisDesactualitzat.value ? 'Revisar' : 'Al dia',
+      badgeClass: mostrarAvisDesactualitzat.value ? 'admin-flow-badge-warning' : 'admin-flow-badge-ok',
+      aliases: ['/admin/classes', '/admin/professors', '/admin/departaments'],
+    },
+    {
+      path: '/admin/parametres',
+      nom: 'Configuració',
+      workflowHelp: 'Ajusta regles, hores, rols i permisos.',
+      estat: 'ready',
+      badge: 'Regles',
+      badgeClass: 'admin-flow-badge-info',
+      aliases: ['/admin/usuaris'],
+    },
+    {
+      path: '/departament',
+      nom: 'Repartiment',
+      workflowHelp: 'Caps de departament assignen les classes al professorat.',
+      estat: pct !== null && pct < 100 ? 'warning' : 'ready',
+      badge: badgeRepartiment.text,
+      badgeClass: badgeRepartiment.cls,
+    },
+    {
+      path: '/admin/tancament',
+      nom: 'Tancament',
+      workflowHelp: 'Bloqueja departaments quan la distribució estigui revisada.',
+      estat: 'ready',
+      badge: badgeTancament.text,
+      badgeClass: badgeTancament.cls,
+    },
+    {
+      path: '/admin/untis',
+      nom: 'Untis',
+      workflowHelp: 'Prepara i exporta les assignacions a Untis.',
+      estat: sense > 0 ? 'warning' : 'ready',
+      badge: badgeUntis.text,
+      badgeClass: badgeUntis.cls,
+    },
+  ];
+});
 
 function isActive(tab) {
   return route.path === tab.path || tab.aliases?.includes(route.path);
@@ -343,46 +431,6 @@ function anarAdmin(path) {
   router.push(path);
 }
 
-function estatPasAdministracio(path) {
-  if (path === '/admin/dades' && mostrarAvisDesactualitzat.value) return 'warning';
-  if (path === '/admin/cursos' && !cursStore.cursActiuId) return 'warning';
-  if (path === '/admin/usuaris') return 'neutral';
-  return 'ready';
-}
-
-function badgePasAdministracio(path) {
-  if (path === '/admin/cursos') {
-    return cursStore.cursActiuId
-      ? { text: 'Actiu', class: 'admin-flow-badge-ok' }
-      : { text: 'Pendent', class: 'admin-flow-badge-warning' };
-  }
-  if (path === '/admin/dades') {
-    return mostrarAvisDesactualitzat.value
-      ? { text: 'Revisar', class: 'admin-flow-badge-warning' }
-      : { text: 'Al dia', class: 'admin-flow-badge-ok' };
-  }
-  const badges = {
-    '/admin/seguiment': { text: 'Control', class: 'admin-flow-badge-info' },
-    '/admin/tancament': { text: 'Final', class: 'admin-flow-badge-accent' },
-    '/admin/parametres': { text: 'Regles', class: 'admin-flow-badge-info' },
-    '/admin/untis': { text: 'Sortida', class: 'admin-flow-badge-ok' },
-    '/admin/usuaris': { text: 'Accés', class: 'admin-flow-badge-muted' },
-  };
-  return badges[path] || { text: 'Obrir', class: 'admin-flow-badge-muted' };
-}
-
-function helpPasAdministracio(path, fallback) {
-  const ajudes = {
-    '/admin/cursos': 'Tria o crea el curs actiu.',
-    '/admin/dades': 'Importa i valida la base abans de distribuir.',
-    '/admin/seguiment': 'Detecta desviacions i punts pendents.',
-    '/admin/tancament': 'Bloqueja quan la distribució estigui revisada.',
-    '/admin/parametres': 'Ajusta regles, hores i connexions.',
-    '/admin/untis': 'Prepara els fitxers finals.',
-    '/admin/usuaris': 'Mantén rols i permisos.',
-  };
-  return ajudes[path] || fallback;
-}
 
 function formatDataHora(ts) {
   if (!ts) return '';
