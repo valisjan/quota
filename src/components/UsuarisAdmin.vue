@@ -152,7 +152,7 @@
             >
               <option value="admin">Admin</option>
               <option value="cap_departament">Cap de departament</option>
-              <option v-if="u.rol === 'departament'" value="departament">Cap de departament</option>
+              <option v-if="u.rol === 'departament'" value="departament">Cap dept. (antic)</option>
               <option value="professor">Professor</option>
             </select>
 
@@ -178,9 +178,6 @@
       </div>
     </div>
 
-    <div v-if="error" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300">
-      {{ error }}
-    </div>
   </div>
 </template>
 
@@ -189,13 +186,14 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuthStore } from '../stores/auth';
+import { useToastStore } from '../stores/toast';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 
 const authStore = useAuthStore();
+const toast = useToastStore();
 const usuaris = ref([]);
 const preautoritzats = ref([]);
 const deptPendent = ref({});
-const error = ref('');
 
 const { items: departamentsRaw } = useCursCollectionSnapshot({ colName: 'departaments' });
 const departaments = computed(() =>
@@ -229,7 +227,7 @@ function formatDate(ts) {
 }
 
 function etiquetaRol(rol) {
-  const etiquetes = { admin: 'Admin', cap_departament: 'Cap de departament', departament: 'Cap de departament', professor: 'Professor' };
+  const etiquetes = { admin: 'Admin', cap_departament: 'Cap de departament', departament: 'Cap dept. (antic)', professor: 'Professor' };
   return etiquetes[rol] || rol || '';
 }
 
@@ -245,68 +243,69 @@ const actius = computed(() =>
 );
 
 async function assignarRol(usuari, nouRol, dept = null) {
-  error.value = '';
   try {
     await updateDoc(doc(db, 'usuaris', usuari.id), {
       rol: nouRol,
       departament: dept || null,
       updatedAt: new Date(),
     });
+    toast.ok(`Rol assignat: ${etiquetaRol(nouRol)}${dept ? ` · ${dept}` : ''}.`);
   } catch (err) {
-    error.value = 'Error assignant rol: ' + err.message;
+    toast.error('Error assignant rol: ' + err.message);
   }
 }
 
 function assignarRolDept(usuari) {
   const dept = deptPendent.value[usuari.id];
   if (!dept) {
-    error.value = 'Selecciona un departament primer.';
+    toast.error('Selecciona un departament primer.');
     return;
   }
-  error.value = '';
   assignarRol(usuari, 'cap_departament', dept);
 }
 
 async function canviarRol(usuari, nouRol) {
-  error.value = '';
   try {
     await updateDoc(doc(db, 'usuaris', usuari.id), {
       rol: nouRol,
       departament: nouRol === 'admin' ? null : (usuari.departament || null),
       updatedAt: new Date(),
     });
+    toast.ok('Rol actualitzat.');
   } catch (err) {
-    error.value = 'Error canviant rol: ' + err.message;
+    toast.error('Error canviant rol: ' + err.message);
   }
 }
 
 async function canviarDepartament(usuari, nouDept) {
-  error.value = '';
   try {
     await updateDoc(doc(db, 'usuaris', usuari.id), {
       departament: nouDept || null,
       updatedAt: new Date(),
     });
+    toast.ok('Departament actualitzat.');
   } catch (err) {
-    error.value = 'Error canviant departament: ' + err.message;
+    toast.error('Error canviant departament: ' + err.message);
   }
 }
 
 async function eliminarUsuari(usuari) {
-  error.value = '';
+  if (!confirm(`Eliminar l'accés de ${usuari.nom || usuari.email}? Podrà tornar a fer login però quedarà sense rol.`)) return;
   try {
     await deleteDoc(doc(db, 'usuaris', usuari.id));
+    toast.ok(`${usuari.nom || usuari.email} eliminat.`);
   } catch (err) {
-    error.value = 'Error eliminant usuari: ' + err.message;
+    toast.error('Error eliminant usuari: ' + err.message);
   }
 }
 
 async function eliminarPreautoritzat(preautoritzat) {
-  error.value = '';
+  if (!confirm(`Eliminar la pre-autorització de ${preautoritzat.email}?`)) return;
   try {
     await deleteDoc(doc(db, 'preautoritzats', preautoritzat.id));
+    toast.ok('Pre-autorització eliminada.');
   } catch (err) {
-    error.value = 'Error eliminant pre-autoritzat: ' + err.message;
+    toast.error('Error eliminant pre-autoritzat: ' + err.message);
   }
 }
 </script>
