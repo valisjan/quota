@@ -208,14 +208,13 @@
 
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue';
-import { collection, onSnapshot, query } from 'firebase/firestore';
-import { db } from '../firebase';
 import { sincronitzar, comprovarDiscrepancies } from '../services/sincronitzacio.js';
 import { useAuthStore } from '../stores/auth';
 import { useCursStore } from '../stores/curs';
 import { useToastStore } from '../stores/toast';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
-import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
+import { E2E_AUTH_BYPASS } from '../services/e2e';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 
 defineProps({
   embedded: { type: Boolean, default: false },
@@ -229,17 +228,24 @@ const estatSync = ref('idle');
 const resultComprova = ref(null);
 const errorComprovaMsg = ref('');
 const errorSyncMsg = ref('');
-const errorHistorialMsg = ref('');
 const ultimaSync = ref(null);
 const statsSync = ref({
   total: 0, afegides: 0, actualitzades: 0, eliminades: 0,
   assignacionsConservades: 0, totalProfs: 0, totalDeps: 0,
 });
-const historial = ref([]);
 const historialObert = ref(false);
 const settings = ref({ ...DEFAULT_APP_SETTINGS });
-let historialUnsubscribe = null;
 let settingsUnsubscribe = null;
+
+const { items: historialRaw, error: historialError } = useCursCollectionSnapshot({ colName: 'sync_history' });
+const historial = computed(() =>
+  [...historialRaw.value]
+    .sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))
+    .slice(0, 10)
+);
+const errorHistorialMsg = computed(() =>
+  historialError.value ? `No es pot carregar l'historial: ${historialError.value.message}` : ''
+);
 
 const totalDiscrepancies = computed(() =>
   resultComprova.value
@@ -324,34 +330,12 @@ async function ferSync() {
 }
 
 function setupCursSubscriptions(cursId) {
-  historialUnsubscribe?.();
   settingsUnsubscribe?.();
-  historialUnsubscribe = null;
   settingsUnsubscribe = null;
-  historial.value = [];
-  if (E2E_AUTH_BYPASS) {
-    settings.value = { ...DEFAULT_APP_SETTINGS };
-    historial.value = getE2ECollection('sync_history');
-    return;
-  }
-  if (!cursId) {
+  if (E2E_AUTH_BYPASS || !cursId) {
     settings.value = { ...DEFAULT_APP_SETTINGS };
     return;
   }
-  historialUnsubscribe = onSnapshot(
-    query(collection(db, 'cursos', cursId, 'sync_history')),
-    (snapshot) => {
-      errorHistorialMsg.value = '';
-      historial.value = snapshot.docs
-        .map((docu) => ({ id: docu.id, ...docu.data() }))
-        .sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))
-        .slice(0, 10);
-    },
-    (err) => {
-      console.error('Error carregant historial de sincronitzacions:', err);
-      errorHistorialMsg.value = `No es pot carregar l'historial: ${err.message}`;
-    }
-  );
   settingsUnsubscribe = subscribeAppSettings(cursId, (value) => {
     settings.value = value;
   });
@@ -360,7 +344,6 @@ function setupCursSubscriptions(cursId) {
 watch(() => cursStore.cursActiuId, setupCursSubscriptions, { immediate: true });
 
 onUnmounted(() => {
-  historialUnsubscribe?.();
   settingsUnsubscribe?.();
 });
 </script>

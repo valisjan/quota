@@ -232,7 +232,6 @@
 
 <script setup>
 import { computed, onUnmounted, reactive, ref, watch } from 'vue';
-import { onSnapshot, query } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
 import { useToastStore } from '../stores/toast';
 import { calcularQuotesGuardiesPati, departamentFaGuardiesPati } from '../utils/guardiesPati';
@@ -243,14 +242,15 @@ import {
   updateAppSettings,
 } from '../services/appSettings';
 import { provarConnexioSheets } from '../services/sincronitzacio';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 
 const cursStore = useCursStore();
 const toast = useToastStore();
 const formulari = reactive({ ...DEFAULT_APP_SETTINGS });
-const professors = ref([]);
 const guardant = ref(false);
 let settingsUnsubscribe = null;
-let professorsUnsubscribe = null;
+
+const { items: professors } = useCursCollectionSnapshot({ colName: 'professors' });
 
 // Sheets ID
 const nouSheetsIdRaw = ref('');
@@ -394,26 +394,19 @@ async function guardarGuardies() {
 
 watch(() => cursStore.cursActiuId, (cursId) => {
   settingsUnsubscribe?.();
-  professorsUnsubscribe?.();
   settingsUnsubscribe = null;
-  professorsUnsubscribe = null;
 
   if (!cursId) {
     Object.assign(formulari, DEFAULT_APP_SETTINGS);
-    professors.value = [];
     return;
   }
 
   settingsUnsubscribe = subscribeAppSettings(cursId, (settings) => {
     Object.assign(formulari, settings);
   });
-  professorsUnsubscribe = onSnapshot(query(cursStore.col('professors')), (snapshot) => {
-    professors.value = snapshot.docs.map((docu) => ({ id: docu.id, ...docu.data() }));
-  });
 }, { immediate: true });
 
 onUnmounted(() => {
   settingsUnsubscribe?.();
-  professorsUnsubscribe?.();
 });
 </script>

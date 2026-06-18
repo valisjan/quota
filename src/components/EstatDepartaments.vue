@@ -174,19 +174,16 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
-import { onSnapshot } from 'firebase/firestore';
-import { useCursStore } from '../stores/curs';
+import { ref, computed } from 'vue';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { classeCompletamentAssignada } from '../utils/assignacions';
 import { exclosaDelRepartiment } from '../utils/tipus';
 import { classePertanyDepartament } from '../utils/departaments';
 
-const cursStore = useCursStore();
+const { items: classes, loading: carregant } = useCursCollectionSnapshot({ colName: 'classes' });
+const { items: professors } = useCursCollectionSnapshot({ colName: 'professors' });
+const { items: departaments } = useCursCollectionSnapshot({ colName: 'departaments' });
 
-const classes = ref([]);
-const professors = ref([]);
-const departaments = ref([]);
-const carregant = ref(true);
 const ordre = ref('pct');
 const expandit = ref(null);
 
@@ -194,29 +191,6 @@ const ordres = [
   { valor: 'pct', etiqueta: 'Pendents' },
   { valor: 'nom', etiqueta: 'A-Z' },
 ];
-
-let unsubs = [];
-
-function setupListeners() {
-  unsubs.forEach((u) => u());
-  unsubs = [];
-  unsubs.push(
-    onSnapshot(cursStore.col('classes'), (snap) => {
-      classes.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      carregant.value = false;
-    }),
-    onSnapshot(cursStore.col('professors'), (snap) => {
-      professors.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    }),
-    onSnapshot(cursStore.col('departaments'), (snap) => {
-      departaments.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    })
-  );
-}
-
-watch(() => cursStore.cursActiuId, setupListeners, { immediate: true });
-
-onUnmounted(() => unsubs.forEach((u) => u()));
 
 function classesDelDept(nomDept) {
   return classes.value.filter(

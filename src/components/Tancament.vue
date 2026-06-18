@@ -111,7 +111,7 @@
 
 <script setup>
 import { computed, watch, onUnmounted, reactive, ref } from 'vue';
-import { onSnapshot, query, updateDoc } from 'firebase/firestore';
+import { updateDoc } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
 import { useToastStore } from '../stores/toast';
 import {
@@ -119,14 +119,15 @@ import {
   subscribeAppSettings,
   updateAppSettings,
 } from '../services/appSettings';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 
 const cursStore = useCursStore();
 const toast = useToastStore();
 const formulari = reactive({ ...DEFAULT_APP_SETTINGS });
-const departaments = ref([]);
 const guardant = ref(false);
 let unsubscribe = null;
-let departamentsUnsubscribe = null;
+
+const { items: departaments } = useCursCollectionSnapshot({ colName: 'departaments' });
 
 const estatText = computed(() => {
   if (formulari.tancamentAdmin) return 'Administració bloquejada.';
@@ -197,24 +198,17 @@ async function desbloquejarDepartament(departament) {
 
 watch(() => cursStore.cursActiuId, () => {
   unsubscribe?.();
-  departamentsUnsubscribe?.();
   unsubscribe = null;
-  departamentsUnsubscribe = null;
   if (!cursStore.cursActiuId) {
     Object.assign(formulari, DEFAULT_APP_SETTINGS);
-    departaments.value = [];
     return;
   }
   unsubscribe = subscribeAppSettings(cursStore.cursActiuId, (settings) => {
     Object.assign(formulari, settings);
   });
-  departamentsUnsubscribe = onSnapshot(query(cursStore.col('departaments')), (snapshot) => {
-    departaments.value = snapshot.docs.map((docu) => ({ id: docu.id, ...docu.data() }));
-  });
 }, { immediate: true });
 
 onUnmounted(() => {
   unsubscribe?.();
-  departamentsUnsubscribe?.();
 });
 </script>

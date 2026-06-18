@@ -185,23 +185,25 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuthStore } from '../stores/auth';
-import { useCursStore } from '../stores/curs';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 
 const authStore = useAuthStore();
-const cursStore = useCursStore();
 const usuaris = ref([]);
 const preautoritzats = ref([]);
-const departaments = ref([]);
 const deptPendent = ref({});
 const error = ref('');
-let unsubs = [];
 
-watch(() => cursStore.cursActiuId, () => {
-  unsubs.forEach((u) => u());
+const { items: departamentsRaw } = useCursCollectionSnapshot({ colName: 'departaments' });
+const departaments = computed(() =>
+  [...departamentsRaw.value].sort((a, b) => a.nom.localeCompare(b.nom, 'ca'))
+);
+
+let unsubs = [];
+onMounted(() => {
   unsubs = [
     onSnapshot(collection(db, 'usuaris'), (snap) => {
       usuaris.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -211,14 +213,8 @@ watch(() => cursStore.cursActiuId, () => {
         .map((d) => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (a.email || '').localeCompare(b.email || '', 'ca'));
     }),
-    onSnapshot(cursStore.col('departaments'), (snap) => {
-      departaments.value = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => a.nom.localeCompare(b.nom, 'ca'));
-    }),
   ];
-}, { immediate: true });
-
+});
 onUnmounted(() => unsubs.forEach((u) => u()));
 
 // Emails dels usuaris que ja han fet login (no mostrar-los com a pre-autoritzats)
