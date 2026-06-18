@@ -809,6 +809,7 @@ async function incrementarPALIC(professor) {
     });
   } catch (e) {
     console.error('Error incrementant PALIC:', e);
+    toast.error("No s'ha pogut guardar el PALIC: " + (e.message || e.code || ''));
   }
 }
 
@@ -822,6 +823,7 @@ async function decrementarPALIC(professor) {
     });
   } catch (e) {
     console.error('Error decrementant PALIC:', e);
+    toast.error("No s'ha pogut guardar el PALIC: " + (e.message || e.code || ''));
   }
 }
 
@@ -838,6 +840,7 @@ async function actualitzarProfessor(professor) {
     });
   } catch (e) {
     console.error('Error actualitzant professor:', e);
+    toast.error("No s'ha pogut desar les dades del professor: " + (e.message || e.code || ''));
   }
 }
 
@@ -860,6 +863,7 @@ async function toggleCoordinacioProfessor({ professor, coordinacio, participa })
     updateLastUpdate();
   } catch (e) {
     console.error('Error actualitzant participants de coordinació:', e);
+    toast.error("No s'ha pogut actualitzar la coordinació: " + (e.message || e.code || ''));
   }
 }
 
@@ -884,7 +888,7 @@ async function desassignarClasseProfessor({ professor, classe }) {
     updateLastUpdate();
   } catch (e) {
     console.error('Error desassignant classe:', e);
-    errorMsg.value = 'Error al desassignar. Torna-ho a intentar.';
+    toast.error('Error al desassignar. Torna-ho a intentar.');
   }
 }
 
@@ -907,7 +911,7 @@ async function tancarDepartament() {
     });
   } catch (error) {
     console.error('Error tancant departament:', error);
-    alert('No s\'ha pogut tancar el departament. Revisa els permisos de Firestore.');
+    toast.error("No s'ha pogut tancar el departament. Revisa els permisos.");
   }
 }
 

@@ -1,27 +1,6 @@
-import { collection, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
-
-const BATCH_LIMIT = 450;
-
-class BatchSplit {
-  constructor() {
-    this.batches = [writeBatch(db)];
-    this.count = 0;
-  }
-
-  update(ref, data) {
-    if (this.count >= BATCH_LIMIT) {
-      this.batches.push(writeBatch(db));
-      this.count = 0;
-    }
-    this.batches[this.batches.length - 1].update(ref, data);
-    this.count++;
-  }
-
-  async commit() {
-    await Promise.all(this.batches.map((batch) => batch.commit()));
-  }
-}
+import { BatchSplit } from '../utils/firestoreBatch';
 
 function normalitzarArray(value) {
   return Array.isArray(value) ? value.filter(Boolean) : [];

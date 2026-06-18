@@ -125,23 +125,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
-import { onSnapshot, query } from 'firebase/firestore';
-import { useCursStore } from '../stores/curs';
+import { ref, computed } from 'vue';
 import { esTutoriaPrincipal, trobarTutoriaAsterisc } from '../utils/tutories';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 
-const cursStore = useCursStore();
-
-const classes = ref([]);
+const { items: classes, isConnected, lastUpdate } = useCursCollectionSnapshot({ colName: 'classes' });
 const ordenacio = ref('curs');
-const isConnected = ref(true);
-const lastUpdate = ref(new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
-
-let classesUnsubscribe = null;
-
-function updateLastUpdate() {
- lastUpdate.value = new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
 
 const tutories = computed(() => {
  return classes.value.filter(esTutoriaPrincipal);
@@ -195,26 +184,4 @@ function textDepartamentsTutoria(tutoria) {
  ].join(', ');
 }
 
-function setupRealtimeListeners() {
- cleanupListeners();
- classesUnsubscribe = onSnapshot(
- query(cursStore.col('classes')),
- (snapshot) => {
- classes.value = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
- updateLastUpdate();
- isConnected.value = true;
- },
- () => {
- isConnected.value = false;
- }
- );
-}
-
-function cleanupListeners() {
- classesUnsubscribe?.();
- classesUnsubscribe = null;
-}
-
-watch(() => cursStore.cursActiuId, setupRealtimeListeners, { immediate: true });
-onUnmounted(cleanupListeners);
 </script>

@@ -62,20 +62,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
-import { onSnapshot, query } from 'firebase/firestore';
-import { useCursStore } from '../stores/curs';
+import { ref, computed } from 'vue';
 import { classeAssignadaA, horesComputablesClasse, esMajorDe55Classe } from '../utils/horesProfessor';
 import { exclosaDelRepartiment } from '../utils/tipus';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 
-const cursStore = useCursStore();
-
-const classes = ref([]);
-const professors = ref([]);
-const isConnected = ref(true);
-
-let classesUnsubscribe = null;
-let professorsUnsubscribe = null;
+const { items: classes, isConnected: classesOk } = useCursCollectionSnapshot({ colName: 'classes' });
+const { items: professors, isConnected: profsOk } = useCursCollectionSnapshot({ colName: 'professors' });
+const isConnected = computed(() => classesOk.value && profsOk.value);
 
 const professorsMajors55 = computed(() =>
  professors.value
@@ -110,35 +104,4 @@ function getPreferenciaText(preferencia) {
  return labels[preferencia] || '';
 }
 
-function setupRealtimeListeners() {
- classesUnsubscribe?.();
- professorsUnsubscribe?.();
- classesUnsubscribe = onSnapshot(
- query(cursStore.col('classes')),
- (snapshot) => {
- classes.value = snapshot.docs.map((docu) => ({ id: docu.id, ...docu.data() }));
- isConnected.value = true;
- },
- () => {
- isConnected.value = false;
- }
- );
-
- professorsUnsubscribe = onSnapshot(
- query(cursStore.col('professors')),
- (snapshot) => {
- professors.value = snapshot.docs.map((docu) => ({ id: docu.id, ...docu.data() }));
- isConnected.value = true;
- },
- () => {
- isConnected.value = false;
- }
- );
-}
-
-watch(() => cursStore.cursActiuId, setupRealtimeListeners, { immediate: true });
-onUnmounted(() => {
- classesUnsubscribe?.();
- professorsUnsubscribe?.();
-});
 </script>

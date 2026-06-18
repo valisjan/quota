@@ -218,21 +218,19 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
+import { ref, computed } from 'vue';
 import {
   writeBatch,
-  onSnapshot,
-  query,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useCursStore } from '../stores/curs';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
 import { classeCompletamentAssignada, professorPrincipalClasse, professorSecundariClasse } from '../utils/assignacions';
 import { esGP, esOptativaCompartida, exclosaDelRepartiment, getTipusLabel, getTipusBadgeClass } from '../utils/tipus';
 import { normalitzarGrup } from '../utils/grups';
 import { classePertanyDepartament } from '../utils/departaments';
-import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
 import {
   crearActualitzacionsAssignacio,
   crearActualitzacionsCanviProfessor,
@@ -253,13 +251,16 @@ const props = defineProps({
 const bloquejat = computed(() => props.bloquejat);
 
 const cursStore = useCursStore();
-const classes = ref([]);
-const professors = ref([]);
+const { items: classes } = useCursCollectionSnapshot({
+  colName: 'classes',
+  mapDoc: (d) => {
+    const data = d.data();
+    return { id: d.id, ...data, professors: data.professors || [data.professorAssignat].filter(Boolean) };
+  },
+});
+const { items: professors } = useCursCollectionSnapshot({ colName: 'professors' });
 const error = ref(null);
 const cerca = ref('');
-
-let classesUnsubscribe = null;
-let professorsUnsubscribe = null;
 
 const classesDepartament = computed(() => {
   if (!props.departamentSeleccionat) return [];
@@ -525,60 +526,4 @@ async function desassignarProfessors(classe) {
   await guardarActualitzacionsAssignacio(actualitzacions);
 }
 
-function setupRealtimeListeners() {
-  cleanupListeners();
-  if (E2E_AUTH_BYPASS) {
-    classes.value = getE2ECollection('classes');
-    professors.value = getE2ECollection('professors');
-    error.value = null;
-    return;
-  }
-  if (!cursStore.cursActiuId) {
-    classes.value = [];
-    professors.value = [];
-    return;
-  }
-
-  classesUnsubscribe = onSnapshot(
-    query(cursStore.col('classes')),
-    (snapshot) => {
-      classes.value = snapshot.docs.map((docu) => {
-        const data = docu.data();
-        return {
-          id: docu.id,
-          ...data,
-          professors: data.professors || [data.professorAssignat].filter(Boolean),
-        };
-      });
-    },
-    (err) => {
-      console.error('Error en listener de classes:', err);
-      error.value = 'Error carregant les classes';
-    }
-  );
-
-  professorsUnsubscribe = onSnapshot(
-    query(cursStore.col('professors')),
-    (snapshot) => {
-      professors.value = snapshot.docs.map((docu) => ({
-        id: docu.id,
-        ...docu.data(),
-      }));
-    },
-    (err) => {
-      console.error('Error en listener de professors:', err);
-      error.value = 'Error carregant els professors';
-    }
-  );
-}
-
-function cleanupListeners() {
-  classesUnsubscribe?.();
-  classesUnsubscribe = null;
-  professorsUnsubscribe?.();
-  professorsUnsubscribe = null;
-}
-
-watch(() => cursStore.cursActiuId, setupRealtimeListeners, { immediate: true });
-onUnmounted(cleanupListeners);
 </script>

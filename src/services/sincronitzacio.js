@@ -1,7 +1,8 @@
 import { db } from '../firebase';
-import { collection, writeBatch, doc, getDoc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { normalitzarJornada } from '../utils/horesProfessor';
 import { E2E_AUTH_BYPASS, getE2ECollection } from './e2e';
+import { BatchSplit } from '../utils/firestoreBatch';
 
 const APPS_SCRIPT_URL =
   'https://script.google.com/macros/s/AKfycbykQQXn6_oZ1iTtkASuHSA1P1kr5eSqGlIEdm5IBfuxSvr0wDh2I6Ec_yjILnHCXDKe/exec';
@@ -172,30 +173,6 @@ function trobarNoEmparellat(index, clau, idsEmparellats) {
   return (index.get(clau) || []).find((item) => !idsEmparellats.has(item.id));
 }
 
-// Batch amb auto-split (limit Firestore: 500 ops)
-
-class BatchSplit {
-  constructor() {
-    this._batches = [writeBatch(db)];
-    this._count = 0;
-  }
-
-  _current() {
-    if (this._count >= 450) {
-      this._batches.push(writeBatch(db));
-      this._count = 0;
-    }
-    return this._batches[this._batches.length - 1];
-  }
-
-  delete(ref) { this._current().delete(ref); this._count++; }
-  set(ref, data) { this._current().set(ref, data); this._count++; }
-  update(ref, data) { this._current().update(ref, data); this._count++; }
-
-  async commit() {
-    for (const b of this._batches) await b.commit();
-  }
-}
 
 async function guardarHistorialSincronitzacio(cursId, resultat, actor) {
   await addDoc(collection(db, 'cursos', cursId, 'sync_history'), {

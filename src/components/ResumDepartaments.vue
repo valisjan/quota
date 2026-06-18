@@ -76,23 +76,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
-import { onSnapshot, query } from 'firebase/firestore';
-import { useCursStore } from '../stores/curs';
+import { computed } from 'vue';
 import { getTipusBadgeClass, getTipusLabel } from '../utils/tipus';
-import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 
-const cursStore = useCursStore();
-const classes = ref([]);
-const isConnected = ref(true);
-const lastUpdate = ref(new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
-
-// Variables para los listeners
-let classesUnsubscribe = null;
-
-function updateLastUpdate() {
- lastUpdate.value = new Date().toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
+const { items: classes, isConnected, lastUpdate } = useCursCollectionSnapshot({ colName: 'classes' });
 
 const departamentsInfo = computed(() => {
  const info = {};
@@ -160,45 +148,4 @@ function getProfessorsClass(num) {
  return 'text-green-600';
 }
 
-// Configurar listeners en tiempo real
-function setupRealtimeListeners() {
- // Limpiar listeners existentes
- cleanupListeners();
- if (E2E_AUTH_BYPASS) {
- classes.value = getE2ECollection('classes');
- updateLastUpdate();
- isConnected.value = true;
- return;
- }
-
- // Listener para classes
- const classesQuery = query(cursStore.col('classes'));
- classesUnsubscribe = onSnapshot(classesQuery, 
- (snapshot) => {
- classes.value = snapshot.docs.map(doc => ({
- id: doc.id,
- ...doc.data()
- }));
- updateLastUpdate();
- isConnected.value = true;
- },
- (error) => {
- console.error('Error en listener de classes:', error);
- isConnected.value = false;
- }
- );
-}
-
-function cleanupListeners() {
- if (classesUnsubscribe) {
- classesUnsubscribe();
- classesUnsubscribe = null;
- }
-}
-
-watch(() => cursStore.cursActiuId, setupRealtimeListeners, { immediate: true });
-
-onUnmounted(() => {
- cleanupListeners();
-});
 </script>

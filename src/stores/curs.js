@@ -18,13 +18,20 @@ export const useCursStore = defineStore('curs', () => {
   const esBloqueig = computed(() => cursActiu.value?.bloqueig === true);
 
   // Helpers per apuntar a subcolleccions del curs actiu.
+  function assertCursActiu() {
+    if (!cursActiuId.value) throw new Error('No hi ha cap curs actiu seleccionat.');
+  }
+
   function col(nom) {
+    assertCursActiu();
     return collection(db, 'cursos', cursActiuId.value, nom);
   }
   function docRef(colNom, id) {
+    assertCursActiu();
     return doc(db, 'cursos', cursActiuId.value, colNom, id);
   }
   function nouDoc(colNom) {
+    assertCursActiu();
     return doc(collection(db, 'cursos', cursActiuId.value, colNom));
   }
 

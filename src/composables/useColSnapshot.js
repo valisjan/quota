@@ -1,4 +1,4 @@
-import { ref, watch, onUnmounted } from 'vue';
+import { ref, watchEffect, onUnmounted, toValue } from 'vue';
 import { onSnapshot } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
 import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
@@ -10,37 +10,81 @@ function horaActual() {
   });
 }
 
-export function useColSnapshot(colName) {
+const defaultMapDoc = (d) => ({ id: d.id, ...d.data() });
+
+/**
+ * Subscripció reactiva a una subcol·lecció del curs actiu.
+ *
+ * @param {object} opts
+ * @param {string}   opts.colName        Nom de la subcol·lecció ('classes', 'professors'...)
+ * @param {Function} [opts.queryFactory] (colRef) => Query  — afegeix where/orderBy, reactiu via watchEffect
+ * @param {Function} [opts.mapDoc]       (DocumentSnapshot) => object  — transforma cada doc, per defecte { id, ...data() }
+ * @param {boolean|Ref<boolean>|Function} [opts.enabled]  Desactiva la subscripció; per defecte true
+ */
+export function useCursCollectionSnapshot({
+  colName,
+  queryFactory = null,
+  mapDoc = null,
+  enabled = true,
+} = {}) {
   const cursStore = useCursStore();
   const items = ref([]);
   const error = ref(null);
   const isConnected = ref(true);
   const lastUpdate = ref(horaActual());
-  let unsub = null;
+  const loading = ref(true);
+  const mapper = mapDoc ?? defaultMapDoc;
 
-  function setup() {
-    unsub?.(); unsub = null;
+  const stopEffect = watchEffect((onCleanup) => {
+    const isEnabled = toValue(enabled);
+    const cursId = cursStore.cursActiuId; // dep reactiva: re-subscriu quan canvia el curs
+
+    if (!isEnabled || !cursId) {
+      items.value = [];
+      loading.value = false;
+      return;
+    }
+
     if (E2E_AUTH_BYPASS) {
       items.value = getE2ECollection(colName);
       error.value = null;
       isConnected.value = true;
       lastUpdate.value = horaActual();
+      loading.value = false;
       return;
     }
-    if (!cursStore.cursActiuId) { items.value = []; return; }
-    unsub = onSnapshot(
-      cursStore.col(colName),
-      snap => {
-        items.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    loading.value = true;
+    const colRef = cursStore.col(colName);
+    // queryFactory pot accedir a refs/props reactius; watchEffect els rastreja automàticament
+    const q = queryFactory ? queryFactory(colRef) : colRef;
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        items.value = snap.docs.map(mapper);
         isConnected.value = true;
         lastUpdate.value = horaActual();
+        loading.value = false;
+        error.value = null;
       },
-      err => { error.value = err; isConnected.value = false; }
+      (err) => {
+        error.value = err;
+        isConnected.value = false;
+        loading.value = false;
+      },
     );
-  }
 
-  watch(() => cursStore.cursActiuId, setup, { immediate: true });
-  onUnmounted(() => { unsub?.(); unsub = null; });
+    onCleanup(() => unsub());
+  });
 
-  return { items, error, isConnected, lastUpdate };
+  // stopEffect cancel·la el watchEffect i fa el cleanup (unsub) de l'última subscripció
+  onUnmounted(stopEffect);
+
+  return { items, error, isConnected, lastUpdate, loading };
+}
+
+// Wrapper de compatibilitat per als components que ja usen useColSnapshot('colName')
+export function useColSnapshot(colName) {
+  return useCursCollectionSnapshot({ colName });
 }

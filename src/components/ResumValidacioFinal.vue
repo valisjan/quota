@@ -111,42 +111,21 @@
 </template>
 
 <script setup>
-import { computed, onUnmounted, reactive, ref, watch } from 'vue';
-import { onSnapshot, query } from 'firebase/firestore';
-import { useCursStore } from '../stores/curs';
+import { computed, reactive } from 'vue';
 import { calcularValidacioFinal } from '../services/validacioFinal';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 
-const cursStore = useCursStore();
+const { items: classes, isConnected: classesOk, lastUpdate } = useCursCollectionSnapshot({ colName: 'classes' });
+const { items: professors, isConnected: profsOk } = useCursCollectionSnapshot({ colName: 'professors' });
+const { items: departaments, isConnected: deptsOk } = useCursCollectionSnapshot({ colName: 'departaments' });
+const isConnected = computed(() => classesOk.value && profsOk.value && deptsOk.value);
 
-const classes = ref([]);
-const professors = ref([]);
-const departaments = ref([]);
-const isConnected = ref(true);
-const lastUpdate = ref(formatData(new Date()));
 const blocsOberts = reactive({
  critiques: true,
  professorat: true,
  organitzacio: true,
  dades: false,
 });
-
-let classesUnsubscribe = null;
-let professorsUnsubscribe = null;
-let departamentsUnsubscribe = null;
-
-function formatData(data) {
- return data.toLocaleString('ca-ES', {
- day: '2-digit',
- month: '2-digit',
- year: 'numeric',
- hour: '2-digit',
- minute: '2-digit',
- });
-}
-
-function updateLastUpdate() {
- lastUpdate.value = formatData(new Date());
-}
 
 const validacio = computed(() =>
  calcularValidacioFinal({
@@ -264,54 +243,4 @@ function toggleBloc(id) {
  blocsOberts[id] = !blocsOberts[id];
 }
 
-function setupRealtimeListeners() {
- cleanupListeners();
- classesUnsubscribe = onSnapshot(
- query(cursStore.col('classes')),
- (snapshot) => {
- classes.value = snapshot.docs.map((docu) => ({ id: docu.id, ...docu.data() }));
- updateLastUpdate();
- isConnected.value = true;
- },
- () => {
- isConnected.value = false;
- }
- );
-
- professorsUnsubscribe = onSnapshot(
- query(cursStore.col('professors')),
- (snapshot) => {
- professors.value = snapshot.docs.map((docu) => ({ id: docu.id, ...docu.data() }));
- updateLastUpdate();
- isConnected.value = true;
- },
- () => {
- isConnected.value = false;
- }
- );
-
- departamentsUnsubscribe = onSnapshot(
- query(cursStore.col('departaments')),
- (snapshot) => {
- departaments.value = snapshot.docs.map((docu) => ({ id: docu.id, ...docu.data() }));
- updateLastUpdate();
- isConnected.value = true;
- },
- () => {
- isConnected.value = false;
- }
- );
-}
-
-function cleanupListeners() {
- classesUnsubscribe?.();
- professorsUnsubscribe?.();
- departamentsUnsubscribe?.();
- classesUnsubscribe = null;
- professorsUnsubscribe = null;
- departamentsUnsubscribe = null;
-}
-
-watch(() => cursStore.cursActiuId, setupRealtimeListeners, { immediate: true });
-onUnmounted(cleanupListeners);
 </script>

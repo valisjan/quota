@@ -261,9 +261,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
-import { onSnapshot, query } from 'firebase/firestore';
-import { useCursStore } from '../stores/curs';
+import { ref, computed } from 'vue';
 import {
  getTipusLabel,
  clauFranjaOptativa,
@@ -271,12 +269,10 @@ import {
  esOptativa,
  normalitzarTipus,
 } from '../utils/tipus';
-import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 
-const cursStore = useCursStore();
-const classes = ref([]);
+const { items: classes } = useCursCollectionSnapshot({ colName: 'classes' });
 const filtreActiu = ref(null);
-let classesUnsubscribe = null;
 
 const filtres = [
  { id: '1r', nom: '1r ESO' },
@@ -655,26 +651,7 @@ const classesAgrupadesPerCursFiltrades = computed(() => {
  );
 });
 
-function setupRealtimeListeners() {
- cleanupListeners();
- if (E2E_AUTH_BYPASS) {
- classes.value = getE2ECollection('classes');
- return;
- }
- classesUnsubscribe = onSnapshot(
- query(cursStore.col('classes')),
- snapshot => { classes.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); },
- );
-}
-
-function cleanupListeners() {
- if (classesUnsubscribe) { classesUnsubscribe(); classesUnsubscribe = null; }
-}
-
 function imprimirGrups() {
  window.print();
 }
-
-watch(() => cursStore.cursActiuId, setupRealtimeListeners, { immediate: true });
-onUnmounted(() => cleanupListeners());
 </script>

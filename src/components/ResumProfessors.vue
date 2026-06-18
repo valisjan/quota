@@ -101,22 +101,17 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
-import { onSnapshot, query } from 'firebase/firestore';
-import { useCursStore } from '../stores/curs';
+import { ref, computed } from 'vue';
+import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { limitsHoresProfessor, textJornada, professorsClasse, classeAssignadaA, horesComputablesClasse, esMajorDe55Classe } from '../utils/horesProfessor';
 import { descarregarExcel } from '../utils/exportExcel';
 
-const cursStore = useCursStore();
-const classes = ref([]);
-const professors = ref([]);
-const isConnected = ref(true);
+const { items: classes, isConnected: classesOk } = useCursCollectionSnapshot({ colName: 'classes' });
+const { items: professors, isConnected: profsOk } = useCursCollectionSnapshot({ colName: 'professors' });
+const isConnected = computed(() => classesOk.value && profsOk.value);
 const cerca = ref('');
 const departamentFiltre = ref('');
 const nomesAvisos = ref(false);
-
-let classesUnsubscribe = null;
-let professorsUnsubscribe = null;
 
 const departamentsOrdenats = computed(() =>
  [...new Set(professors.value.map((p) => p.departament).filter(Boolean))].sort()
@@ -253,22 +248,4 @@ function exportarExcel() {
  );
 }
 
-function setupListeners() {
- classesUnsubscribe = onSnapshot(
- query(cursStore.col('classes')),
- (snap) => { classes.value = snap.docs.map((d) => ({ id: d.id, ...d.data() })); isConnected.value = true; },
- () => { isConnected.value = false; }
- );
- professorsUnsubscribe = onSnapshot(
- query(cursStore.col('professors')),
- (snap) => { professors.value = snap.docs.map((d) => ({ id: d.id, ...d.data() })); isConnected.value = true; },
- () => { isConnected.value = false; }
- );
-}
-
-watch(() => cursStore.cursActiuId, setupListeners, { immediate: true });
-onUnmounted(() => {
- classesUnsubscribe?.();
- professorsUnsubscribe?.();
-});
 </script>
