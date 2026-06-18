@@ -9,6 +9,7 @@ import {
 import { parseGestibXml, trobarMateriaGestib, trobarMateriaGestibAmbOverride } from './gestibMapper';
 import { agruparClassesPerLlicoExport } from './lessonBuilder';
 import { comptaPerGrupPerTipus } from '../utils/tipus';
+import { guardesQueTocaFer } from '../utils/guardes';
 
 function cc(cursId, nom) { return collection(db, 'cursos', cursId, nom); }
 
@@ -200,6 +201,30 @@ function afegirGuardiesPatiCalculades(classes, professors) {
     ...classes.filter((classe) => !esGuardiaPati(classe)),
     ...crearClassesGuardiesPati(professors),
   ];
+}
+
+function crearClassesGuardiesPassadisIConvivencia(professors, rawClasses) {
+  return professors
+    .map((professor) => {
+      const passadis = guardesQueTocaFer(professor, rawClasses);
+      const gc = Math.max(0, Number(professor.gcAssignades || 0));
+      const total = passadis + gc;
+      if (total <= 0) return null;
+      return {
+        id: `guard-${professor.id || professor.nom}`,
+        curs: '',
+        grup: '',
+        materia: '*Guà',
+        hores: total,
+        departament: professor.departament || '',
+        departaments: professor.departament ? [professor.departament] : [],
+        tipus: '',
+        professorAssignat: professor.nom,
+        professors: [professor.nom],
+        _generadaGuardia: true,
+      };
+    })
+    .filter(Boolean);
 }
 
 function codisMateriaPossibles(materia) {
@@ -753,10 +778,11 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
 
   const referenciaGestib = referenciaGestibXmlText ? parseGestibXml(referenciaGestibXmlText) : null;
   let professors = snapProfessors.docs.map((d) => ({ id: d.id, ...d.data() }));
-  let classes = afegirGuardiesPatiCalculades(
-    snapClasses.docs.map((d) => ({ id: d.id, ...d.data() })),
-    professors
-  );
+  const rawClasses = snapClasses.docs.map((d) => ({ id: d.id, ...d.data() }));
+  let classes = [
+    ...afegirGuardiesPatiCalculades(rawClasses, professors),
+    ...crearClassesGuardiesPassadisIConvivencia(professors, rawClasses),
+  ];
   const professorsSimulacio = simular ? professorsPerSimulacio(professors, referenciaGestib) : [];
   if (simular) {
     professors = professorsSimulacio;

@@ -103,6 +103,63 @@
       </div>
     </section>
 
+    <!-- Secció: Guàrdies de corredor -->
+    <section class="card">
+      <div class="border-b border-slate-200 p-5">
+        <h3 class="text-xl font-bold text-slate-950">Guàrdies de passadís</h3>
+        <p class="mt-1 text-sm text-slate-600">
+          Cada professor fa 4 guàrdies (2 si és tutor). Exempts: departaments d'Agrària i Indústries Alimentàries (automàtic) i professors amb dedicació a equip directiu o orientació (manual).
+          Reduccions: comissió −1, cada GP −1, cada GC −1. S'exportaran a Untis com a activitat <code class="rounded bg-slate-100 px-1">*Guà</code>.
+        </p>
+      </div>
+
+      <div class="divide-y divide-slate-100">
+        <div
+          v-for="prof in professorsAmbGuardes"
+          :key="prof.id"
+          class="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:justify-between"
+          :class="prof.exempt ? 'opacity-50' : ''"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-sm font-semibold text-slate-950">{{ prof.nom }}</span>
+              <span class="text-xs text-slate-500">{{ prof.departament }}</span>
+              <span
+                v-for="motiu in prof.motius"
+                :key="motiu"
+                class="rounded px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 text-slate-500"
+              >{{ motiu }}</span>
+            </div>
+          </div>
+          <div class="flex shrink-0 items-center gap-4">
+            <span
+              class="w-20 text-right text-sm font-bold"
+              :class="prof.guardes === 0 ? 'text-slate-400' : 'text-slate-950'"
+            >
+              {{ prof.guardes === 0 ? 'Exempt' : `${prof.guardes} guàrd.` }}
+            </span>
+            <label class="flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
+              <input
+                type="checkbox"
+                :checked="prof.exempteGuardies"
+                @change="toggleExempteGuardies(prof, $event.target.checked)"
+                class="h-4 w-4 rounded border-slate-300 accent-primary"
+              />
+              Exempt manual
+            </label>
+          </div>
+        </div>
+        <div v-if="!professorsAmbGuardes.length" class="px-5 py-8 text-center text-sm text-slate-500">
+          Cap professor carregat. Sincronitza primer des de Google Sheets.
+        </div>
+      </div>
+
+      <div class="border-t border-slate-200 bg-slate-50 px-5 py-3 text-sm text-slate-600">
+        Total guàrdies previstes: <strong>{{ totalGuardesPrevistes }}</strong>
+        · Professors exempts: <strong>{{ professorsExempts }}</strong>
+      </div>
+    </section>
+
     <!-- Secció: Full de càlcul -->
     <section class="card">
       <div class="border-b border-slate-200 p-5">
@@ -232,9 +289,11 @@
 
 <script setup>
 import { computed, onUnmounted, reactive, ref, watch } from 'vue';
+import { updateDoc } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
 import { useToastStore } from '../stores/toast';
 import { calcularQuotesGuardiesPati, departamentFaGuardiesPati } from '../utils/guardiesPati';
+import { guardesQueTocaFer, motiusReduccio } from '../utils/guardes';
 import {
   DEFAULT_APP_SETTINGS,
   DEFAULT_SHEETS_ID,
@@ -251,6 +310,35 @@ const guardant = ref(false);
 let settingsUnsubscribe = null;
 
 const { items: professors } = useCursCollectionSnapshot({ colName: 'professors' });
+const { items: classes } = useCursCollectionSnapshot({ colName: 'classes' });
+
+const professorsAmbGuardes = computed(() =>
+  [...professors.value]
+    .sort((a, b) => (a.departament || '').localeCompare(b.departament || '', 'ca') || (a.nom || '').localeCompare(b.nom || '', 'ca'))
+    .map((prof) => ({
+      ...prof,
+      guardes: guardesQueTocaFer(prof, classes.value),
+      motius: motiusReduccio(prof, classes.value),
+      exempt: prof.exempteGuardies || false,
+    }))
+);
+
+const totalGuardesPrevistes = computed(() =>
+  professorsAmbGuardes.value.reduce((s, p) => s + p.guardes, 0)
+);
+
+const professorsExempts = computed(() =>
+  professorsAmbGuardes.value.filter((p) => p.guardes === 0).length
+);
+
+async function toggleExempteGuardies(prof, valor) {
+  try {
+    await updateDoc(cursStore.docRef('professors', prof.id), { exempteGuardies: valor });
+    toast.ok(`${prof.nom} ${valor ? 'marcat com a exempt' : 'inclòs a les guàrdies'}.`);
+  } catch (err) {
+    toast.error("No s'ha pogut actualitzar: " + err.message);
+  }
+}
 
 // Sheets ID
 const nouSheetsIdRaw = ref('');

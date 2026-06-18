@@ -375,7 +375,10 @@
                 :hores-lectives="calcularHoresProfessor(professor.nom)"
                 :hores-gp="getHoresGP(professor.nom)"
                 :hores-palic="getHoresPALIC(professor.nom)"
+                :hores-gc="getHoresGC(professor.nom)"
+                :guardes-previstes="getGuardesPrevistes(professor.nom)"
                 :mostra-gp="totalGPDepartament > 0 || totalGPAssignades > 0"
+                :mostra-gc="true"
                 :total-gp-departament="totalGPDepartament"
                 :total-gp-assignades="totalGPAssignades"
                 :total-palic-departament="totalPALICDepartament"
@@ -387,6 +390,8 @@
                 @decrementar-gp="decrementarGP"
                 @incrementar-palic="incrementarPALIC"
                 @decrementar-palic="decrementarPALIC"
+                @incrementar-gc="incrementarGC"
+                @decrementar-gc="decrementarGC"
                 @toggle-coordinacio="toggleCoordinacioProfessor"
                 @desassignar-classe="desassignarClasseProfessor"
               />
@@ -463,6 +468,7 @@ import { departamentIconText, departamentFlagClass, departamentIconPaths, depart
 import { esGP, esPALIC, esOptativaCompartida, esCoordinacioAmbMembres } from '../utils/tipus';
 import { classePertanyDepartament } from '../utils/departaments';
 import { quotaGuardiesPatiDepartament } from '../utils/guardiesPati';
+import { guardesQueTocaFer } from '../utils/guardes';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
 import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
 import { crearActualitzacionsDesassignacioProfessor } from '../services/assignacioRules';
@@ -517,6 +523,8 @@ const {
       comentaris: data.comentaris || '',
       gpAssignades: data.gpAssignades || 0,
       palicAssignades: data.palicAssignades || 0,
+      gcAssignades: data.gcAssignades || 0,
+      exempteGuardies: data.exempteGuardies || false,
     };
   },
 });
@@ -840,6 +848,16 @@ function getHoresPALIC(nomProfessor) {
   return getProfessor(nomProfessor).palicAssignades || 0;
 }
 
+function getHoresGC(nomProfessor) {
+  return getProfessor(nomProfessor).gcAssignades || 0;
+}
+
+function getGuardesPrevistes(nomProfessor) {
+  const prof = getProfessor(nomProfessor);
+  if (!prof.nom) return null;
+  return guardesQueTocaFer(prof, classes.value);
+}
+
 function calcularHoresComputablesProfessor(nomProfessor) {
   return calcularHoresProfessor(nomProfessor) + getHoresPALIC(nomProfessor);
 }
@@ -957,6 +975,34 @@ async function decrementarGP(professor) {
   } catch (e) {
     console.error('Error decrementant GP:', e);
     toast.error("No s'ha pogut guardar la guàrdia de pati: " + (e.message || e.code || ''));
+  }
+}
+
+// GC
+
+async function incrementarGC(professor) {
+  if (departamentTancat.value) return;
+  if ((professor.gcAssignades || 0) >= 2) return;
+  try {
+    await updateDoc(cursStore.docRef('professors', professor.id), {
+      gcAssignades: (professor.gcAssignades || 0) + 1,
+      lastModified: serverTimestamp(),
+    });
+  } catch (e) {
+    toast.error("No s'ha pogut guardar la guàrdia de convivència: " + (e.message || ''));
+  }
+}
+
+async function decrementarGC(professor) {
+  if (departamentTancat.value) return;
+  if (!professor.gcAssignades || professor.gcAssignades <= 0) return;
+  try {
+    await updateDoc(cursStore.docRef('professors', professor.id), {
+      gcAssignades: professor.gcAssignades - 1,
+      lastModified: serverTimestamp(),
+    });
+  } catch (e) {
+    toast.error("No s'ha pogut guardar la guàrdia de convivència: " + (e.message || ''));
   }
 }
 

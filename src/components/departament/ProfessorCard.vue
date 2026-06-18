@@ -32,6 +32,10 @@
         <span v-if="professor.preferencia" class="app-chip px-1.5 py-0.5 text-[11px] font-medium">
           {{ professor.preferencia === 'pronto' ? '↑ Prest' : '↓ Tard' }}
         </span>
+        <span v-if="guardesPrevistes !== null" class="app-chip px-1.5 py-0.5 text-[11px] font-medium"
+          :class="guardesPrevistes === 0 ? 'bg-slate-100 text-slate-400' : ''">
+          {{ guardesPrevistes === 0 ? 'Exempt G' : `${guardesPrevistes}G` }}
+        </span>
       </div>
     </div>
 
@@ -62,9 +66,9 @@
       </div>
     </div>
 
-    <!-- GP i PALIC: discrets, inline -->
+    <!-- GP, PALIC i GC: discrets, inline -->
     <div
-      v-if="mostraGp || totalPalicDepartament > 0"
+      v-if="mostraGp || totalPalicDepartament > 0 || mostraGc"
       class="flex flex-wrap gap-3 border-t border-border-soft bg-surface-soft px-4 py-2"
     >
       <div v-if="mostraGp" class="flex items-center gap-1.5">
@@ -97,6 +101,22 @@
           class="app-mini-button"
           :disabled="bloquejat || totalPalicAssignades >= totalPalicDepartament"
           @click="$emit('incrementar-palic', professor)"
+        >+</button>
+      </div>
+      <div v-if="mostraGc" class="flex items-center gap-1.5">
+        <span class="text-xs font-medium text-text-muted">G. convivència</span>
+        <button
+          type="button"
+          class="app-mini-button"
+          :disabled="bloquejat || horesGc === 0"
+          @click="$emit('decrementar-gc', professor)"
+        >−</button>
+        <span class="w-4 text-center text-sm font-bold text-text-main">{{ horesGc }}</span>
+        <button
+          type="button"
+          class="app-mini-button"
+          :disabled="bloquejat || horesGc >= 2"
+          @click="$emit('incrementar-gc', professor)"
         >+</button>
       </div>
     </div>
@@ -212,7 +232,10 @@ const props = defineProps({
   horesLectives: { type: Number, default: 0 },
   horesGp: { type: Number, default: 0 },
   horesPalic: { type: Number, default: 0 },
+  horesGc: { type: Number, default: 0 },
+  guardesPrevistes: { type: Number, default: null },
   mostraGp: { type: Boolean, default: true },
+  mostraGc: { type: Boolean, default: false },
   totalGpDepartament: { type: Number, default: 0 },
   totalGpAssignades: { type: Number, default: 0 },
   totalPalicDepartament: { type: Number, default: 0 },
@@ -227,6 +250,8 @@ const emit = defineEmits([
   'decrementar-gp',
   'incrementar-palic',
   'decrementar-palic',
+  'incrementar-gc',
+  'decrementar-gc',
   'toggle-coordinacio',
   'desassignar-classe',
 ]);
