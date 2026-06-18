@@ -138,6 +138,74 @@
         </div>
       </div>
 
+      <section
+        v-if="validacioDepartament.items.length"
+        class="app-card mb-4 overflow-hidden print-hide"
+        :class="validacioDepartament.estat === 'bloquejat' ? 'validation-panel-critical' : 'validation-panel-warning'"
+      >
+        <div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="text-base font-semibold text-text-main">Validació de distribució</h3>
+              <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="validacioEstatClass">
+                {{ validacioEstatText }}
+              </span>
+            </div>
+            <p class="mt-1 text-sm font-medium text-text-secondary">
+              {{ validacioDepartament.critiques.length }} crítics · {{ validacioDepartament.avisos.length }} avisos
+            </p>
+          </div>
+          <button
+            v-if="validacioDepartament.critiques.length"
+            type="button"
+            class="app-button-secondary shrink-0"
+            @click="anarAProblema(validacioDepartament.critiques[0])"
+          >
+            Primer problema
+          </button>
+        </div>
+        <div class="grid grid-cols-1 gap-2 border-t border-border-soft p-3 lg:grid-cols-2">
+          <article
+            v-for="item in validacioItemsVisibles"
+            :key="item.id"
+            class="validation-issue-card rounded-lg border bg-white px-3 py-2"
+            :class="item.severitat === 'critica' ? 'border-rose-200' : 'border-amber-200'"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="rounded-full px-2 py-0.5 text-[11px] font-bold" :class="classeSeveritatValidacio(item)">
+                    {{ item.severitat === 'critica' ? 'Crític' : 'Avís' }}
+                  </span>
+                  <span class="text-xs font-semibold text-text-muted">{{ item.categoria }}</span>
+                </div>
+                <h4 class="mt-1 text-sm font-semibold text-text-main">{{ item.titol }}</h4>
+                <p class="mt-0.5 text-xs font-medium text-text-secondary">{{ item.detall }}</p>
+                <p v-if="item.context" class="mt-1 text-xs text-text-muted">{{ item.context }}</p>
+              </div>
+              <button
+                type="button"
+                class="shrink-0 rounded-md border border-border-soft bg-surface px-2 py-1 text-xs font-semibold text-text-secondary hover:bg-surface-hover"
+                @click="anarAProblema(item)"
+              >
+                Anar
+              </button>
+            </div>
+          </article>
+        </div>
+        <p v-if="validacioRestants > 0" class="border-t border-border-soft px-4 py-2 text-xs font-semibold text-text-muted">
+          + {{ validacioRestants }} incidències més
+        </p>
+      </section>
+
+      <section
+        v-else-if="!departamentTancat"
+        class="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 print-hide"
+      >
+        <span aria-hidden="true">✓</span>
+        Distribució llesta per tancar.
+      </section>
+
       <!-- Pestanyes + botó imprimir -->
       <div class="department-actions mb-5 print-hide">
         <div class="app-toolbar department-tabs min-w-0" role="tablist" aria-label="Seccions del departament">
@@ -196,7 +264,7 @@
       <!-- Pestanya: Distribució -->
       <div v-show="activeTab === 'distribucio'" id="panel-distribucio" role="tabpanel" aria-labelledby="tab-distribucio">
         <!-- Resum GP, PALIC i hores del departament -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4" data-validation-summary tabindex="-1">
           <div class="card-stat-primary">
             <div class="flex items-center justify-between">
               <div>
@@ -269,6 +337,7 @@
             <RepartimentHores
               :departamentSeleccionat="departamentSeleccionat"
               :bloquejat="departamentTancat || solsLectura"
+              :focus-class-id="focusClassId"
               @assignacionsActualitzades="handleAssignacionsActualitzades"
             />
           </div>
@@ -380,7 +449,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted, watch } from 'vue';
+import { ref, computed, nextTick, onUnmounted, watch } from 'vue';
 import { db } from '../firebase';
 import { writeBatch, updateDoc, serverTimestamp } from 'firebase/firestore';
 import RepartimentHores from '../components/RepartimentHores.vue';
@@ -397,6 +466,7 @@ import { quotaGuardiesPatiDepartament } from '../utils/guardiesPati';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
 import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
 import { crearActualitzacionsDesassignacioProfessor } from '../services/assignacioRules';
+import { calcularValidacioDepartament } from '../services/validacioDepartament';
 import { useToastStore } from '../stores/toast';
 import { useAuthStore } from '../stores/auth';
 import { useCursStore } from '../stores/curs';
@@ -410,6 +480,7 @@ const toast = useToastStore();
 const solsLectura = computed(() => authStore.rol === 'professor');
 const activeTab = ref('distribucio');
 const ordreProfessorat = ref('necessitat');
+const focusClassId = ref('');
 const mostrarSelectorDepartaments = ref(true);
 const transicioPantallaDepartament = ref('departament-slide-forward');
 const settings = ref({ ...DEFAULT_APP_SETTINGS });
@@ -646,6 +717,39 @@ const departamentActual = computed(() =>
 
 const departamentTancat = computed(() => Boolean(departamentActual.value?.tancat));
 
+const validacioDepartament = computed(() =>
+  calcularValidacioDepartament({
+    departament: departamentSeleccionat.value,
+    classes: classes.value,
+    professors: professors.value,
+    totalGPDepartament: totalGPDepartament.value,
+    totalGPAssignades: totalGPAssignades.value,
+    totalPALICDepartament: totalPALICDepartament.value,
+    totalPALICAssignades: totalPALICAssignades.value,
+  })
+);
+
+const validacioItemsVisibles = computed(() => [
+  ...validacioDepartament.value.critiques,
+  ...validacioDepartament.value.avisos,
+].slice(0, 8));
+
+const validacioRestants = computed(() =>
+  Math.max(0, validacioDepartament.value.items.length - validacioItemsVisibles.value.length)
+);
+
+const validacioEstatText = computed(() => {
+  if (validacioDepartament.value.estat === 'bloquejat') return 'Bloquejat';
+  if (validacioDepartament.value.estat === 'revisar') return 'Revisar';
+  return 'Pot tancar';
+});
+
+const validacioEstatClass = computed(() => {
+  if (validacioDepartament.value.estat === 'bloquejat') return 'bg-rose-100 text-rose-800';
+  if (validacioDepartament.value.estat === 'revisar') return 'bg-amber-100 text-amber-800';
+  return 'bg-emerald-100 text-emerald-800';
+});
+
 // Funcions
 
 function tornarADepartaments() {
@@ -771,6 +875,7 @@ function isOverLimit(nomProfessor) {
 }
 
 function estatDepartamentResum(departament, resum) {
+  if (departament.exclos) return 'exclos';
   if (departament.tancat) return 'tancat';
   if (!resum.professorsCount && !resum.totalHores) return 'buit';
   if (resum.horesAssignades > resum.totalHores) return 'exces';
@@ -778,6 +883,51 @@ function estatDepartamentResum(departament, resum) {
     return 'complet';
   }
   return 'pendent';
+}
+
+function classeSeveritatValidacio(item) {
+  return item.severitat === 'critica'
+    ? 'bg-rose-100 text-rose-800'
+    : 'bg-amber-100 text-amber-800';
+}
+
+function trobarTargetValidacio(item) {
+  if (item?.target?.type === 'classe') {
+    return [...document.querySelectorAll('[data-validation-class-id]')]
+      .find((el) => el.dataset.validationClassId === item.target.id);
+  }
+  if (item?.target?.type === 'professor') {
+    return [...document.querySelectorAll('[data-validation-professor]')]
+      .find((el) => el.dataset.validationProfessor === item.target.nom);
+  }
+  return document.querySelector('[data-validation-summary]');
+}
+
+async function anarAProblema(item) {
+  if (!item) return;
+  activeTab.value = 'distribucio';
+  if (item.target?.type === 'classe') {
+    focusClassId.value = '';
+    await nextTick();
+    focusClassId.value = item.target.id;
+  }
+  await nextTick();
+  const target = trobarTargetValidacio(item);
+  if (!target) {
+    toast.info('No es veu el problema en aquesta vista. Revisa la llista de distribució.');
+    return;
+  }
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  target.classList.remove('validation-target-highlight');
+  window.setTimeout(() => {
+    target.classList.add('validation-target-highlight');
+    try {
+      target.focus({ preventScroll: true });
+    } catch (_) {
+      target.focus?.();
+    }
+  }, 180);
+  window.setTimeout(() => target.classList.remove('validation-target-highlight'), 2200);
 }
 
 // GP
@@ -907,6 +1057,23 @@ function handleAssignacionsActualitzades() {}
 
 async function tancarDepartament() {
   if (!departamentSeleccionat.value || departamentTancat.value || !departamentActual.value?.id) return;
+  if (validacioDepartament.value.critiques.length > 0) {
+    toast.error(
+      `No es pot tancar ${departamentSeleccionat.value}: `
+      + `${validacioDepartament.value.critiques.length} incidències crítiques pendents.`
+    );
+    await anarAProblema(validacioDepartament.value.critiques[0]);
+    return;
+  }
+
+  if (validacioDepartament.value.avisos.length > 0) {
+    const revisar = confirm(
+      `${departamentSeleccionat.value} té ${validacioDepartament.value.avisos.length} avisos. `
+      + 'Vols tancar igualment la distribució?'
+    );
+    if (!revisar) return;
+  }
+
   const ok = confirm(
     `Vols tancar la distribució de ${departamentSeleccionat.value}? Després només l'administració el podrà desbloquejar.`
   );
@@ -984,6 +1151,31 @@ watch(departamentSeleccionat, (newDept) => {
     var(--surface);
   color: var(--text-main);
   box-shadow: var(--card-shadow-soft);
+}
+
+.validation-panel-critical {
+  border-color: color-mix(in srgb, #fb7185 42%, var(--border-soft));
+  background:
+    linear-gradient(180deg, rgb(255 241 242 / 0.72), var(--surface)),
+    var(--surface);
+}
+
+.validation-panel-warning {
+  border-color: color-mix(in srgb, #fbbf24 42%, var(--border-soft));
+  background:
+    linear-gradient(180deg, rgb(255 251 235 / 0.78), var(--surface)),
+    var(--surface);
+}
+
+.validation-issue-card {
+  box-shadow: 0 8px 20px rgb(15 23 42 / 0.05);
+}
+
+:global(.validation-target-highlight) {
+  outline: 3px solid color-mix(in srgb, var(--primary) 68%, white);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--primary) 18%, transparent), var(--card-shadow-soft);
+  transition: outline-color 160ms ease, box-shadow 160ms ease;
 }
 
 .department-actions {

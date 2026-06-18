@@ -61,6 +61,7 @@
         </h3>
         <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
           Els departaments poden tancar-se ells mateixos. Només l'administració pot desbloquejar-los.
+          Els departaments exclosos no compten a les estadístiques globals i apareixen en gris.
         </p>
       </div>
 
@@ -69,11 +70,16 @@
           v-for="departament in departamentsOrdenats"
           :key="departament.id"
           class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+          :class="departament.exclos ? 'opacity-50' : ''"
         >
           <div>
-            <p class="font-bold text-slate-950 dark:text-white">
-              {{ departament.nom }}
-            </p>
+            <div class="flex items-center gap-2">
+              <p class="font-bold text-slate-950 dark:text-white">{{ departament.nom }}</p>
+              <span
+                v-if="departament.exclos"
+                class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-slate-200 text-slate-500"
+              >Exclòs</span>
+            </div>
             <p class="text-sm text-slate-600 dark:text-slate-400">
               <span v-if="departament.tancat">
                 Tancat per {{ infoDepartament(departament.nom).tancatPer || 'usuari' }}
@@ -81,10 +87,20 @@
                   · {{ formatData(infoDepartament(departament.nom).tancatAt) }}
                 </span>
               </span>
-              <span v-else>Obert</span>
+              <span v-else-if="!departament.exclos">Obert</span>
             </p>
           </div>
           <div class="flex gap-2">
+            <button
+              type="button"
+              class="rounded-md border px-4 py-2 text-sm font-medium transition"
+              :class="departament.exclos
+                ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'"
+              @click="toggleExclos(departament)"
+            >
+              {{ departament.exclos ? 'Inclou' : 'Exclou' }}
+            </button>
             <button
               v-if="departament.tancat"
               type="button"
@@ -193,6 +209,17 @@ async function desbloquejarDepartament(departament) {
   } catch (err) {
     console.error('Error desbloquejant departament:', err);
     toast.error("No s'ha pogut desbloquejar el departament.");
+  }
+}
+
+async function toggleExclos(departament) {
+  const nouEstat = !departament.exclos;
+  try {
+    await updateDoc(cursStore.docRef('departaments', departament.id), { exclos: nouEstat });
+    toast.ok(`${departament.nom} ${nouEstat ? 'exclòs' : 'inclòs'} de la distribució.`);
+  } catch (err) {
+    console.error('Error actualitzant exclos:', err);
+    toast.error("No s'ha pogut actualitzar el departament.");
   }
 }
 

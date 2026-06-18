@@ -84,19 +84,81 @@
                 != {{ resultComprova.modificades }} classes amb hores o tipus diferent (s'actualitzaran)
               </div>
             </div>
-            <div v-if="detallsComprova.length" class="mt-3 space-y-1 text-sm">
-              <div
-                v-for="(canvi, index) in detallsComprova"
-                :key="`${canvi.tipus}-${index}-${canvi.resum}`"
-                class="rounded-md border border-orange-200/80 bg-white/70 px-3 py-2 dark:border-orange-800 dark:bg-gray-900/40"
-              >
-                <span class="mr-2 font-bold" :class="classeCanviComprova(canvi.tipus)">
-                  {{ etiquetaCanviComprova(canvi.tipus) }}
+
+            <div v-if="riscosComprova.length" class="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="font-semibold text-rose-900">Revisa abans de sincronitzar</p>
+                  <p class="mt-0.5 text-sm text-rose-800">
+                    Hi ha canvis que afecten classes amb assignació existent.
+                  </p>
+                </div>
+                <span class="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-rose-700">
+                  {{ riscosComprova.length }}
                 </span>
-                <span class="font-semibold text-slate-800 dark:text-slate-100">{{ canvi.resum }}</span>
-                <span v-if="canvi.detall" class="mt-0.5 block text-xs text-slate-700 dark:text-slate-300">
-                  {{ canvi.detall }}
-                </span>
+              </div>
+              <div class="mt-3 space-y-2">
+                <div
+                  v-for="(risc, index) in riscosComprovaLimitats"
+                  :key="`${risc.tipus}-${index}-${risc.resum}`"
+                  class="rounded-md border border-rose-100 bg-white/80 px-3 py-2 text-sm"
+                >
+                  <div class="font-semibold text-rose-950">{{ risc.resum }}</div>
+                  <div class="mt-0.5 text-xs text-rose-800">{{ risc.detall }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="!resultComprova.alDia" class="mt-4 space-y-4">
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <div
+                  v-for="item in resumPreviewComprova"
+                  :key="item.label"
+                  class="rounded-lg border px-3 py-2 shadow-sm"
+                  :class="item.cardClass"
+                >
+                  <div class="text-2xl font-bold leading-none" :class="item.valueClass">{{ item.valor }}</div>
+                  <div class="mt-1 text-xs font-semibold uppercase tracking-wide" :class="item.labelClass">
+                    {{ item.label }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                <section
+                  v-for="seccio in llistesCanvisComprova"
+                  :key="seccio.titol"
+                  class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <h4 class="font-semibold text-slate-950">{{ seccio.titol }}</h4>
+                    <span class="rounded-full px-2 py-0.5 text-xs font-bold" :class="seccio.badgeClass">
+                      {{ seccio.total }}
+                    </span>
+                  </div>
+                  <div v-if="seccio.items.length" class="mt-3 space-y-2">
+                    <div
+                      v-for="(canvi, index) in seccio.items"
+                      :key="`${seccio.titol}-${index}-${canvi.resum}`"
+                      class="rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-sm"
+                    >
+                      <div class="flex items-start justify-between gap-2">
+                        <span class="font-semibold text-slate-900">{{ canvi.resum }}</span>
+                        <span class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold" :class="classeCanviComprova(canvi.tipus)">
+                          {{ etiquetaCanviComprova(canvi.tipus) }}
+                        </span>
+                      </div>
+                      <div v-if="canvi.detall" class="mt-1 text-xs text-slate-600">{{ canvi.detall }}</div>
+                      <div v-if="canvi.assignacio" class="mt-1 text-xs font-medium text-rose-700">
+                        {{ canvi.assignacio }}
+                      </div>
+                    </div>
+                    <p v-if="seccio.restants > 0" class="text-xs font-medium text-slate-500">
+                      + {{ seccio.restants }} canvis més
+                    </p>
+                  </div>
+                  <p v-else class="mt-3 text-sm text-slate-500">{{ seccio.buit }}</p>
+                </section>
               </div>
             </div>
             <div class="mt-2 text-sm text-slate-600 dark:text-gray-400">
@@ -249,7 +311,8 @@ const errorHistorialMsg = computed(() =>
 
 const totalDiscrepancies = computed(() =>
   resultComprova.value
-    ? resultComprova.value.noves + resultComprova.value.eliminades + resultComprova.value.modificades
+    ? resultComprova.value.totalCanvis
+      ?? resultComprova.value.noves + resultComprova.value.eliminades + resultComprova.value.modificades
     : 0
 );
 
@@ -259,9 +322,100 @@ const resumCanvisSync = computed(() => [
   { label: 'Eliminades', valor: statsSync.value.eliminades || 0, color: 'text-orange-700 dark:text-orange-300' },
 ]);
 
-const detallsComprova = computed(() => {
-  if (!resultComprova.value?.detalls?.length || resultComprova.value.totalCanvis >= 10) return [];
-  return resultComprova.value.detalls;
+const riscosComprova = computed(() => resultComprova.value?.riscos || []);
+const riscosComprovaLimitats = computed(() => riscosComprova.value.slice(0, 6));
+
+const resumPreviewComprova = computed(() => {
+  const classes = resultComprova.value?.classes || {};
+  const professors = resultComprova.value?.professors || {};
+  const departaments = resultComprova.value?.departaments || {};
+
+  return [
+    {
+      label: 'Classes noves',
+      valor: classes.noves || 0,
+      cardClass: 'border-emerald-200 bg-emerald-50',
+      valueClass: 'text-emerald-700',
+      labelClass: 'text-emerald-800',
+    },
+    {
+      label: 'Classes actualitzades',
+      valor: classes.modificades || 0,
+      cardClass: 'border-sky-200 bg-sky-50',
+      valueClass: 'text-sky-700',
+      labelClass: 'text-sky-800',
+    },
+    {
+      label: 'Classes eliminades',
+      valor: classes.eliminades || 0,
+      cardClass: 'border-amber-200 bg-amber-50',
+      valueClass: 'text-amber-700',
+      labelClass: 'text-amber-800',
+    },
+    {
+      label: 'Professorat i deps.',
+      valor: (professors.totalCanvis || 0) + (departaments.totalCanvis || 0),
+      cardClass: 'border-violet-200 bg-violet-50',
+      valueClass: 'text-violet-700',
+      labelClass: 'text-violet-800',
+    },
+  ];
+});
+
+function limitarCanvis(items = [], limit = 6) {
+  return {
+    items: items.slice(0, limit),
+    restants: Math.max(0, items.length - limit),
+  };
+}
+
+const llistesCanvisComprova = computed(() => {
+  const classes = resultComprova.value?.classes?.preview || {};
+  const professors = resultComprova.value?.professors?.preview || {};
+  const departaments = resultComprova.value?.departaments?.preview || {};
+
+  const classesItems = [
+    ...(classes.eliminades || []),
+    ...(classes.modificades || []),
+    ...(classes.noves || []),
+  ];
+  const professorItems = [
+    ...(professors.migracions || []),
+    ...(professors.modificades || []),
+    ...(professors.noves || []),
+    ...(professors.conservatsForaFull || []),
+  ];
+  const departamentItems = [
+    ...(departaments.eliminats || []),
+    ...(departaments.afegits || []),
+  ];
+  const classesLimit = limitarCanvis(classesItems);
+  const professorLimit = limitarCanvis(professorItems);
+  const departamentLimit = limitarCanvis(departamentItems);
+
+  return [
+    {
+      titol: 'Classes',
+      total: classesItems.length,
+      ...classesLimit,
+      badgeClass: 'bg-sky-100 text-sky-800',
+      buit: 'Sense canvis de classes.',
+    },
+    {
+      titol: 'Professorat',
+      total: professorItems.length,
+      ...professorLimit,
+      badgeClass: 'bg-violet-100 text-violet-800',
+      buit: 'Sense canvis de professorat.',
+    },
+    {
+      titol: 'Departaments',
+      total: departamentItems.length,
+      ...departamentLimit,
+      badgeClass: 'bg-emerald-100 text-emerald-800',
+      buit: 'Sense canvis de departaments.',
+    },
+  ];
 });
 
 function formatDataHora(ts) {
@@ -280,14 +434,21 @@ function etiquetaCanviComprova(tipus) {
     nova: 'Nova',
     modificada: 'Modificada',
     eliminada: 'Eliminada',
+    nou: 'Nou',
+    modificat: 'Actualitzat',
+    migracio: 'Migració',
+    conservat: 'Conservat',
+    eliminat: 'Eliminat',
   };
   return etiquetes[tipus] || 'Canvi';
 }
 
 function classeCanviComprova(tipus) {
-  if (tipus === 'nova') return 'text-green-700 dark:text-green-300';
-  if (tipus === 'eliminada') return 'text-orange-700 dark:text-orange-300';
-  return 'text-blue-700 dark:text-blue-300';
+  if (tipus === 'nova' || tipus === 'nou') return 'bg-emerald-100 text-emerald-800';
+  if (tipus === 'eliminada' || tipus === 'eliminat') return 'bg-amber-100 text-amber-800';
+  if (tipus === 'migracio') return 'bg-violet-100 text-violet-800';
+  if (tipus === 'conservat') return 'bg-slate-200 text-slate-700';
+  return 'bg-sky-100 text-sky-800';
 }
 
 async function comprovar() {
@@ -318,7 +479,40 @@ async function ferSync() {
     resultComprova.value = {
       totalSheets: result.total,
       totalApp: result.total,
-      noves: 0, eliminades: 0, modificades: 0, alDia: true,
+      noves: 0, eliminades: 0, modificades: 0, totalCanvis: 0,
+      detalls: [],
+      classes: {
+        totalSheets: result.total,
+        totalApp: result.total,
+        noves: 0,
+        eliminades: 0,
+        modificades: 0,
+        totalCanvis: 0,
+        detalls: [],
+        preview: { noves: [], modificades: [], eliminades: [] },
+        riscos: [],
+      },
+      professors: {
+        totalSheets: result.totalProfs,
+        totalApp: result.totalProfs,
+        noves: 0,
+        modificades: 0,
+        eliminades: 0,
+        migracions: 0,
+        totalCanvis: 0,
+        preview: { noves: [], modificades: [], migracions: [], conservatsForaFull: [] },
+      },
+      departaments: {
+        totalSheets: result.totalDeps,
+        totalApp: result.totalDeps,
+        afegits: 0,
+        eliminats: 0,
+        modificades: 0,
+        totalCanvis: 0,
+        preview: { afegits: [], eliminats: [] },
+      },
+      riscos: [],
+      alDia: true,
       timestamp: result.timestamp,
     };
     estatComprova.value = 'ok';

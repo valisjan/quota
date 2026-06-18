@@ -155,7 +155,15 @@ function campsAssignacio(data = {}) {
 }
 
 function teAssignacio(data = {}) {
-  return Boolean(data.professorAssignat || data.professors?.length);
+  return Boolean(data.professorAssignat || data.professors?.length || data.participants?.length);
+}
+
+function resumAssignacio(data = {}) {
+  const { professors, participants } = campsAssignacio(data);
+  const parts = [];
+  if (professors.length) parts.push(`professorat: ${professors.join(', ')}`);
+  if (participants.length) parts.push(`participants: ${participants.length}`);
+  return parts.join(' · ');
 }
 
 function afegirAIndex(index, clau, item) {
@@ -317,6 +325,19 @@ function resumClasseCanvi(classe = {}) {
     .join(' | ');
 }
 
+function resumProfessorCanvi(professor = {}) {
+  return [
+    professor.nom,
+    professor.departament,
+    professor.jornada,
+    professor.codiUntis ? `Untis ${professor.codiUntis}` : '',
+    professor.email,
+  ]
+    .map((part) => (part ?? '').toString().trim())
+    .filter(Boolean)
+    .join(' | ');
+}
+
 function detallCanvisClasse(existent = {}, nova = {}) {
   const detalls = [];
   const afegir = (camp, abans, despres) => {
@@ -335,6 +356,22 @@ function detallCanvisClasse(existent = {}, nova = {}) {
   afegir('Tipus', existent.tipus || 'Normal', nova.tipus || 'Normal');
   if (!existent.departaments) detalls.push('Departaments interns');
 
+  return detalls;
+}
+
+function detallCanvisProfessor(existent = {}, nou = {}) {
+  const detalls = [];
+  const afegir = (camp, abans, despres) => {
+    if (n(abans) !== n(despres)) {
+      detalls.push(`${camp}: ${valorVisible(abans)} -> ${valorVisible(despres)}`);
+    }
+  };
+
+  afegir('Departament', existent.departament, nou.departament);
+  afegir('Jornada', existent.jornada, nou.jornada);
+  afegir('Codi Untis', existent.codiUntis, nou.codiUntis);
+  afegir('Email', existent.email, nou.email);
+  afegir('Rol', existent.rol, nou.rol);
   return detalls;
 }
 
@@ -360,6 +397,12 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
   let modificades = 0;
   const idsEmparellats = new Set();
   const detalls = [];
+  const preview = {
+    noves: [],
+    modificades: [],
+    eliminades: [],
+  };
+  const riscos = [];
 
   classesSheets.forEach((classe) => {
     const exacte = trobarNoEmparellat(
@@ -376,10 +419,12 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
 
     if (!existent) {
       noves++;
-      detalls.push({
+      const canvi = {
         tipus: 'nova',
         resum: resumClasseCanvi(classe),
-      });
+      };
+      detalls.push(canvi);
+      preview.noves.push(canvi);
       return;
     }
 
@@ -396,11 +441,24 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
       !existent.data.departaments
     ) {
       modificades++;
-      detalls.push({
+      const assignacio = resumAssignacio(existent.data);
+      const canvi = {
         tipus: 'modificada',
         resum: resumClasseCanvi(classe),
         detall: campsCanviats.join(', '),
-      });
+        assignacio,
+        ambAssignacio: Boolean(assignacio),
+      };
+      detalls.push(canvi);
+      preview.modificades.push(canvi);
+      if (assignacio && campsCanviats.some((detall) => /Hores|Departament|Tipus/.test(detall))) {
+        riscos.push({
+          tipus: 'modificacio_assignada',
+          severitat: 'avis',
+          resum: canvi.resum,
+          detall: `${canvi.detall}. Assignació existent: ${assignacio}`,
+        });
+      }
     }
   });
 
@@ -408,10 +466,23 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
     (existent) => !idsEmparellats.has(existent.id)
   );
   classesEliminades.forEach((existent) => {
-    detalls.push({
+    const assignacio = resumAssignacio(existent.data);
+    const canvi = {
       tipus: 'eliminada',
       resum: resumClasseCanvi(existent.data),
-    });
+      assignacio,
+      ambAssignacio: Boolean(assignacio),
+    };
+    detalls.push(canvi);
+    preview.eliminades.push(canvi);
+    if (assignacio) {
+      riscos.push({
+        tipus: 'eliminacio_assignada',
+        severitat: 'critic',
+        resum: canvi.resum,
+        detall: `S'eliminarà una classe amb assignació existent: ${assignacio}`,
+      });
+    }
   });
 
   const eliminades = classesEliminades.length;
@@ -424,32 +495,76 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
     eliminades,
     modificades,
     totalCanvis,
-    detalls: totalCanvis > 0 && totalCanvis < 10 ? detalls : [],
+    detalls: detalls.slice(0, 30),
+    preview,
+    riscos,
+    resumRiscos: {
+      eliminadesAmbAssignacio: preview.eliminades.filter((item) => item.ambAssignacio).length,
+      modificadesAmbAssignacio: preview.modificades.filter((item) => item.ambAssignacio).length,
+    },
   };
 }
 
 async function calcularDiscrepanciesProfessors(cursId, professorsSheets) {
   const snapProfs = await getDocs(cc(cursId, 'professors'));
   const existentsPerNom = new Map(
-    snapProfs.docs.map((d) => [n(d.data().nom), d.data()])
+    snapProfs.docs.map((d) => [n(d.data().nom), { id: d.id, data: d.data() }])
   );
 
   let noves = 0;
   let modificades = 0;
+  let migracions = 0;
+  const preview = {
+    noves: [],
+    modificades: [],
+    migracions: [],
+    conservatsForaFull: [],
+  };
 
   professorsSheets.forEach((professor) => {
     const existent = existentsPerNom.get(n(professor.nom));
     if (!existent) {
       noves++;
+      preview.noves.push({
+        tipus: 'nou',
+        resum: resumProfessorCanvi(professor),
+      });
       return;
     }
 
-    if (
-      n(existent.departament) !== n(professor.departament) ||
-      n(existent.jornada) !== n(professor.jornada) ||
-      n(existent.codiUntis) !== n(professor.codiUntis)
+    const detalls = detallCanvisProfessor(existent.data, professor);
+    const migracio = Boolean(professor.codiUntis && existent.id !== professor.codiUntis);
+    if (migracio) {
+      migracions++;
+      preview.migracions.push({
+        tipus: 'migracio',
+        resum: resumProfessorCanvi(professor),
+        detall: [
+          `ID Firestore: ${existent.id} -> ${professor.codiUntis}`,
+          ...detalls.filter((detall) => !detall.startsWith('Codi Untis:')),
+        ].join(', '),
+      });
+    } else if (
+      detalls.length > 0
     ) {
       modificades++;
+      preview.modificades.push({
+        tipus: 'modificat',
+        resum: resumProfessorCanvi(professor),
+        detall: detalls.join(', '),
+      });
+    }
+  });
+
+  const nomsSheets = new Set(professorsSheets.map((p) => n(p.nom)));
+  snapProfs.docs.forEach((d) => {
+    const data = d.data();
+    if (!nomsSheets.has(n(data.nom))) {
+      preview.conservatsForaFull.push({
+        tipus: 'conservat',
+        resum: resumProfessorCanvi(data),
+        detall: 'No surt al full Professorat. Es conservarà a l’app.',
+      });
     }
   });
 
@@ -459,7 +574,38 @@ async function calcularDiscrepanciesProfessors(cursId, professorsSheets) {
     noves,
     modificades,
     eliminades: 0,
-    totalCanvis: noves + modificades,
+    migracions,
+    totalCanvis: noves + modificades + migracions,
+    preview,
+  };
+}
+
+async function calcularDiscrepanciesDepartaments(cursId, professorsSheets) {
+  const snapDeps = await getDocs(cc(cursId, 'departaments'));
+  const nomsSheets = [...new Set(professorsSheets.map((p) => p.departament).filter(Boolean))].sort();
+  const nomsSheetsNorm = new Set(nomsSheets.map(n));
+  const existents = snapDeps.docs.map((d) => ({ id: d.id, data: d.data() }));
+  const existentsNorm = new Set(existents.map((item) => n(item.data.nom)));
+
+  const afegits = nomsSheets
+    .filter((nom) => !existentsNorm.has(n(nom)))
+    .map((nom) => ({ tipus: 'nou', resum: nom }));
+  const eliminats = existents
+    .filter((item) => !nomsSheetsNorm.has(n(item.data.nom)))
+    .map((item) => ({
+      tipus: 'eliminat',
+      resum: item.data.nom || item.id,
+      detall: 'El departament no surt al full Professorat.',
+    }));
+
+  return {
+    totalSheets: nomsSheets.length,
+    totalApp: snapDeps.size,
+    afegits: afegits.length,
+    eliminats: eliminats.length,
+    modificades: 0,
+    totalCanvis: afegits.length + eliminats.length,
+    preview: { afegits, eliminats },
   };
 }
 
@@ -563,7 +709,7 @@ export async function provarConnexioSheets(sheetsId) {
 
 export async function comprovarDiscrepancies(cursId, options = {}) {
   if (E2E_AUTH_BYPASS) {
-    return {
+    const classes = {
       totalSheets: getE2ECollection('classes').length,
       totalApp: getE2ECollection('classes').length,
       noves: 0,
@@ -571,18 +717,71 @@ export async function comprovarDiscrepancies(cursId, options = {}) {
       modificades: 0,
       totalCanvis: 0,
       detalls: [],
+      preview: { noves: [], modificades: [], eliminades: [] },
+      riscos: [],
+      resumRiscos: { eliminadesAmbAssignacio: 0, modificadesAmbAssignacio: 0 },
+    };
+    const professors = {
+      totalSheets: getE2ECollection('professors').length,
+      totalApp: getE2ECollection('professors').length,
+      noves: 0,
+      modificades: 0,
+      eliminades: 0,
+      migracions: 0,
+      totalCanvis: 0,
+      preview: { noves: [], modificades: [], migracions: [], conservatsForaFull: [] },
+    };
+    const departaments = {
+      totalSheets: getE2ECollection('departaments').length,
+      totalApp: getE2ECollection('departaments').length,
+      afegits: 0,
+      eliminats: 0,
+      modificades: 0,
+      totalCanvis: 0,
+      preview: { afegits: [], eliminats: [] },
+    };
+    return {
+      totalSheets: classes.totalSheets,
+      totalApp: classes.totalApp,
+      noves: 0,
+      eliminades: 0,
+      modificades: 0,
+      totalCanvis: 0,
+      detalls: [],
+      classes,
+      professors,
+      departaments,
+      riscos: [],
       alDia: true,
       timestamp: new Date().toISOString(),
     };
   }
+  if (!cursId) {
+    throw new Error('No hi ha cap curs actiu per comprovar la sincronització.');
+  }
   const sheetsId = options.sheetsId || DEFAULT_SHEETS_ID;
-  const jsonClasses = await llegirSheets(SHEET_CLASSES, sheetsId);
-  const classesSheets = llegirClassesDeResposta(jsonClasses);
-  const result = await calcularDiscrepanciesClasses(cursId, classesSheets);
+  const estatFont = await llegirEstatFontSheets(sheetsId);
+  const [classes, professors, departaments] = await Promise.all([
+    calcularDiscrepanciesClasses(cursId, estatFont.classes),
+    calcularDiscrepanciesProfessors(cursId, estatFont.professors),
+    calcularDiscrepanciesDepartaments(cursId, estatFont.professors),
+  ]);
+  const totalCanvis = classes.totalCanvis + professors.totalCanvis + departaments.totalCanvis;
+  const riscos = classes.riscos || [];
 
   return {
-    ...result,
-    alDia: result.totalCanvis === 0,
+    totalSheets: classes.totalSheets,
+    totalApp: classes.totalApp,
+    noves: classes.noves,
+    eliminades: classes.eliminades,
+    modificades: classes.modificades,
+    totalCanvis,
+    detalls: classes.detalls,
+    classes,
+    professors,
+    departaments,
+    riscos,
+    alDia: totalCanvis === 0,
     timestamp: new Date().toISOString(),
   };
 }

@@ -10,22 +10,31 @@
           </div>
         </div>
 
-        <nav class="admin-nav">
+        <nav class="admin-nav" aria-label="Flux de treball d'administració">
           <button
-            v-for="tab in tabs"
+            v-for="(tab, index) in navegacioAdmin"
             :key="tab.path"
             type="button"
             class="admin-nav-item relative"
-            :class="{ 'admin-nav-item-active': isActive(tab) }"
+            :class="{
+              'admin-nav-item-active': isActive(tab),
+              'admin-nav-item-warning': tab.estat === 'warning',
+            }"
             :title="tab.nom"
             @click="anarAdmin(tab.path)"
           >
-            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" :d="tab.icon" />
-            </svg>
-            <span class="min-w-0 hidden lg:block">
+            <span class="admin-nav-number">{{ index + 1 }}</span>
+            <span class="admin-nav-icon">
+              <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" :d="tab.icon" />
+              </svg>
+            </span>
+            <span class="min-w-0 hidden lg:block lg:flex-1">
               <span class="admin-nav-label">{{ tab.nom }}</span>
-              <span class="admin-nav-help">{{ tab.help }}</span>
+              <span class="admin-nav-help">{{ tab.workflowHelp || tab.help }}</span>
+            </span>
+            <span v-if="tab.badge" class="admin-nav-badge hidden lg:inline-flex" :class="tab.badgeClass">
+              {{ tab.badge }}
             </span>
             <span
               v-if="tab.path === '/admin/dades' && mostrarAvisDesactualitzat"
@@ -87,40 +96,6 @@
           compact
         />
       </header>
-
-      <section class="admin-flow-panel" aria-label="Flux de treball d'administració">
-        <div class="admin-flow-heading">
-          <div>
-            <p class="admin-flow-kicker">Flux de treball</p>
-            <h3 class="admin-flow-title-main">Administració del curs</h3>
-          </div>
-          <span class="admin-flow-current">{{ etiquetaCursActiu }}</span>
-        </div>
-
-        <div class="admin-flow">
-          <button
-            v-for="(pas, index) in passosAdministracio"
-            :key="pas.path"
-            type="button"
-            class="admin-flow-step"
-            :class="{
-              'admin-flow-step-active': isActive(pas),
-              'admin-flow-step-warning': pas.estat === 'warning',
-              'admin-flow-step-muted': pas.estat === 'neutral',
-            }"
-            @click="anarAdmin(pas.path)"
-          >
-            <span class="admin-flow-number">{{ index + 1 }}</span>
-            <span class="admin-flow-copy">
-              <span class="admin-flow-title">{{ pas.nom }}</span>
-              <span class="admin-flow-help">{{ pas.workflowHelp }}</span>
-            </span>
-            <span class="admin-flow-badge" :class="pas.badgeClass">
-              {{ pas.badge }}
-            </span>
-          </button>
-        </div>
-      </section>
 
       <section
         v-if="mostrarAvisDesactualitzat"
@@ -346,80 +321,83 @@ const inicialUsuari = computed(() =>
 const etiquetaCursActiu = computed(() =>
   cursStore.cursActiu?.nom || cursStore.cursActiu?.id || cursStore.cursActiuId || 'Sense curs actiu'
 );
-const passosAdministracio = computed(() => {
+const navegacioAdmin = computed(() => {
   const pct = percentAssignat.value;
   const tancats = departamentsTancats.value;
   const total = totalDepartaments.value;
   const sense = classesSenseAssignar.value;
 
   const badgeRepartiment = pct === null
-    ? { text: 'Sense dades', cls: 'admin-flow-badge-muted' }
+    ? { text: 'Sense dades', cls: 'admin-nav-badge-muted' }
     : pct === 100
-      ? { text: 'Complet', cls: 'admin-flow-badge-ok' }
-      : { text: `${pct}%`, cls: pct >= 80 ? 'admin-flow-badge-info' : 'admin-flow-badge-warning' };
+      ? { text: 'Complet', cls: 'admin-nav-badge-ok' }
+      : { text: `${pct}%`, cls: pct >= 80 ? 'admin-nav-badge-info' : 'admin-nav-badge-warning' };
 
   const badgeTancament = !total
-    ? { text: 'Sense depts.', cls: 'admin-flow-badge-muted' }
+    ? { text: 'Sense depts.', cls: 'admin-nav-badge-muted' }
     : tancats === total
-      ? { text: 'Tot tancat', cls: 'admin-flow-badge-ok' }
-      : { text: `${tancats}/${total}`, cls: 'admin-flow-badge-info' };
+      ? { text: 'Tot tancat', cls: 'admin-nav-badge-ok' }
+      : { text: `${tancats}/${total}`, cls: 'admin-nav-badge-info' };
 
   const badgeUntis = sense === 0
-    ? { text: 'Llest', cls: pct === 100 ? 'admin-flow-badge-ok' : 'admin-flow-badge-muted' }
-    : { text: `${sense} pend.`, cls: 'admin-flow-badge-warning' };
+    ? { text: 'Llest', cls: pct === 100 ? 'admin-nav-badge-ok' : 'admin-nav-badge-muted' }
+    : { text: `${sense} pend.`, cls: 'admin-nav-badge-warning' };
 
-  return [
-    {
-      path: '/admin/cursos',
-      nom: 'Curs',
+  const meta = new Map([
+    ['/admin/cursos', {
       workflowHelp: 'Tria o crea el curs acadèmic actiu.',
       estat: cursStore.cursActiuId ? 'ready' : 'warning',
       badge: cursStore.cursActiuId ? etiquetaCursActiu.value : 'Pendent',
-      badgeClass: cursStore.cursActiuId ? 'admin-flow-badge-ok' : 'admin-flow-badge-warning',
-    },
-    {
-      path: '/admin/dades',
-      nom: 'Importació',
+      badgeClass: cursStore.cursActiuId ? 'admin-nav-badge-ok' : 'admin-nav-badge-warning',
+    }],
+    ['/admin/dades', {
       workflowHelp: 'Importa i valida les dades des de Google Sheets.',
       estat: mostrarAvisDesactualitzat.value ? 'warning' : 'ready',
       badge: mostrarAvisDesactualitzat.value ? 'Revisar' : 'Al dia',
-      badgeClass: mostrarAvisDesactualitzat.value ? 'admin-flow-badge-warning' : 'admin-flow-badge-ok',
-      aliases: ['/admin/classes', '/admin/professors', '/admin/departaments'],
-    },
-    {
-      path: '/admin/parametres',
-      nom: 'Configuració',
-      workflowHelp: 'Ajusta regles, hores, rols i permisos.',
+      badgeClass: mostrarAvisDesactualitzat.value ? 'admin-nav-badge-warning' : 'admin-nav-badge-ok',
+    }],
+    ['/admin/parametres', {
+      workflowHelp: 'Ajusta regles i paràmetres generals.',
       estat: 'ready',
       badge: 'Regles',
-      badgeClass: 'admin-flow-badge-info',
-      aliases: ['/admin/usuaris'],
-    },
-    {
-      path: '/departament',
-      nom: 'Repartiment',
-      workflowHelp: 'Caps de departament assignen les classes al professorat.',
+      badgeClass: 'admin-nav-badge-info',
+    }],
+    ['/admin/usuaris', {
+      workflowHelp: 'Gestiona accessos i rols.',
+      estat: 'ready',
+      badge: 'Rols',
+      badgeClass: 'admin-nav-badge-info',
+    }],
+    ['/departament', {
+      workflowHelp: 'Assigna les hores amb els departaments.',
       estat: pct !== null && pct < 100 ? 'warning' : 'ready',
       badge: badgeRepartiment.text,
       badgeClass: badgeRepartiment.cls,
-    },
-    {
-      path: '/admin/tancament',
-      nom: 'Tancament',
-      workflowHelp: 'Bloqueja departaments quan la distribució estigui revisada.',
+    }],
+    ['/admin/tancament', {
+      workflowHelp: 'Tanca departaments i bloqueja administració.',
       estat: 'ready',
       badge: badgeTancament.text,
       badgeClass: badgeTancament.cls,
-    },
-    {
-      path: '/admin/untis',
-      nom: 'Untis',
-      workflowHelp: 'Prepara i exporta les assignacions a Untis.',
+    }],
+    ['/admin/untis', {
+      workflowHelp: 'Exporta i revisa fitxers Untis.',
       estat: sense > 0 ? 'warning' : 'ready',
       badge: badgeUntis.text,
       badgeClass: badgeUntis.cls,
-    },
-  ];
+    }],
+    ['/admin/seguiment', {
+      workflowHelp: 'Revisa validació final i informes.',
+      estat: sense > 0 ? 'warning' : 'ready',
+      badge: sense > 0 ? 'Pendent' : 'OK',
+      badgeClass: sense > 0 ? 'admin-nav-badge-warning' : 'admin-nav-badge-ok',
+    }],
+  ]);
+
+  return tabs.map((tab) => ({
+    ...tab,
+    ...(meta.get(tab.path) || {}),
+  }));
 });
 
 function isActive(tab) {

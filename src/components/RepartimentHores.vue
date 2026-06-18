@@ -76,6 +76,8 @@
         <div
           v-for="classe in classesSenseAssignarFiltrades"
           :key="classe.id"
+          :data-validation-class-id="classe.id"
+          tabindex="-1"
           class="px-3 py-2"
         >
           <div class="mb-2">
@@ -146,6 +148,8 @@
         <div
           v-for="classe in classesAssignadesFiltrades"
           :key="classe.id"
+          :data-validation-class-id="classe.id"
+          tabindex="-1"
           class="px-3 py-2"
         >
           <div class="mb-2">
@@ -218,7 +222,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import {
   writeBatch,
   serverTimestamp,
@@ -246,6 +250,10 @@ const props = defineProps({
   bloquejat: {
     type: Boolean,
     default: false,
+  },
+  focusClassId: {
+    type: String,
+    default: '',
   },
 });
 const bloquejat = computed(() => props.bloquejat);
@@ -310,6 +318,16 @@ const professorsDepartamentOrdenats = computed(() =>
       (professor) => professor.departament === props.departamentSeleccionat
     )
   )
+);
+
+watch(
+  () => props.focusClassId,
+  (id) => {
+    if (!id) return;
+    if (classesDepartament.value.some((classe) => classe.id === id)) {
+      cerca.value = '';
+    }
+  }
 );
 
 const horesPorProfessorMap = computed(() => {

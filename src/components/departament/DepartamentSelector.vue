@@ -33,9 +33,12 @@
         role="option"
         :aria-selected="dep.nom === modelValue"
         class="app-card app-card-interactive group relative overflow-hidden py-3 pl-5 pr-4 text-left"
-        :class="dep.nom === modelValue
-          ? 'border-primary shadow-primary-glow'
-          : 'hover:border-primary'"
+        :class="[
+          dep.estat === 'exclos' ? 'opacity-50 grayscale' : '',
+          dep.nom === modelValue
+            ? 'border-primary shadow-primary-glow'
+            : 'hover:border-primary',
+        ]"
         @click="seleccionarDepartament(dep.nom)"
       >
         <span
@@ -189,6 +192,8 @@ function mostraEstat(dep) {
 }
 
 function ordenarDepartaments(a, b) {
+  if (a.estat === 'exclos' && b.estat !== 'exclos') return 1;
+  if (b.estat === 'exclos' && a.estat !== 'exclos') return -1;
   return (a.nom || '').localeCompare(b.nom || '', 'ca');
 }
 
@@ -199,6 +204,7 @@ function estatText(estat) {
     exces: 'Excés',
     tancat: 'Tancat',
     buit: 'Sense dades',
+    exclos: 'Exclòs',
   };
   return textos[estat] || 'Obert';
 }
@@ -210,6 +216,7 @@ function estatClass(estat) {
     exces: 'bg-red-100 text-red-700',
     tancat: 'bg-slate-100 text-slate-500',
     buit: 'bg-slate-100 text-slate-400',
+    exclos: 'bg-slate-100 text-slate-400',
   };
   return classes[estat] || classes.pendent;
 }
@@ -221,11 +228,13 @@ function barraClass(estat) {
     exces: 'bg-red-400',
     tancat: 'bg-slate-200',
     buit: 'bg-slate-200',
+    exclos: 'bg-slate-200',
   };
   return classes[estat] || classes.pendent;
 }
 
 function accentClass(dep) {
+  if (dep.estat === 'exclos') return 'bg-slate-200';
   if (classesPendents(dep) > 0) return 'bg-slate-300';
   const classes = {
     complet: 'bg-emerald-400',

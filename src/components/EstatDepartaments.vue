@@ -115,6 +115,7 @@
           v-for="dept in departamentsOrdenats"
           :key="dept.nom"
           class="p-4 transition hover:bg-slate-50 sm:p-5"
+          :class="dept.exclos ? 'opacity-50' : ''"
         >
           <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_14rem_7rem] xl:items-center">
             <div class="min-w-0">
@@ -213,6 +214,7 @@ const perDepartament = computed(() => {
 
     return {
       nom: dept.nom,
+      exclos: dept.exclos || false,
       total: totes.length,
       assignades: assignades.length,
       senseProfessor: senseProfessor.length,
@@ -227,12 +229,17 @@ const perDepartament = computed(() => {
 
 const departamentsOrdenats = computed(() => {
   const llista = [...perDepartament.value];
-  if (ordre.value === 'nom') return llista.sort((a, b) => a.nom.localeCompare(b.nom, 'ca'));
-  return llista.sort((a, b) => a.pct - b.pct || a.nom.localeCompare(b.nom, 'ca'));
+  const cmp = ordre.value === 'nom'
+    ? (a, b) => a.nom.localeCompare(b.nom, 'ca')
+    : (a, b) => a.pct - b.pct || a.nom.localeCompare(b.nom, 'ca');
+  return llista.sort((a, b) => {
+    if (a.exclos !== b.exclos) return a.exclos ? 1 : -1;
+    return cmp(a, b);
+  });
 });
 
 const stats = computed(() => {
-  const tots = perDepartament.value;
+  const tots = perDepartament.value.filter((d) => !d.exclos);
   return {
     total: tots.length,
     complets: tots.filter((d) => d.pct === 100 && d.total > 0).length,
@@ -308,6 +315,7 @@ const passos = computed(() => [
 ]);
 
 function estatBadgeClass(dept) {
+  if (dept.exclos) return 'bg-slate-100 text-slate-400';
   if (dept.total === 0) return 'bg-slate-100 text-slate-600';
   if (dept.pct === 100) return 'bg-success/20 text-slate-800';
   if (dept.pct === 0) return 'bg-danger/15 text-slate-800';
@@ -315,6 +323,7 @@ function estatBadgeClass(dept) {
 }
 
 function estatEtiqueta(dept) {
+  if (dept.exclos) return 'Exclòs';
   if (dept.total === 0) return 'Buit';
   if (dept.pct === 100) return 'Complet';
   if (dept.pct === 0) return 'Pendent';
@@ -322,12 +331,14 @@ function estatEtiqueta(dept) {
 }
 
 function barraClass(dept) {
+  if (dept.exclos) return 'bg-slate-200';
   if (dept.pct === 100) return 'bg-success';
   if (dept.pct >= 50) return 'bg-amber-400';
   return 'bg-danger';
 }
 
 function puntClass(dept) {
+  if (dept.exclos) return 'bg-slate-300';
   if (dept.pct === 100) return 'bg-success';
   if (dept.pct === 0) return 'bg-danger';
   return 'bg-amber-400';

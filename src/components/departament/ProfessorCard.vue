@@ -1,5 +1,9 @@
 <template>
-  <div class="app-card overflow-hidden transition-all duration-200">
+  <div
+    class="app-card overflow-hidden transition-all duration-200"
+    :data-validation-professor="professor.nom"
+    tabindex="-1"
+  >
 
     <!-- Capçalera: nom + hores -->
     <div class="app-card-header px-4 pb-2 pt-3">
