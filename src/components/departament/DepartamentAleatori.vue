@@ -2,10 +2,10 @@
   <div>
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex flex-col gap-2">
-        <p class="text-sm text-slate-700">
+        <p class="text-sm text-text-secondary">
           Proposta orientativa de distribució. No modifica les dades actuals.
         </p>
-        <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+        <label class="flex cursor-pointer items-center gap-2 text-sm text-text-secondary">
           <input
             type="checkbox"
             v-model="partirActual"
@@ -13,7 +13,7 @@
           />
           Partir de la distribució actual (manté les classes ja assignades)
         </label>
-        <p v-if="proposta" class="text-xs text-slate-500">
+        <p v-if="proposta" class="text-xs text-text-muted">
           Millor resultat de {{ iteracionsProvades }} combinacions ·
           {{ totalClassesFixadesActuals }} ja fixades · {{ classesPerDistribuir.length }} redistribuïdes
         </p>
@@ -33,23 +33,23 @@
     <!-- Empty / no data -->
     <div
       v-if="!teProfessors || !teClasses"
-      class="rounded-lg border border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500"
+      class="app-empty-state py-10"
     >
       {{ !teProfessors ? 'No hi ha professors al departament' : 'No hi ha classes per distribuir' }}
     </div>
 
-    <div v-else-if="calculant" class="rounded-lg border border-blue-100 bg-blue-50 p-4 text-center text-sm font-medium text-blue-900">
+    <div v-else-if="calculant" class="app-card p-4 text-center text-sm font-medium text-text-main">
       <div>Calculant la millor proposta... {{ iteracionsProvades }} combinacions provades</div>
-      <div class="mt-3 h-2 overflow-hidden rounded-full bg-blue-100">
+      <div class="app-progress-track mt-3 h-2 rounded-full">
         <div
           class="h-full rounded-full bg-primary transition-[width] duration-150"
           :style="{ width: `${progresCalcul}%` }"
         />
       </div>
-      <div class="mt-1 text-xs text-blue-700">{{ progresCalcul }}%</div>
+      <div class="mt-1 text-xs text-primary">{{ progresCalcul }}%</div>
     </div>
 
-    <div v-else-if="!proposta" class="rounded-lg border border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
+    <div v-else-if="!proposta" class="app-empty-state py-10">
       Encara no hi ha cap proposta generada.
     </div>
 
@@ -60,26 +60,26 @@
 
       <!-- Stats -->
       <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div class="card p-3 text-center">
+        <div class="card-stat-success text-center">
           <div class="text-xl font-bold text-green-700">{{ statsIdeal }}</div>
-          <div class="text-xs text-slate-600">En quota</div>
+          <div class="text-xs text-text-secondary">En quota</div>
         </div>
-        <div class="card p-3 text-center">
+        <div class="card-stat-danger text-center">
           <div class="text-xl font-bold text-amber-800">{{ statsOverIdeal }}</div>
-          <div class="text-xs text-slate-600">Per sobre</div>
+          <div class="text-xs text-text-secondary">Per sobre</div>
         </div>
-        <div class="card p-3 text-center">
+        <div class="card-stat-primary text-center">
           <div class="text-xl font-bold text-blue-600">{{ statsUnderIdeal }}</div>
-          <div class="text-xs text-slate-600">Per sota</div>
+          <div class="text-xs text-text-secondary">Per sota</div>
         </div>
-        <div class="card p-3 text-center">
+        <div class="card-stat-primary text-center">
           <div
             class="text-xl font-bold"
             :class="totalHoresCobertes === totalHoresDepartament ? 'text-green-700' : 'text-rose-600'"
           >
             {{ totalHoresCobertes }}/{{ totalHoresDepartament }}h
           </div>
-          <div class="text-xs text-slate-600">Hores repartides</div>
+          <div class="text-xs text-text-secondary">Hores repartides</div>
           <div
             class="mt-1 text-[11px] font-semibold leading-snug"
             :class="totalHoresPerRepartir === 0 ? 'text-green-700' : 'text-rose-600'"
@@ -94,17 +94,17 @@
         <div
           v-for="slot in proposta"
           :key="slot.nom"
-          class="rounded-lg border bg-white p-4 shadow-sm"
+          class="app-card p-4"
           :class="badgeBorderClass(slot)"
         >
           <div class="mb-2 flex items-start justify-between gap-2">
-            <h4 class="text-sm font-semibold leading-tight text-slate-900">{{ slot.nom }}</h4>
+            <h4 class="text-sm font-semibold leading-tight text-text-main">{{ slot.nom }}</h4>
             <span
               class="shrink-0 rounded px-2 py-0.5 text-xs font-bold"
               :class="badgeClass(slot)"
             >{{ slot.hores }}h</span>
           </div>
-          <p class="mb-3 text-xs text-slate-500">
+          <p class="mb-3 text-xs text-text-muted">
             Ideal: {{ slot.ideal }}h · Màx: {{ slot.maxim }}h
             <span v-if="slot.horesFixades > 0" class="ml-1">({{ slot.horesFixades }}h fixes)</span>
           </p>
@@ -114,9 +114,9 @@
             <div
               v-for="classe in sortClasses(slot.classesFixades)"
               :key="'fix-' + classe.id"
-              class="flex items-baseline justify-between text-xs opacity-55"
+              class="flex items-baseline justify-between text-xs opacity-60"
             >
-              <span class="mr-2 flex min-w-0 items-center gap-1.5 truncate italic text-slate-700">
+              <span class="mr-2 flex min-w-0 items-center gap-1.5 truncate italic text-text-secondary">
                 <span class="min-w-0 truncate">{{ classe.materia }}</span>
                 <span
                   v-if="classe.tipus"
@@ -125,17 +125,17 @@
                 >
                   {{ getTipusLabel(classe.tipus) }}
                 </span>
-                <span v-if="classe.curs || classe.grup" class="text-slate-500">
+                <span v-if="classe.curs || classe.grup" class="text-text-muted">
                   {{ classe.curs }} {{ classe.grup }}
                 </span>
               </span>
-              <span class="shrink-0 font-medium text-slate-500">{{ classe.hores }}h</span>
+              <span class="shrink-0 font-medium text-text-muted">{{ classe.hores }}h</span>
             </div>
 
             <!-- Divider -->
             <div
               v-if="slot.classesFixades.length && slot.classes.length"
-              class="my-1.5 border-t border-dashed border-slate-200"
+              class="my-1.5 border-t border-dashed border-border-soft"
             />
 
             <!-- Newly assigned classes -->
@@ -144,7 +144,7 @@
               :key="classe.id"
               class="flex items-baseline justify-between text-xs"
             >
-              <span class="mr-2 flex min-w-0 items-center gap-1.5 truncate text-slate-700">
+              <span class="mr-2 flex min-w-0 items-center gap-1.5 truncate text-text-secondary">
                 <span class="min-w-0 truncate">{{ classe.materia }}</span>
                 <span
                   v-if="classe.tipus"
@@ -153,14 +153,14 @@
                 >
                   {{ getTipusLabel(classe.tipus) }}
                 </span>
-                <span v-if="classe.curs || classe.grup" class="text-slate-500">
+                <span v-if="classe.curs || classe.grup" class="text-text-muted">
                   {{ classe.curs }} {{ classe.grup }}
                 </span>
               </span>
-              <span class="shrink-0 font-medium text-slate-600">{{ classe.hores }}h</span>
+              <span class="shrink-0 font-medium text-text-secondary">{{ classe.hores }}h</span>
             </div>
           </div>
-          <p v-else class="text-xs italic text-slate-500">Sense classes assignades</p>
+          <p v-else class="text-xs italic text-text-muted">Sense classes assignades</p>
         </div>
       </div>
 

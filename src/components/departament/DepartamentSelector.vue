@@ -1,5 +1,5 @@
 <template>
-  <section class="mb-6 rounded-lg border border-border-soft bg-surface p-4 shadow-card">
+  <section class="app-card mb-6 p-4">
     <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-xs font-semibold uppercase text-primary">Departaments</p>
@@ -32,10 +32,10 @@
         type="button"
         role="option"
         :aria-selected="dep.nom === modelValue"
-        class="group relative overflow-hidden rounded-lg border py-3 pl-5 pr-4 text-left transition"
+        class="app-card app-card-interactive group relative overflow-hidden py-3 pl-5 pr-4 text-left"
         :class="dep.nom === modelValue
-          ? 'border-primary bg-surface shadow-primary-glow'
-          : 'border-border-soft bg-surface hover:border-primary hover:shadow-sm'"
+          ? 'border-primary shadow-primary-glow'
+          : 'hover:border-primary'"
         @click="seleccionarDepartament(dep.nom)"
       >
         <span

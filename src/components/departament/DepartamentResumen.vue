@@ -1,11 +1,11 @@
 <template>
- <div class="bg-white p-6 rounded-lg shadow mb-6">
+ <div class="app-card mb-6 p-6">
  <div class="flex justify-between items-center mb-4">
- <h3 class="font-bold text-xl text-slate-950">{{ departament }}</h3>
+ <h3 class="font-bold text-xl text-text-main">{{ departament }}</h3>
  <div class="flex items-center gap-4">
  <div class="text-right">
- <div class="text-3xl font-bold text-slate-950">{{ totalHores }}h</div>
- <div class="text-sm text-slate-700">
+ <div class="text-3xl font-bold text-text-main">{{ totalHores }}h</div>
+ <div class="text-sm text-text-secondary">
  {{ professorsNecessaris }} professors
  </div>
  </div>
@@ -22,19 +22,19 @@
  <!-- Lista compacta de materias -->
  <div class="grid gap-2">
  <div v-for="classe in classes" :key="classe.id"
- class="flex flex-wrap items-center gap-2 p-2 rounded bg-slate-100 ">
- <div class="w-20 shrink-0 font-bold text-slate-950">
+ class="app-surface-row flex flex-wrap items-center gap-2 p-2">
+ <div class="w-20 shrink-0 font-bold text-text-main">
  {{ classe.curs }} {{ classe.grup }}
  </div>
  <div class="min-w-0 flex-1">
- <span class="font-medium text-slate-950">{{ classe.materia }}</span>
+ <span class="font-medium text-text-main">{{ classe.materia }}</span>
  <span v-if="classe.tipus"
  class="ml-2"
  :class="getTipusBadgeClass(classe.tipus)">
  {{ getTipusLabel(classe.tipus) }}
  </span>
  </div>
- <div class="shrink-0 font-bold text-slate-950">
+ <div class="shrink-0 font-bold text-text-main">
  {{ classe.hores }}h
  </div>
  </div>

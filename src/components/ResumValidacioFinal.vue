@@ -1,22 +1,22 @@
 ﻿<template>
  <div class="space-y-6">
- <div class="flex flex-col gap-4 card p-5 lg:flex-row lg:items-center lg:justify-between">
+ <div class="app-card flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
  <div>
- <h2 class="text-3xl font-bold text-slate-900">
+ <h2 class="text-3xl font-bold text-text-main">
  Validació final
  </h2>
- <p class="mt-1 text-base text-slate-700">
+ <p class="mt-1 text-base text-text-secondary">
  Revisió de la distribució abans de donar-la per tancada.
  </p>
  </div>
  <div class="flex flex-wrap gap-2 text-sm">
  <span
- class="rounded-full px-3 py-1.5 font-semibold"
- :class="isConnected ? 'bg-green-200 text-green-900' : 'bg-red-200 text-red-900'"
+ class="app-chip px-3 py-1.5 font-semibold"
+ :class="isConnected ? 'app-chip-success' : 'app-chip-danger'"
  >
  {{ isConnected ? 'Dades en directe' : 'Desconnectat' }}
  </span>
- <span class="rounded-full bg-slate-100 px-3 py-1.5 font-medium text-slate-700">
+ <span class="app-chip px-3 py-1.5 font-medium">
  Actualitzat: {{ lastUpdate }}
  </span>
  </div>
@@ -26,7 +26,7 @@
  <div
  v-for="card in cards"
  :key="card.label"
- class="rounded-lg border p-4 shadow-sm"
+ class="metric-card p-4"
  :class="card.class"
  >
  <p class="text-sm font-semibold">{{ card.label }}</p>
@@ -35,18 +35,18 @@
  </div>
  </div>
 
- <div class="card p-5">
+ <div class="app-card p-5">
  <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
  <div>
- <h3 class="text-xl font-bold text-slate-900">
+ <h3 class="text-xl font-bold text-text-main">
  Estat general
  </h3>
- <p class="mt-1 text-sm text-slate-600">
+ <p class="mt-1 text-sm text-text-secondary">
  {{ resumEstat }}
  </p>
  </div>
  <div
- class="rounded-full px-4 py-2 text-sm font-bold"
+ class="px-4 py-2 text-sm font-bold"
  :class="estatFinal.class"
  >
  {{ estatFinal.text }}
@@ -70,7 +70,7 @@
  <p class="mt-1 text-sm opacity-80">{{ bloc.description }}</p>
  </div>
  <div class="flex items-center gap-3">
- <span class="rounded-full bg-white/70 px-3 py-1 text-sm font-bold ">
+ <span class="app-chip px-3 py-1 text-sm font-bold">
  {{ bloc.items.length }}
  </span>
  <span class="text-lg">{{ blocsOberts[bloc.id] ? '-' : '+' }}</span>
@@ -84,14 +84,14 @@
  class="grid gap-3 px-5 py-4 lg:grid-cols-[1fr_auto]"
  >
  <div>
- <p class="font-bold text-slate-950">
+ <p class="font-bold text-text-main">
  {{ item.title }}
  </p>
- <p class="mt-1 text-sm text-slate-700">
+ <p class="mt-1 text-sm text-text-secondary">
  {{ item.detail }}
  </p>
  </div>
- <div class="text-sm font-medium text-slate-600 lg:text-right">
+ <div class="text-sm font-medium text-text-secondary lg:text-right">
  {{ item.context }}
  </div>
  </div>
@@ -100,10 +100,10 @@
 
  <div
  v-if="senseIncidencies"
- class="rounded-xl border border-green-200 bg-green-50 p-6 text-center text-green-900 shadow-lg dark:border-green-800/30"
+ class="app-card p-6 text-center"
  >
- <p class="text-xl font-bold">Tot sembla a punt</p>
- <p class="mt-2 text-sm">
+ <p class="text-xl font-bold text-text-main">Tot sembla a punt</p>
+ <p class="mt-2 text-sm text-text-secondary">
  Tot en ordre. Res per revisar.
  </p>
  </div>
@@ -171,7 +171,7 @@ const blocs = computed(() => [
  description: "S'haurien de resoldre abans de tancar la distribució.",
  items: [...critiques.value, ...critiquesProfessorat.value],
  borderClass: 'border-red-200 ',
- headerClass: 'bg-red-200 text-red-950',
+ headerClass: 'app-card-header-danger text-text-main',
  },
  {
  id: 'professorat',
@@ -179,7 +179,7 @@ const blocs = computed(() => [
  description: 'Professors per sota de les hores recomanades.',
  items: avisosProfessorat.value,
  borderClass: 'border-amber-200 ',
- headerClass: 'bg-amber-100 text-amber-950',
+ headerClass: 'app-card-header-warning text-text-main',
  },
  {
  id: 'organitzacio',
@@ -187,7 +187,7 @@ const blocs = computed(() => [
  description: 'Tutories emparellades, tancaments i coherència de la distribució.',
  items: avisosOrganitzacio.value,
  borderClass: 'border-blue-200 ',
- headerClass: 'bg-blue-200 text-blue-950',
+ headerClass: 'app-card-header text-text-main',
  },
  {
  id: 'dades',
@@ -195,7 +195,7 @@ const blocs = computed(() => [
  description: 'Files amb camps buits o tipus no classificats.',
  items: dadesProblematiques.value,
  borderClass: 'border-slate-300',
- headerClass: 'bg-slate-200 text-slate-950',
+ headerClass: 'app-card-header text-text-main',
  },
 ]);
 
@@ -210,25 +210,25 @@ const cards = computed(() => [
  label: 'Crítiques',
  value: critiques.value.length + critiquesProfessorat.value.length,
  detail: 'bloquegen el tancament',
- class: 'border-red-300 bg-red-100 text-red-950',
+ class: 'app-stat-tile-danger',
  },
  {
  label: 'Avisos',
  value: avisosProfessorat.value.length + avisosOrganitzacio.value.length,
  detail: 'convé revisar',
- class: 'border-amber-300 bg-amber-100 text-amber-950',
+ class: 'app-stat-tile-warning',
  },
  {
  label: 'Classes',
  value: classes.value.length,
  detail: `${classesSenseAssignar.value.length} sense assignar`,
- class: 'border-slate-300 bg-slate-50 text-slate-950',
+ class: 'app-stat-tile-primary',
  },
  {
  label: 'Professors',
  value: professors.value.length,
  detail: `${incidenciesProfessorat.value.length} fora de rang`,
- class: 'border-slate-300 bg-slate-50 text-slate-950',
+ class: 'app-stat-tile-success',
  },
 ]);
 
@@ -236,18 +236,18 @@ const estatFinal = computed(() => {
  if (critiques.value.length + critiquesProfessorat.value.length > 0) {
  return {
  text: 'No tancar encara',
- class: 'bg-red-200 text-red-900',
+ class: 'app-chip app-chip-danger',
  };
  }
  if (avisosProfessorat.value.length || avisosOrganitzacio.value.length || dadesProblematiques.value.length) {
  return {
  text: 'Revisable',
- class: 'bg-amber-200 text-amber-900',
+ class: 'app-chip app-chip-warning',
  };
  }
  return {
  text: 'A punt per tancar',
- class: 'bg-green-200 text-green-900',
+ class: 'app-chip app-chip-success',
  };
 });
 

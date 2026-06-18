@@ -172,18 +172,200 @@
     color: var(--text-main);
   }
 
-  /* ── Cards ────────────────────────────────────────────────── */
-  .card {
+  /* ── Shared visual system ─────────────────────────────────── */
+  .card,
+  .app-card {
     @apply rounded-lg border;
-    background: var(--surface);
-    border-color: var(--border-soft);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--pastel-blue-bg)), var(--surface) 42%),
+      var(--surface);
+    border-color: color-mix(in srgb, var(--primary) 12%, var(--border-soft));
     box-shadow: var(--card-shadow);
     color: var(--text-main);
   }
-  .card:hover {
+
+  .card:hover,
+  .app-card:hover {
     border-color: var(--border-strong);
     box-shadow: var(--card-shadow-hover);
   }
+
+  .app-card-soft {
+    @apply rounded-lg border;
+    background:
+      linear-gradient(180deg, var(--surface-soft), color-mix(in srgb, var(--surface) 86%, var(--surface-soft))),
+      var(--surface-soft);
+    border-color: var(--border-soft);
+    box-shadow: var(--card-shadow-soft);
+    color: var(--text-main);
+  }
+
+  .app-card-interactive {
+    @apply cursor-pointer transition;
+  }
+
+  .app-card-interactive:hover {
+    transform: translateY(-1px);
+  }
+
+  .app-card-header {
+    @apply border-b px-4 py-3;
+    background: linear-gradient(90deg, var(--pastel-blue-bg), var(--surface) 54%, var(--surface-soft));
+    border-color: color-mix(in srgb, var(--primary) 12%, var(--border-soft));
+  }
+
+  .app-card-header-success {
+    @apply border-b px-4 py-3;
+    background: linear-gradient(90deg, var(--pastel-green-bg), var(--surface) 58%, var(--surface-soft));
+    border-color: color-mix(in srgb, var(--success) 26%, var(--border-soft));
+  }
+
+  .app-card-header-warning {
+    @apply border-b px-4 py-3;
+    background: linear-gradient(90deg, var(--pastel-orange-bg), var(--surface) 58%, var(--surface-soft));
+    border-color: color-mix(in srgb, var(--danger) 30%, var(--border-soft));
+  }
+
+  .app-card-header-danger {
+    @apply border-b px-4 py-3;
+    background: linear-gradient(90deg, var(--pastel-rose-bg), var(--surface) 58%, var(--surface-soft));
+    border-color: color-mix(in srgb, #ef8fa1 42%, var(--border-soft));
+  }
+
+  .app-toolbar {
+    @apply rounded-lg border p-1;
+    background: color-mix(in srgb, var(--surface-muted) 78%, var(--surface));
+    border-color: var(--border-soft);
+    box-shadow: var(--card-shadow-soft);
+  }
+
+  .app-toolbar-button {
+    @apply rounded-md px-3 py-2 text-sm font-semibold transition;
+    color: var(--text-secondary);
+  }
+
+  .app-toolbar-button:hover {
+    background: var(--surface-hover);
+    color: var(--text-main);
+  }
+
+  .app-toolbar-button-active {
+    color: white;
+    background: var(--primary);
+    box-shadow: var(--shadow-primary-glow);
+  }
+
+  .app-button-secondary {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition;
+    background: var(--surface);
+    border-color: var(--border-soft);
+    color: var(--text-secondary);
+    box-shadow: var(--card-shadow-soft);
+  }
+
+  .app-button-secondary:hover {
+    background: var(--surface-hover);
+    color: var(--text-main);
+    border-color: var(--border-strong);
+  }
+
+  .app-chip {
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold;
+    background: var(--surface-muted);
+    border-color: var(--border-soft);
+    color: var(--text-secondary);
+  }
+
+  .app-chip-primary {
+    background: var(--pastel-blue-bg);
+    border-color: var(--pastel-blue-border);
+    color: color-mix(in srgb, var(--primary) 72%, var(--text-main));
+  }
+
+  .app-chip-success {
+    background: var(--pastel-green-bg);
+    border-color: var(--pastel-green-border);
+    color: color-mix(in srgb, var(--success-dark) 76%, var(--text-main));
+  }
+
+  .app-chip-warning {
+    background: var(--pastel-orange-bg);
+    border-color: var(--pastel-orange-border);
+    color: color-mix(in srgb, var(--danger-dark) 78%, var(--text-main));
+  }
+
+  .app-chip-danger {
+    background: var(--pastel-rose-bg);
+    border-color: var(--pastel-rose-border);
+    color: #9b4555;
+  }
+
+  .app-stat-tile {
+    @apply rounded-md border px-2 py-1.5 text-center;
+    box-shadow: var(--card-shadow-soft);
+  }
+
+  .app-stat-tile-primary {
+    background: var(--pastel-blue-bg);
+    border-color: var(--pastel-blue-border);
+    color: color-mix(in srgb, var(--primary) 70%, var(--text-main));
+  }
+
+  .app-stat-tile-warning {
+    background: var(--pastel-orange-bg);
+    border-color: var(--pastel-orange-border);
+    color: color-mix(in srgb, var(--danger-dark) 75%, var(--text-main));
+  }
+
+  .app-stat-tile-danger {
+    background: var(--pastel-rose-bg);
+    border-color: var(--pastel-rose-border);
+    color: #9b4555;
+  }
+
+  .app-stat-tile-success {
+    background: var(--pastel-green-bg);
+    border-color: var(--pastel-green-border);
+    color: color-mix(in srgb, var(--success-dark) 75%, var(--text-main));
+  }
+
+  .app-progress-track {
+    @apply overflow-hidden rounded;
+    background: var(--surface-muted);
+  }
+
+  .app-progress-fill {
+    @apply rounded transition-all;
+    background: var(--primary);
+  }
+
+  .app-surface-row {
+    @apply rounded-md border px-2 py-1;
+    background: var(--surface-soft);
+    border-color: color-mix(in srgb, var(--border-soft) 70%, transparent);
+  }
+
+  .app-mini-button {
+    @apply inline-flex h-5 w-5 items-center justify-center rounded border text-xs transition disabled:opacity-30;
+    background: var(--surface);
+    border-color: var(--border-soft);
+    color: var(--text-secondary);
+  }
+
+  .app-mini-button:hover:not(:disabled) {
+    background: var(--surface-hover);
+    border-color: var(--border-strong);
+    color: var(--text-main);
+  }
+
+  .app-empty-state {
+    @apply rounded-lg border px-5 py-8 text-center text-sm font-medium;
+    background: var(--surface-soft);
+    border-color: var(--border-soft);
+    color: var(--text-muted);
+    box-shadow: var(--card-shadow-soft);
+  }
+
   /* Alternating brand-color shadows on sibling cards inside .sections */
   .sections > .card:nth-child(3n+2) {
     box-shadow: var(--card-shadow);
@@ -256,6 +438,22 @@
   .badge-gray   { background: var(--surface-muted);    color: var(--text-secondary); border: 1px solid var(--border-soft); }
   .badge-red    { background: var(--pastel-rose-bg);   color: #9b4555; border: 1px solid var(--pastel-rose-border); }
   .badge-orange { background: var(--pastel-orange-bg); color: #9b5a37; border: 1px solid var(--pastel-orange-border); }
+
+  .dark .app-card-header {
+    background: linear-gradient(90deg, rgba(168, 184, 255, 0.16), var(--surface) 54%, var(--surface-muted));
+  }
+
+  .dark .app-card-header-success {
+    background: linear-gradient(90deg, rgba(146, 226, 176, 0.14), var(--surface) 58%, var(--surface-muted));
+  }
+
+  .dark .app-card-header-warning {
+    background: linear-gradient(90deg, rgba(255, 192, 156, 0.16), var(--surface) 58%, var(--surface-muted));
+  }
+
+  .dark .app-card-header-danger {
+    background: linear-gradient(90deg, rgba(255, 176, 190, 0.16), var(--surface) 58%, var(--surface-muted));
+  }
 
   .admin-shell {
     @apply grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-6;
@@ -469,6 +667,30 @@
 
   .metric-detail {
     @apply mt-1 text-sm opacity-70;
+  }
+
+  .metric-card.app-stat-tile-primary {
+    background: var(--pastel-blue-bg);
+    border-color: var(--pastel-blue-border);
+    color: color-mix(in srgb, var(--primary) 70%, var(--text-main));
+  }
+
+  .metric-card.app-stat-tile-warning {
+    background: var(--pastel-orange-bg);
+    border-color: var(--pastel-orange-border);
+    color: color-mix(in srgb, var(--danger-dark) 75%, var(--text-main));
+  }
+
+  .metric-card.app-stat-tile-success {
+    background: var(--pastel-green-bg);
+    border-color: var(--pastel-green-border);
+    color: color-mix(in srgb, var(--success-dark) 75%, var(--text-main));
+  }
+
+  .metric-card.app-stat-tile-danger {
+    background: var(--pastel-rose-bg);
+    border-color: var(--pastel-rose-border);
+    color: #9b4555;
   }
 
   .portal-action {
@@ -849,6 +1071,30 @@ html:not(.dark) .bg-gray-100 {
   color: var(--text-main);
 }
 
+.dark .metric-card.app-stat-tile-primary {
+  background: var(--pastel-blue-bg);
+  border-color: var(--pastel-blue-border);
+  color: var(--text-main);
+}
+
+.dark .metric-card.app-stat-tile-warning {
+  background: var(--pastel-orange-bg);
+  border-color: var(--pastel-orange-border);
+  color: var(--text-main);
+}
+
+.dark .metric-card.app-stat-tile-success {
+  background: var(--pastel-green-bg);
+  border-color: var(--pastel-green-border);
+  color: var(--text-main);
+}
+
+.dark .metric-card.app-stat-tile-danger {
+  background: var(--pastel-rose-bg);
+  border-color: var(--pastel-rose-border);
+  color: var(--text-main);
+}
+
 .dark tr.hover\:bg-slate-50:hover {
   background-color: var(--surface-muted);
 }
@@ -864,6 +1110,26 @@ html:not(.dark) .bg-gray-100 {
   background: var(--surface);
   border-color: var(--border-soft);
   box-shadow: var(--card-shadow);
+}
+
+.dark .resums-page .metric-card.app-stat-tile-primary {
+  background: var(--pastel-blue-bg);
+  border-color: var(--pastel-blue-border);
+}
+
+.dark .resums-page .metric-card.app-stat-tile-warning {
+  background: var(--pastel-orange-bg);
+  border-color: var(--pastel-orange-border);
+}
+
+.dark .resums-page .metric-card.app-stat-tile-success {
+  background: var(--pastel-green-bg);
+  border-color: var(--pastel-green-border);
+}
+
+.dark .resums-page .metric-card.app-stat-tile-danger {
+  background: var(--pastel-rose-bg);
+  border-color: var(--pastel-rose-border);
 }
 
 /* ── Dept icon shared styles (used in DepartamentSelector and Departament sticky bar) ── */

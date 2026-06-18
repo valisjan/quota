@@ -3,36 +3,62 @@
     <div class="container mx-auto overflow-x-clip">
     <Transition :name="transicioPantallaDepartament" mode="out-in">
     <section v-if="!pantallaDistribucio" key="selector" class="departament-screen">
+      <div v-if="carregantDadesDepartament" class="department-loading-card app-card mb-6 p-5 sm:p-6">
+        <div class="flex items-center gap-4">
+          <div class="department-loading-mark" aria-hidden="true"></div>
+          <div class="min-w-0">
+            <p class="text-base font-semibold text-text-main">Carregant departaments...</p>
+            <p class="mt-1 text-sm font-medium text-text-secondary">
+              Preparant classes, professorat i resum de distribució.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- Selector de departamento -->
       <DepartamentSelector
+        v-else
         v-model="departamentSeleccionat"
         :departaments="departamentsAmbResum"
       />
 
-      <div v-if="!departamentSeleccionat" class="rounded-lg border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
-        <p class="text-xl font-semibold text-slate-950">
+      <div v-if="!departamentSeleccionat && !carregantDadesDepartament" class="app-empty-state">
+        <p class="text-xl font-semibold text-text-main">
           Tria un departament per començar la distribució
         </p>
-        <p class="mt-2 text-sm font-medium text-slate-600">
+        <p class="mt-2 text-sm font-medium text-text-secondary">
           Les targetes mostren l'estat de cada departament abans d'entrar-hi.
         </p>
       </div>
     </section>
 
     <section v-else key="distribucio" class="departament-screen">
-      <div class="sticky top-20 z-30 mb-4 rounded-lg border border-primary/30 bg-white/95 p-3 shadow-primary-glow backdrop-blur print-hide">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div class="flex min-w-0 items-center gap-3">
+      <div v-if="carregantDadesDepartament" class="department-loading-card app-card mb-6 p-5 sm:p-6">
+        <div class="flex items-center gap-4">
+          <div class="department-loading-mark" aria-hidden="true"></div>
+          <div class="min-w-0">
+            <p class="text-base font-semibold text-text-main">Carregant {{ departamentSeleccionat }}</p>
+            <p class="mt-1 text-sm font-medium text-text-secondary">
+              Preparant les dades de distribució del departament.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <template v-else>
+      <div class="department-sticky-bar sticky top-[4.45rem] z-30 mb-3 backdrop-blur print-hide">
+        <div class="flex min-h-12 items-center gap-2 px-2.5 py-1.5 sm:gap-3 sm:px-3">
             <button
               type="button"
-              class="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
+              class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark sm:px-3"
               @click="tornarADepartaments"
+              aria-label="Tornar als departaments"
             >
               <span aria-hidden="true">←</span>
-              Torna
+              <span class="hidden sm:inline">Torna</span>
             </button>
             <div
-              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-600"
+              class="app-card-soft flex h-8 w-8 shrink-0 items-center justify-center text-text-secondary sm:h-9 sm:w-9"
               aria-hidden="true"
             >
               <span v-if="deptIconText" class="dept-icon-text" :class="{ 'dept-icon-text-small': deptIconText.length > 1 }">{{ deptIconText }}</span>
@@ -42,23 +68,24 @@
               </svg>
               <span v-else class="text-xs font-black">{{ deptInicials }}</span>
             </div>
-            <div class="min-w-0">
-              <p class="truncate text-lg font-semibold text-slate-950">{{ departamentSeleccionat }}</p>
-              <p class="text-sm font-medium text-slate-600">
-                {{ departamentSeleccionatResum?.professorsCount ?? 0 }} professors ·
-                {{ formatHores(departamentSeleccionatResum?.horesAssignades) }}/{{ formatHores(departamentSeleccionatResum?.totalHores) }} hores ·
-                {{ departamentSeleccionatResum?.classesPendents ?? 0 }} pendents
+            <div class="min-w-0 flex-1">
+              <div class="flex min-w-0 items-center gap-2">
+                <p class="truncate text-sm font-semibold text-text-main sm:text-base">{{ departamentSeleccionat }}</p>
+                <span class="hidden shrink-0 text-xs font-semibold text-text-secondary md:inline">
+                  {{ resumStickyDepartament }}
+                </span>
+              </div>
+              <p class="truncate text-xs font-medium text-text-secondary md:hidden">
+                {{ resumStickyDepartament }}
               </p>
             </div>
-          </div>
-          <div class="min-w-[12rem]">
-            <div class="mb-1 flex items-center justify-between text-xs font-semibold text-slate-600">
-              <span>Progrés</span>
+          <div class="hidden w-28 shrink-0 sm:block lg:w-36">
+            <div class="mb-1 flex items-center justify-end text-xs font-semibold text-text-secondary">
               <span>{{ departamentSeleccionatResum?.percentatge || 0 }}%</span>
             </div>
-            <div class="h-2 overflow-hidden rounded bg-slate-200">
+            <div class="app-progress-track h-1.5">
               <div
-                class="h-2 rounded bg-primary transition-all"
+                class="app-progress-fill h-1.5"
                 :style="{ width: `${departamentSeleccionatResum?.percentatge || 0}%` }"
               ></div>
             </div>
@@ -92,7 +119,7 @@
             Desconnectat
           </div>
           <div v-if="usuarisActius.length > 0"
-            class="flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1 text-sm text-slate-600"
+            class="app-chip flex items-center gap-1.5 text-sm"
           >
             <div class="h-1.5 w-1.5 rounded-full bg-green-500"></div>
             {{ usuarisActius.join(', ') }}
@@ -112,18 +139,18 @@
       </div>
 
       <!-- Pestanyes + botó imprimir -->
-      <div class="mb-5 flex items-center gap-2 print-hide">
-        <div class="flex flex-1 gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1" role="tablist" aria-label="Seccions del departament">
+      <div class="department-actions mb-5 print-hide">
+        <div class="app-toolbar department-tabs min-w-0" role="tablist" aria-label="Seccions del departament">
           <button
             id="tab-distribucio"
             role="tab"
             :aria-selected="activeTab === 'distribucio'"
             aria-controls="panel-distribucio"
             @click="activeTab = 'distribucio'"
-            class="flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all"
+            class="app-toolbar-button department-tab"
             :class="activeTab === 'distribucio'
-              ? 'bg-primary text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900'"
+              ? 'app-toolbar-button-active'
+              : ''"
           >
             Distribució
           </button>
@@ -133,10 +160,10 @@
             :aria-selected="activeTab === 'fulla'"
             aria-controls="panel-fulla"
             @click="activeTab = 'fulla'"
-            class="flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all"
+            class="app-toolbar-button department-tab"
             :class="activeTab === 'fulla'
-              ? 'bg-primary text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900'"
+              ? 'app-toolbar-button-active'
+              : ''"
           >
             Full de treball
           </button>
@@ -146,17 +173,17 @@
             :aria-selected="activeTab === 'aleatori'"
             aria-controls="panel-aleatori"
             @click="activeTab = 'aleatori'"
-            class="flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all"
+            class="app-toolbar-button department-tab"
             :class="activeTab === 'aleatori'
-              ? 'bg-primary text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900'"
+              ? 'app-toolbar-button-active'
+              : ''"
           >
             Proposta
           </button>
         </div>
         <button
           @click="imprimirFulla"
-          class="flex shrink-0 items-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+          class="app-button-secondary w-full shrink-0 sm:w-auto"
           title="Imprimir full de treball"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -173,17 +200,17 @@
           <div class="card-stat-primary">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="font-bold text-slate-950">Hores lectives</h3>
-                <p class="text-xs text-slate-600 dark:text-gray-400">Assignades als professors</p>
+                <h3 class="font-bold text-text-main">Hores lectives</h3>
+                <p class="text-xs text-text-secondary">Assignades als professors</p>
               </div>
               <div class="text-right">
-                <span class="text-xl font-bold text-slate-950">
+                <span class="text-xl font-bold text-text-main">
                   {{ totalHoresAssignades }}
                 </span>
-                <span class="text-slate-500"> / {{ totalHoresDepartament }}</span>
+                <span class="text-text-muted"> / {{ totalHoresDepartament }}</span>
               </div>
             </div>
-            <div class="mt-2 h-2 w-full overflow-hidden rounded bg-slate-200">
+            <div class="app-progress-track mt-2 h-2 w-full">
               <div
                 class="h-2 rounded-sm transition-all"
                 :class="totalHoresAssignades === totalHoresDepartament ? 'bg-success' : 'bg-danger'"
@@ -195,17 +222,17 @@
           <div v-if="totalGPDepartament > 0" class="card-stat-success">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="font-bold text-slate-950">Guàrdies de pati</h3>
-                <p class="text-xs text-slate-600 dark:text-gray-400">Assignades als professors</p>
+                <h3 class="font-bold text-text-main">Guàrdies de pati</h3>
+                <p class="text-xs text-text-secondary">Assignades als professors</p>
               </div>
               <div class="text-right">
-                <span class="text-xl font-bold text-slate-950">
+                <span class="text-xl font-bold text-text-main">
                   {{ totalGPAssignades }}
                 </span>
-                <span class="text-slate-500"> / {{ totalGPDepartament }}</span>
+                <span class="text-text-muted"> / {{ totalGPDepartament }}</span>
               </div>
             </div>
-            <div class="mt-2 h-2 w-full overflow-hidden rounded bg-slate-200">
+            <div class="app-progress-track mt-2 h-2 w-full">
               <div
                 class="h-2 rounded-sm transition-all"
                 :class="totalGPAssignades === totalGPDepartament ? 'bg-success' : 'bg-danger'"
@@ -217,17 +244,17 @@
           <div v-if="totalPALICDepartament > 0" class="card-stat-danger">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="font-bold text-slate-950">PALIC</h3>
-                <p class="text-xs text-slate-600 dark:text-gray-400">Hores assignades als professors</p>
+                <h3 class="font-bold text-text-main">PALIC</h3>
+                <p class="text-xs text-text-secondary">Hores assignades als professors</p>
               </div>
               <div class="text-right">
-                <span class="text-xl font-bold text-slate-950">
+                <span class="text-xl font-bold text-text-main">
                   {{ totalPALICAssignades }}
                 </span>
-                <span class="text-slate-500"> / {{ totalPALICDepartament }}</span>
+                <span class="text-text-muted"> / {{ totalPALICDepartament }}</span>
               </div>
             </div>
-            <div class="mt-2 h-2 w-full overflow-hidden rounded bg-slate-200">
+            <div class="app-progress-track mt-2 h-2 w-full">
               <div
                 class="h-2 rounded-sm transition-all"
                 :class="totalPALICAssignades === totalPALICDepartament ? 'bg-success' : 'bg-danger'"
@@ -241,10 +268,10 @@
         <div class="mb-6">
           <button
             @click="mostrarResumen = !mostrarResumen"
-            class="mb-2 flex w-full items-center justify-between rounded-md border border-slate-200 bg-white px-4 py-3 transition-colors hover:bg-slate-50"
+            class="app-card app-card-interactive mb-2 flex w-full items-center justify-between px-4 py-3 text-left"
           >
-            <h3 class="text-base font-semibold text-slate-950">Resum del departament</h3>
-            <span class="text-sm font-medium text-slate-600">{{ mostrarResumen ? 'Amaga' : 'Mostra' }}</span>
+            <h3 class="text-base font-semibold text-text-main">Resum del departament</h3>
+            <span class="text-sm font-medium text-text-secondary">{{ mostrarResumen ? 'Amaga' : 'Mostra' }}</span>
           </button>
           <div v-show="mostrarResumen">
             <DepartamentResumen
@@ -266,24 +293,24 @@
             />
           </div>
           <div>
-            <div class="mb-3 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div class="app-card mb-3 flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div class="flex items-center gap-2">
-                <h3 class="text-base font-semibold text-slate-950">Professorat</h3>
-                <span class="rounded-md bg-slate-100 px-2 py-0.5 text-sm font-medium text-slate-700">{{ professorsDepartament.length }}</span>
+                <h3 class="text-base font-semibold text-text-main">Professorat</h3>
+                <span class="app-chip">{{ professorsDepartament.length }}</span>
               </div>
-              <div class="flex rounded-md border border-slate-200 bg-slate-50 p-1 text-xs font-semibold">
+              <div class="app-toolbar flex text-xs font-semibold">
                 <button
                   type="button"
-                  class="rounded px-2.5 py-1 transition"
-                  :class="ordreProfessorat === 'necessitat' ? 'bg-white text-primary shadow-sm' : 'text-slate-600 hover:text-slate-950'"
+                  class="app-toolbar-button rounded px-2.5 py-1 text-xs"
+                  :class="ordreProfessorat === 'necessitat' ? 'app-toolbar-button-active' : ''"
                   @click="ordreProfessorat = 'necessitat'"
                 >
                   Menys hores
                 </button>
                 <button
                   type="button"
-                  class="rounded px-2.5 py-1 transition"
-                  :class="ordreProfessorat === 'nom' ? 'bg-white text-primary shadow-sm' : 'text-slate-600 hover:text-slate-950'"
+                  class="app-toolbar-button rounded px-2.5 py-1 text-xs"
+                  :class="ordreProfessorat === 'nom' ? 'app-toolbar-button-active' : ''"
                   @click="ordreProfessorat = 'nom'"
                 >
                   A-Z
@@ -345,6 +372,7 @@
           :get-hores-palic="getHoresPALIC"
         />
       </div>
+      </template>
     </section>
     </Transition>
 
@@ -393,15 +421,14 @@ import DepartamentFulla from '../components/departament/DepartamentFulla.vue';
 import DepartamentAleatori from '../components/departament/DepartamentAleatori.vue';
 import ProfessorCard from '../components/departament/ProfessorCard.vue';
 import DepartamentPrintModal from '../components/departament/DepartamentPrintModal.vue';
-import { limitsHoresProfessor, professorsClasse, classeAssignadaA, horesComputablesClasse, calcularHoresLectives } from '../utils/horesProfessor';
+import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
 import { departamentIconText, departamentFlagClass, departamentIconPaths, departamentInicials } from '../utils/departamentIcon';
-import { esTutoriaPrincipal, esTutoriaAsterisc, trobarTutoriaAsterisc, trobarTutoriaPrincipal, trobarAssignaturesParelladesTutoria, esCapsEstudisClasse, trobarDedicacioPerCapEstudis } from '../utils/tutories';
 import { esGP, esPALIC, esOptativaCompartida, esCoordinacioAmbMembres } from '../utils/tipus';
 import { classePertanyDepartament } from '../utils/departaments';
-import { trobarGermanesBloc } from '../utils/grups';
 import { quotaGuardiesPatiDepartament } from '../utils/guardiesPati';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
 import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
+import { crearActualitzacionsDesassignacioProfessor } from '../services/assignacioRules';
 import { useToastStore } from '../stores/toast';
 import { useAuthStore } from '../stores/auth';
 import { useCursStore } from '../stores/curs';
@@ -414,6 +441,9 @@ const solsLectura = computed(() => authStore.rol === 'professor');
 const departaments = ref([]);
 const classes = ref([]);
 const professors = ref([]);
+const classesReady = ref(false);
+const professorsReady = ref(false);
+const departamentsReady = ref(false);
 const errorMsg = ref(null);
 const isConnected = ref(true);
 const activeUsers = ref(1);
@@ -497,6 +527,13 @@ const deptInicials = computed(() => departamentInicials(departamentSeleccionat.v
 const pantallaDistribucio = computed(() =>
   Boolean(departamentSeleccionat.value) && !mostrarSelectorDepartaments.value
 );
+const carregantDadesDepartament = computed(() =>
+  Boolean(cursStore.cursActiuId) && (!classesReady.value || !professorsReady.value || !departamentsReady.value)
+);
+const resumStickyDepartament = computed(() => {
+  const resum = departamentSeleccionatResum.value;
+  return `${resum?.professorsCount ?? 0} prof. · ${formatHores(resum?.horesAssignades)}/${formatHores(resum?.totalHores)} h · ${resum?.classesPendents ?? 0} pendents`;
+});
 
 const professorsDepartament = computed(() => {
   return professors.value
@@ -829,60 +866,17 @@ async function toggleCoordinacioProfessor({ professor, coordinacio, participa })
 async function desassignarClasseProfessor({ professor, classe }) {
   if (departamentTancat.value) return;
   try {
-    const professorsActuals = (classe.professors || []).filter(
-      (nom) => nom && nom !== professor.nom
-    );
-
-    const classesPerActualitzar = [classe];
-
-    // Resolve the main tutoria regardless of whether classe is the principal or the *Tutoria
-    const tutoriaPrincipal = esTutoriaPrincipal(classe)
-      ? classe
-      : esTutoriaAsterisc(classe)
-        ? trobarTutoriaPrincipal(classe, classes.value)
-        : null;
-
-    if (tutoriaPrincipal) {
-      // Always keep principal and *Tutoria in sync
-      if (tutoriaPrincipal !== classe && !classesPerActualitzar.some((c) => c.id === tutoriaPrincipal.id)) {
-        classesPerActualitzar.push(tutoriaPrincipal);
-      }
-      const tutoriaAsterisc = trobarTutoriaAsterisc(tutoriaPrincipal, classes.value);
-      if (tutoriaAsterisc && !classesPerActualitzar.some((c) => c.id === tutoriaAsterisc.id)) {
-        classesPerActualitzar.push(tutoriaAsterisc);
-      }
-      // Also sync paired subject
-      for (const assignatura of trobarAssignaturesParelladesTutoria(tutoriaPrincipal, classes.value)) {
-        if (!classesPerActualitzar.some((c) => c.id === assignatura.id)) {
-          classesPerActualitzar.push(assignatura);
-        }
-      }
-    }
-
-    for (const germana of trobarGermanesBloc(classe, classes.value)) {
-      if (!classesPerActualitzar.some((c) => c.id === germana.id)) {
-        classesPerActualitzar.push(germana);
-      }
-    }
-    if (esCapsEstudisClasse(classe)) {
-      for (const dedicacio of trobarDedicacioPerCapEstudis(classe, classes.value)) {
-        if (!classesPerActualitzar.some((c) => c.id === dedicacio.id)) {
-          classesPerActualitzar.push(dedicacio);
-        }
-      }
-    }
+    const actualitzacions = crearActualitzacionsDesassignacioProfessor({
+      classe,
+      classes: classes.value,
+      nomProfessor: professor.nom,
+    });
 
     const batch = writeBatch(db);
-    for (const item of classesPerActualitzar) {
-      const professorsItem = (item.professors || [item.professorAssignat].filter(Boolean)).filter(
-        (nom) => nom && nom !== professor.nom
-      );
-      batch.update(cursStore.docRef('classes', item.id), {
-        professors: professorsItem,
-        professorAssignat:
-          item.professorAssignat === professor.nom
-            ? professorsItem[0] || ''
-            : item.professorAssignat || '',
+    for (const actualitzacio of actualitzacions) {
+      batch.update(cursStore.docRef('classes', actualitzacio.classe.id), {
+        professors: [...actualitzacio.professors],
+        professorAssignat: actualitzacio.professorAssignat,
         lastModified: serverTimestamp(),
       });
     }
@@ -921,10 +915,17 @@ async function tancarDepartament() {
 
 function setupRealtimeListeners() {
   cleanupListeners();
+  classesReady.value = false;
+  professorsReady.value = false;
+  departamentsReady.value = false;
+
   if (E2E_AUTH_BYPASS) {
     classes.value = getE2ECollection('classes');
     professors.value = getE2ECollection('professors');
     departaments.value = getE2ECollection('departaments');
+    classesReady.value = true;
+    professorsReady.value = true;
+    departamentsReady.value = true;
     settings.value = { ...DEFAULT_APP_SETTINGS };
     if (!departamentSeleccionat.value) {
       departamentSeleccionat.value = departaments.value[0]?.nom || '';
@@ -937,6 +938,9 @@ function setupRealtimeListeners() {
     classes.value = [];
     professors.value = [];
     departaments.value = [];
+    classesReady.value = true;
+    professorsReady.value = true;
+    departamentsReady.value = true;
     return;
   }
 
@@ -951,11 +955,15 @@ function setupRealtimeListeners() {
           professors: data.professors || [data.professorAssignat].filter(Boolean),
         };
       });
+      classesReady.value = true;
       updateLastUpdate();
       isConnected.value = true;
     },
-    () => {
+    (error) => {
+      classesReady.value = true;
       isConnected.value = false;
+      errorMsg.value = "No s'han pogut carregar les classes.";
+      console.error('Error carregant classes:', error);
     }
   );
 
@@ -972,11 +980,15 @@ function setupRealtimeListeners() {
         gpAssignades: d.data().gpAssignades || 0,
         palicAssignades: d.data().palicAssignades || 0,
       }));
+      professorsReady.value = true;
       updateLastUpdate();
       isConnected.value = true;
     },
-    () => {
+    (error) => {
+      professorsReady.value = true;
       isConnected.value = false;
+      errorMsg.value = "No s'ha pogut carregar el professorat.";
+      console.error('Error carregant professorat:', error);
     }
   );
 
@@ -987,11 +999,15 @@ function setupRealtimeListeners() {
         id: d.id,
         ...d.data(),
       }));
+      departamentsReady.value = true;
       updateLastUpdate();
       isConnected.value = true;
     },
-    () => {
+    (error) => {
+      departamentsReady.value = true;
       isConnected.value = false;
+      errorMsg.value = "No s'han pogut carregar els departaments.";
+      console.error('Error carregant departaments:', error);
     }
   );
 
@@ -1172,6 +1188,85 @@ onUnmounted(() => {
   min-width: 0;
 }
 
+.department-loading-card {
+  min-height: 7rem;
+}
+
+.department-loading-mark {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  border-radius: 0.5rem;
+  background:
+    linear-gradient(135deg, var(--pastel-blue-bg), var(--pastel-orange-bg)),
+    var(--surface-soft);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--card-shadow-soft);
+  position: relative;
+  overflow: hidden;
+}
+
+.department-loading-mark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.62), transparent);
+  animation: department-loading-sheen 1.15s ease-in-out infinite;
+  transform: translateX(-100%);
+}
+
+.department-sticky-bar {
+  border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--border-soft));
+  border-radius: 0.625rem;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--surface) 86%, var(--pastel-blue-bg)), var(--surface)),
+    var(--surface);
+  color: var(--text-main);
+  box-shadow: var(--card-shadow-soft);
+}
+
+.department-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.department-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
+}
+
+.department-tab {
+  min-height: 2.5rem;
+  min-width: 0;
+  padding-inline: 0.55rem;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.15;
+}
+
+@keyframes department-loading-sheen {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (min-width: 640px) {
+  .department-actions {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .department-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .department-tab {
+    white-space: nowrap;
+  }
+}
+
 .departament-slide-forward-enter-active,
 .departament-slide-forward-leave-active,
 .departament-slide-back-enter-active,
@@ -1200,6 +1295,10 @@ onUnmounted(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .department-loading-mark::after {
+    animation: none;
+  }
+
   .departament-slide-forward-enter-active,
   .departament-slide-forward-leave-active,
   .departament-slide-back-enter-active,

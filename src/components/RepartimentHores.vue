@@ -1,19 +1,19 @@
 <template>
   <div class="space-y-3">
     <div>
-      <h3 class="text-base font-semibold text-slate-950">
+      <h3 class="text-base font-semibold text-text-main">
         Classes del departament
       </h3>
-      <p class="text-sm text-slate-600">
+      <p class="text-sm text-text-secondary">
         {{ classesSenseAssignar.length }} pendents · {{ classesAssignades.length }} assignades
       </p>
     </div>
 
     <div
       v-if="classesDepartament.length > 0"
-      class="card p-3"
+      class="app-card p-3"
     >
-      <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">
+      <label class="block text-xs font-bold uppercase tracking-wide text-text-muted">
         Cerca classes
         <input
           v-model="cerca"
@@ -23,17 +23,17 @@
         />
       </label>
       <div class="mt-3 grid grid-cols-3 gap-2 text-center">
-        <div class="rounded-md bg-blue-50 px-2 py-1.5 ring-1 ring-blue-100">
-          <div class="text-sm font-bold text-blue-900">{{ classesFiltrades.length }}</div>
-          <div class="text-[10px] font-semibold uppercase tracking-wide text-blue-700">Visibles</div>
+        <div class="app-stat-tile app-stat-tile-primary">
+          <div class="text-sm font-bold">{{ classesFiltrades.length }}</div>
+          <div class="text-[10px] font-semibold uppercase tracking-wide">Visibles</div>
         </div>
-        <div class="rounded-md bg-orange-50 px-2 py-1.5 ring-1 ring-orange-100">
-          <div class="text-sm font-bold text-orange-900">{{ classesSenseAssignarFiltrades.length }}</div>
-          <div class="text-[10px] font-semibold uppercase tracking-wide text-orange-700">Pendents</div>
+        <div class="app-stat-tile app-stat-tile-warning">
+          <div class="text-sm font-bold">{{ classesSenseAssignarFiltrades.length }}</div>
+          <div class="text-[10px] font-semibold uppercase tracking-wide">Pendents</div>
         </div>
-        <div class="rounded-md bg-emerald-50 px-2 py-1.5 ring-1 ring-emerald-100">
-          <div class="text-sm font-bold text-emerald-900">{{ classesAssignadesFiltrades.length }}</div>
-          <div class="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Fetes</div>
+        <div class="app-stat-tile app-stat-tile-success">
+          <div class="text-sm font-bold">{{ classesAssignadesFiltrades.length }}</div>
+          <div class="text-[10px] font-semibold uppercase tracking-wide">Fetes</div>
         </div>
       </div>
     </div>
@@ -57,7 +57,7 @@
 
     <div
       v-if="classesDepartament.length > 0 && classesFiltrades.length === 0"
-      class="rounded-lg border border-slate-200 bg-white p-5 text-center text-sm font-medium text-slate-500"
+      class="app-empty-state p-5"
     >
       Cap classe coincideix amb la cerca.
     </div>
@@ -65,10 +65,10 @@
     <!-- Pendents -->
     <div
       v-if="classesSenseAssignarFiltrades.length > 0"
-      class="overflow-hidden card shadow-danger-glow"
+      class="app-card overflow-hidden shadow-danger-glow"
     >
-      <div class="border-b border-slate-200 bg-danger/5 px-3 py-2">
-        <h4 class="text-sm font-bold text-slate-950">
+      <div class="app-card-header-warning px-3 py-2">
+        <h4 class="text-sm font-bold text-text-main">
           Pendents d'assignar ({{ classesSenseAssignarFiltrades.length }}<span v-if="cercaNormalitzada">/{{ classesSenseAssignar.length }}</span>)
         </h4>
       </div>
@@ -81,8 +81,8 @@
           <div class="mb-2">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0 flex-1">
-                <span v-if="formatGrup(classe)" class="font-mono text-sm font-semibold text-slate-600">{{ formatGrup(classe) }}</span>
-                <span class="ml-1.5 font-medium text-slate-900">{{ classe.materia }}</span>
+                <span v-if="formatGrup(classe)" class="font-mono text-sm font-semibold text-text-secondary">{{ formatGrup(classe) }}</span>
+                <span class="ml-1.5 font-medium text-text-main">{{ classe.materia }}</span>
               </div>
               <span class="badge badge-gray shrink-0 font-semibold">{{ classe.hores }}h</span>
             </div>
@@ -107,7 +107,7 @@
               {{ opcioProfessorText(classe, professor.nom) }}{{ esConflicteSuport(classe, professor.nom) ? ' (ja té el grup)' : '' }}
             </option>
           </select>
-          <p v-if="classe.professors?.length" class="mt-1 text-xs font-medium text-slate-500">
+          <p v-if="classe.professors?.length" class="mt-1 text-xs font-medium text-text-muted">
             Assignació actual: {{ classe.professors.join(', ') }}
           </p>
           <select
@@ -135,10 +135,10 @@
     <!-- Assignades -->
     <div
       v-if="classesAssignadesFiltrades.length > 0"
-      class="overflow-hidden card shadow-success-glow"
+      class="app-card overflow-hidden shadow-success-glow"
     >
-      <div class="border-b border-slate-200 bg-success/5 px-3 py-2">
-        <h4 class="text-sm font-bold text-slate-950">
+      <div class="app-card-header-success px-3 py-2">
+        <h4 class="text-sm font-bold text-text-main">
           Assignades ({{ classesAssignadesFiltrades.length }}<span v-if="cercaNormalitzada">/{{ classesAssignades.length }}</span>)
         </h4>
       </div>
@@ -151,8 +151,8 @@
           <div class="mb-2">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0 flex-1">
-                <span v-if="formatGrup(classe)" class="font-mono text-sm font-semibold text-slate-600">{{ formatGrup(classe) }}</span>
-                <span class="ml-1.5 font-medium text-slate-900">{{ classe.materia }}</span>
+                <span v-if="formatGrup(classe)" class="font-mono text-sm font-semibold text-text-secondary">{{ formatGrup(classe) }}</span>
+                <span class="ml-1.5 font-medium text-text-main">{{ classe.materia }}</span>
               </div>
               <span class="badge badge-gray shrink-0 font-semibold">{{ classe.hores }}h</span>
             </div>
@@ -210,7 +210,7 @@
 
     <div
       v-if="classesDepartament.length === 0"
-      class="rounded-lg border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+      class="app-empty-state p-8"
     >
       No hi ha classes per a aquest departament.
     </div>
@@ -228,18 +228,15 @@ import {
 import { db } from '../firebase';
 import { useCursStore } from '../stores/curs';
 import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
-import { classeCompletamentAssignada, professorPrincipalClasse, professorSecundariClasse, normalitzarProfessorsAssignats } from '../utils/assignacions';
+import { classeCompletamentAssignada, professorPrincipalClasse, professorSecundariClasse } from '../utils/assignacions';
 import { esGP, esOptativaCompartida, exclosaDelRepartiment, getTipusLabel, getTipusBadgeClass } from '../utils/tipus';
-import {
-  esTutoriaPrincipal,
-  trobarTutoriaAsterisc,
-  trobarAssignaturesParelladesTutoria,
-  esCapsEstudisClasse,
-  trobarDedicacioPerCapEstudis,
-} from '../utils/tutories';
-import { trobarGermanesBloc, normalitzarGrup } from '../utils/grups';
+import { normalitzarGrup } from '../utils/grups';
 import { classePertanyDepartament } from '../utils/departaments';
 import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
+import {
+  crearActualitzacionsAssignacio,
+  crearActualitzacionsCanviProfessor,
+} from '../services/assignacioRules';
 
 const emit = defineEmits(['assignacionsActualitzades']);
 
@@ -482,42 +479,14 @@ function avisosHores(classe) {
     .filter(Boolean);
 }
 
-async function assignarProfessors(classe) {
+async function guardarActualitzacionsAssignacio(actualitzacions) {
   if (props.bloquejat) return;
   try {
-    classe.professors = normalitzarProfessorsAssignats(classe);
-
-    const classesPerActualitzar = [classe];
-    const tutoriaAsterisc = trobarTutoriaAsterisc(classe, classes.value);
-    if (esTutoriaPrincipal(classe) && tutoriaAsterisc) {
-      tutoriaAsterisc.professors = [...classe.professors];
-      classesPerActualitzar.push(tutoriaAsterisc);
-    }
-    if (esTutoriaPrincipal(classe)) {
-      for (const assignatura of trobarAssignaturesParelladesTutoria(classe, classes.value)) {
-        if (!classesPerActualitzar.some((c) => c.id === assignatura.id)) {
-          classesPerActualitzar.push(assignatura);
-        }
-      }
-    }
-    for (const germana of trobarGermanesBloc(classe, classes.value)) {
-      if (!classesPerActualitzar.some((c) => c.id === germana.id)) {
-        classesPerActualitzar.push(germana);
-      }
-    }
-    if (esCapsEstudisClasse(classe)) {
-      for (const dedicacio of trobarDedicacioPerCapEstudis(classe, classes.value)) {
-        if (!classesPerActualitzar.some((c) => c.id === dedicacio.id)) {
-          classesPerActualitzar.push(dedicacio);
-        }
-      }
-    }
-
     const batch = writeBatch(db);
-    for (const item of classesPerActualitzar) {
-      batch.update(cursStore.docRef('classes', item.id), {
-        professors: [...classe.professors],
-        professorAssignat: classe.professors[0] || '',
+    for (const actualitzacio of actualitzacions) {
+      batch.update(cursStore.docRef('classes', actualitzacio.classe.id), {
+        professors: [...actualitzacio.professors],
+        professorAssignat: actualitzacio.professorAssignat,
         lastModified: serverTimestamp(),
       });
     }
@@ -530,20 +499,30 @@ async function assignarProfessors(classe) {
 }
 
 async function assignarProfessor(classe, nomProfessor, index = 0) {
-  if (index === 0 && !esOptativaCompartidaClasse(classe)) {
-    classe.professors = nomProfessor ? [nomProfessor] : [];
-  } else {
-    const profs = professorsClasse(classe);
-    profs[index] = nomProfessor;
-    classe.professors = profs;
+  const actualitzacions = crearActualitzacionsCanviProfessor({
+    classe,
+    classes: classes.value,
+    nomProfessor,
+    index,
+  });
+  const principal = actualitzacions.find((item) => item.classe.id === classe.id);
+  if (principal) {
+    classe.professors = [...principal.professors];
+    classe.professorAssignat = principal.professorAssignat;
   }
-  await assignarProfessors(classe);
+  await guardarActualitzacionsAssignacio(actualitzacions);
 }
 
 async function desassignarProfessors(classe) {
   if (props.bloquejat) return;
+  const actualitzacions = crearActualitzacionsAssignacio({
+    classe,
+    classes: classes.value,
+    professors: [],
+  });
   classe.professors = [];
-  await assignarProfessors(classe);
+  classe.professorAssignat = '';
+  await guardarActualitzacionsAssignacio(actualitzacions);
 }
 
 function setupRealtimeListeners() {

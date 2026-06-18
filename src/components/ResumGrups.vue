@@ -8,15 +8,15 @@
  </div>
 
  <!-- Filtres per nivell -->
- <div class="print-hide flex flex-wrap items-center gap-1 rounded-md bg-slate-100 p-1 w-fit">
+ <div class="app-toolbar print-hide flex w-fit flex-wrap items-center gap-1">
  <button
  v-for="filtre in filtres"
  :key="filtre.id"
  @click="filtreActiu = filtreActiu === filtre.id ? null : filtre.id"
- class="rounded px-3 py-1.5 text-sm font-semibold transition"
+ class="app-toolbar-button rounded px-3 py-1.5"
  :class="filtreActiu === filtre.id
- ? 'bg-white text-primary shadow-sm'
- : 'text-slate-700 hover:bg-white/70 hover:text-slate-950'"
+ ? 'app-toolbar-button-active'
+ : ''"
  >
  {{ filtre.nom }}
  </button>
