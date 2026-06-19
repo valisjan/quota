@@ -1,6 +1,8 @@
 <template>
   <div class="sections space-y-6">
-    <section class="card">
+    <AdminSectionNav v-model="activeSection" :items="sectionItems" mode="panels" />
+
+    <section v-show="activeSection === 'guardies-pati'" id="guardies-pati" class="admin-anchor-section card">
       <div class="border-b border-slate-200 p-5">
         <h3 class="text-xl font-bold text-slate-950">
           Guàrdies de pati
@@ -104,7 +106,7 @@
     </section>
 
     <!-- Secció: Guàrdies de corredor -->
-    <section class="card">
+    <section v-show="activeSection === 'guardies-passadis'" id="guardies-passadis" class="admin-anchor-section card">
       <div class="border-b border-slate-200 p-5">
         <h3 class="text-xl font-bold text-slate-950">Guàrdies de passadís</h3>
         <p class="mt-1 text-sm text-slate-600">
@@ -161,7 +163,7 @@
     </section>
 
     <!-- Secció: Full de càlcul -->
-    <section class="card">
+    <section v-show="activeSection === 'google-sheets'" id="google-sheets" class="admin-anchor-section card">
       <div class="border-b border-slate-200 p-5">
         <h3 class="text-xl font-bold text-slate-950">Full de càlcul (Google Sheets)</h3>
         <p class="mt-1 text-sm text-slate-600">
@@ -302,15 +304,35 @@ import {
 } from '../services/appSettings';
 import { provarConnexioSheets } from '../services/sincronitzacio';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
+import AdminSectionNav from './AdminSectionNav.vue';
 
 const cursStore = useCursStore();
 const toast = useToastStore();
 const formulari = reactive({ ...DEFAULT_APP_SETTINGS });
 const guardant = ref(false);
+const activeSection = ref('guardies-pati');
 let settingsUnsubscribe = null;
 
 const { items: professors } = useCursCollectionSnapshot({ colName: 'professors' });
 const { items: classes } = useCursCollectionSnapshot({ colName: 'classes' });
+
+const sectionItems = [
+  {
+    id: 'guardies-pati',
+    label: 'Guàrdies de pati',
+    description: 'Quotes per departament',
+  },
+  {
+    id: 'guardies-passadis',
+    label: 'Guàrdies de passadís',
+    description: 'Exempcions i reduccions',
+  },
+  {
+    id: 'google-sheets',
+    label: 'Google Sheets',
+    description: 'Origen de dades',
+  },
+];
 
 const professorsAmbGuardes = computed(() =>
   [...professors.value]

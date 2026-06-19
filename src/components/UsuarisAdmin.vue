@@ -1,14 +1,18 @@
 <template>
   <div class="sections space-y-5">
+    <AdminSectionNav v-model="activeSection" :items="sectionItems" mode="panels" />
+
     <!-- Nota sobre pre-autorització -->
-    <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+    <div v-show="activeSection === 'preautoritzacio-sheets'" id="preautoritzacio-sheets" class="admin-anchor-section rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
       Pots pre-autoritzar professorat des del full de Google Sheets. Afegeix les columnes <strong>EMAIL</strong> i <strong>ROL</strong> a la pestanya <em>Professorat</em> (columnes F i G). Els valors vàlids de ROL són <code class="rounded bg-slate-200 px-1">professor</code>, <code class="rounded bg-slate-200 px-1">cap_departament</code> i <code class="rounded bg-slate-200 px-1">admin</code>. La propera sincronització els activarà automàticament en fer login.
     </div>
 
     <!-- Pendents d'aprovació -->
     <div
       v-if="pendents.length"
-      class="rounded-lg border border-amber-200 bg-amber-50 p-5"
+      v-show="activeSection === 'pendents-aprovacio'"
+      id="pendents-aprovacio"
+      class="admin-anchor-section rounded-lg border border-amber-200 bg-amber-50 p-5"
     >
       <h3 class="text-base font-bold text-slate-950">
         Pendents d'aprovació ({{ pendents.length }})
@@ -72,7 +76,7 @@
     </div>
 
     <!-- Pre-autoritzats (esperen el primer login) -->
-    <div v-if="preautoritzatsLlista.length" class="rounded-lg border border-blue-200 bg-blue-50 shadow-sm">
+    <div v-if="preautoritzatsLlista.length" v-show="activeSection === 'preautoritzats'" id="preautoritzats" class="admin-anchor-section rounded-lg border border-blue-200 bg-blue-50 shadow-sm">
       <div class="border-b border-blue-200 px-5 py-4">
         <h3 class="text-base font-bold text-slate-950">Pre-autoritzats ({{ preautoritzatsLlista.length }})</h3>
         <p class="mt-1 text-sm text-slate-700">
@@ -103,7 +107,7 @@
     </div>
 
     <!-- Usuaris actius -->
-    <div class="card">
+    <div v-show="activeSection === 'usuaris-actius'" id="usuaris-actius" class="admin-anchor-section card">
       <div class="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
         <h3 class="text-lg font-semibold text-slate-950">Usuaris actius</h3>
         <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
@@ -188,12 +192,45 @@ import { db } from '../firebase';
 import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
+import AdminSectionNav from './AdminSectionNav.vue';
 
 const authStore = useAuthStore();
 const toast = useToastStore();
 const usuaris = ref([]);
 const preautoritzats = ref([]);
 const deptPendent = ref({});
+const activeSection = ref('preautoritzacio-sheets');
+
+const sectionItems = computed(() => [
+  {
+    id: 'preautoritzacio-sheets',
+    label: 'Preautorització',
+    description: 'Alta des de Sheets',
+  },
+  pendents.value.length
+    ? {
+        id: 'pendents-aprovacio',
+        label: 'Pendents',
+        description: 'Usuaris sense rol',
+        badge: pendents.value.length,
+        tone: 'warning',
+      }
+    : null,
+  preautoritzatsLlista.value.length
+    ? {
+        id: 'preautoritzats',
+        label: 'Preautoritzats',
+        description: 'Esperen primer login',
+        badge: preautoritzatsLlista.value.length,
+      }
+    : null,
+  {
+    id: 'usuaris-actius',
+    label: 'Actius',
+    description: 'Rols i departaments',
+    badge: actius.value.length ? actius.value.length : '',
+  },
+].filter(Boolean));
 
 const { items: departamentsRaw } = useCursCollectionSnapshot({ colName: 'departaments' });
 const departaments = computed(() =>

@@ -1,6 +1,8 @@
 <template>
   <div class="sections space-y-5">
-    <div class="card p-5">
+    <AdminSectionNav v-model="activeSection" :items="sectionItems" mode="panels" />
+
+    <div v-show="activeSection === 'mode-tancament'" id="mode-tancament" class="admin-anchor-section card p-5">
       <h3 class="text-xl font-bold text-slate-950">
         Mode tancament
       </h3>
@@ -9,7 +11,7 @@
       </p>
     </div>
 
-    <div class="card">
+    <div v-show="activeSection === 'bloqueig-administracio'" id="bloqueig-administracio" class="admin-anchor-section card">
       <div class="divide-y divide-slate-200 dark:divide-slate-700">
         <label class="flex cursor-pointer items-start justify-between gap-4 p-5">
           <div>
@@ -54,7 +56,7 @@
       </div>
     </div>
 
-    <section class="card">
+    <section v-show="activeSection === 'tancament-departaments'" id="tancament-departaments" class="admin-anchor-section card">
       <div class="border-b border-slate-200 p-5 dark:border-slate-700">
         <h3 class="text-xl font-bold text-slate-950">
           Tancament per departament
@@ -136,14 +138,36 @@ import {
   updateAppSettings,
 } from '../services/appSettings';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
+import AdminSectionNav from './AdminSectionNav.vue';
 
 const cursStore = useCursStore();
 const toast = useToastStore();
 const formulari = reactive({ ...DEFAULT_APP_SETTINGS });
 const guardant = ref(false);
+const activeSection = ref('mode-tancament');
 let unsubscribe = null;
 
 const { items: departaments } = useCursCollectionSnapshot({ colName: 'departaments' });
+
+const sectionItems = computed(() => [
+  {
+    id: 'mode-tancament',
+    label: 'Mode tancament',
+    description: 'Context i criteri',
+  },
+  {
+    id: 'bloqueig-administracio',
+    label: 'Administració',
+    description: 'Bloqueig i missatge',
+    tone: formulari.tancamentAdmin ? 'warning' : '',
+  },
+  {
+    id: 'tancament-departaments',
+    label: 'Departaments',
+    description: 'Tancar o desbloquejar',
+    badge: departamentsTancats.value ? `${departamentsTancats.value}/${departamentsComptables.value}` : '',
+  },
+]);
 
 const estatText = computed(() => {
   if (formulari.tancamentAdmin) return 'Administració bloquejada.';
@@ -152,6 +176,14 @@ const estatText = computed(() => {
 
 const departamentsOrdenats = computed(() =>
   [...departaments.value].sort((a, b) => a.nom.localeCompare(b.nom))
+);
+
+const departamentsComptables = computed(() =>
+  departaments.value.filter((departament) => !departament.exclos).length
+);
+
+const departamentsTancats = computed(() =>
+  departaments.value.filter((departament) => !departament.exclos && departament.tancat).length
 );
 
 async function guardar() {

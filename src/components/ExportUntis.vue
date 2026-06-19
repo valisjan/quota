@@ -1,89 +1,95 @@
 <template>
   <div class="sections space-y-5">
+    <AdminSectionNav v-model="activeSection" :items="sectionItems" mode="panels" />
+
     <!-- Header card -->
-    <div class="card p-5">
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h3 class="text-xl font-bold text-slate-950">
-            Flux de treball Untis
-          </h3>
-          <p class="mt-2 text-base text-slate-700 dark:text-slate-300">
-            Carrega l'XML de GestIB a Untis i usa aquesta pantalla per generar
-            el GPU002.TXT amb professor, matèria, grup i hores.
-          </p>
+    <div v-show="activeSection === 'flux-untis' || activeSection === 'correspondencies-gestib'" id="flux-untis" class="admin-anchor-section card p-5">
+      <div v-show="activeSection === 'flux-untis'">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 class="text-xl font-bold text-slate-950">
+              Flux de treball Untis
+            </h3>
+            <p class="mt-2 text-base text-slate-700 dark:text-slate-300">
+              Carrega l'XML de GestIB a Untis i usa aquesta pantalla per generar
+              el GPU002.TXT amb professor, matèria, grup i hores.
+            </p>
+          </div>
+          <button
+            @click="generar"
+            :disabled="carregant || !referenciaGestibXmlText"
+            class="rounded-md bg-primary px-5 py-3 text-base font-medium text-white transition hover:bg-primary-dark disabled:opacity-50"
+          >
+            {{ carregant ? 'Generant...' : 'Genera GPU002' }}
+          </button>
         </div>
-        <button
-          @click="generar"
-          :disabled="carregant || !referenciaGestibXmlText"
-          class="rounded-md bg-primary px-5 py-3 text-base font-medium text-white transition hover:bg-primary-dark disabled:opacity-50"
-        >
-          {{ carregant ? 'Generant...' : 'Genera GPU002' }}
-        </button>
-      </div>
 
-      <div class="mt-5 grid gap-3 sm:grid-cols-5">
-        <div class="rounded-lg border border-primary/20 bg-primary/5 p-3 dark:border-primary/20 dark:bg-primary/10">
-          <p class="text-xs font-medium text-primary/70">1. GestIB</p>
-          <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">Descarregar XML</p>
+        <div class="mt-5 grid gap-3 sm:grid-cols-5">
+          <div class="rounded-lg border border-primary/20 bg-primary/5 p-3 dark:border-primary/20 dark:bg-primary/10">
+            <p class="text-xs font-medium text-primary/70">1. GestIB</p>
+            <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">Descarregar XML</p>
+          </div>
+          <div class="rounded-lg border border-primary/20 bg-primary/5 p-3 dark:border-primary/20 dark:bg-primary/10">
+            <p class="text-xs font-medium text-primary/70">2. App</p>
+            <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">Carregar XML</p>
+          </div>
+          <div class="rounded-lg border border-primary/20 bg-primary/5 p-3 dark:border-primary/20 dark:bg-primary/10">
+            <p class="text-xs font-medium text-primary/70">3. App</p>
+            <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">Generar GPU002</p>
+          </div>
+          <div class="rounded-lg border border-success/20 bg-success/5 p-3 dark:border-success/20 dark:bg-success/10">
+            <p class="text-xs font-medium text-success/70">4. Baixar</p>
+            <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">GPU002.TXT</p>
+          </div>
+          <div class="rounded-lg border border-success/20 bg-success/5 p-3 dark:border-success/20 dark:bg-success/10">
+            <p class="text-xs font-medium text-success/70">5. Untis</p>
+            <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">Importar fitxer</p>
+          </div>
         </div>
-        <div class="rounded-lg border border-primary/20 bg-primary/5 p-3 dark:border-primary/20 dark:bg-primary/10">
-          <p class="text-xs font-medium text-primary/70">2. App</p>
-          <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">Carregar XML</p>
-        </div>
-        <div class="rounded-lg border border-primary/20 bg-primary/5 p-3 dark:border-primary/20 dark:bg-primary/10">
-          <p class="text-xs font-medium text-primary/70">3. App</p>
-          <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">Generar GPU002</p>
-        </div>
-        <div class="rounded-lg border border-success/20 bg-success/5 p-3 dark:border-success/20 dark:bg-success/10">
-          <p class="text-xs font-medium text-success/70">4. Baixar</p>
-          <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">GPU002.TXT</p>
-        </div>
-        <div class="rounded-lg border border-success/20 bg-success/5 p-3 dark:border-success/20 dark:bg-success/10">
-          <p class="text-xs font-medium text-success/70">5. Untis</p>
-          <p class="mt-1 text-sm font-bold text-slate-950 dark:text-white">Importar fitxer</p>
-        </div>
-      </div>
 
-      <div class="mt-5 grid gap-3 sm:grid-cols-2">
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-gray-900">
-          <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200">
-            XML de GestIB <span class="text-red-500">*</span>
-          </label>
-          <input
-            type="file"
-            accept=".xml,text/xml,application/xml"
-            class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-primary file:bg-primary file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-primary-dark dark:text-slate-300 dark:file:bg-primary-dark"
-            @change="carregarGestibXml"
-          />
-          <p class="mt-2 text-xs text-slate-600 dark:text-slate-400">
-            <span v-if="gestibXmlNom">{{ gestibXmlNom }}</span>
-            <span v-else>exportacioDadesHoraris de GestIB</span>
-          </p>
-        </div>
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-gray-900">
-          <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200">
-            GPU002.TXT de referència
-          </label>
-          <input
-            type="file"
-            accept=".txt,text/plain"
-            class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-primary file:bg-slate-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-slate-700 dark:text-slate-300 dark:file:bg-slate-500"
-            @change="carregarGpu002Referencia"
-          />
-          <p class="mt-2 text-xs text-slate-600 dark:text-slate-400">
-            <span v-if="gpu002ReferenciaNom">{{ gpu002ReferenciaNom }}</span>
-            <span v-else>GPU002 anterior (opcional, per numeració i resolució automàtica)</span>
-          </p>
+        <div class="mt-5 grid gap-3 sm:grid-cols-2">
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-gray-900">
+            <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+              XML de GestIB <span class="text-red-500">*</span>
+            </label>
+            <input
+              type="file"
+              accept=".xml,text/xml,application/xml"
+              class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-primary file:bg-primary file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-primary-dark dark:text-slate-300 dark:file:bg-primary-dark"
+              @change="carregarGestibXml"
+            />
+            <p class="mt-2 text-xs text-slate-600 dark:text-slate-400">
+              <span v-if="gestibXmlNom">{{ gestibXmlNom }}</span>
+              <span v-else>exportacioDadesHoraris de GestIB</span>
+            </p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-gray-900">
+            <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+              GPU002.TXT de referència
+            </label>
+            <input
+              type="file"
+              accept=".txt,text/plain"
+              class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-primary file:bg-slate-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-slate-700 dark:text-slate-300 dark:file:bg-slate-500"
+              @change="carregarGpu002Referencia"
+            />
+            <p class="mt-2 text-xs text-slate-600 dark:text-slate-400">
+              <span v-if="gpu002ReferenciaNom">{{ gpu002ReferenciaNom }}</span>
+              <span v-else>GPU002 anterior (opcional, per numeració i resolució automàtica)</span>
+            </p>
+          </div>
         </div>
       </div>
 
       <!-- Mapeig manual de matèries -->
-      <div v-if="analitzant" class="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+      <div v-if="analitzant && activeSection === 'correspondencies-gestib'" class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
         Analitzant correspondències GestIB...
       </div>
 
       <div
         v-else-if="totes.length > 0"
+        v-show="activeSection === 'correspondencies-gestib'"
+        id="correspondencies-gestib"
         class="mt-4 rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-900"
       >
         <div class="flex flex-col gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
@@ -166,7 +172,7 @@
     </div>
 
     <!-- Mode simulació -->
-    <section class="rounded-lg border border-amber-300 bg-amber-50 p-5" style="box-shadow:0 0 0 1px rgba(217,119,6,0.20),0 8px 24px 0 rgba(217,119,6,0.18)">
+    <section v-show="activeSection === 'mode-simulacio'" id="mode-simulacio" class="admin-anchor-section rounded-lg border border-amber-300 bg-amber-50 p-5" style="box-shadow:0 0 0 1px rgba(217,119,6,0.20),0 8px 24px 0 rgba(217,119,6,0.18)">
       <div class="mb-3 flex items-center gap-2">
         <span class="flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-xs font-bold text-white">!</span>
         <h3 class="text-sm font-bold uppercase tracking-wide text-amber-900">Mode simulació</h3>
@@ -193,6 +199,8 @@
     <!-- Generated files -->
     <div
       v-if="exportacio"
+      v-show="activeSection === 'fitxers-preparats'"
+      id="fitxers-preparats"
       class="card"
     >
       <div class="border-b border-slate-200 p-5 dark:border-slate-700">
@@ -379,6 +387,8 @@
     <!-- Pending review -->
     <div
       v-if="exportacio?.pendents?.length"
+      v-show="activeSection === 'pendents-revisar'"
+      id="pendents-revisar"
       class="rounded-lg border border-orange-200 bg-orange-50 p-5"
     >
       <h4 class="text-lg font-bold text-slate-950">
@@ -399,7 +409,7 @@
     </div>
 
     <!-- Comparador GPU002 -->
-    <div class="card">
+    <div v-show="activeSection === 'comparador-gpu'" id="comparador-gpu" class="admin-anchor-section card">
       <div class="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
         <h4 class="text-xl font-bold text-slate-950">
           Comparador amb GPU002.TXT
@@ -608,6 +618,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import SelectBuscador from './SelectBuscador.vue';
+import AdminSectionNav from './AdminSectionNav.vue';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import {
@@ -632,6 +643,52 @@ const referenciaGestibXmlText = ref('');
 const gestibXmlNom = ref('');
 const gpu002ReferenciaNom = ref('');
 const simular = ref(true);
+const activeSection = ref('flux-untis');
+
+const sectionItems = computed(() => [
+  {
+    id: 'flux-untis',
+    label: 'Flux Untis',
+    description: 'XML, referència i generació',
+  },
+  totes.value.length
+    ? {
+        id: 'correspondencies-gestib',
+        label: 'Correspondències',
+        description: 'Mapeig GestIB',
+        badge: pendentsCount.value ? `${pendentsCount.value} pend.` : 'OK',
+        tone: pendentsCount.value ? 'warning' : '',
+      }
+    : null,
+  {
+    id: 'mode-simulacio',
+    label: 'Simulació',
+    description: 'Verificar sense guardar',
+    tone: simular.value ? 'warning' : '',
+  },
+  exportacio.value
+    ? {
+        id: 'fitxers-preparats',
+        label: 'Fitxers',
+        description: 'Vista prèvia i descàrrega',
+        badge: exportacio.value.fitxers?.length || '',
+      }
+    : null,
+  exportacio.value?.pendents?.length
+    ? {
+        id: 'pendents-revisar',
+        label: 'Pendents',
+        description: 'Classes a revisar',
+        badge: exportacio.value.pendents.length,
+        tone: 'warning',
+      }
+    : null,
+  {
+    id: 'comparador-gpu',
+    label: 'Comparador',
+    description: 'Revisió amb GPU002',
+  },
+].filter(Boolean));
 
 // Mapeig GestIB
 const totes = ref([]);

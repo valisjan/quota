@@ -1,6 +1,8 @@
 <template>
   <div class="sections space-y-5">
-    <div class="card p-5">
+    <AdminSectionNav v-model="activeSection" :items="sectionItems" mode="panels" />
+
+    <div v-show="activeSection === 'crear-curs'" id="crear-curs" class="admin-anchor-section card p-5">
       <div class="flex items-center justify-between gap-4">
         <div>
           <h3 class="font-bold text-slate-950">Crear curs acadèmic</h3>
@@ -21,7 +23,7 @@
       </p>
     </div>
 
-    <div class="card p-5">
+    <div v-show="activeSection === 'neteja-assignacions'" id="neteja-assignacions" class="admin-anchor-section card p-5">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 class="font-bold text-slate-950">Neteja d'assignacions</h3>
@@ -47,7 +49,7 @@
       </div>
     </div>
 
-    <div class="overflow-hidden card">
+    <div v-show="activeSection === 'llistat-cursos'" id="llistat-cursos" class="admin-anchor-section overflow-hidden card">
       <div class="border-b border-slate-300 bg-slate-200 px-5 py-4">
         <h3 class="font-bold text-slate-950">Curs acadèmic</h3>
         <p class="mt-1 text-sm text-slate-600">
@@ -230,6 +232,7 @@
 import { ref, computed } from 'vue';
 import { useCursStore } from '../stores/curs';
 import { useToastStore } from '../stores/toast';
+import AdminSectionNav from './AdminSectionNav.vue';
 import {
   eliminarAssignacionsCurs,
   obtenirResumAssignacionsCurs,
@@ -238,6 +241,7 @@ import {
 const cursStore = useCursStore();
 const toast = useToastStore();
 const creant = ref(false);
+const activeSection = ref('crear-curs');
 const eliminant = ref(null);
 const eliminantAssignacions = ref(null);
 const cursABorrarTotal = ref(null);
@@ -249,6 +253,25 @@ const resumAssignacions = ref(null);
 const carregantResumAssignacions = ref(false);
 const errorResumAssignacions = ref('');
 const textConfirmacioAssignacions = 'ESBORRAR ASSIGNACIONS';
+
+const sectionItems = [
+  {
+    id: 'crear-curs',
+    label: 'Crear curs',
+    description: 'Alta del següent curs',
+  },
+  {
+    id: 'neteja-assignacions',
+    label: 'Neteja',
+    description: 'Reiniciar repartiment',
+    tone: 'warning',
+  },
+  {
+    id: 'llistat-cursos',
+    label: 'Curs acadèmic',
+    description: 'Actiu, bloqueig i borrat',
+  },
+];
 
 const cursSeguent = computed(() => {
   if (cursStore.cursos.length === 0) return '2025/2026';

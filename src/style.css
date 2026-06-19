@@ -690,6 +690,85 @@
     @apply min-w-0;
   }
 
+  .admin-anchor-section {
+    scroll-margin-top: 6.25rem;
+  }
+
+  .admin-section-nav {
+    @apply sticky top-[4.75rem] z-30 rounded-lg border p-3;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--surface) 90%, var(--pastel-blue-bg)), var(--surface) 62%),
+      var(--surface);
+    border-color: color-mix(in srgb, var(--primary) 18%, var(--border-soft));
+    box-shadow: var(--card-shadow-soft);
+  }
+
+  .admin-section-nav-heading {
+    @apply flex items-center justify-between gap-3;
+  }
+
+  .admin-section-nav-kicker {
+    @apply text-xs font-semibold uppercase;
+    color: var(--primary);
+  }
+
+  .admin-section-nav-title {
+    @apply mt-0.5 text-base font-semibold;
+    color: var(--text-main);
+  }
+
+  .admin-section-nav-select {
+    @apply min-h-10 max-w-[12rem] rounded-md border px-3 py-2 text-sm font-semibold;
+    background: var(--surface);
+    border-color: var(--border-soft);
+    color: var(--text-secondary);
+  }
+
+  .admin-section-nav-list {
+    @apply mt-3 hidden gap-2 overflow-x-auto sm:flex;
+  }
+
+  .admin-section-nav-item {
+    @apply relative min-h-16 min-w-[10rem] shrink-0 rounded-md border px-3 py-2 text-left transition;
+    background: color-mix(in srgb, var(--surface) 84%, var(--surface-soft));
+    border-color: var(--border-soft);
+    color: var(--text-secondary);
+  }
+
+  .admin-section-nav-item:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-strong);
+    color: var(--text-main);
+  }
+
+  .admin-section-nav-item-active {
+    background: color-mix(in srgb, var(--pastel-blue-bg) 70%, var(--surface));
+    border-color: color-mix(in srgb, var(--primary) 42%, var(--border-soft));
+    color: var(--text-main);
+    box-shadow: var(--shadow-primary-glow);
+  }
+
+  .admin-section-nav-item-warning {
+    background: color-mix(in srgb, var(--pastel-orange-bg) 62%, var(--surface));
+    border-color: color-mix(in srgb, var(--danger) 34%, var(--border-soft));
+  }
+
+  .admin-section-nav-label {
+    @apply block truncate text-sm font-bold;
+  }
+
+  .admin-section-nav-description {
+    @apply mt-1 block truncate text-xs font-medium;
+    color: var(--text-muted);
+  }
+
+  .admin-section-nav-badge {
+    @apply absolute right-2 top-2 rounded-md px-1.5 py-0.5 text-[11px] font-bold;
+    background: var(--surface);
+    color: var(--primary);
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border-soft));
+  }
+
   .metric-card {
     @apply overflow-hidden rounded-lg border p-5;
     background: var(--surface);
