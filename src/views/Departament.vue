@@ -665,7 +665,7 @@ const carregantDadesDepartament = computed(() =>
 );
 const resumStickyDepartament = computed(() => {
   const resum = departamentSeleccionatResum.value;
-  return `${formatHores(resum?.horesAssignades)}/${formatHores(resum?.totalHores)} h · ${resum?.classesPendents ?? 0} pendents`;
+  return `${formatHores(resum?.horesAssignades)}/${formatHores(resum?.totalHores)} h · ${resum?.classesPendents ?? 0} elements per assignar`;
 });
 
 const professorsDepartament = computed(() => {
