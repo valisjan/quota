@@ -47,10 +47,10 @@
 
       <template v-else>
       <div class="department-sticky-bar sticky top-[4.45rem] z-30 mb-3 backdrop-blur print-hide">
-        <div class="flex min-h-12 items-center gap-2 px-2.5 py-1.5 sm:gap-3 sm:px-3">
+        <div class="flex min-h-16 items-center gap-3 px-3 py-2.5 sm:gap-4 sm:px-4">
             <button
               type="button"
-              class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark sm:px-3"
+              class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-3 text-base font-semibold text-white shadow-sm transition hover:bg-primary-dark"
               @click="tornarADepartaments"
               aria-label="Tornar als departaments"
             >
@@ -58,34 +58,38 @@
               <span class="hidden sm:inline">Torna</span>
             </button>
             <div
-              class="app-card-soft flex h-8 w-8 shrink-0 items-center justify-center text-text-secondary sm:h-9 sm:w-9"
+              class="app-card-soft flex h-10 w-10 shrink-0 items-center justify-center text-text-secondary sm:h-11 sm:w-11"
               aria-hidden="true"
             >
               <span v-if="deptIconText" class="dept-icon-text" :class="{ 'dept-icon-text-small': deptIconText.length > 1 }">{{ deptIconText }}</span>
               <span v-else-if="deptFlagClass" class="dept-flag" :class="deptFlagClass"></span>
-              <svg v-else-if="deptIconPaths.length" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+              <svg v-else-if="deptIconPaths.length" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
                 <path v-for="path in deptIconPaths" :key="path" stroke-linecap="round" stroke-linejoin="round" :d="path" />
               </svg>
-              <span v-else class="text-xs font-black">{{ deptInicials }}</span>
+              <span v-else class="text-sm font-black">{{ deptInicials }}</span>
             </div>
             <div class="min-w-0 flex-1">
-              <div class="flex min-w-0 items-center gap-2">
-                <p class="truncate text-sm font-semibold text-text-main sm:text-base">{{ departamentSeleccionat }}</p>
-                <span class="hidden shrink-0 text-xs font-semibold text-text-secondary md:inline">
+              <div class="flex min-w-0 items-center gap-3">
+                <p class="truncate text-lg font-bold text-text-main">{{ departamentSeleccionat }}</p>
+                <span class="inline-flex shrink-0 items-baseline gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-3 py-1.5 text-primary">
+                  <span class="text-xl font-black leading-none">{{ professorsDepartament.length }}</span>
+                  <span class="text-sm font-bold leading-none">prof.</span>
+                </span>
+                <span class="hidden shrink-0 text-base font-semibold text-text-secondary md:inline">
                   {{ resumStickyDepartament }}
                 </span>
               </div>
-              <p class="truncate text-xs font-medium text-text-secondary md:hidden">
+              <p class="truncate text-sm font-semibold text-text-secondary md:hidden">
                 {{ resumStickyDepartament }}
               </p>
             </div>
-          <div class="hidden w-28 shrink-0 sm:block lg:w-36">
-            <div class="mb-1 flex items-center justify-end text-xs font-semibold text-text-secondary">
+          <div class="hidden w-32 shrink-0 sm:block lg:w-40">
+            <div class="mb-1 flex items-center justify-end text-base font-bold text-text-secondary">
               <span>{{ departamentSeleccionatResum?.percentatge || 0 }}%</span>
             </div>
-            <div class="app-progress-track h-1.5">
+            <div class="app-progress-track h-2">
               <div
-                class="app-progress-fill h-1.5"
+                class="app-progress-fill h-2"
                 :style="{ width: `${departamentSeleccionatResum?.percentatge || 0}%` }"
               ></div>
             </div>
@@ -661,7 +665,7 @@ const carregantDadesDepartament = computed(() =>
 );
 const resumStickyDepartament = computed(() => {
   const resum = departamentSeleccionatResum.value;
-  return `${resum?.professorsCount ?? 0} prof. · ${formatHores(resum?.horesAssignades)}/${formatHores(resum?.totalHores)} h · ${resum?.classesPendents ?? 0} pendents`;
+  return `${formatHores(resum?.horesAssignades)}/${formatHores(resum?.totalHores)} h · ${resum?.classesPendents ?? 0} pendents`;
 });
 
 const professorsDepartament = computed(() => {
