@@ -29,6 +29,7 @@ const tabs = [
   { id: 'validacio', name: 'Validació final' },
   { id: 'departaments', name: 'Departaments' },
   { id: 'professors', name: 'Professors' },
+  { id: 'guardies', name: 'Guàrdies' },
   { id: 'poca-carrega', name: 'Poca càrrega' },
   { id: 'majors-55', name: '>55' },
 ];
@@ -38,6 +39,7 @@ const components = {
   validacio: defineAsyncComponent(() => import('./ResumValidacioFinal.vue')),
   departaments: defineAsyncComponent(() => import('./ResumDepartaments.vue')),
   professors: defineAsyncComponent(() => import('./ResumProfessors.vue')),
+  guardies: defineAsyncComponent(() => import('./ResumGuardies.vue')),
   'poca-carrega': defineAsyncComponent(() => import('./ResumPocesHores.vue')),
   'majors-55': defineAsyncComponent(() => import('./ResumMajors55.vue')),
 };

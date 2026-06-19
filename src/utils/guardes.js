@@ -50,3 +50,20 @@ export function motiusReduccio(professor, classes) {
   if (gc > 0) motius.push(`GC −${gc}`);
   return motius;
 }
+
+export function detallGuardes(professor, classes) {
+  if (professor.exempteGuardies || esDepartamentFP(professor.departament)) {
+    return { base: 0, tutor: false, comissio: false, expected: 0, gp: 0, gc: 0, passadis: 0, sobra: 0, estat: 'exempt' };
+  }
+  const tutor = esTutor(professor, classes);
+  const comissio = esParticipantComissio(professor, classes);
+  const base = tutor ? 2 : 4;
+  const expected = Math.max(0, base - (comissio ? 1 : 0));
+  const gp = Math.max(0, Number(professor.gpAssignades || 0));
+  const gc = Math.max(0, Number(professor.gcAssignades || 0));
+  const covered = gp + gc;
+  const passadis = Math.max(0, expected - covered);
+  const sobra = Math.max(0, covered - expected);
+  const estat = sobra > 0 ? 'sobra' : passadis === 0 ? 'ok' : 'pendent';
+  return { base, tutor, comissio, expected, gp, gc, passadis, sobra, estat };
+}
