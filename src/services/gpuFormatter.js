@@ -777,7 +777,7 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
   ]);
 
   const referenciaGestib = referenciaGestibXmlText ? parseGestibXml(referenciaGestibXmlText) : null;
-  let professors = snapProfessors.docs.map((d) => ({ id: d.id, ...d.data() }));
+  let professors = snapProfessors.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => !p.eliminatDelFull);
   const rawClasses = snapClasses.docs.map((d) => ({ id: d.id, ...d.data() }));
   let classes = [
     ...afegirGuardiesPatiCalculades(rawClasses, professors),
@@ -852,7 +852,7 @@ export async function compararAmbGpu002(cursId, gpu002Text) {
   ]);
 
   const classes = snapClasses.docs.map((d) => ({ id: d.id, ...d.data() }));
-  const professors = snapProfessors.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const professors = snapProfessors.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => !p.eliminatDelFull);
   const { codisProfessors, codisMateries } = crearMapes(classes, professors);
 
   const nomPerCodiProf = new Map([...codisProfessors.entries()].map(([nom, codi]) => [codi, nom]));

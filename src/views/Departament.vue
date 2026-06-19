@@ -292,7 +292,27 @@
             </div>
           </div>
 
-          <div v-if="totalGPDepartament > 0" class="card-stat-success">
+          <div class="card-stat-warning">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h3 class="font-bold text-text-main">Mitjana per professor</h3>
+                <p class="text-xs text-text-secondary">
+                  {{ professorsDepartament.length }} professor{{ professorsDepartament.length !== 1 ? 's' : '' }}
+                </p>
+              </div>
+              <div class="text-right">
+                <span class="text-xl font-bold text-text-main">
+                  {{ horesPerProfessorDepartament }}
+                </span>
+                <span class="text-text-muted"> h</span>
+              </div>
+            </div>
+            <p class="mt-2 text-sm font-medium text-text-secondary">
+              {{ totalHoresDepartament }} hores totals / professorat del departament
+            </p>
+          </div>
+
+          <div v-if="mostraTargetaGPDepartament" class="card-stat-success">
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="font-bold text-text-main">Guàrdies de pati</h3>
@@ -470,13 +490,17 @@ import ProfessorCard from '../components/departament/ProfessorCard.vue';
 import DepartamentPrintModal from '../components/departament/DepartamentPrintModal.vue';
 import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
 import { departamentIconText, departamentFlagClass, departamentIconPaths, departamentInicials } from '../utils/departamentIcon';
-import { esGP, esPALIC, esOptativaCompartida, esCoordinacioAmbMembres } from '../utils/tipus';
+import { esGP, esPALIC, esOptativaCompartida, esCoordinacioAmbMembres, exclosaDelRepartiment } from '../utils/tipus';
 import { classePertanyDepartament } from '../utils/departaments';
 import { quotaGuardiesPatiDepartament } from '../utils/guardiesPati';
 import { guardesQueTocaFer } from '../utils/guardes';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
 import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
-import { crearActualitzacionsDesassignacioProfessor } from '../services/assignacioRules';
+import {
+  crearActualitzacionsAssignacio,
+  crearActualitzacionsDesassignacioProfessor,
+} from '../services/assignacioRules';
+import { classeCompletamentAssignada } from '../utils/assignacions';
 import { calcularValidacioDepartament } from '../services/validacioDepartament';
 import { useToastStore } from '../stores/toast';
 import { useAuthStore } from '../stores/auth';
@@ -581,6 +605,8 @@ const totalHoresAssignades = computed(() => {
 
 // Computed
 
+const professorsActius = computed(() => professors.value.filter((p) => !p.eliminatDelFull));
+
 const departamentsSorted = computed(() => {
   return [...departaments.value].sort((a, b) => a.nom.localeCompare(b.nom));
 });
@@ -595,7 +621,7 @@ const departamentsAmbResum = computed(() =>
     const classesPendents = classesComputables.filter(
       (classe) => horesAssignadesClasse(classe) < (Number(classe.hores) || 0)
     ).length;
-    const professorsCount = professors.value.filter((professor) => professor.departament === nom).length;
+    const professorsCount = professorsActius.value.filter((professor) => professor.departament === nom).length;
     const percentatge = totalHores > 0
       ? Math.min(100, Math.round((horesAssignades / totalHores) * 100))
       : 0;
@@ -640,7 +666,7 @@ const resumStickyDepartament = computed(() => {
 
 const professorsDepartament = computed(() => {
   return professors.value
-    .filter((p) => p.departament === departamentSeleccionat.value)
+    .filter((p) => p.departament === departamentSeleccionat.value && !p.eliminatDelFull)
     .sort((a, b) => {
       if (ordreProfessorat.value === 'nom') return a.nom.localeCompare(b.nom);
 
@@ -670,10 +696,37 @@ const classesDepartament = computed(() => {
     });
 });
 
+const classesAutoAssignablesDepartament = computed(() =>
+  classesDepartament.value.filter(
+    (classe) =>
+      !classeCompletamentAssignada(classe) &&
+      !exclosaDelRepartiment(classe.tipus)
+  )
+);
+
+const autoAssignacioKey = computed(() => {
+  if (!departamentSeleccionat.value) return '';
+  if (professorsDepartament.value.length !== 1) return '';
+  if (!classesAutoAssignablesDepartament.value.length) return '';
+  return [
+    departamentSeleccionat.value,
+    professorsDepartament.value[0]?.id || professorsDepartament.value[0]?.nom || '',
+    ...classesAutoAssignablesDepartament.value.map((classe) => classe.id).sort(),
+  ].join('|');
+});
+
+const autoAssignacionsEnCurs = ref(new Set());
+
 const totalHoresDepartament = computed(() => {
   return classesDepartament.value
     .filter(comptaHoresDepartament)
     .reduce((total, c) => total + c.hores, 0);
+});
+
+const horesPerProfessorDepartament = computed(() => {
+  const totalProfessors = professorsDepartament.value.length;
+  if (!totalProfessors) return '0';
+  return formatHores(totalHoresDepartament.value / totalProfessors);
 });
 
 const gpOptions = computed(() => ({
@@ -684,7 +737,7 @@ const gpOptions = computed(() => ({
 // GP: quota calculada proporcionalment al nombre de professors del curs.
 const totalGPDepartament = computed(() => {
   return quotaGuardiesPatiDepartament(
-    professors.value,
+    professorsActius.value,
     departamentSeleccionat.value,
     totalGuardiesPatiConfigurades.value,
     gpOptions.value
@@ -698,6 +751,10 @@ const totalGPAssignades = computed(() => {
     0
   );
 });
+
+const mostraTargetaGPDepartament = computed(() =>
+  totalGPDepartament.value > 0 || totalGPAssignades.value > 0
+);
 
 // PALIC: pool total del departament.
 const totalPALICDepartament = computed(() => {
@@ -736,7 +793,7 @@ const validacioDepartament = computed(() =>
   calcularValidacioDepartament({
     departament: departamentSeleccionat.value,
     classes: classes.value,
-    professors: professors.value,
+    professors: professorsActius.value,
     totalGPDepartament: totalGPDepartament.value,
     totalGPAssignades: totalGPAssignades.value,
     totalPALICDepartament: totalPALICDepartament.value,
@@ -1105,6 +1162,55 @@ async function desassignarClasseProfessor({ professor, classe }) {
     toast.error('Error al desassignar. Torna-ho a intentar.');
   }
 }
+
+async function autoAssignarDepartamentUnipersonal(key) {
+  if (!key || autoAssignacionsEnCurs.value.has(key)) return;
+  if (departamentTancat.value || solsLectura.value) return;
+  if (professorsDepartament.value.length !== 1) return;
+
+  const professor = professorsDepartament.value[0];
+  const pendents = classesAutoAssignablesDepartament.value;
+  if (!professor?.nom || !pendents.length) return;
+
+  autoAssignacionsEnCurs.value.add(key);
+  try {
+    const perClasse = new Map();
+    pendents.forEach((classe) => {
+      for (const actualitzacio of crearActualitzacionsAssignacio({
+        classe,
+        classes: classes.value,
+        professors: [professor.nom],
+      })) {
+        perClasse.set(actualitzacio.classe.id, actualitzacio);
+      }
+    });
+
+    const batch = writeBatch(db);
+    for (const actualitzacio of perClasse.values()) {
+      batch.update(cursStore.docRef('classes', actualitzacio.classe.id), {
+        professors: [...actualitzacio.professors],
+        professorAssignat: actualitzacio.professorAssignat,
+        lastModified: serverTimestamp(),
+      });
+    }
+    await batch.commit();
+    toast.ok(`Repartiment automàtic: ${pendents.length} classes assignades a ${professor.nom}.`);
+  } catch (e) {
+    console.error('Error en el repartiment automàtic:', e);
+    toast.error("No s'ha pogut fer el repartiment automàtic.");
+  } finally {
+    autoAssignacionsEnCurs.value.delete(key);
+  }
+}
+
+watch(
+  autoAssignacioKey,
+  (key) => {
+    if (!key) return;
+    autoAssignarDepartamentUnipersonal(key);
+  },
+  { immediate: true }
+);
 
 function handleAssignacionsActualitzades() {}
 

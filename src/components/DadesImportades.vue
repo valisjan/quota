@@ -351,7 +351,9 @@ async function carregarProfessorat() {
   }
   try {
     const snapshot = await getDocs(cursStore.col('professors'));
-    professors.value = snapshot.docs.map((docu) => ({ id: docu.id, ...docu.data() }));
+    professors.value = snapshot.docs
+      .map((docu) => ({ id: docu.id, ...docu.data() }))
+      .filter((professor) => !professor.eliminatDelFull);
   } catch (err) {
     console.error('Error carregant professorat:', err);
     error.value = 'No s\'ha pogut carregar el professorat.';

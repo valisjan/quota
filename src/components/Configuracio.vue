@@ -336,6 +336,7 @@ const sectionItems = [
 
 const professorsAmbGuardes = computed(() =>
   [...professors.value]
+    .filter((p) => !p.eliminatDelFull)
     .sort((a, b) => (a.departament || '').localeCompare(b.departament || '', 'ca') || (a.nom || '').localeCompare(b.nom || '', 'ca'))
     .map((prof) => ({
       ...prof,

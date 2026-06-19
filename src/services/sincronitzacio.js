@@ -166,6 +166,39 @@ function resumAssignacio(data = {}) {
   return parts.join(' · ');
 }
 
+function netejarAssignacionsProfessorsEliminats(data = {}, nomsValids = new Set()) {
+  const professorAssignatOriginal = data.professorAssignat || '';
+  const professorsOriginal = Array.isArray(data.professors)
+    ? data.professors.filter(Boolean)
+    : professorAssignatOriginal
+    ? [professorAssignatOriginal]
+    : [];
+  const participantsOriginal = Array.isArray(data.participants) ? data.participants.filter(Boolean) : [];
+
+  const professors = professorsOriginal.filter((nom) => nomsValids.has(n(nom)));
+  const participants = participantsOriginal.filter((nom) => nomsValids.has(n(nom)));
+  const professorAssignat = nomsValids.has(n(professorAssignatOriginal))
+    ? professorAssignatOriginal
+    : professors[0] || '';
+
+  const professorsHanCanviat =
+    professors.length !== professorsOriginal.length ||
+    professors.some((nom, index) => nom !== professorsOriginal[index]);
+  const participantsHanCanviat =
+    participants.length !== participantsOriginal.length ||
+    participants.some((nom, index) => nom !== participantsOriginal[index]);
+
+  if (
+    professorAssignat === professorAssignatOriginal &&
+    !professorsHanCanviat &&
+    !participantsHanCanviat
+  ) {
+    return null;
+  }
+
+  return { professorAssignat, professors, participants };
+}
+
 function afegirAIndex(index, clau, item) {
   if (!index.has(clau)) index.set(clau, []);
   index.get(clau).push(item);
@@ -556,26 +589,30 @@ async function calcularDiscrepanciesProfessors(cursId, professorsSheets) {
     }
   });
 
-  const nomsSheets = new Set(professorsSheets.map((p) => n(p.nom)));
+  const nomsSheetsProfessors = new Set(professorsSheets.map((p) => n(p.nom)));
   snapProfs.docs.forEach((d) => {
     const data = d.data();
-    if (!nomsSheets.has(n(data.nom))) {
+    if (!nomsSheetsProfessors.has(n(data.nom))) {
       preview.conservatsForaFull.push({
         tipus: 'conservat',
         resum: resumProfessorCanvi(data),
-        detall: 'No surt al full Professorat. Es conservarà a l’app.',
+        detall: data.eliminatDelFull
+          ? 'Ja marcat com a eliminat del full.'
+          : 'No surt al full Professorat. Es marcarà com a eliminat (ocult).',
       });
     }
   });
+
+  const eliminades = preview.conservatsForaFull.filter((p) => !p.detall.startsWith('Ja')).length;
 
   return {
     totalSheets: professorsSheets.length,
     totalApp: snapProfs.size,
     noves,
     modificades,
-    eliminades: 0,
+    eliminades,
     migracions,
-    totalCanvis: noves + modificades + migracions,
+    totalCanvis: noves + modificades + migracions + eliminades,
     preview,
   };
 }
@@ -850,7 +887,9 @@ export async function sincronitzar(cursId, options = {}) {
   );
 
   const batchProfs = new BatchSplit();
-  let profsAfegits = 0, profsMigrats = 0;
+  let profsAfegits = 0, profsMigrats = 0, profsEliminats = 0;
+  const idsEliminatsMigracio = new Set();
+  const nomsSheets = new Set(professorsNous.map((p) => n(p.nom)));
 
   professorsNous.forEach((prof) => {
     const existent = profsExistentsPerNom.get(n(prof.nom));
@@ -859,6 +898,7 @@ export async function sincronitzar(cursId, options = {}) {
       departament: prof.departament,
       jornada: prof.jornada,
       codiUntis: prof.codiUntis,
+      eliminatDelFull: false,
       updatedAt: new Date(),
     };
 
@@ -868,7 +908,7 @@ export async function sincronitzar(cursId, options = {}) {
         batchProfs.set(novaRef, {
           ...campsFixos,
           preferencia: '', motiuAllegat: '', comentaris: '',
-          gpAssignades: 0, palicAssignades: 0,
+          gpAssignades: 0, gcAssignades: 0, palicAssignades: 0,
         });
         profsAfegits++;
       } else if (existent.id === prof.codiUntis) {
@@ -880,9 +920,11 @@ export async function sincronitzar(cursId, options = {}) {
           motiuAllegat: existent.data.motiuAllegat || '',
           comentaris: existent.data.comentaris || '',
           gpAssignades: existent.data.gpAssignades || 0,
+          gcAssignades: existent.data.gcAssignades || 0,
           palicAssignades: existent.data.palicAssignades || 0,
         });
         batchProfs.delete(dd(cursId, 'professors', existent.id));
+        idsEliminatsMigracio.add(existent.id);
         profsMigrats++;
       }
     } else {
@@ -890,7 +932,7 @@ export async function sincronitzar(cursId, options = {}) {
         batchProfs.set(dd(cursId, 'professors'), {
           ...campsFixos,
           preferencia: '', motiuAllegat: '', comentaris: '',
-          gpAssignades: 0, palicAssignades: 0,
+          gpAssignades: 0, gcAssignades: 0, palicAssignades: 0,
         });
         profsAfegits++;
       } else {
@@ -898,6 +940,17 @@ export async function sincronitzar(cursId, options = {}) {
       }
     }
   });
+
+  // Professors que ja no surten al full → marcar com a eliminats (soft delete)
+  snapProfs.docs.forEach((d) => {
+    if (!nomsSheets.has(n(d.data().nom)) && !idsEliminatsMigracio.has(d.id)) {
+      if (!d.data().eliminatDelFull) {
+        batchProfs.update(d.ref, { eliminatDelFull: true });
+        profsEliminats++;
+      }
+    }
+  });
+
   await batchProfs.commit();
 
   // 6. Sincronitzar classes
@@ -944,6 +997,7 @@ export async function sincronitzar(cursId, options = {}) {
       const materiaCanviat = n(existent.data.materia) !== n(classe.materia);
       const departamentCanviat = n(existent.data.departament) !== n(classe.departament);
       const faltaDepartaments = !existent.data.departaments;
+      const assignacionsNetejades = netejarAssignacionsProfessorsEliminats(existent.data, nomsSheets);
 
       if (
         horesCanviat ||
@@ -952,7 +1006,8 @@ export async function sincronitzar(cursId, options = {}) {
         grupCanviat ||
         materiaCanviat ||
         departamentCanviat ||
-        faltaDepartaments
+        faltaDepartaments ||
+        assignacionsNetejades
       ) {
         batchClasses.update(dd(cursId, 'classes', existent.id), {
           curs: classe.curs,
@@ -962,6 +1017,7 @@ export async function sincronitzar(cursId, options = {}) {
           tipus: classe.tipus,
           departament: classe.departament,
           departaments: [classe.departament],
+          ...(assignacionsNetejades || {}),
           updatedAt: new Date(),
         });
         actualitzades++;
@@ -1024,6 +1080,7 @@ export async function sincronitzar(cursId, options = {}) {
     depsEliminats,
     profsAfegits,
     profsMigrats,
+    profsEliminats,
     totalDeps: nomsDepNous.length,
     totalProfs: professorsNous.length,
     timestamp: new Date().toISOString(),

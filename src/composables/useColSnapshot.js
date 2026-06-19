@@ -12,6 +12,11 @@ function horaActual() {
 
 const defaultMapDoc = (d) => ({ id: d.id, ...d.data() });
 
+function filtrarItemsActivos(colName, items) {
+  if (colName !== 'professors') return items;
+  return items.filter((item) => !item.eliminatDelFull);
+}
+
 /**
  * Subscripció reactiva a una subcol·lecció del curs actiu.
  *
@@ -46,7 +51,7 @@ export function useCursCollectionSnapshot({
     }
 
     if (E2E_AUTH_BYPASS) {
-      items.value = getE2ECollection(colName);
+      items.value = filtrarItemsActivos(colName, getE2ECollection(colName));
       error.value = null;
       isConnected.value = true;
       lastUpdate.value = horaActual();
@@ -62,7 +67,7 @@ export function useCursCollectionSnapshot({
     const unsub = onSnapshot(
       q,
       (snap) => {
-        items.value = snap.docs.map(mapper);
+        items.value = filtrarItemsActivos(colName, snap.docs.map(mapper));
         isConnected.value = true;
         lastUpdate.value = horaActual();
         loading.value = false;

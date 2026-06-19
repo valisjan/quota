@@ -385,6 +385,12 @@
     border-color: var(--pastel-green-border);
     box-shadow: var(--card-shadow-soft);
   }
+  .card-stat-warning {
+    @apply rounded-lg border p-3;
+    background: var(--pastel-orange-bg);
+    border-color: var(--pastel-orange-border);
+    box-shadow: var(--card-shadow-soft);
+  }
   .card-stat-danger {
     @apply rounded-lg border p-3;
     background: var(--pastel-orange-bg);
@@ -786,6 +792,13 @@
 
   .metric-detail {
     @apply mt-1 text-sm opacity-70;
+  }
+
+  .professor-card {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--pastel-blue-bg) 72%, var(--surface)), color-mix(in srgb, var(--pastel-blue-bg) 28%, var(--surface)) 100%),
+      var(--surface);
+    border-color: color-mix(in srgb, var(--primary) 18%, var(--border-soft));
   }
 
   .metric-card.app-stat-tile-primary {
