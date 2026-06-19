@@ -280,7 +280,7 @@
                 <span class="text-xl font-bold text-text-main">
                   {{ totalHoresAssignades }}
                 </span>
-                <span class="text-text-muted"> / {{ totalHoresDepartament }}</span>
+                <span class="text-xl font-bold text-text-secondary"> / {{ totalHoresDepartament }}</span>
               </div>
             </div>
             <div class="app-progress-track mt-2 h-2 w-full">
@@ -304,7 +304,7 @@
                 <span class="text-xl font-bold text-text-main">
                   {{ horesPerProfessorDepartament }}
                 </span>
-                <span class="text-text-muted"> h</span>
+                <span class="text-xl font-bold text-text-secondary"> h</span>
               </div>
             </div>
             <p class="mt-2 text-sm font-medium text-text-secondary">
@@ -322,7 +322,7 @@
                 <span class="text-xl font-bold text-text-main">
                   {{ totalGPAssignades }}
                 </span>
-                <span class="text-text-muted"> / {{ totalGPDepartament }}</span>
+                <span class="text-xl font-bold text-text-secondary"> / {{ totalGPDepartament }}</span>
               </div>
             </div>
             <div class="app-progress-track mt-2 h-2 w-full">
@@ -344,7 +344,7 @@
                 <span class="text-xl font-bold text-text-main">
                   {{ totalPALICAssignades }}
                 </span>
-                <span class="text-text-muted"> / {{ totalPALICDepartament }}</span>
+                <span class="text-xl font-bold text-text-secondary"> / {{ totalPALICDepartament }}</span>
               </div>
             </div>
             <div class="app-progress-track mt-2 h-2 w-full">
