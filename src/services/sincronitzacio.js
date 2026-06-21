@@ -336,7 +336,16 @@ async function ajustarEstatFontSenseCanvis(cursId, estatFont) {
 }
 
 function resumCanvisBuit() {
-  return { noves: 0, modificades: 0, eliminades: 0, totalCanvis: 0, detalls: [] };
+  return {
+    noves: 0,
+    modificades: 0,
+    eliminades: 0,
+    totalCanvis: 0,
+    detalls: [],
+    preview: { noves: [], modificades: [], eliminades: [] },
+    resumPerDepartament: [],
+    resumPerMateria: [],
+  };
 }
 
 function valorVisible(valor, fallback = '-') {
@@ -356,6 +365,89 @@ function resumClasseCanvi(classe = {}) {
     .map((part) => (part ?? '').toString().trim())
     .filter(Boolean)
     .join(' | ');
+}
+
+function classePreview(classe = {}) {
+  return {
+    curs: classe.curs || '',
+    grup: normalitzarGrup(classe.grup) || '',
+    materia: classe.materia || '',
+    hores: Number(classe.hores) || 0,
+    departament: classe.departament || classe.departaments?.[0] || '',
+    tipus: classe.tipus || '',
+  };
+}
+
+function crearCanviClasse(tipus, classe, extra = {}) {
+  return {
+    tipus,
+    resum: resumClasseCanvi(classe),
+    classe: classePreview(classe),
+    ...extra,
+  };
+}
+
+function crearBucketResumCanvis(nom) {
+  return {
+    nom,
+    noves: 0,
+    modificades: 0,
+    eliminades: 0,
+    total: 0,
+    horesAfegides: 0,
+    horesActualitzades: 0,
+    horesEliminades: 0,
+    deltaHores: 0,
+  };
+}
+
+function sumarCanviAResum(map, key, canvi) {
+  const nom = key || 'Sense valor';
+  if (!map.has(nom)) map.set(nom, crearBucketResumCanvis(nom));
+  const bucket = map.get(nom);
+  const horesDespres = Number(canvi.horesDespres ?? canvi.classe?.hores ?? 0) || 0;
+  const horesAbans = Number(canvi.horesAbans ?? canvi.classeAbans?.hores ?? 0) || 0;
+
+  bucket.total++;
+  if (canvi.tipus === 'nova') {
+    bucket.noves++;
+    bucket.horesAfegides += horesDespres;
+    bucket.deltaHores += horesDespres;
+  } else if (canvi.tipus === 'eliminada') {
+    bucket.eliminades++;
+    bucket.horesEliminades += horesAbans || horesDespres;
+    bucket.deltaHores -= horesAbans || horesDespres;
+  } else if (canvi.tipus === 'modificada') {
+    bucket.modificades++;
+    bucket.horesActualitzades += horesDespres;
+    bucket.deltaHores += horesDespres - horesAbans;
+  }
+}
+
+function ordenarResumCanvis(map) {
+  return [...map.values()]
+    .sort((a, b) => b.total - a.total || a.nom.localeCompare(b.nom, 'ca'));
+}
+
+function resumAgrupatClasses(preview) {
+  const departaments = new Map();
+  const materies = new Map();
+  const tots = [
+    ...(preview.noves || []),
+    ...(preview.modificades || []),
+    ...(preview.eliminades || []),
+  ];
+
+  tots.forEach((canvi) => {
+    const classe = canvi.classe || {};
+    sumarCanviAResum(departaments, classe.departament || 'Sense departament', canvi);
+    sumarCanviAResum(materies, classe.materia || 'Sense matèria', canvi);
+  });
+
+  return {
+    departaments: ordenarResumCanvis(departaments),
+    materies: ordenarResumCanvis(materies),
+  };
 }
 
 function resumProfessorCanvi(professor = {}) {
@@ -452,10 +544,9 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
 
     if (!existent) {
       noves++;
-      const canvi = {
-        tipus: 'nova',
-        resum: resumClasseCanvi(classe),
-      };
+      const canvi = crearCanviClasse('nova', classe, {
+        horesDespres: Number(classe.hores) || 0,
+      });
       detalls.push(canvi);
       preview.noves.push(canvi);
       return;
@@ -475,13 +566,14 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
     ) {
       modificades++;
       const assignacio = resumAssignacio(existent.data);
-      const canvi = {
-        tipus: 'modificada',
-        resum: resumClasseCanvi(classe),
+      const canvi = crearCanviClasse('modificada', classe, {
         detall: campsCanviats.join(', '),
         assignacio,
         ambAssignacio: Boolean(assignacio),
-      };
+        classeAbans: classePreview(existent.data),
+        horesAbans: Number(existent.data.hores) || 0,
+        horesDespres: Number(classe.hores) || 0,
+      });
       detalls.push(canvi);
       preview.modificades.push(canvi);
       if (assignacio && campsCanviats.some((detall) => /Hores|Departament|Tipus/.test(detall))) {
@@ -500,12 +592,12 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
   );
   classesEliminades.forEach((existent) => {
     const assignacio = resumAssignacio(existent.data);
-    const canvi = {
-      tipus: 'eliminada',
-      resum: resumClasseCanvi(existent.data),
+    const canvi = crearCanviClasse('eliminada', existent.data, {
       assignacio,
       ambAssignacio: Boolean(assignacio),
-    };
+      classeAbans: classePreview(existent.data),
+      horesAbans: Number(existent.data.hores) || 0,
+    });
     detalls.push(canvi);
     preview.eliminades.push(canvi);
     if (assignacio) {
@@ -520,6 +612,7 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
 
   const eliminades = classesEliminades.length;
   const totalCanvis = noves + eliminades + modificades;
+  const resumAgrupat = resumAgrupatClasses(preview);
 
   return {
     totalSheets: classesSheets.length,
@@ -530,6 +623,8 @@ async function calcularDiscrepanciesClasses(cursId, classesSheets) {
     totalCanvis,
     detalls: detalls.slice(0, 30),
     preview,
+    resumPerDepartament: resumAgrupat.departaments,
+    resumPerMateria: resumAgrupat.materies,
     riscos,
     resumRiscos: {
       eliminadesAmbAssignacio: preview.eliminades.filter((item) => item.ambAssignacio).length,
@@ -755,6 +850,8 @@ export async function comprovarDiscrepancies(cursId, options = {}) {
       totalCanvis: 0,
       detalls: [],
       preview: { noves: [], modificades: [], eliminades: [] },
+      resumPerDepartament: [],
+      resumPerMateria: [],
       riscos: [],
       resumRiscos: { eliminadesAmbAssignacio: 0, modificadesAmbAssignacio: 0 },
     };

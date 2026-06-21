@@ -160,6 +160,51 @@
                   <p v-else class="mt-3 text-sm text-slate-500">{{ seccio.buit }}</p>
                 </section>
               </div>
+
+              <div v-if="comparadorAgrupatComprova.length" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <section
+                  v-for="seccio in comparadorAgrupatComprova"
+                  :key="seccio.titol"
+                  class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-900"
+                >
+                  <div class="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-700">
+                    <div>
+                      <h4 class="font-semibold text-slate-950 dark:text-white">{{ seccio.titol }}</h4>
+                      <p class="text-xs text-slate-600 dark:text-slate-400">{{ seccio.subtitol }}</p>
+                    </div>
+                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                      {{ seccio.total }}
+                    </span>
+                  </div>
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                      <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-gray-800 dark:text-slate-400">
+                        <tr>
+                          <th class="px-4 py-2">{{ seccio.columna }}</th>
+                          <th class="px-2 py-2 text-center">+</th>
+                          <th class="px-2 py-2 text-center">=</th>
+                          <th class="px-2 py-2 text-center">-</th>
+                          <th class="px-4 py-2 text-right">Hores</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        <tr v-for="fila in seccio.items" :key="`${seccio.titol}-${fila.nom}`">
+                          <td class="px-4 py-2 font-semibold text-slate-900 dark:text-white">{{ fila.nom }}</td>
+                          <td class="px-2 py-2 text-center font-bold text-emerald-700 dark:text-emerald-300">{{ fila.noves }}</td>
+                          <td class="px-2 py-2 text-center font-bold text-sky-700 dark:text-sky-300">{{ fila.modificades }}</td>
+                          <td class="px-2 py-2 text-center font-bold text-amber-700 dark:text-amber-300">{{ fila.eliminades }}</td>
+                          <td class="px-4 py-2 text-right font-mono font-bold" :class="classeDeltaHores(fila.deltaHores)">
+                            {{ formatDeltaHores(fila.deltaHores) }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p v-if="seccio.restants > 0" class="border-t border-slate-100 px-4 py-2 text-xs font-medium text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                    + {{ seccio.restants }} files més
+                  </p>
+                </section>
+              </div>
             </div>
             <div class="mt-2 text-sm text-slate-600 dark:text-gray-400">
               Comprovat: {{ formatDataHora(resultComprova.timestamp) }}
@@ -418,6 +463,35 @@ const llistesCanvisComprova = computed(() => {
   ];
 });
 
+function limitarResumAgrupat(items = [], limit = 8) {
+  return {
+    items: items.slice(0, limit),
+    restants: Math.max(0, items.length - limit),
+    total: items.length,
+  };
+}
+
+const comparadorAgrupatComprova = computed(() => {
+  const classes = resultComprova.value?.classes || {};
+  const perDepartament = limitarResumAgrupat(classes.resumPerDepartament || []);
+  const perMateria = limitarResumAgrupat(classes.resumPerMateria || []);
+
+  return [
+    {
+      titol: 'Canvis per departament',
+      subtitol: 'Impacte de Classes agrupat pel departament del full.',
+      columna: 'Departament',
+      ...perDepartament,
+    },
+    {
+      titol: 'Canvis per matèria',
+      subtitol: 'Matèries amb més moviment abans de sincronitzar.',
+      columna: 'Matèria',
+      ...perMateria,
+    },
+  ].filter((seccio) => seccio.total > 0);
+});
+
 function formatDataHora(ts) {
   if (!ts) return '?';
   return new Date(ts).toLocaleString('ca-ES', {
@@ -449,6 +523,24 @@ function classeCanviComprova(tipus) {
   if (tipus === 'migracio') return 'bg-violet-100 text-violet-800';
   if (tipus === 'conservat') return 'bg-slate-200 text-slate-700';
   return 'bg-sky-100 text-sky-800';
+}
+
+function formatHores(valor) {
+  const numero = Number(valor) || 0;
+  return Number.isInteger(numero) ? `${numero}h` : `${numero.toFixed(2)}h`;
+}
+
+function formatDeltaHores(valor) {
+  const numero = Number(valor) || 0;
+  if (numero === 0) return '0h';
+  return `${numero > 0 ? '+' : ''}${formatHores(numero)}`;
+}
+
+function classeDeltaHores(valor) {
+  const numero = Number(valor) || 0;
+  if (numero > 0) return 'text-emerald-700 dark:text-emerald-300';
+  if (numero < 0) return 'text-amber-700 dark:text-amber-300';
+  return 'text-slate-600 dark:text-slate-300';
 }
 
 async function comprovar() {
@@ -490,6 +582,8 @@ async function ferSync() {
         totalCanvis: 0,
         detalls: [],
         preview: { noves: [], modificades: [], eliminades: [] },
+        resumPerDepartament: [],
+        resumPerMateria: [],
         riscos: [],
       },
       professors: {

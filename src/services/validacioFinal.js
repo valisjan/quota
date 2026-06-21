@@ -59,6 +59,156 @@ function itemClasse(prefix, classe, title, detail, context = detallClasse(classe
   };
 }
 
+function itemSimple(prefix, key, title, detail, context = '') {
+  return {
+    key: `${prefix}-${key}`,
+    title,
+    detail,
+    context,
+  };
+}
+
+function problemaAbreviaturaUntis(valor) {
+  const text = (valor || '').toString();
+  if (!text) return '';
+  if (text !== text.trim()) return 'Comença o acaba amb espais.';
+  if (/[;~*|\s]/.test(text)) return 'Conté espais o símbols reservats per Untis/Windows.';
+  return '';
+}
+
+function afegirProblemaAbreviatura(items, prefix, key, title, camp, valor) {
+  const problema = problemaAbreviaturaUntis(valor);
+  if (!problema) return;
+  items.push(itemSimple(
+    prefix,
+    `${key}-${camp}`,
+    title,
+    `${camp}: ${valor || '-'}. ${problema}`,
+    'Codi Untis'
+  ));
+}
+
+function crearCheckUntis({ id, title, description, items, severity = 'blocked', actionTo, actionLabel }) {
+  const count = items.length;
+  return {
+    id,
+    title,
+    description,
+    items,
+    count,
+    severity,
+    status: count > 0 ? severity : 'ok',
+    actionTo,
+    actionLabel,
+  };
+}
+
+function construirPreparacioUntis({
+  dadesCritiques,
+  classesSenseAssignar,
+  grupsIncomplets,
+  optativesCompartidesIncompletes,
+  coordinacionsSenseCoordinador,
+  tutoriesSenseTutor,
+  capsSenseAssignar,
+  tutoriesSenseAsterisc,
+  tutoriesAsteriscSensePrincipal,
+  tutoriesAsteriscDiferents,
+  critiquesProfessorat,
+  avisosProfessorat,
+  abreviaturesInvalides,
+}) {
+  const checks = [
+    crearCheckUntis({
+      id: 'dades',
+      title: 'Dades importades',
+      description: 'Hores, departaments i tipus han de ser coherents abans de generar fitxers.',
+      items: dadesCritiques,
+      actionTo: '/admin/dades',
+      actionLabel: 'Revisa dades',
+    }),
+    crearCheckUntis({
+      id: 'assignacions',
+      title: 'Classes amb professor',
+      description: 'No convé exportar cap classe lectiva sense professorat assignat.',
+      items: classesSenseAssignar,
+      actionTo: '/departament',
+      actionLabel: 'Obre repartiment',
+    }),
+    crearCheckUntis({
+      id: 'grups',
+      title: 'Hores de grup',
+      description: 'Cada grup ha de tenir totes les hores computables cobertes.',
+      items: grupsIncomplets,
+      actionTo: '/resums',
+      actionLabel: 'Veure grups',
+    }),
+    crearCheckUntis({
+      id: 'blocs',
+      title: 'Blocs especials',
+      description: 'Optatives compartides, coordinacions i caps de departament necessiten una assignació correcta.',
+      items: [
+        ...optativesCompartidesIncompletes,
+        ...coordinacionsSenseCoordinador,
+        ...capsSenseAssignar,
+      ],
+      actionTo: '/departament',
+      actionLabel: 'Corregir blocs',
+    }),
+    crearCheckUntis({
+      id: 'tutories',
+      title: 'Tutories',
+      description: 'Les tutories lectives i les activitats associades han de quadrar.',
+      items: [
+        ...tutoriesSenseTutor,
+        ...tutoriesSenseAsterisc,
+        ...tutoriesAsteriscSensePrincipal,
+        ...tutoriesAsteriscDiferents,
+      ],
+      severity: 'warning',
+      actionTo: '/resums',
+      actionLabel: 'Veure tutories',
+    }),
+    crearCheckUntis({
+      id: 'professorat',
+      title: 'Càrrega de professorat',
+      description: 'Els excessos bloquegen; les carències queden com avis.',
+      items: [
+        ...critiquesProfessorat,
+        ...avisosProfessorat,
+      ],
+      severity: critiquesProfessorat.length ? 'blocked' : 'warning',
+      actionTo: '/admin/seguiment',
+      actionLabel: 'Veure professorat',
+    }),
+    crearCheckUntis({
+      id: 'codis',
+      title: 'Codis Untis',
+      description: 'Els codis manuals no poden tenir espais ni símbols reservats.',
+      items: abreviaturesInvalides,
+      actionTo: '/admin/untis',
+      actionLabel: 'Preparar Untis',
+    }),
+  ];
+
+  const bloquejos = checks
+    .filter((check) => check.status === 'blocked')
+    .reduce((total, check) => total + check.count, 0);
+  const avisos = checks
+    .filter((check) => check.status === 'warning')
+    .reduce((total, check) => total + check.count, 0);
+  const completats = checks.filter((check) => check.status === 'ok').length;
+
+  return {
+    checks,
+    bloquejos,
+    avisos,
+    completats,
+    total: checks.length,
+    llest: bloquejos === 0,
+  };
+}
+
 function motiuDadaProblematica(classe) {
   const tipus = normalitzarTipus(classe.tipus);
   if (!classe.materia) return 'Falta matèria.';
@@ -247,6 +397,38 @@ export function calcularValidacioFinal({ classes = [], professors = [], departam
       itemClasse('dada', classe, classe.materia || 'Fila sense matèria', motiuDadaProblematica(classe))
     );
 
+  const dadesCritiques = classes
+    .filter((classe) => {
+      const tipus = normalitzarTipus(classe.tipus);
+      if (!classe.materia || Number(classe.hores) <= 0 || !teDepartament(classe)) return true;
+      return Boolean(tipus && !esTipusConegut(tipus));
+    })
+    .map((classe) =>
+      itemClasse('untis-dada', classe, classe.materia || 'Fila sense matèria', motiuDadaProblematica(classe))
+    );
+
+  const abreviaturesInvalides = [];
+  professors.forEach((professor) => {
+    afegirProblemaAbreviatura(
+      abreviaturesInvalides,
+      'untis-prof',
+      professor.id || professor.nom,
+      professor.nom || 'Professor sense nom',
+      'codiUntis',
+      professor.codiUntis
+    );
+  });
+  classes.forEach((classe) => {
+    afegirProblemaAbreviatura(
+      abreviaturesInvalides,
+      'untis-classe',
+      classe.id,
+      classe.materia || 'Classe sense matèria',
+      'codiUntis',
+      classe.codiUntis || classe.codiGestib || classe.codiMateria
+    );
+  });
+
   const critiques = [
     ...classesSenseAssignar,
     ...grupsIncomplets,
@@ -265,6 +447,21 @@ export function calcularValidacioFinal({ classes = [], professors = [], departam
 
   const avisosProfessorat = incidenciesProfessorat.filter((item) => item.tipus === 'baix');
   const critiquesProfessorat = incidenciesProfessorat.filter((item) => item.tipus === 'alt');
+  const preparacioUntis = construirPreparacioUntis({
+    dadesCritiques,
+    classesSenseAssignar,
+    grupsIncomplets,
+    optativesCompartidesIncompletes,
+    coordinacionsSenseCoordinador,
+    tutoriesSenseTutor,
+    capsSenseAssignar,
+    tutoriesSenseAsterisc,
+    tutoriesAsteriscSensePrincipal,
+    tutoriesAsteriscDiferents,
+    critiquesProfessorat,
+    avisosProfessorat,
+    abreviaturesInvalides,
+  });
 
   return {
     critiques,
@@ -274,5 +471,6 @@ export function calcularValidacioFinal({ classes = [], professors = [], departam
     dadesProblematiques,
     incidenciesProfessorat,
     classesSenseAssignar,
+    preparacioUntis,
   };
 }
