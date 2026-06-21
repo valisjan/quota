@@ -264,26 +264,6 @@
           </div>
         </div>
 
-        <!-- Resum del departament col·lapsable -->
-        <div class="mb-6">
-          <button
-            @click="mostrarResumen = !mostrarResumen"
-            class="app-card app-card-interactive mb-2 flex w-full items-center justify-between px-4 py-3 text-left"
-          >
-            <h3 class="text-base font-semibold text-text-main">Resum del departament</h3>
-            <span class="text-sm font-medium text-text-secondary">{{ mostrarResumen ? 'Amaga' : 'Mostra' }}</span>
-          </button>
-          <div v-show="mostrarResumen">
-            <DepartamentResumen
-              :departament="departamentSeleccionat"
-              :classes="classesDepartament"
-              :total-hores="totalHoresDepartament"
-              :professors-necessaris="formatProfessorsNecessaris()"
-              @imprimir="imprimirDepartament"
-            />
-          </div>
-        </div>
-
         <div class="grid grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)] lg:grid-cols-[340px_minmax(0,1fr)] gap-5 items-start">
           <div class="lg:sticky lg:top-4">
             <RepartimentHores
@@ -405,7 +385,6 @@ import { db } from '../firebase';
 import { writeBatch, updateDoc, serverTimestamp } from 'firebase/firestore';
 import RepartimentHores from '../components/RepartimentHores.vue';
 import DepartamentSelector from '../components/departament/DepartamentSelector.vue';
-import DepartamentResumen from '../components/departament/DepartamentResumen.vue';
 import DepartamentFulla from '../components/departament/DepartamentFulla.vue';
 import DepartamentAleatori from '../components/departament/DepartamentAleatori.vue';
 import ProfessorCard from '../components/departament/ProfessorCard.vue';
@@ -429,7 +408,6 @@ const authStore = useAuthStore();
 const cursStore = useCursStore();
 const toast = useToastStore();
 const solsLectura = computed(() => authStore.rol === 'professor');
-const mostrarResumen = ref(false);
 const activeTab = ref('distribucio');
 const ordreProfessorat = ref('necessitat');
 const mostrarSelectorDepartaments = ref(true);
@@ -951,28 +929,6 @@ async function tancarDepartament() {
 function imprimirFulla() {
   activeTab.value = 'fulla';
   setTimeout(() => window.print(), 150);
-}
-
-function imprimirDepartament() {
-  const printWindow = window.open('', '_blank');
-  const printContent =
-    document.getElementById('print-content')?.innerHTML || '';
-  const printHTML = `<!DOCTYPE html><html><head><title>Assignació - ${departamentSeleccionat.value}</title>
-<style>
-  body { font-family: Arial, sans-serif; line-height: 1.4; color: #333; padding: 20px; }
-  .print-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
-  .print-professor { margin-bottom: 20px; border: 1px solid #ddd; padding: 15px; border-radius: 5px; page-break-inside: avoid; }
-  .professor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-  .professor-header h3 { margin: 0; font-size: 16px; }
-  .class-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
-  @media print { body { padding: 0; } }
-</style></head><body>${printContent}</body></html>`;
-  printWindow.document.write(printHTML);
-  printWindow.document.close();
-  printWindow.onload = () => {
-    printWindow.print();
-    printWindow.close();
-  };
 }
 
 // Lifecycle
