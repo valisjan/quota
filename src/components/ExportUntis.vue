@@ -83,7 +83,7 @@
 
       <!-- Mapeig manual de matèries -->
       <div v-if="analitzant && activeSection === 'correspondencies-gestib'" class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-        Analitzant correspondències GestIB...
+        Analitzant mapeig GestIB...
       </div>
 
       <div
@@ -95,7 +95,7 @@
         <div class="flex flex-col gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p class="text-sm font-bold text-slate-950 dark:text-white">
-              Correspondències GestIB
+              Mapeig GestIB
               <span
                 v-if="pendentsCount > 0"
                 class="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900 dark:bg-amber-900/30 dark:text-amber-300"
@@ -196,6 +196,193 @@
       {{ error }}
     </div>
 
+    <!-- Previsualitzacio Untis -->
+    <div
+      v-if="exportacio"
+      v-show="activeSection === 'previsualitzacio-untis'"
+      id="previsualitzacio-untis"
+      class="admin-anchor-section card"
+    >
+      <div class="border-b border-slate-200 p-5 dark:border-slate-700">
+        <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h4 class="text-xl font-bold text-slate-950 dark:text-white">
+                Previsualitzacio Untis
+              </h4>
+              <span
+                v-if="simular"
+                class="rounded-md bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900 dark:bg-amber-900/30 dark:text-amber-200"
+              >
+                Simulacio
+              </span>
+            </div>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Revisa numero de classe, bloc, professor, materia, grup i hores abans de descarregar el GPU002.
+            </p>
+          </div>
+          <div class="flex w-full flex-col gap-2 sm:flex-row xl:w-auto">
+            <input
+              v-model="filtreVistaPrevia"
+              type="search"
+              class="form-input w-full bg-white py-2 text-sm dark:bg-gray-900 xl:w-80"
+              placeholder="Filtra per grup, materia, professor o codi"
+            />
+            <button
+              @click="descarregarGpu002"
+              class="rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark"
+            >
+              Descarrega GPU002
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Llicons</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ vistaPreviaStats.total }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Linies GPU002</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ vistaPreviaStats.linies }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Blocs multiples</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ vistaPreviaStats.multiLinia }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Activitats</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ vistaPreviaStats.activitats }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Numeracio ref.</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ vistaPreviaStats.referencia }}</p>
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button
+            v-for="filtre in filtresVistaPrevia"
+            :key="filtre.valor"
+            type="button"
+            class="rounded-md px-3 py-1.5 text-xs font-semibold transition"
+            :class="filtreVistaPreviaMode === filtre.valor
+              ? 'bg-primary text-white'
+              : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-gray-800 dark:text-slate-300 dark:hover:bg-gray-700'"
+            @click="filtreVistaPreviaMode = filtre.valor"
+          >
+            {{ filtre.etiqueta }}
+            <span class="ml-1 opacity-80">{{ countVistaPreviaFiltre(filtre.valor) }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-auto">
+        <table class="w-full min-w-[1120px] text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 bg-slate-50 text-left dark:border-slate-700 dark:bg-gray-900">
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Num.</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Bloc</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Grup</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Materia</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Professorat</th>
+              <th class="px-3 py-2 text-center font-semibold text-slate-700 dark:text-slate-300">Hores</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Linies que importara Untis</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Origen</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <tr
+              v-for="item in vistaPreviaFiltrada"
+              :key="item.numero"
+              class="align-top transition-colors hover:bg-slate-50 dark:hover:bg-gray-900/60"
+              :class="previsualitzacioRowClass(item)"
+            >
+              <td class="px-3 py-3">
+                <div class="font-mono text-base font-bold text-slate-950 dark:text-white">{{ item.numero }}</div>
+                <div v-if="item.linies > 1" class="mt-1 text-xs font-semibold text-primary dark:text-blue-300">
+                  {{ item.linies }} linies
+                </div>
+              </td>
+              <td class="px-3 py-3">
+                <span class="inline-flex rounded-md px-2 py-1 text-xs font-bold" :class="blocBadgeClass(item)">
+                  {{ item.bloc || 'Ordinaria' }}
+                </span>
+                <div v-if="item.tipus" class="mt-1 font-mono text-xs text-slate-500 dark:text-slate-400">
+                  {{ item.tipus }}
+                </div>
+              </td>
+              <td class="px-3 py-3">
+                <div class="font-mono font-bold text-slate-950 dark:text-white">{{ item.codiGrups || '-' }}</div>
+                <div class="text-xs text-slate-600 dark:text-slate-400">{{ [item.curs, item.grup].filter(Boolean).join(' ') || 'Sense grup' }}</div>
+              </td>
+              <td class="px-3 py-3">
+                <div class="font-semibold text-slate-900 dark:text-white">{{ item.materia }}</div>
+                <div class="mt-1 font-mono text-xs text-slate-600 dark:text-slate-400">{{ item.codiMateria }}</div>
+                <div v-if="item.notes?.length" class="mt-2 flex flex-wrap gap-1">
+                  <span
+                    v-for="nota in item.notes"
+                    :key="nota"
+                    class="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-gray-800 dark:text-slate-300"
+                  >
+                    {{ nota }}
+                  </span>
+                </div>
+              </td>
+              <td class="px-3 py-3">
+                <div v-for="professor in item.professors" :key="professor" class="text-slate-800 dark:text-slate-200">
+                  {{ professor }}
+                </div>
+                <div class="mt-1 font-mono text-xs text-slate-500 dark:text-slate-400">
+                  {{ item.codisProfessors.join(' + ') }}
+                </div>
+              </td>
+              <td class="px-3 py-3 text-center font-mono font-bold text-slate-900 dark:text-white">
+                {{ formatHoresUntis(item.hores) }}
+              </td>
+              <td class="px-3 py-3">
+                <div class="space-y-1.5">
+                  <div
+                    v-for="linia in item.liniesUntis"
+                    :key="`${item.numero}-${linia.codiGrup}-${linia.codiProfessor}-${linia.codiMateria}`"
+                    class="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-gray-950"
+                  >
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span class="font-mono font-bold text-slate-900 dark:text-white">{{ linia.codiGrup || 'ACT' }}</span>
+                      <span class="font-mono text-slate-700 dark:text-slate-300">{{ linia.codiProfessor }}</span>
+                      <span class="font-mono text-slate-700 dark:text-slate-300">{{ linia.codiMateria }}</span>
+                      <span class="text-slate-600 dark:text-slate-400">{{ linia.professor }}</span>
+                    </div>
+                    <div class="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                      <span>Prof: {{ formatHoresUntis(linia.horesProfessor) }}</span>
+                      <span>Grup: {{ linia.horesGrup ? formatHoresUntis(linia.horesGrup) : '-' }}</span>
+                      <span v-if="linia.aula">Aula: {{ linia.aula }}</span>
+                      <span>ID: {{ linia.idUntis }}</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-3 py-3">
+                <span
+                  class="rounded px-2 py-1 text-xs font-bold"
+                  :class="item.font === 'referencia'
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                    : 'bg-slate-100 text-slate-700 dark:bg-gray-700 dark:text-gray-200'"
+                >
+                  {{ item.font === 'referencia' ? 'Referencia' : 'Generat' }}
+                </span>
+              </td>
+            </tr>
+            <tr v-if="vistaPreviaFiltrada.length === 0">
+              <td colspan="8" class="px-3 py-8 text-center text-slate-500 dark:text-slate-400">
+                Cap llico coincideix amb el filtre.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Generated files -->
     <div
       v-if="exportacio"
@@ -233,17 +420,25 @@
               {{ exportacio.referenciaGestibStats.aules }} aules
             </p>
           </div>
-          <button
-            @click="obrirVistaPreviaDescarga"
-            class="rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-primary-dark"
-          >
-            Revisa i descarrega GPU002
-          </button>
+          <div class="flex flex-col gap-2 sm:flex-row">
+            <button
+              @click="obrirPrevisualitzacio"
+              class="rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-primary-dark"
+            >
+              Obre previsualitzacio
+            </button>
+            <button
+              @click="descarregarTots"
+              class="rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-950 dark:hover:bg-white"
+            >
+              Descarrega tots
+            </button>
+          </div>
         </div>
       </div>
 
       <div
-        v-if="mostrarVistaPrevia && exportacio.vistaPrevia?.length"
+        v-if="false && mostrarVistaPrevia && exportacio.vistaPrevia?.length"
         class="border-b border-slate-200 p-5 dark:border-slate-700"
       >
         <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -595,7 +790,7 @@
     <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
       <h4 class="text-lg font-bold text-slate-950 dark:text-white">Esborra mapeig</h4>
       <p class="mt-2 text-sm text-slate-700 dark:text-slate-300">
-        S'esborrarà tot el mapeig guardat per a aquest curs. Hauràs de tornar a assignar les correspondències manualment.
+        S'esborrarà tot el mapeig guardat per a aquest curs. Hauràs de tornar a revisar el mapeig manualment.
       </p>
       <div class="mt-4 flex justify-end gap-3">
         <button
@@ -654,7 +849,7 @@ const sectionItems = computed(() => [
   totes.value.length
     ? {
         id: 'correspondencies-gestib',
-        label: 'Correspondències',
+        label: 'Mapeig',
         description: 'Mapeig GestIB',
         badge: pendentsCount.value ? `${pendentsCount.value} pend.` : 'OK',
         tone: pendentsCount.value ? 'warning' : '',
@@ -666,6 +861,15 @@ const sectionItems = computed(() => [
     description: 'Verificar sense guardar',
     tone: simular.value ? 'warning' : '',
   },
+  exportacio.value
+    ? {
+        id: 'previsualitzacio-untis',
+        label: 'Previsualitzacio',
+        description: "Taula abans d'importar",
+        badge: exportacio.value.vistaPrevia?.length || '',
+        tone: exportacio.value.pendents?.length ? 'warning' : '',
+      }
+    : null,
   exportacio.value
     ? {
         id: 'fitxers-preparats',
@@ -897,7 +1101,16 @@ async function assignarOverride(clau, codiUntis) {
 }
 
 const filtreVistaPrevia = ref('');
+const filtreVistaPreviaMode = ref('totes');
 const mostrarVistaPrevia = ref(false);
+
+const filtresVistaPrevia = [
+  { valor: 'totes', etiqueta: 'Totes' },
+  { valor: 'multi', etiqueta: 'Blocs multiples' },
+  { valor: 'activitats', etiqueta: 'Activitats' },
+  { valor: 'referencia', etiqueta: 'Amb referencia' },
+  { valor: 'generades', etiqueta: 'Generades' },
+];
 
 const gpu002ComparacioText = ref('');
 const gpu002ComparacioNom = ref('');
@@ -929,11 +1142,13 @@ const gpu002Fitxer = computed(() =>
 const vistaPreviaFiltrada = computed(() => {
   const llista = exportacio.value?.vistaPrevia || [];
   const filtre = normalitzarFiltre(filtreVistaPrevia.value);
-  if (!filtre) return llista;
 
-  return llista.filter((item) =>
-    normalitzarFiltre([
+  return llista.filter((item) => {
+    if (!passaFiltreVistaPreviaMode(item, filtreVistaPreviaMode.value)) return false;
+    if (!filtre) return true;
+    return normalitzarFiltre([
       item.numero,
+      item.bloc,
       item.curs,
       item.grup,
       item.codiGrups,
@@ -942,9 +1157,61 @@ const vistaPreviaFiltrada = computed(() => {
       item.tipus,
       ...(item.professors || []),
       ...(item.codisProfessors || []),
-    ].join(' ')).includes(filtre)
-  );
+      ...(item.notes || []),
+      ...(item.liniesUntis || []).flatMap((linia) => [
+        linia.codiGrup,
+        linia.codiProfessor,
+        linia.codiMateria,
+        linia.professor,
+        linia.idUntis,
+      ]),
+    ].join(' ')).includes(filtre);
+  });
 });
+
+const vistaPreviaStats = computed(() => {
+  const llista = exportacio.value?.vistaPrevia || [];
+  return {
+    total: llista.length,
+    linies: llista.reduce((total, item) => total + Number(item.linies || item.liniesUntis?.length || 0), 0),
+    multiLinia: llista.filter((item) => Number(item.linies || item.liniesUntis?.length || 0) > 1).length,
+    activitats: llista.filter((item) => item.esActivitat).length,
+    referencia: llista.filter((item) => item.font === 'referencia').length,
+  };
+});
+
+function passaFiltreVistaPreviaMode(item, mode) {
+  if (mode === 'multi') return Number(item.linies || item.liniesUntis?.length || 0) > 1;
+  if (mode === 'activitats') return Boolean(item.esActivitat);
+  if (mode === 'referencia') return item.font === 'referencia';
+  if (mode === 'generades') return item.font !== 'referencia';
+  return true;
+}
+
+function countVistaPreviaFiltre(mode) {
+  return (exportacio.value?.vistaPrevia || []).filter((item) => passaFiltreVistaPreviaMode(item, mode)).length;
+}
+
+function formatHoresUntis(valor) {
+  const numero = Number(valor) || 0;
+  return Number.isInteger(numero) ? `${numero}h` : `${numero.toFixed(2)}h`;
+}
+
+function previsualitzacioRowClass(item) {
+  if (item.esActivitat) return 'bg-violet-50/45 dark:bg-violet-950/10';
+  if (Number(item.linies || item.liniesUntis?.length || 0) > 1) return 'bg-blue-50/45 dark:bg-blue-950/10';
+  return '';
+}
+
+function blocBadgeClass(item) {
+  const bloc = normalitzarFiltre(item.bloc);
+  if (bloc.includes('optativa')) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
+  if (bloc.includes('flexible')) return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300';
+  if (bloc.includes('desdoblament') || bloc.includes('codocencia')) return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+  if (bloc.includes('suport')) return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
+  if (bloc.includes('activitat')) return 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300';
+  return 'bg-slate-100 text-slate-700 dark:bg-gray-800 dark:text-slate-300';
+}
 
 function normalitzarFiltre(valor) {
   return (valor || '')
@@ -959,6 +1226,7 @@ async function generar() {
   carregant.value = true;
   error.value = '';
   filtreVistaPrevia.value = '';
+  filtreVistaPreviaMode.value = 'totes';
   mostrarVistaPrevia.value = false;
   try {
     exportacio.value = await prepararExportUntis(cursStore.cursActiuId, {
@@ -967,6 +1235,7 @@ async function generar() {
       simular: simular.value,
       overrides: Object.keys(mapeigManual.value).length ? mapeigManual.value : null,
     });
+    activeSection.value = 'previsualitzacio-untis';
   } catch (err) {
     console.error('Error generant exportació Untis:', err);
     error.value = `No s'han pogut generar els fitxers per a Untis: ${err.message || err}`;
@@ -981,6 +1250,7 @@ async function carregarGestibXml(event) {
   gestibXmlNom.value = '';
   exportacio.value = null;
   filtreVistaPrevia.value = '';
+  filtreVistaPreviaMode.value = 'totes';
   mostrarVistaPrevia.value = false;
   totes.value = [];
   error.value = '';
@@ -1001,6 +1271,7 @@ async function carregarGpu002Referencia(event) {
   gpu002ReferenciaNom.value = '';
   exportacio.value = null;
   filtreVistaPrevia.value = '';
+  filtreVistaPreviaMode.value = 'totes';
   mostrarVistaPrevia.value = false;
   error.value = '';
   if (!fitxer) return;
@@ -1112,12 +1383,12 @@ function descarregarTots() {
   descarregarTotsElsFitxersUntis(exportacio.value.fitxers);
 }
 
-function obrirVistaPreviaDescarga() {
+function obrirPrevisualitzacio() {
   if (!exportacio.value?.vistaPrevia?.length) {
     descarregarGpu002();
     return;
   }
-  mostrarVistaPrevia.value = true;
+  activeSection.value = 'previsualitzacio-untis';
 }
 
 function descarregarGpu002() {

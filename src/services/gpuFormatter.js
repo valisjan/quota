@@ -471,6 +471,30 @@ function componentsExportables(components) {
     });
 }
 
+function etiquetaBlocLlico(classe, components) {
+  const tipus = netejarText(classe.tipus).toUpperCase();
+  const tipusParts = new Set(tipus.split('+').map((part) => part.trim()).filter(Boolean));
+  const teOptativa = [...tipusParts].find((part) => part.startsWith('O') || part.startsWith('T'));
+
+  if (!classe.curs && !classe.grup) return 'Activitat';
+  if (teOptativa) return `Optativa ${teOptativa}`;
+  if (tipusParts.has('F')) return 'Flexible';
+  if (tipusParts.has('CD')) return 'Codocencia';
+  if (tipusParts.has('D')) return 'Desdoblament';
+  if (tipusParts.has('S')) return 'Suport';
+  if (components.length > 1) return 'Bloc compartit';
+  return tipus || 'Ordinaria';
+}
+
+function notesVistaPrevia({ classe, components, referencia, filesAgrupades }) {
+  const notes = [];
+  if (components.length > 1) notes.push(`${components.length} linies GPU002`);
+  if (filesAgrupades.length > 1) notes.push(`${filesAgrupades.length} classes agrupades`);
+  if (referencia) notes.push('Numero conservat del GPU002 de referencia');
+  if (!classe.curs && !classe.grup) notes.push('Activitat sense grup');
+  return notes;
+}
+
 function prepararCampsLlico({ referencia, numLlico, classe, component, hores, tipus, referenciaGestib, flags }) {
   const camps = referencia?.camps
     ? [...referencia.camps]
@@ -572,7 +596,7 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
   const pendents = [];
   const usades = new Set();
   const vistaPrevia = [];
-  let numero = 1;
+  let numero = Math.max(0, ...referenciesGpu002.map((ref) => Number(ref.num) || 0)) + 1;
 
   const linies = agruparClassesPerLlicoExport(
     classes.filter((classe) =>
@@ -598,11 +622,6 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
       const referencia = referenciesGpu002.length
         ? trobarReferencia(classe, referenciesGpu002, usades)
         : null;
-
-      if (referenciesGpu002.length && !referencia) {
-        pendents.push({ motiu: 'No trobada al GPU002 de referència', classe });
-        return [];
-      }
 
       if (referencia) usades.add(referencia.index);
 
@@ -651,15 +670,22 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
           referenciaGestib,
           flags,
         });
-        return liniaDif(camps, NUMERICS_LLICO);
+        return {
+          text: liniaDif(camps, NUMERICS_LLICO),
+          camps,
+          component,
+          flags,
+        };
       });
 
       vistaPrevia.push({
         numero: numLlico,
+        bloc: etiquetaBlocLlico(classe, componentsUnics),
         curs: classe.curs || '',
         grup: classe.grup || '',
         materia: classe.materia || '',
         hores,
+        linies: liniesComponents.length,
         tipus: netejarText(classe.tipus),
         professors: [...new Set(componentsUnics.map((c) => c.professor))],
         codisProfessors: [...new Set(componentsUnics.map((c) => c.codiProfessor))],
@@ -668,9 +694,24 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
         font: referencia ? 'referencia' : 'generat',
         esActivitat: !classe.curs && !classe.grup,
         filesAgrupades,
+        notes: notesVistaPrevia({ classe, components: componentsUnics, referencia, filesAgrupades }),
+        liniesUntis: liniesComponents.map(({ component, flags, camps }) => ({
+          numero: numLlico,
+          codiGrup: component.codiGrups || '',
+          grup: component.grup || '',
+          professor: component.professor || '',
+          codiProfessor: component.codiProfessor || '',
+          materia: component.materia || classe.materia || '',
+          codiMateria: component.codiMateria || '',
+          aula: component.aula || '',
+          hores,
+          horesGrup: flags.comptaGrup ? hores : 0,
+          horesProfessor: flags.comptaProfessor ? hores : 0,
+          idUntis: camps[41] || '',
+        })),
       });
 
-      return liniesComponents;
+      return liniesComponents.map((item) => item.text);
     });
 
   return {
