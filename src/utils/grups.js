@@ -1,5 +1,13 @@
 import { classeCompletamentAssignada } from './assignacions';
-import { clauFranjaOptativa, comptaPerGrupPerTipus, esOptativa, normalitzarTipus } from './tipus';
+import {
+  TIPUS,
+  clauFranjaOptativa,
+  comptaPerGrupPerTipus,
+  esAutodesdoble,
+  esDesdoblament,
+  esOptativa,
+  normalitzarTipus,
+} from './tipus';
 import { esTutoria, normalitzarCodiTutoria } from './tutories';
 
 export function normalitzarGrup(grup) {
@@ -25,23 +33,42 @@ export function comptaPerGrup(classe) {
   return comptaPerGrupPerTipus(classe?.tipus);
 }
 
+function departamentsClasse(classe) {
+  const departaments = classe?.departaments?.length
+    ? classe.departaments
+    : [classe?.departament].filter(Boolean);
+  return departaments.map((departament) => normalitzarCodiTutoria(departament));
+}
+
+function tipusTeGermanesBloc(tipus) {
+  const normal = normalitzarTipus(tipus);
+  if (!normal) return false;
+  return (
+    esOptativa(normal) ||
+    esDesdoblament(normal) ||
+    esAutodesdoble(normal) ||
+    normal === TIPUS.SUPORT ||
+    normal === TIPUS.FLEXIBLE
+  );
+}
+
 export function trobarGermanesBloc(classe, classes = []) {
-  const tipus = (classe?.tipus || '').toString().trim();
-  if (tipus !== '') return [];
+  const tipus = normalitzarTipus(classe?.tipus);
+  if (!tipusTeGermanesBloc(tipus)) return [];
   if (esTutoria(classe)) return [];
   const cursNorm = normalitzarCodiTutoria(classe?.curs);
   const grupNorm = normalitzarCodiTutoria(classe?.grup);
   if (!cursNorm || grupNorm.length !== 1 || !/^[A-Z]$/.test(grupNorm)) return [];
   const materiaNorm = normalitzarCodiTutoria(classe?.materia);
   if (!materiaNorm) return [];
-  const departaments = classe?.departaments || [];
+  const departaments = departamentsClasse(classe);
   return classes.filter((c) => {
     if (c.id === classe.id) return false;
-    if ((c.tipus || '').toString().trim() !== '') return false;
+    if (normalitzarTipus(c.tipus) !== tipus) return false;
     if (esTutoria(c)) return false;
     if (normalitzarCodiTutoria(c.curs) !== cursNorm) return false;
     if (normalitzarCodiTutoria(c.materia) !== materiaNorm) return false;
-    const cDepts = c.departaments || [];
+    const cDepts = departamentsClasse(c);
     if (!departaments.some((d) => cDepts.includes(d))) return false;
     const cGrupNorm = normalitzarCodiTutoria(c.grup);
     return cGrupNorm.length === 1 && /^[A-Z]$/.test(cGrupNorm) && cGrupNorm !== grupNorm;
