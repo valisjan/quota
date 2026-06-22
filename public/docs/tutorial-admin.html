@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutorial Administrador · Quota IESJSB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #5f75d6;
+      --primary-dark: #475dbc;
+      --primary-light: #eef1fb;
+      --green: #00BF33;
+      --orange: #FF8040;
+      --brand-blue: #0024B6;
+      --danger: #e8a077;
+      --success: #75c996;
+      --text-main: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --surface: #ffffff;
+      --surface-soft: #f1f5fb;
+      --border: #e2e8f0;
+      --sidebar-w: 260px;
+    }
+
+    body {
+      font-family: 'Roboto', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--text-main);
+      background: #dde6f3;
+    }
+
+    /* ── Layout ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--brand-blue);
+      color: white;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      overflow-y: auto;
+      z-index: 100;
+      padding: 0 0 2rem;
+    }
+
+    .sidebar-header {
+      padding: 1.5rem 1.25rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      margin-bottom: 0.5rem;
+    }
+
+    .sidebar-logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: white;
+    }
+
+    .sidebar-sub {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.6);
+      margin-top: 0.2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .sidebar-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 1rem;
+      margin-top: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .sidebar-section {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.4);
+      margin-top: 1rem;
+    }
+
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.55rem 1.25rem;
+      color: rgba(255,255,255,0.78);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border-radius: 0;
+      transition: all 0.12s;
+    }
+
+    .sidebar a:hover {
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+
+    .sidebar a .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.4rem;
+      height: 1.4rem;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .tutorial-link { border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .tutorial-link:last-child { border-bottom: none; }
+
+    /* ── Main content ── */
+    .main {
+      margin-left: var(--sidebar-w);
+      padding: 2.5rem 3rem 5rem;
+      max-width: calc(100% - var(--sidebar-w));
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, var(--brand-blue) 0%, #1a3fd4 60%, var(--primary) 100%);
+      border-radius: 1rem;
+      padding: 2.5rem;
+      color: white;
+      margin-bottom: 2.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "ADMIN";
+      position: absolute;
+      right: -1rem;
+      top: 50%;
+      transform: translateY(-50%) rotate(-10deg);
+      font-size: 7rem;
+      font-weight: 900;
+      color: rgba(255,255,255,0.05);
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .hero h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .hero p { font-size: 1rem; color: rgba(255,255,255,0.8); max-width: 560px; }
+
+    .hero-meta {
+      display: flex;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.75);
+    }
+
+    .hero-meta-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--orange);
+    }
+
+    /* ── Workflow steps bar ── */
+    .steps-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2.5rem;
+      display: flex;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .step-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.35rem 0.8rem;
+      border-radius: 2rem;
+      white-space: nowrap;
+    }
+
+    .step-pill .n {
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      width: 1.2rem;
+      height: 1.2rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+    }
+
+    .step-arrow { color: var(--text-muted); font-size: 0.9rem; }
+
+    /* ── Sections ── */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(90deg, var(--primary-light), var(--surface));
+    }
+
+    .section-num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.25rem;
+      height: 2.25rem;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      font-size: 1rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .section-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .section-route {
+      margin-left: auto;
+      background: var(--primary);
+      color: white;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.25rem 0.7rem;
+      border-radius: 0.35rem;
+      font-family: monospace;
+      white-space: nowrap;
+    }
+
+    .section-body { padding: 1.5rem; }
+
+    /* ── Steps ── */
+    .steps { list-style: none; counter-reset: steps; }
+
+    .steps li {
+      display: flex;
+      gap: 1rem;
+      padding-bottom: 1.25rem;
+      position: relative;
+    }
+
+    .steps li:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 0.9rem;
+      top: 2.25rem;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .step-dot {
+      flex-shrink: 0;
+      width: 1.8rem;
+      height: 1.8rem;
+      background: var(--primary-light);
+      border: 2px solid var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--primary);
+      counter-increment: steps;
+    }
+
+    .step-dot::after { content: counter(steps); }
+
+    .step-content { flex: 1; padding-top: 0.1rem; }
+
+    .step-content strong {
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* ── Callouts ── */
+    .callout {
+      border-radius: 0.5rem;
+      padding: 0.85rem 1rem;
+      margin: 0.75rem 0;
+      font-size: 0.87rem;
+      display: flex;
+      gap: 0.6rem;
+      align-items: flex-start;
+      border: 1px solid transparent;
+    }
+
+    .callout-icon { flex-shrink: 0; font-size: 1rem; margin-top: 0.05rem; }
+
+    .callout-tip { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .callout-warning { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .callout-danger { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
+    .callout-info { background: var(--primary-light); border-color: #c7d2fe; color: #3730a3; }
+
+    /* ── Tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.87rem;
+      margin: 0.75rem 0;
+    }
+
+    th {
+      background: var(--surface-soft);
+      padding: 0.6rem 1rem;
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 2px solid var(--border);
+    }
+
+    td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface-soft); }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 2rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-red { background: #ffe4e6; color: #9f1239; }
+    .badge-orange { background: #ffedd5; color: #9a3412; }
+    .badge-gray { background: #f1f5f9; color: #475569; }
+    .badge-purple { background: #f3e8ff; color: #6b21a8; }
+
+    /* ── Sub-sections ── */
+    .subsection {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .subsection:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+    .subsection-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .subsection-title::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 1rem;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+
+    /* ── Role boxes ── */
+    .role-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 0.75rem 0;
+    }
+
+    .role-card {
+      border: 1px solid var(--border);
+      border-radius: 0.6rem;
+      padding: 1rem;
+    }
+
+    .role-card-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.4rem;
+    }
+
+    .role-card-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Inline code ── */
+    code {
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-radius: 0.25rem;
+      padding: 0.1rem 0.4rem;
+      font-size: 0.82rem;
+      font-family: monospace;
+      color: var(--primary-dark);
+    }
+
+    /* ── Quick ref ── */
+    .quick-ref {
+      background: linear-gradient(135deg, var(--primary-light), #f8faff);
+      border: 1px solid #c7d2fe;
+      border-radius: 0.75rem;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .quick-ref-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--primary);
+      margin-bottom: 0.75rem;
+    }
+
+    .quick-ref-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.5rem;
+    }
+
+    .quick-ref-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    .quick-ref-item .icon { font-size: 1.1rem; }
+
+    /* ── Print ── */
+    @media print {
+      body { background: white; font-size: 12px; }
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 1cm 2cm; max-width: 100%; }
+      .hero { border-radius: 0.5rem; padding: 1.5rem; }
+      .section { break-inside: avoid; page-break-inside: avoid; }
+      .section-header { break-inside: avoid; }
+      .steps-bar { display: none; }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 1.5rem; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar navigation -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">Quota · IESJSB</div>
+    <div class="sidebar-sub">IES Josep Sureda i Blanes</div>
+    <div class="sidebar-badge">Guia Administrador</div>
+  </div>
+
+  <div class="sidebar-section">Continguts</div>
+
+  <a href="#inici" class="tutorial-link"><span class="num">→</span> Accés i inici de sessió</a>
+  <a href="#s1" class="tutorial-link"><span class="num">1</span> Curs acadèmic</a>
+  <a href="#s2" class="tutorial-link"><span class="num">2</span> Importació des de Sheets</a>
+  <a href="#s3" class="tutorial-link"><span class="num">3</span> Paràmetres de guàrdies</a>
+  <a href="#s4" class="tutorial-link"><span class="num">4</span> Gestió d'usuaris</a>
+  <a href="#s5" class="tutorial-link"><span class="num">5</span> Repartiment d'hores</a>
+  <a href="#s6" class="tutorial-link"><span class="num">6</span> Tancament</a>
+  <a href="#s7" class="tutorial-link"><span class="num">7</span> Exportació a Untis</a>
+  <a href="#s8" class="tutorial-link"><span class="num">8</span> Seguiment i resums</a>
+
+  <div class="sidebar-section">Altres recursos</div>
+  <a href="tutorial-caps.html" class="tutorial-link"><span class="num">↗</span> Tutorial caps de dept.</a>
+</nav>
+
+<!-- Main content -->
+<main class="main">
+
+  <!-- Hero -->
+  <div class="hero" id="inici">
+    <h1>Guia de l'Administrador</h1>
+    <p>Guia completa per gestionar el procés de distribució d'hores del professorat a l'IES Josep Sureda i Blanes, des de la creació del curs fins a l'exportació a Untis.</p>
+    <div class="hero-meta">
+      <div class="hero-meta-item"><div class="hero-meta-dot"></div> Rol: <strong>admin</strong></div>
+      <div class="hero-meta-item"><div class="hero-meta-dot"></div> 8 passos seqüencials</div>
+      <div class="hero-meta-item"><div class="hero-meta-dot"></div> Google Sheets → Quota → Untis</div>
+    </div>
+  </div>
+
+  <!-- Workflow overview -->
+  <div class="steps-bar">
+    <div class="step-pill"><span class="n">1</span> Curs</div>
+    <div class="step-arrow">→</div>
+    <div class="step-pill"><span class="n">2</span> Importació</div>
+    <div class="step-arrow">→</div>
+    <div class="step-pill"><span class="n">3</span> Paràmetres</div>
+    <div class="step-arrow">→</div>
+    <div class="step-pill"><span class="n">4</span> Usuaris</div>
+    <div class="step-arrow">→</div>
+    <div class="step-pill"><span class="n">5</span> Repartiment</div>
+    <div class="step-arrow">→</div>
+    <div class="step-pill"><span class="n">6</span> Tancament</div>
+    <div class="step-arrow">→</div>
+    <div class="step-pill"><span class="n">7</span> Untis</div>
+    <div class="step-arrow">→</div>
+    <div class="step-pill"><span class="n">8</span> Seguiment</div>
+  </div>
+
+  <!-- Quick ref -->
+  <div class="quick-ref">
+    <div class="quick-ref-title">Accés ràpid</div>
+    <div class="quick-ref-grid">
+      <div class="quick-ref-item"><span class="icon">🔐</span> Login: compte Google <code>@iesjosepsuredaiblanes.com</code></div>
+      <div class="quick-ref-item"><span class="icon">⚙️</span> Centre d'administració: <code>/admin</code></div>
+      <div class="quick-ref-item"><span class="icon">📊</span> Repartiment: <code>/departament</code></div>
+      <div class="quick-ref-item"><span class="icon">📋</span> Resums: <code>/resums</code></div>
+    </div>
+  </div>
+
+  <!-- Inici de sessió -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num" style="background: var(--brand-blue);">→</div>
+      <div>
+        <div class="section-title">Accés a l'aplicació</div>
+        <div class="section-subtitle">Autenticació amb Google</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <ol class="steps">
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content">Obre el navegador i accedeix a <strong>quota.iessureda.com</strong>.</div>
+        </li>
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content">Fes clic al botó <strong>"Inicia sessió amb Google"</strong>. S'obrirà la finestra de Google per seleccionar el compte.</div>
+        </li>
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content">Selecciona el teu compte <strong>@iesjosepsuredaiblanes.com</strong>. Altres dominis no estan autoritzats.</div>
+        </li>
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content">Un cop identificat com a administrador, accediràs directament al <strong>centre d'administració</strong> (<code>/admin</code>).</div>
+        </li>
+      </ol>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <div>Si un professor entra per primera vegada i no té rol assignat, veurà la pantalla d'espera. L'admin ha d'assignar-li el rol des de la secció <strong>Usuaris</strong>.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 1: Curs acadèmic -->
+  <div class="section" id="s1">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div>
+        <div class="section-title">Curs acadèmic</div>
+        <div class="section-subtitle">Crear i gestionar els cursos</div>
+      </div>
+      <div class="section-route">/admin/cursos</div>
+    </div>
+    <div class="section-body">
+      <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">Cada any acadèmic és un <em>curs</em> independent. El curs actiu és el que veuen els caps de departament. Tots els altres cursos queden arxivats.</p>
+
+      <div class="subsection">
+        <div class="subsection-title">Crear un nou curs</div>
+        <ol class="steps">
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">A la pantalla del Curs acadèmic, el sistema ja proposa automàticament el nom del curs següent (per exemple <code>2025-2026</code>).</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Confirma el nom (o modifica'l si cal) i fes clic a <strong>"Crear curs"</strong>.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Un cop creat, fes clic a <strong>"Establir com a actiu"</strong> per activar-lo. El sistema marcarà l'anterior com a inactiu.</div>
+          </li>
+        </ol>
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div>Assegura't d'activar el nou curs <strong>abans</strong> de fer la sincronització des de Google Sheets. Les dades sempre s'importen al curs actiu.</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Altres accions del curs</div>
+        <table>
+          <thead>
+            <tr><th>Acció</th><th>Quan usar-la</th><th>Reversible?</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Bloquejar / Desbloquejar</strong></td>
+              <td>Impedeix qualsevol modificació d'un curs tancat. Útil per arxivar anys anteriors.</td>
+              <td><span class="badge badge-green">Sí</span></td>
+            </tr>
+            <tr>
+              <td><strong>Esborrar assignacions</strong></td>
+              <td>Reseteja totes les assignacions de professors, tutories, coordinacions i guàrdies, sense eliminar les classes importades.</td>
+              <td><span class="badge badge-red">No</span></td>
+            </tr>
+            <tr>
+              <td><strong>Eliminar curs</strong></td>
+              <td>Esborra el curs i totes les seves dades. Requereix confirmar escrivint el nom exacte del curs.</td>
+              <td><span class="badge badge-red">No</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout callout-danger">
+          <span class="callout-icon">🛑</span>
+          <div><strong>Esborrar assignacions</strong> i <strong>Eliminar curs</strong> són accions permanents. El sistema demanarà confirmació escrivint una frase de seguretat.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 2: Importació -->
+  <div class="section" id="s2">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div>
+        <div class="section-title">Importació des de Google Sheets</div>
+        <div class="section-subtitle">Sincronitzar classes i professorat</div>
+      </div>
+      <div class="section-route">/admin/sincronitzacio</div>
+    </div>
+    <div class="section-body">
+      <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">Les dades provenen del full de càlcul de Google Sheets. El procés és en dues fases: primer es comproven els canvis, i després es sincronitzen.</p>
+
+      <div class="subsection">
+        <div class="subsection-title">Estructura del Google Sheet requerida</div>
+        <table>
+          <thead>
+            <tr><th>Pestanya</th><th>Columnes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Resultado</strong></td>
+              <td><code>CURS</code> · <code>GRUP</code> · <code>MATERIA</code> · <code>HORES</code> · <code>DEPARTAMENT</code> · <code>TIPUS</code></td>
+            </tr>
+            <tr>
+              <td><strong>Professorat</strong></td>
+              <td><code>NOM</code> · <code>DEPARTAMENT</code> · (opcional: <code>EMAIL</code> · <code>ROL</code>)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Pas 1 — Comprovar canvis</div>
+        <ol class="steps">
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Fes clic a <strong>"Comprovar canvis"</strong>. El sistema consulta el Sheet i el compara amb la base de dades actual.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Revisa el resum de canvis: <span class="badge badge-green">+ Noves</span> <span class="badge badge-blue">= Modificades</span> <span class="badge badge-red">− Eliminades</span></div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Si hi ha classes modificades que ja estan assignades a professors, el sistema mostrarà un avís de risc.</div>
+          </li>
+        </ol>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Pas 2 — Sincronitzar</div>
+        <ol class="steps">
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Si els canvis semblen correctes, fes clic a <strong>"Sincronitzar"</strong>.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">El sistema importa classes, professorat i departaments. Les assignacions de professors ja existents es <strong>conserven</strong> sempre que la classe no hagi canviat.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Un cop finalitzat, el sistema mostra el resum: quantes s'han afegit, actualitzat, eliminat i quantes assignacions s'han conservat.</div>
+          </li>
+        </ol>
+        <div class="callout callout-tip">
+          <span class="callout-icon">✅</span>
+          <div>Pots sincronitzar tantes vegades com calgui. El sistema detecta només els canvis reals. L'historial de les darreres 10 sincronitzacions es guarda a la part inferior de la pantalla.</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Visualitzar les dades importades</div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">A <code>/admin/dades</code> pots revisar tot el que s'ha importat, amb filtres per departament, tipus i professor.</p>
+        <table>
+          <thead>
+            <tr><th>Pestanya</th><th>Conté</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Classes</strong></td>
+              <td>Totes les classes amb curs, grup, matèria, hores, tipus i professor assignat. Filtrable per departament, curs, tipus i professor.</td>
+            </tr>
+            <tr>
+              <td><strong>Professorat</strong></td>
+              <td>Llista de professors amb departament, jornada (sencera / mitja / reducció), preferència horària i comentaris.</td>
+            </tr>
+            <tr>
+              <td><strong>Departaments</strong></td>
+              <td>Departaments detectats automàticament amb el nombre de professors de cadascun.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 3: Paràmetres -->
+  <div class="section" id="s3">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <div>
+        <div class="section-title">Paràmetres de guàrdies</div>
+        <div class="section-subtitle">Configurar guàrdies de pati i passadís</div>
+      </div>
+      <div class="section-route">/admin/parametres</div>
+    </div>
+    <div class="section-body">
+
+      <div class="subsection">
+        <div class="subsection-title">Guàrdies de pati (GP)</div>
+        <ol class="steps">
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Introdueix el <strong>total de guàrdies de pati</strong> a distribuir entre tots els departaments.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Indica quins departaments participen i si algun té reducció del nombre de membres comptats.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">El sistema calcula automàticament la <strong>quota per departament</strong> proporcional al nombre de membres efectius.</div>
+          </li>
+        </ol>
+        <div class="callout callout-info">
+          <span class="callout-icon">ℹ️</span>
+          <div>Els departaments d'<strong>Agrobiojardineria</strong> i de cicles d'Alimentació estan exclosos automàticament de les guàrdies de pati.</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Guàrdies de passadís (GC)</div>
+        <table>
+          <thead>
+            <tr><th>Criteri</th><th>Valor per defecte</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Guàrdies per professor</td><td>4 (2 si és tutor)</td></tr>
+            <tr><td>Reducció per comissió</td><td>−1 guàrdia</td></tr>
+            <tr><td>Reducció per guàrdia de pati</td><td>−1 guàrdia</td></tr>
+            <tr><td>Reducció per guàrdia passadís addicional</td><td>−1 guàrdia</td></tr>
+          </tbody>
+        </table>
+        <p style="color: var(--text-secondary); font-size: 0.87rem; margin-top: 0.75rem;">Pots marcar professors individuals com a <strong>exempts</strong> i ajustar reduccions manualment des d'aquesta pantalla.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 4: Usuaris -->
+  <div class="section" id="s4">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div>
+        <div class="section-title">Gestió d'usuaris</div>
+        <div class="section-subtitle">Assignar rols i departaments al professorat</div>
+      </div>
+      <div class="section-route">/admin/usuaris</div>
+    </div>
+    <div class="section-body">
+      <div class="subsection">
+        <div class="subsection-title">Rols disponibles</div>
+        <div class="role-grid">
+          <div class="role-card" style="border-color: #bfdbfe;">
+            <div class="role-card-title">🔑 admin</div>
+            <div class="role-card-desc">Accés complet al centre d'administració i a tots els departaments.</div>
+          </div>
+          <div class="role-card" style="border-color: #bbf7d0;">
+            <div class="role-card-title">🏢 cap_departament</div>
+            <div class="role-card-desc">Pot distribuir hores al seu departament i tancar-lo.</div>
+          </div>
+          <div class="role-card" style="border-color: #fde68a;">
+            <div class="role-card-title">👤 professor</div>
+            <div class="role-card-desc">Accés de només lectura als resums i distribució.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Pre-autoritzar professors des de Google Sheets</div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">El mètode més eficient és afegir dues columnes al full <strong>Professorat</strong>:</p>
+        <table>
+          <thead>
+            <tr><th>Columna F</th><th>Columna G</th><th>Resultat</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>EMAIL</code></td>
+              <td><code>ROL</code></td>
+              <td>Al primer login, el rol s'assigna automàticament.</td>
+            </tr>
+            <tr>
+              <td>joan@iesjosepsuredaiblanes.com</td>
+              <td>cap_departament</td>
+              <td>Joan entrarà directament com a cap de departament.</td>
+            </tr>
+            <tr>
+              <td>maria@iesjosepsuredaiblanes.com</td>
+              <td>professor</td>
+              <td>Maria entrarà en mode lectura.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Aprovar usuaris pendents</div>
+        <ol class="steps">
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">A la secció <strong>"Pendents d'aprovació"</strong> veuràs els professors que han fet login però no tenen rol.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Per cada usuari, fes clic al rol corresponent: <strong>Admin</strong>, <strong>Cap de departament</strong> (selecciona el dept.) o <strong>Professor</strong>.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Si l'usuari no hauria de tenir accés, fes clic a <strong>"Rebutjar"</strong> per eliminar-lo.</div>
+          </li>
+        </ol>
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div>Un admin no pot canviar el seu propi rol. Per evitar quedar-se sense accés, assegura't que sempre hi ha almenys un altre compte admin.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 5: Repartiment -->
+  <div class="section" id="s5">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <div>
+        <div class="section-title">Repartiment d'hores</div>
+        <div class="section-subtitle">Supervisió del procés de distribució</div>
+      </div>
+      <div class="section-route">/departament</div>
+    </div>
+    <div class="section-body">
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">Com a administrador, tens accés a <strong>tots</strong> els departaments, igual que els caps. Pots distribuir hores en qualsevol departament i resoldre incidències.</p>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <div>El flux detallat del repartiment d'hores es descriu al <a href="tutorial-caps.html" style="color: var(--primary); font-weight: 600;">Tutorial de Caps de Departament</a>. Com a admin, funciona exactament igual però tens accés a tots els departaments.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Indicadors de l'estat de cada departament</div>
+        <table>
+          <thead>
+            <tr><th>Badge</th><th>Significat</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="badge badge-green">Complet</span></td><td>Totes les hores assignades i sense errors.</td></tr>
+            <tr><td><span class="badge badge-blue">Pendent</span></td><td>Hi ha classes sense assignar.</td></tr>
+            <tr><td><span class="badge badge-red">Excés</span></td><td>Algun professor supera el màxim d'hores.</td></tr>
+            <tr><td><span class="badge badge-gray">Tancat</span></td><td>El cap ha tancat el departament.</td></tr>
+            <tr><td><span class="badge badge-orange">Sense dades</span></td><td>No hi ha classes importades per a aquest departament.</td></tr>
+            <tr><td><span class="badge badge-purple">Exclòs</span></td><td>El departament no compta per als totals globals.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 6: Tancament -->
+  <div class="section" id="s6">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <div>
+        <div class="section-title">Tancament</div>
+        <div class="section-subtitle">Bloquejar la distribució per revisió</div>
+      </div>
+      <div class="section-route">/admin/tancament</div>
+    </div>
+    <div class="section-body">
+
+      <div class="subsection">
+        <div class="subsection-title">Bloqueig d'administració</div>
+        <ol class="steps">
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Marca la casella <strong>"Bloquejar l'administració"</strong> per impedir que ningú pugui fer canvis a la distribució.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Opcionalment, escriu un <strong>missatge de tancament</strong> que veuran tots els usuaris (per exemple: <em>"Distribució bloquejada pendent de validació final"</em>).</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Per reobrire, desmarca la casella des d'aquesta mateixa pantalla. Només l'admin té accés a desbloquejar.</div>
+          </li>
+        </ol>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Gestió per departament</div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">Els caps de departament poden <em>tancar</em> el seu departament en acabar. L'admin pot:</p>
+        <table>
+          <thead>
+            <tr><th>Acció</th><th>Efecte</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Incloure / Excloure</strong></td>
+              <td>Un departament exclòs no compta per als percentatges globals. Útil per a departaments sense dades o especials.</td>
+            </tr>
+            <tr>
+              <td><strong>Tancar / Reobrire</strong></td>
+              <td>Tanca o reobre la distribució d'un departament. Sols l'admin pot reobrire un departament tancat pel cap.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 7: Untis -->
+  <div class="section" id="s7">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <div>
+        <div class="section-title">Exportació a Untis</div>
+        <div class="section-subtitle">Generar el fitxer GPU002.TXT</div>
+      </div>
+      <div class="section-route">/admin/untis</div>
+    </div>
+    <div class="section-body">
+      <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">Un cop la distribució és completa, exporta les dades al format que Untis necessita per construir l'horari.</p>
+
+      <ol class="steps">
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content"><strong>Puja el XML de GestIB</strong>: Carrega l'exportació XML del GestIB (horari del centre) perquè el sistema pugui creuar les matèries.</div>
+        </li>
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content"><strong>Càrrega opcional del GPU002 anterior</strong>: Si tens l'exportació de l'any passat, pujar-la permet que el sistema numeri els registres de manera consistent.</div>
+        </li>
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content"><strong>Revisa les assignacions pendents</strong>: La pantalla mostra en tres pestanyes — Totes, Resoltes, Pendents — les classes que necessiten mapatge amb el codi GestIB corresponent.</div>
+        </li>
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content"><strong>Mapeja les matèries</strong>: Per a cada classe pendent, selecciona la matèria GestIB equivalent amb el cercador desplegable.</div>
+        </li>
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content"><strong>Genera i descarrega</strong>: Fes clic a <strong>"Generar GPU002.TXT"</strong> i descarrega el fitxer. Importa'l directament a Untis.</div>
+        </li>
+      </ol>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">✅</span>
+        <div>Pots usar el <strong>Mode simulació</strong> per previsualitzar el fitxer que es generaria sense desar cap canvi. Molt útil per verificar el resultat abans de l'exportació final.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 8: Seguiment -->
+  <div class="section" id="s8">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <div>
+        <div class="section-title">Seguiment i resums</div>
+        <div class="section-subtitle">Monitorar l'estat global de la distribució</div>
+      </div>
+      <div class="section-route">/admin/seguiment · /resums</div>
+    </div>
+    <div class="section-body">
+
+      <div class="subsection">
+        <div class="subsection-title">Seguiment (admin)</div>
+        <table>
+          <thead>
+            <tr><th>Pestanya</th><th>Contingut</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Estat global</strong></td>
+              <td>Progrés total de tots els departaments en percentatge i hores.</td>
+            </tr>
+            <tr>
+              <td><strong>Validació final</strong></td>
+              <td>Errors crítics (bloquegen el tancament) i advertiments a revisar.</td>
+            </tr>
+            <tr>
+              <td><strong>Departaments</strong></td>
+              <td>Resum per departament: hores assignades, total, percentatge, estat.</td>
+            </tr>
+            <tr>
+              <td><strong>Professors</strong></td>
+              <td>Hores per professor: lectives, GP, PALIC, total i comparació amb l'ideal.</td>
+            </tr>
+            <tr>
+              <td><strong>Guàrdies</strong></td>
+              <td>Distribució de guàrdies de pati per departament i professor.</td>
+            </tr>
+            <tr>
+              <td><strong>Poca càrrega</strong></td>
+              <td>Professors amb menys de 18h assignades (o el seu límit individual).</td>
+            </tr>
+            <tr>
+              <td><strong>>55 anys</strong></td>
+              <td>Professors majors de 55 anys amb informació de jornada i preferències.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Resums generals</div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">Accessibles des de <code>/resums</code> per tots els usuaris autenticats:</p>
+        <table>
+          <thead>
+            <tr><th>Pestanya</th><th>Contingut</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Grups</strong></td><td>Estat d'assignació de cada grup (1r ESO A, etc.) amb totes les matèries.</td></tr>
+            <tr><td><strong>Caps de departament</strong></td><td>Llista de caps per departament.</td></tr>
+            <tr><td><strong>Coordinacions</strong></td><td>Comissions i coordinadores actives.</td></tr>
+            <tr><td><strong>Tutories</strong></td><td>Llistat de tutors per grup.</td></tr>
+            <tr><td><strong>Professors</strong></td><td>Resum d'hores per professor a tots els departaments.</td></tr>
+            <tr><td><strong>Traçabilitat</strong></td><td>Historial d'assignacions per professor.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer note -->
+  <div style="text-align: center; margin-top: 3rem; color: var(--text-muted); font-size: 0.8rem;">
+    <p>Quota · IES Josep Sureda i Blanes · Mallorca</p>
+    <p style="margin-top: 0.25rem;">Per a dubtes o incidències, contacta amb l'administrador del sistema.</p>
+  </div>
+
+</main>
+
+</body>
+</html>

@@ -50,6 +50,21 @@
                 {{ authStore.usuari || authStore.email || authStore.rol }}
               </span>
 
+              <a
+                :href="tutorialUrl"
+                target="_blank"
+                rel="noopener"
+                class="app-nav-button inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-semibold transition"
+                title="Obrir guia d'ajuda"
+                aria-label="Obrir guia d'ajuda"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9.25" />
+                  <path stroke-linecap="round" d="M9.5 9.25a2.5 2.5 0 0 1 4.9.83c0 1.67-2.5 2.5-2.5 3.42M12 16.75h.01" />
+                </svg>
+                <span class="hidden xl:inline">Ajuda</span>
+              </a>
+
               <button
                 type="button"
                 class="theme-toggle"
@@ -111,6 +126,18 @@
           </div>
 
           <div class="app-mobile-user mt-3 border-t px-1 pt-3">
+            <a
+              :href="tutorialUrl"
+              target="_blank"
+              rel="noopener"
+              class="app-nav-link app-nav-link-idle mb-1 flex w-full items-center gap-2 rounded-md px-3 py-3 text-sm font-semibold transition"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="9.25" />
+                <path stroke-linecap="round" d="M9.5 9.25a2.5 2.5 0 0 1 4.9.83c0 1.67-2.5 2.5-2.5 3.42M12 16.75h.01" />
+              </svg>
+              Ajuda
+            </a>
             <button
               type="button"
               class="theme-toggle w-full justify-center"
@@ -205,6 +232,12 @@ const links = [
   { to: '/departament', label: 'Departaments' },
   { to: '/resums', label: 'Resums' },
 ];
+
+const tutorialUrl = computed(() => {
+  if (!authStore.estaAutenticat) return '/docs/index.html';
+  if (authStore.rol === 'admin') return '/docs/tutorial-admin.html';
+  return '/docs/tutorial-caps.html';
+});
 
 const mainClass = computed(() =>
   route.path === '/'

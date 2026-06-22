@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutorial Caps de Departament · Quota IESJSB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #5f75d6;
+      --primary-dark: #475dbc;
+      --primary-light: #eef1fb;
+      --green: #00BF33;
+      --green-dark: #00962a;
+      --orange: #FF8040;
+      --brand-blue: #0024B6;
+      --text-main: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --surface: #ffffff;
+      --surface-soft: #f1f5fb;
+      --border: #e2e8f0;
+      --sidebar-w: 260px;
+    }
+
+    body {
+      font-family: 'Roboto', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--text-main);
+      background: #dde6f3;
+    }
+
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: #1a3d2b;
+      color: white;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      overflow-y: auto;
+      z-index: 100;
+      padding: 0 0 2rem;
+    }
+
+    .sidebar-header {
+      padding: 1.5rem 1.25rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      margin-bottom: 0.5rem;
+    }
+
+    .sidebar-logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: white;
+    }
+
+    .sidebar-sub {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.55);
+      margin-top: 0.2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .sidebar-badge {
+      display: inline-block;
+      background: var(--green);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 1rem;
+      margin-top: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .sidebar-section {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.35);
+      margin-top: 1rem;
+    }
+
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.55rem 1.25rem;
+      color: rgba(255,255,255,0.75);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.12s;
+    }
+
+    .sidebar a:hover {
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+
+    .sidebar a .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.4rem;
+      height: 1.4rem;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .tutorial-link { border-bottom: 1px solid rgba(255,255,255,0.07); }
+
+    /* ── Main ── */
+    .main {
+      margin-left: var(--sidebar-w);
+      padding: 2.5rem 3rem 5rem;
+      max-width: calc(100% - var(--sidebar-w));
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #1a3d2b 0%, #2d6a4f 60%, #40916c 100%);
+      border-radius: 1rem;
+      padding: 2.5rem;
+      color: white;
+      margin-bottom: 2.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "CAP";
+      position: absolute;
+      right: -1rem;
+      top: 50%;
+      transform: translateY(-50%) rotate(-10deg);
+      font-size: 8rem;
+      font-weight: 900;
+      color: rgba(255,255,255,0.05);
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .hero h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .hero p { font-size: 1rem; color: rgba(255,255,255,0.82); max-width: 580px; }
+
+    .hero-meta {
+      display: flex;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.72);
+    }
+
+    .hero-meta-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    /* ── Process flow ── */
+    .process {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .process-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .process-steps {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+    }
+
+    .process-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      min-width: 100px;
+    }
+
+    .process-step-icon {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 50%;
+      background: var(--primary-light);
+      border: 2px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+
+    .process-step-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    .process-arrow {
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      margin-top: 0.75rem;
+    }
+
+    /* ── Sections ── */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(90deg, #f0fdf4, var(--surface));
+    }
+
+    .section-num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.25rem;
+      height: 2.25rem;
+      background: #2d6a4f;
+      color: white;
+      border-radius: 50%;
+      font-size: 1rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .section-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .section-route {
+      margin-left: auto;
+      background: #2d6a4f;
+      color: white;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.25rem 0.7rem;
+      border-radius: 0.35rem;
+      font-family: monospace;
+      white-space: nowrap;
+    }
+
+    .section-body { padding: 1.5rem; }
+
+    /* ── Steps ── */
+    .steps { list-style: none; counter-reset: steps; }
+
+    .steps li {
+      display: flex;
+      gap: 1rem;
+      padding-bottom: 1.25rem;
+      position: relative;
+    }
+
+    .steps li:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 0.9rem;
+      top: 2.25rem;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .step-dot {
+      flex-shrink: 0;
+      width: 1.8rem;
+      height: 1.8rem;
+      background: #f0fdf4;
+      border: 2px solid #2d6a4f;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #2d6a4f;
+      counter-increment: steps;
+    }
+
+    .step-dot::after { content: counter(steps); }
+
+    .step-content { flex: 1; padding-top: 0.1rem; }
+    .step-content strong { font-weight: 700; color: var(--text-main); }
+
+    /* ── Callouts ── */
+    .callout {
+      border-radius: 0.5rem;
+      padding: 0.85rem 1rem;
+      margin: 0.75rem 0;
+      font-size: 0.87rem;
+      display: flex;
+      gap: 0.6rem;
+      align-items: flex-start;
+      border: 1px solid transparent;
+    }
+
+    .callout-icon { flex-shrink: 0; font-size: 1rem; margin-top: 0.05rem; }
+    .callout-tip { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .callout-warning { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .callout-danger { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
+    .callout-info { background: var(--primary-light); border-color: #c7d2fe; color: #3730a3; }
+
+    /* ── Tables ── */
+    table { width: 100%; border-collapse: collapse; font-size: 0.87rem; margin: 0.75rem 0; }
+    th { background: var(--surface-soft); padding: 0.6rem 1rem; text-align: left; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); border-bottom: 2px solid var(--border); }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface-soft); }
+
+    /* ── Badges ── */
+    .badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-red { background: #ffe4e6; color: #9f1239; }
+    .badge-orange { background: #ffedd5; color: #9a3412; }
+    .badge-gray { background: #f1f5f9; color: #475569; }
+    .badge-emerald { background: #d1fae5; color: #065f46; }
+
+    /* ── Sub-sections ── */
+    .subsection { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+    .subsection:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+    .subsection-title {
+      font-size: 0.95rem; font-weight: 700; color: var(--text-main);
+      margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    .subsection-title::before {
+      content: ''; display: block; width: 3px; height: 1rem;
+      background: #2d6a4f; border-radius: 2px;
+    }
+
+    /* ── Hours panel ── */
+    .hours-legend {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin: 0.75rem 0;
+    }
+
+    .hours-card {
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.85rem 1rem;
+    }
+
+    .hours-card-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.25rem; }
+    .hours-card-value { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+    .hours-card-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.1rem; }
+
+    /* ── Status colors ── */
+    .status-perfect { border-left: 3px solid #10b981; }
+    .status-over-rec { border-left: 3px solid #f59e0b; }
+    .status-over-max { border-left: 3px solid #ef4444; }
+    .status-progress { border-left: 3px solid var(--primary); }
+    .status-empty { border-left: 3px solid #94a3b8; }
+
+    /* ── Type grid ── */
+    .type-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.6rem;
+      margin: 0.75rem 0;
+    }
+
+    .type-card {
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      background: var(--surface-soft);
+    }
+
+    .type-card-code {
+      display: inline-block;
+      background: var(--text-main);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.1rem 0.4rem;
+      border-radius: 0.2rem;
+      margin-bottom: 0.35rem;
+      font-family: monospace;
+    }
+
+    .type-card-name { font-size: 0.82rem; font-weight: 700; color: var(--text-main); }
+    .type-card-desc { font-size: 0.77rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+    code { background: var(--surface-soft); border: 1px solid var(--border); border-radius: 0.25rem; padding: 0.1rem 0.4rem; font-size: 0.82rem; font-family: monospace; color: #475dbc; }
+
+    /* ── Presence indicator ── */
+    .presence-demo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 2rem;
+      padding: 0.3rem 0.8rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #166534;
+    }
+
+    .presence-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+
+    /* ── Validation panel ── */
+    .validation-demo {
+      border: 1px solid #fecdd3;
+      background: #fff1f2;
+      border-radius: 0.5rem;
+      padding: 0.85rem 1rem;
+      margin: 0.75rem 0;
+    }
+
+    .validation-demo-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #9f1239;
+      margin-bottom: 0.35rem;
+    }
+
+    .validation-item {
+      font-size: 0.82rem;
+      color: #be123c;
+      padding: 0.2rem 0;
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    /* ── Print ── */
+    @media print {
+      body { background: white; font-size: 12px; }
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 1cm 2cm; max-width: 100%; }
+      .hero { border-radius: 0.5rem; padding: 1.5rem; }
+      .section { break-inside: avoid; page-break-inside: avoid; }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 1.5rem; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">Quota · IESJSB</div>
+    <div class="sidebar-sub">IES Josep Sureda i Blanes</div>
+    <div class="sidebar-badge">Guia Caps de Dept.</div>
+  </div>
+
+  <div class="sidebar-section">Continguts</div>
+
+  <a href="#inici" class="tutorial-link"><span class="num">→</span> Accés i rols</a>
+  <a href="#s1" class="tutorial-link"><span class="num">1</span> Seleccionar departament</a>
+  <a href="#s2" class="tutorial-link"><span class="num">2</span> Entendre la distribució</a>
+  <a href="#s3" class="tutorial-link"><span class="num">3</span> Assignar classes</a>
+  <a href="#s4" class="tutorial-link"><span class="num">4</span> Guàrdies i PALIC</a>
+  <a href="#s5" class="tutorial-link"><span class="num">5</span> Comissions</a>
+  <a href="#s6" class="tutorial-link"><span class="num">6</span> Preferències del professor</a>
+  <a href="#s7" class="tutorial-link"><span class="num">7</span> Validació i tancament</a>
+  <a href="#resums" class="tutorial-link"><span class="num">↗</span> Resums</a>
+  <a href="#tipus" class="tutorial-link"><span class="num">?</span> Tipus de classes</a>
+
+  <div class="sidebar-section">Altres recursos</div>
+  <a href="tutorial-admin.html" class="tutorial-link"><span class="num">↗</span> Tutorial administrador</a>
+</nav>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- Hero -->
+  <div class="hero" id="inici">
+    <h1>Guia del Cap de Departament</h1>
+    <p>Aprèn a distribuir les hores lectives del teu departament, gestionar les guàrdies, tancar el departament i consultar els resums.</p>
+    <div class="hero-meta">
+      <div class="hero-meta-item"><div class="hero-meta-dot"></div> Rol: <strong>cap_departament</strong></div>
+      <div class="hero-meta-item"><div class="hero-meta-dot"></div> Accés: <code style="color: white; background: rgba(255,255,255,0.15); border-color: transparent;">/departament</code> i <code style="color: white; background: rgba(255,255,255,0.15); border-color: transparent;">/resums</code></div>
+    </div>
+  </div>
+
+  <!-- Process flow -->
+  <div class="process">
+    <div class="process-title">El teu flux de treball</div>
+    <div class="process-steps">
+      <div class="process-step">
+        <div class="process-step-icon">🏢</div>
+        <div class="process-step-label">Seleccionar departament</div>
+      </div>
+      <div class="process-arrow">→</div>
+      <div class="process-step">
+        <div class="process-step-icon">📋</div>
+        <div class="process-step-label">Revisar classes pendents</div>
+      </div>
+      <div class="process-arrow">→</div>
+      <div class="process-step">
+        <div class="process-step-icon">👤</div>
+        <div class="process-step-label">Assignar professors</div>
+      </div>
+      <div class="process-arrow">→</div>
+      <div class="process-step">
+        <div class="process-step-icon">🏃</div>
+        <div class="process-step-label">Repartir guàrdies</div>
+      </div>
+      <div class="process-arrow">→</div>
+      <div class="process-step">
+        <div class="process-step-icon">✅</div>
+        <div class="process-step-label">Validar i tancar</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accés -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num" style="background: #1a3d2b;">→</div>
+      <div>
+        <div class="section-title">Accés a l'aplicació</div>
+        <div class="section-subtitle">Login amb Google i pantalla d'inici</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <ol class="steps">
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content">Accedeix a <strong>quota.iessureda.com</strong> i fes clic a <strong>"Inicia sessió amb Google"</strong>.</div>
+        </li>
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content">Selecciona el teu compte <strong>@iesjosepsuredaiblanes.com</strong>. L'aplicació reconeixerà el teu rol automàticament.</div>
+        </li>
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content">Com a cap de departament, seràs redirigit a <strong>/departament</strong>, l'espai de distribució d'hores.</div>
+        </li>
+      </ol>
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <div>Si és la primera vegada que entres, potser apareixeràs com a <strong>"pendent d'aprovació"</strong>. En aquest cas, avisa l'administrador perquè t'assigni el rol de cap de departament.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 1: Seleccionar departament -->
+  <div class="section" id="s1">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div>
+        <div class="section-title">Seleccionar el teu departament</div>
+        <div class="section-subtitle">Pantalla inicial amb totes les targetes</div>
+      </div>
+      <div class="section-route">/departament</div>
+    </div>
+    <div class="section-body">
+      <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">En entrar, veuràs una graella amb totes les targetes dels departaments. Cada targeta mostra l'estat actual del departament.</p>
+
+      <div class="subsection">
+        <div class="subsection-title">Informació de cada targeta</div>
+        <table>
+          <thead>
+            <tr><th>Element</th><th>Significat</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Icona i nom</strong></td>
+              <td>Identifica el departament visualment (bandera per als d'idiomes, símbols per als altres).</td>
+            </tr>
+            <tr>
+              <td><strong>Hores assignades / total</strong></td>
+              <td>Exemple: <code>36,5 / 72 h</code> — hores distribuïdes respecte al total del departament.</td>
+            </tr>
+            <tr>
+              <td><strong>Professors</strong></td>
+              <td>Nombre de professors del departament.</td>
+            </tr>
+            <tr>
+              <td><strong>Pendents</strong></td>
+              <td>Classes que encara no tenen professor assignat.</td>
+            </tr>
+            <tr>
+              <td><strong>Barra de progrés</strong></td>
+              <td>Verd = complet · Gris = pendent · Vermell = excés d'hores.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">States dels departaments</div>
+        <table>
+          <thead>
+            <tr><th>Etiqueta</th><th>Situació</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="badge badge-emerald">Complet</span></td><td>Totes les hores assignades i sense errors crítics.</td></tr>
+            <tr><td><span class="badge badge-blue">Pendent</span></td><td>Queden classes sense assignar.</td></tr>
+            <tr><td><span class="badge badge-red">Excés</span></td><td>Algun professor supera el màxim permès.</td></tr>
+            <tr><td><span class="badge badge-gray">Tancat</span></td><td>El cap ha tancat el departament (en mode lectura).</td></tr>
+            <tr><td><span class="badge badge-gray">Sense dades</span></td><td>No hi ha classes importades per aquest departament.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Entrar al departament</div>
+        <ol class="steps">
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Fes clic a la targeta del teu departament. Accediràs directament a la pantalla de distribució.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">La barra superior (sempre visible en fer scroll) mostra el nom del departament, el nombre de professors i el progrés global.</div>
+          </li>
+        </ol>
+        <div class="callout callout-tip">
+          <span class="callout-icon">✅</span>
+          <div>Pots usar el <strong>cercador</strong> a la part superior per filtrar departaments per nom. Útil si hi ha molts departaments.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 2: Entendre la distribució -->
+  <div class="section" id="s2">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div>
+        <div class="section-title">Entendre la pantalla de distribució</div>
+        <div class="section-subtitle">Les tres pestanyes i els indicadors</div>
+      </div>
+      <div class="section-route">/departament → Distribució</div>
+    </div>
+    <div class="section-body">
+
+      <div class="subsection">
+        <div class="subsection-title">Les tres pestanyes</div>
+        <table>
+          <thead>
+            <tr><th>Pestanya</th><th>Ús</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Distribució</strong></td>
+              <td>Pantalla principal on assignes classes als professors. Aquí passaràs la major part del temps.</td>
+            </tr>
+            <tr>
+              <td><strong>Full de treball</strong></td>
+              <td>Vista en taula, apta per imprimir o exportar a PDF. Mostra totes les assignacions del departament.</td>
+            </tr>
+            <tr>
+              <td><strong>Proposta</strong></td>
+              <td>El sistema genera una distribució aleatòria viable. Útil com a punt de partida o per comparar opcions.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Targetes de resum lateral</div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">A la barra lateral de la pestanya Distribució veuràs les targetes de resum del departament:</p>
+        <div class="hours-legend">
+          <div class="hours-card status-progress">
+            <div class="hours-card-label">TOTAL HORES</div>
+            <div class="hours-card-value">36,5 / 72</div>
+            <div class="hours-card-sub">hores assignades / total</div>
+          </div>
+          <div class="hours-card status-empty">
+            <div class="hours-card-label">GUÀRDIES DE PATI</div>
+            <div class="hours-card-value">2 / 4</div>
+            <div class="hours-card-sub">assignades / quota dept.</div>
+          </div>
+          <div class="hours-card status-empty">
+            <div class="hours-card-label">PALIC</div>
+            <div class="hours-card-value">0 / 3</div>
+            <div class="hours-card-sub">hores PALIC assignades</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Indicador de presència en temps real</div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Si algú altre (per exemple l'admin) está editant el teu departament al mateix temps, ho veuràs a la barra superior:</p>
+        <div class="presence-demo">
+          <div class="presence-dot"></div>
+          Mònica Reig · Joan Mas
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 0.5rem;">Coordina't amb ells per evitar sobreescriure canvis.</p>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Indicador de connexió</div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem;">Si perds la connexió a Internet, apareixerà un avís vermell <span class="badge badge-red">Desconnectat</span>. Les teves accions s'emmagatzemaran en espera de reconnectar, però és recomanable esperar fins que es mostri la connexió restaurada.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 3: Assignar classes -->
+  <div class="section" id="s3">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <div>
+        <div class="section-title">Assignar classes als professors</div>
+        <div class="section-subtitle">El procés central de distribució</div>
+      </div>
+      <div class="section-route">Pestanya Distribució</div>
+    </div>
+    <div class="section-body">
+
+      <div class="subsection">
+        <div class="subsection-title">La llista de classes pendents</div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">Al centre de la pantalla veuràs les classes del teu departament. Les que encara no estan assignades a cap professor apareixen en primer lloc, destacades.</p>
+        <p style="color: var(--text-secondary); font-size: 0.9rem;">Cada línia mostra: <strong>curs · grup · matèria · hores · tipus</strong>.</p>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Com assignar una classe</div>
+        <ol class="steps">
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Localitza la classe pendent a la llista central. Les classes sense assignar estan destacades.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Fes clic al <strong>desplegable de professor</strong> que hi ha al costat de la classe i selecciona el professor adequat. La llista mostra els professors del departament per ordre alfabètic.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">L'assignació es desa automàticament. La classe desapareix de la llista de pendents i apareix a la targeta del professor.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Per <strong>desassignar</strong>, fes clic a la <code>×</code> que apareix al costat de la classe dins la targeta del professor.</div>
+          </li>
+        </ol>
+        <div class="callout callout-tip">
+          <span class="callout-icon">✅</span>
+          <div>No cal desar manualment. Cada canvi es guarda a temps real a la base de dades.</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Les targetes del professorat</div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">Cada professor té una targeta a la dreta de la pantalla que mostra:</p>
+        <table>
+          <thead>
+            <tr><th>Element</th><th>Significat</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Nom i total d'hores</strong></td>
+              <td>Hores lectives + PALIC assignades fins ara. Badge de colors: <span class="badge badge-emerald">✓ Complet</span> <span class="badge badge-orange">+Xh</span> <span class="badge badge-red">Sobre màxim</span></td>
+            </tr>
+            <tr>
+              <td><strong>Barra de progrés</strong></td>
+              <td>Verd = exactament les hores ideals. Taronja = per sobre del recomanat. Vermell = excedeix el màxim. Blau = en curs.</td>
+            </tr>
+            <tr>
+              <td><strong>Estat textual</strong></td>
+              <td><em>✓ Complet</em> · <em>Falta Xh</em> · <em>+Xh</em> · <em>+Xh (sobre màxim)</em> · <em>Sense hores</em></td>
+            </tr>
+            <tr>
+              <td><strong>Etiquetes de jornada</strong></td>
+              <td>Indica si el professor té jornada reduïda (mitja jornada, reducció per edat, etc.).</td>
+            </tr>
+            <tr>
+              <td><strong>Llista de classes</strong></td>
+              <td>Classes assignades amb curs, grup, matèria, tipus i hores.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="hours-legend" style="margin-top: 1rem;">
+          <div class="hours-card status-perfect">
+            <div class="hours-card-label">PERFECTE</div>
+            <div class="hours-card-value" style="color: #059669;">18h</div>
+            <div class="hours-card-sub">exactament les hores ideals</div>
+          </div>
+          <div class="hours-card status-over-rec">
+            <div class="hours-card-label">SOBRE RECOMANAT</div>
+            <div class="hours-card-value" style="color: #d97706;">20h</div>
+            <div class="hours-card-sub">entre ideal i màxim</div>
+          </div>
+          <div class="hours-card status-over-max">
+            <div class="hours-card-label">SOBRE MÀXIM</div>
+            <div class="hours-card-value" style="color: #dc2626;">22h</div>
+            <div class="hours-card-sub">supera el límit permès</div>
+          </div>
+          <div class="hours-card status-progress">
+            <div class="hours-card-label">EN CURS</div>
+            <div class="hours-card-value" style="color: var(--primary);">14h</div>
+            <div class="hours-card-sub">falta assignar Xh</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Hores ideals per professor</div>
+        <table>
+          <thead>
+            <tr><th>Situació</th><th>Hores ideals</th><th>Màxim</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Jornada completa estàndard</td><td>18h</td><td>20h</td></tr>
+            <tr><td>Reducció per edat (>55 anys)</td><td>Reduït per conveni</td><td>—</td></tr>
+            <tr><td>Mitja jornada</td><td>9h</td><td>10h</td></tr>
+            <tr><td>Reducció 1/3</td><td>12h</td><td>13h</td></tr>
+            <tr><td>Preferència horària</td><td>La mateixa, però es marca a la targeta</td><td>—</td></tr>
+          </tbody>
+        </table>
+        <div class="callout callout-info">
+          <span class="callout-icon">ℹ️</span>
+          <div>Les hores de <strong>PALIC</strong> compten per a les hores lectives. Les de <strong>Guàrdia de pati</strong> <em>no</em> compten.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 4: Guàrdies i PALIC -->
+  <div class="section" id="s4">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div>
+        <div class="section-title">Guàrdies de pati i PALIC</div>
+        <div class="section-subtitle">Assignació d'hores especials</div>
+      </div>
+    </div>
+    <div class="section-body">
+
+      <div class="subsection">
+        <div class="subsection-title">Guàrdies de pati (GP)</div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">L'administrador ja ha calculat quantes guàrdies de pati corresponen al teu departament. La teva tasca és distribuir-les entre els professors.</p>
+        <ol class="steps">
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">A la targeta de cada professor, veuràs la secció <strong>"Guàrdies de pati"</strong> amb botons <strong>+</strong> i <strong>−</strong>.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Assigna les guàrdies de pati fins que la quota del departament sigui 0. La targeta de resum lateral indica quantes queden per assignar.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">El botó <strong>+</strong> es desactiva automàticament quan la quota del departament s'ha esgotat.</div>
+          </li>
+        </ol>
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div>Les guàrdies de pati <strong>no compten</strong> per a les 18h lectives del professor. Apareixen separades a la targeta.</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">PALIC</div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">Si el teu departament té hores PALIC, la secció apareixerà automàticament a les targetes dels professors.</p>
+        <ol class="steps">
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Usa els botons <strong>+</strong> / <strong>−</strong> a la secció "PALIC" de la targeta per assignar les hores PALIC a cada professor.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Les hores PALIC <strong>sí compten</strong> per a les hores lectives del professor (s'afegeixen al total).</div>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 5: Comissions -->
+  <div class="section" id="s5">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <div>
+        <div class="section-title">Comissions i coordinacions</div>
+        <div class="section-subtitle">Assignar professors a comissions</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">Les coordinacions (tipus <strong>C</strong>) no compten per a les hores lectives però sí s'han d'assignar. El cap de coordinació és el <code>professorAssignat</code> i la resta de membres s'afegeixen com a <em>participants</em>.</p>
+
+      <ol class="steps">
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content">A la targeta del professor, fes clic a <strong>"Comissions"</strong> per desplegar la secció (apareix el nombre de comissions actuals).</div>
+        </li>
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content">Veuràs la llista de comissions on ja participa, indicant si és <em>coordinador</em> o <em>membre</em>.</div>
+        </li>
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content">Per afegir el professor a una comissió nova, selecciona-la al desplegable de "comissions disponibles" i fes clic a <strong>"Afegeix seleccionades"</strong>.</div>
+        </li>
+        <li>
+          <div class="step-dot"></div>
+          <div class="step-content">Per eliminar un professor membre d'una comissió, fes clic a la <code>×</code> al costat de la comissió (no disponible per al coordinador principal).</div>
+        </li>
+      </ol>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <div>El <strong>coordinador</strong> d'una comissió s'assigna des de la llista de classes pendents (com qualsevol altra classe). Els <strong>membres participants</strong> s'afegeixen des de la targeta del professor.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 6: Preferències -->
+  <div class="section" id="s6">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <div>
+        <div class="section-title">Preferències i comentaris del professor</div>
+        <div class="section-subtitle">Informació per al procés d'elaboració d'horaris</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">Cada targeta de professor té una secció col·lapsable <strong>"Preferències i comentaris"</strong>. Pots actualitzar-la des d'aquí:</p>
+
+      <table>
+        <thead>
+          <tr><th>Camp</th><th>Opcions</th><th>Finalitat</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Horari preferit</strong></td>
+            <td>Sense preferència · Entrar prest · Entrar tard</td>
+            <td>Informa els horaris de la seva disponibilitat preferida.</td>
+          </tr>
+          <tr>
+            <td><strong>Motiu al·legat</strong></td>
+            <td>Text lliure</td>
+            <td>Justificació de la preferència horària (conciliació, salut, etc.).</td>
+          </tr>
+          <tr>
+            <td><strong>Comentaris</strong></td>
+            <td>Text lliure</td>
+            <td>Qualsevol observació rellevant per a la direcció o el cap d'estudis.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">✅</span>
+        <div>Pots revisar totes les preferències i comentaris del departament al resum de professors a <code>/resums</code>.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 7: Validació i tancament -->
+  <div class="section" id="s7">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <div>
+        <div class="section-title">Validació i tancament del departament</div>
+        <div class="section-subtitle">Últim pas del procés</div>
+      </div>
+    </div>
+    <div class="section-body">
+
+      <div class="subsection">
+        <div class="subsection-title">El panell de validació</div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">Just sota la barra sticky, veuràs el panell de validació si hi ha problemes a resoldre:</p>
+
+        <div class="validation-demo">
+          <div class="validation-demo-title">⛔ Problemes crítics (bloquegen el tancament)</div>
+          <div class="validation-item">⛔ La professora Maria Pérez supera el màxim d'hores (+2h sobre màxim)</div>
+          <div class="validation-item">⛔ La classe "Matemàtiques 2nA" no té professor assignat</div>
+        </div>
+
+        <table style="margin-top: 0.75rem;">
+          <thead>
+            <tr><th>Estat</th><th>Color</th><th>Pot tancar?</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Bloquejat</strong></td>
+              <td>Vermell</td>
+              <td><span class="badge badge-red">No</span> — cal resoldre els errors primers</td>
+            </tr>
+            <tr>
+              <td><strong>Revisar</strong></td>
+              <td>Groc</td>
+              <td><span class="badge badge-orange">Amb confirmació</span> — el sistema avisa però es pot continuar</td>
+            </tr>
+            <tr>
+              <td><strong>Pot tancar</strong></td>
+              <td>Verd</td>
+              <td><span class="badge badge-green">Sí</span> — tot correcte</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Tancar el departament</div>
+        <ol class="steps">
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Comprova que el panell de validació mostra l'estat <strong>"Pot tancar"</strong> (o almenys "Revisar" i has decidit que els advertiments són acceptables).</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Fes clic al botó <strong>"Tancar departament"</strong> (part superior dreta, botó vermell).</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">El sistema demanarà confirmació. Si hi ha advertiments, tornarà a mostrar-los. Confirma per continuar.</div>
+          </li>
+          <li>
+            <div class="step-dot"></div>
+            <div class="step-content">Un cop tancat, el departament entra en mode <strong>només lectura</strong>. Pots consultar la distribució però no modificar-la.</div>
+          </li>
+        </ol>
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div>Sols <strong>l'administrador</strong> pot reobrire un departament tancat. Si necessites fer algun canvi, contacta'l.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resums -->
+  <div class="section" id="resums">
+    <div class="section-header">
+      <div class="section-num" style="background: var(--primary);">↗</div>
+      <div>
+        <div class="section-title">Consultar els resums</div>
+        <div class="section-subtitle">Visió global de tota la distribució</div>
+      </div>
+      <div class="section-route" style="background: var(--primary);">/resums</div>
+    </div>
+    <div class="section-body">
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">La secció Resums és accessible per a tots els usuaris (caps de departament, professors i admin). Mostra la distribució de tot el centre, no sols del teu departament.</p>
+
+      <table>
+        <thead>
+          <tr><th>Pestanya</th><th>Contingut</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Grups</strong></td>
+            <td>Estat d'assignació per grup (1r ESO A, 2n BAT B...). Veuràs quines matèries estan assignades i quines pendents.</td>
+          </tr>
+          <tr>
+            <td><strong>Caps de departament</strong></td>
+            <td>Llista de tots els caps de departament del centre.</td>
+          </tr>
+          <tr>
+            <td><strong>Coordinacions</strong></td>
+            <td>Comissions actives amb el coordinador i els membres participants.</td>
+          </tr>
+          <tr>
+            <td><strong>Tutories</strong></td>
+            <td>Llista de tutors per grup.</td>
+          </tr>
+          <tr>
+            <td><strong>Professors</strong></td>
+            <td>Resum complet d'hores per professor: lectives, GP, PALIC i total.</td>
+          </tr>
+          <tr>
+            <td><strong>Poca càrrega</strong></td>
+            <td>Professors amb menys hores de les ideals, per facilitar reequilibris.</td>
+          </tr>
+          <tr>
+            <td><strong>Traçabilitat</strong></td>
+            <td>Historial complet d'assignacions per professor.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">✅</span>
+        <div>Des de la pestanya <strong>Grups</strong> pots filtrar per ESO, Batxillerat o Cicles i veure ràpidament si algun grup té classes sense professor.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Annex: Tipus de classes -->
+  <div class="section" id="tipus">
+    <div class="section-header">
+      <div class="section-num" style="background: #475569;">?</div>
+      <div>
+        <div class="section-title">Referència: tipus de classes</div>
+        <div class="section-subtitle">Codis que apareixen a les classes</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">Cada classe té un <strong>tipus</strong> que condiciona com es comptabilitzen les hores i si el grup s'assigna o no.</p>
+      <div class="type-grid">
+        <div class="type-card">
+          <div class="type-card-code">(buit)</div>
+          <div class="type-card-name">Classe normal</div>
+          <div class="type-card-desc">Grup ✔ · Professor ✔</div>
+        </div>
+        <div class="type-card">
+          <div class="type-card-code">D</div>
+          <div class="type-card-name">Desdoble</div>
+          <div class="type-card-desc">Grup — · Professor ✔</div>
+        </div>
+        <div class="type-card">
+          <div class="type-card-code">O / O1 / O2…</div>
+          <div class="type-card-name">Optativa</div>
+          <div class="type-card-desc">Grup ✔ (1 sola vegada per franja) · Professor ✔</div>
+        </div>
+        <div class="type-card">
+          <div class="type-card-code">T</div>
+          <div class="type-card-name">Optativa compartida</div>
+          <div class="type-card-desc">Hores es divideixen entre professors assignats</div>
+        </div>
+        <div class="type-card">
+          <div class="type-card-code">F</div>
+          <div class="type-card-name">Flexible</div>
+          <div class="type-card-desc">Grup — · Professor ✔</div>
+        </div>
+        <div class="type-card">
+          <div class="type-card-code">S</div>
+          <div class="type-card-name">Suport</div>
+          <div class="type-card-desc">Co-docència, mateixa aula. Grup — · Professor ✔</div>
+        </div>
+        <div class="type-card">
+          <div class="type-card-code">C</div>
+          <div class="type-card-name">Coordinació</div>
+          <div class="type-card-desc">No compta per hores lectives. Té participants.</div>
+        </div>
+        <div class="type-card">
+          <div class="type-card-code">GP</div>
+          <div class="type-card-name">Guàrdia de pati</div>
+          <div class="type-card-desc">No compta per 18h lectives. S'assigna 1 a 1.</div>
+        </div>
+        <div class="type-card">
+          <div class="type-card-code">PALIC</div>
+          <div class="type-card-name">PALIC</div>
+          <div class="type-card-desc">Sí compta per hores lectives. S'assigna 1 a 1.</div>
+        </div>
+        <div class="type-card">
+          <div class="type-card-code">*Tutoria</div>
+          <div class="type-card-name">Tutoria</div>
+          <div class="type-card-desc">Grup — · Professor ✔</div>
+        </div>
+        <div class="type-card">
+          <div class="type-card-code">A1 / A2…</div>
+          <div class="type-card-name">Autodesdoble</div>
+          <div class="type-card-desc">Grup ✔ hores reduïdes · Professor ✔ hores completes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align: center; margin-top: 3rem; color: var(--text-muted); font-size: 0.8rem;">
+    <p>Quota · IES Josep Sureda i Blanes · Mallorca</p>
+    <p style="margin-top: 0.25rem;">Per a dubtes, contacta amb l'administrador del sistema.</p>
+  </div>
+
+</main>
+</body>
+</html>

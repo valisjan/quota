@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Documentació · Quota IESJSB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Roboto', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #dde6f3;
+      padding: 2rem;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; max-width: 800px; width: 100%; }
+    .header { grid-column: 1 / -1; text-align: center; margin-bottom: 1rem; }
+    .header h1 { font-size: 2rem; font-weight: 700; color: #0f172a; }
+    .header p { color: #64748b; margin-top: 0.4rem; }
+    .card {
+      background: white;
+      border-radius: 1rem;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 24px rgba(0,36,182,0.07);
+      text-decoration: none;
+      display: block;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,36,182,0.13); }
+    .card-top { padding: 2rem; }
+    .card-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: 1.3rem; font-weight: 700; color: #0f172a; }
+    .card-desc { font-size: 0.87rem; color: #64748b; margin-top: 0.4rem; line-height: 1.6; }
+    .card-footer {
+      padding: 1rem 2rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .card-admin .card-footer { background: #0024B6; }
+    .card-caps .card-footer { background: #1a3d2b; }
+  </style>
+</head>
+<body>
+  <div class="card-grid">
+    <div class="header">
+      <h1>Quota · IESJSB</h1>
+      <p>Documentació de l'aplicació de distribució d'hores del professorat</p>
+    </div>
+    <a href="tutorial-admin.html" class="card card-admin">
+      <div class="card-top">
+        <div class="card-icon">⚙️</div>
+        <div class="card-title">Guia de l'Administrador</div>
+        <div class="card-desc">Crea cursos, importa des de Google Sheets, gestiona usuaris, configura guàrdies, tanca la distribució i exporta a Untis.</div>
+      </div>
+      <div class="card-footer">Obrir tutorial →</div>
+    </a>
+    <a href="tutorial-caps.html" class="card card-caps">
+      <div class="card-top">
+        <div class="card-icon">🏢</div>
+        <div class="card-title">Guia del Cap de Departament</div>
+        <div class="card-desc">Distribueix les hores del teu departament, gestiona guàrdies de pati, PALIC, comissions i tanca el departament quan acabis.</div>
+      </div>
+      <div class="card-footer">Obrir tutorial →</div>
+    </a>
+  </div>
+</body>
+</html>
