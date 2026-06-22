@@ -164,16 +164,36 @@
         </div>
       </div>
 
-      <div v-if="classesDesbordades.length" class="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4">
+      <div
+        v-if="classesDesbordades.length"
+        class="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4 dark:border-rose-900/60 dark:bg-rose-950/20"
+      >
         <h5 class="mb-2 text-sm font-semibold text-rose-800">
-          Classes que no caben sense superar les 21 hores
+          Classes sense encaix en la simulació
         </h5>
         <p class="mb-2 text-xs text-rose-700">
-          Queden {{ totalHoresDesbordades }}h repartibles sense col·locar.
+          Queden {{ totalHoresDesbordades }}h repartibles sense col·locar. Cada fila indica el
+          motiu detectat.
         </p>
-        <div class="space-y-1">
-          <div v-for="c in classesDesbordades" :key="c.id" class="text-xs text-rose-700">
-            {{ c.materia }} {{ c.curs }} {{ c.grup }} - {{ c.hores }}h
+        <div class="space-y-2">
+          <div
+            v-for="c in classesDesbordades"
+            :key="c.id"
+            class="rounded-md border border-rose-200/80 bg-white/80 px-3 py-2 text-xs text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-100"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="font-semibold">{{ c.materia }} {{ c.curs }} {{ c.grup }}</span>
+              <span class="font-bold">{{ c.hores }}h</span>
+            </div>
+            <p class="mt-1 font-medium">
+              {{ c.motiuNoAssignada || 'No hi ha marge suficient en cap professor elegible.' }}
+            </p>
+            <p
+              v-if="c.detallNoAssignada"
+              class="mt-0.5 text-rose-700 dark:text-rose-200/80"
+            >
+              {{ c.detallNoAssignada }}
+            </p>
           </div>
         </div>
       </div>
@@ -443,6 +463,84 @@ function resumSlots(slots) {
   return slots.map((slot) => `${slot.nom} (${slot.hores}h)`).join(', ');
 }
 
+function formatHores(valor) {
+  const numero = Number(valor) || 0;
+  return `${Number.isInteger(numero) ? numero : numero.toFixed(1)}h`;
+}
+
+function resumClasseCurta(classe) {
+  return [classe.materia, classe.curs, classe.grup].filter(Boolean).join(' ');
+}
+
+function margesSlots(slots) {
+  return [...slots]
+    .map((slot) => ({
+      nom: slot.nom,
+      hores: Number(slot.hores) || 0,
+      maxim: Number(slot.maxim) || 0,
+      marge: Math.max(0, (Number(slot.maxim) || 0) - (Number(slot.hores) || 0)),
+    }))
+    .sort((a, b) => b.marge - a.marge || a.nom.localeCompare(b.nom));
+}
+
+function explicarNoAssignacio(classe, slots) {
+  const paquet = paquetClasses(classe);
+  const horesNecessaries = horesPaquetClasse(classe);
+  const marges = margesSlots(slots);
+  const millorMarge = marges[0]?.marge ?? 0;
+  const detallMarges = marges.length
+    ? `Millors marges: ${marges
+        .slice(0, 3)
+        .map(
+          (slot) =>
+            `${slot.nom}: ${formatHores(slot.marge)} lliures (${formatHores(slot.hores)}/${formatHores(slot.maxim)})`
+        )
+        .join('; ')}.`
+    : '';
+  const detallPaquet =
+    paquet.length > 1
+      ? `Paquet obligatori: ${paquet.map(resumClasseCurta).join(' + ')} (${formatHores(horesNecessaries)}). `
+      : '';
+
+  if (!slots.length) {
+    return {
+      motiuNoAssignada: 'No hi ha professorat elegible disponible per fer la simulació.',
+      detallNoAssignada: professorsExclosos.value
+        ? `${professorsExclosos.value} professors queden fora de la simulació per la seva disponibilitat horària.`
+        : '',
+    };
+  }
+
+  if (millorMarge <= 0) {
+    return {
+      motiuNoAssignada: `Calen ${formatHores(horesNecessaries)}, però tot el professorat elegible ja està al màxim.`,
+      detallNoAssignada: `${detallPaquet}${detallMarges}`,
+    };
+  }
+
+  if (millorMarge < horesNecessaries) {
+    return {
+      motiuNoAssignada: `Calen ${formatHores(horesNecessaries)} lliures i el marge més gran és ${formatHores(millorMarge)}.`,
+      detallNoAssignada: `${detallPaquet}${detallMarges}`,
+    };
+  }
+
+  return {
+    motiuNoAssignada:
+      'Hi ha marge parcial, però no s’ha trobat cap reubicació sense superar els màxims individuals.',
+    detallNoAssignada: `${detallPaquet}${detallMarges}`,
+  };
+}
+
+function anotarClassesNoAssignades(paquet, classeBase, slots) {
+  const diagnostic = explicarNoAssignacio(classeBase, slots);
+  return paquet.map((classe) => ({
+    ...classe,
+    motiuNoAssignada: diagnostic.motiuNoAssignada,
+    detallNoAssignada: diagnostic.detallNoAssignada,
+  }));
+}
+
 function crearSlotsBase(profLimits, fixatMap) {
   return profLimits.map((p) => {
     const fixat = fixatMap.get(p.nom);
@@ -663,7 +761,7 @@ async function generar() {
       }
 
       if (!assignat) {
-        classesNoAssignades.push(...paquet);
+        classesNoAssignades.push(...anotarClassesNoAssignades(paquet, classe, slots));
       }
     }
 
@@ -759,7 +857,9 @@ async function generar() {
   }
 
   if (millorNoAssignades.length) {
-    avisos.push(`${millorNoAssignades.length} classes no caben sense superar les 21 hores.`);
+    avisos.push(
+      `${millorNoAssignades.length} classes queden sense assignar. Revisa el motiu a la llista inferior.`
+    );
   }
 
     errorProposta.value = avisos.join(' ');
