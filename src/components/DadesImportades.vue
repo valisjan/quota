@@ -82,6 +82,7 @@
               <option value="D">Desdoblament</option>
               <option value="CD">Codocència</option>
               <option value="S">Suport</option>
+              <option value="SD">Suport divisible</option>
               <option value="F">Flexible</option>
               <option value="C">Coordinació</option>
               <option value="CO">Coordinació individual</option>
@@ -288,6 +289,9 @@ const classesFiltrades = computed(() => {
       if (filtresClasses.tipus && filtresClasses.tipus !== 'normal') {
         const tipus = (classe.tipus || '').toString().toUpperCase().trim();
         if (filtresClasses.tipus === 'C' || filtresClasses.tipus === 'CO') {
+          return tipus === filtresClasses.tipus;
+        }
+        if (['S', 'SD', 'D', 'CD', 'F', 'GP', 'PALIC'].includes(filtresClasses.tipus)) {
           return tipus === filtresClasses.tipus;
         }
         if (!tipus.startsWith(filtresClasses.tipus)) return false;

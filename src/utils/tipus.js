@@ -2,6 +2,7 @@ export const TIPUS = {
   DESDOBLAMENT: 'D',
   CODOCENCIA: 'CD',
   SUPORT: 'S',
+  SUPORT_DIVISIBLE: 'SD',
   FLEXIBLE: 'F',
   GP: 'GP',
   PALIC: 'PALIC',
@@ -14,6 +15,7 @@ export const TIPUS_CONEGUTS = [
   TIPUS.DESDOBLAMENT,
   TIPUS.CODOCENCIA,
   TIPUS.SUPORT,
+  TIPUS.SUPORT_DIVISIBLE,
   TIPUS.FLEXIBLE,
   TIPUS.GP,
   TIPUS.PALIC,
@@ -35,6 +37,10 @@ export function esGP(tipus) {
 
 export function esPALIC(tipus) {
   return esTipus(tipus, TIPUS.PALIC);
+}
+
+export function esSuportDivisible(tipus) {
+  return esTipus(tipus, TIPUS.SUPORT_DIVISIBLE);
 }
 
 export function esDesdoblament(tipus) {
@@ -89,6 +95,7 @@ function tipusBase(tipus) {
     D: { text: 'Desdoblament', group: 'desdoblament' },
     CD: { text: 'Codoc\u00e8ncia', group: 'desdoblament' },
     S: { text: 'Suport', group: 'suport' },
+    SD: { text: 'Suport divisible', group: 'suport-divisible' },
     F: { text: 'Flexible', group: 'flexible' },
     GP: { text: 'Gu\u00e0rdies de pati', group: 'gp' },
     PALIC: { text: 'PALIC', group: 'palic' },
@@ -138,6 +145,7 @@ export function getTipusBadgeClass(tipus, variant = 'badge') {
     optativa:     'badge-green',
     desdoblament: 'badge-blue',
     suport:       'badge-yellow',
+    'suport-divisible': 'badge-yellow',
     autodesdoble: 'badge-purple',
     flexible:     'badge-indigo',
     gp:           'badge-red',
@@ -151,7 +159,7 @@ export function getTipusBadgeClass(tipus, variant = 'badge') {
 
 export function exclosaDelRepartiment(tipus) {
   const normal = normalitzarTipus(tipus);
-  return normal === TIPUS.GP || normal === TIPUS.PALIC;
+  return normal === TIPUS.GP || normal === TIPUS.PALIC || normal === TIPUS.SUPORT_DIVISIBLE;
 }
 
 export function comptaPerGrupPerTipus(tipus) {
@@ -160,6 +168,7 @@ export function comptaPerGrupPerTipus(tipus) {
     TIPUS.DESDOBLAMENT,
     TIPUS.CODOCENCIA,
     TIPUS.SUPORT,
+    TIPUS.SUPORT_DIVISIBLE,
     TIPUS.FLEXIBLE,
     TIPUS.PALIC,
     TIPUS.GP,

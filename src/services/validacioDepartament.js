@@ -1,6 +1,7 @@
 import { classeCompletamentAssignada } from '../utils/assignacions';
 import { classeAssignadaA, horesComputablesClasse, limitsHoresProfessor, professorsClasse, textJornada } from '../utils/horesProfessor';
-import { exclosaDelRepartiment, esGP, esOptativaCompartida, esPALIC } from '../utils/tipus';
+import { exclosaDelRepartiment, esGP, esOptativaCompartida, esPALIC, esSuportDivisible } from '../utils/tipus';
+import { comptarSDAssignacions, normalitzarSDAssignacions, resoldreGrupSDAssignacio } from '../utils/suportDivisible';
 import { classePertanyDepartament } from '../utils/departaments';
 import {
   esCapsEstudisClasse,
@@ -60,9 +61,34 @@ function crearItem({ id, severitat = 'avis', categoria, titol, detall, context, 
 
 function horesTotalsProfessor(professor, classes) {
   const horesClasses = classes
-    .filter((classe) => !esGP(classe.tipus) && !esPALIC(classe.tipus) && classeAssignadaA(classe, professor.nom))
+    .filter((classe) => !esGP(classe.tipus) && !esPALIC(classe.tipus) && !esSuportDivisible(classe.tipus) && classeAssignadaA(classe, professor.nom))
     .reduce((total, classe) => total + horesComputablesClasse(classe), 0);
-  return horesClasses + Number(professor.palicAssignades || 0);
+  return horesClasses + Number(professor.palicAssignades || 0) + comptarSDAssignacions(professor);
+}
+
+function normalitzarClau(valor) {
+  return (valor || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function classeTeGrup(classe, grupResol) {
+  const curs = normalitzarClau(grupResol?.curs);
+  const grup = normalitzarClau(grupResol?.grup);
+  if (!curs || !grup) return false;
+  return classesMateixCursIGrup(classe, curs, grup);
+}
+
+function classesMateixCursIGrup(classe, curs, grup) {
+  if (normalitzarClau(classe?.curs) !== curs) return false;
+  return (classe?.grup || '')
+    .toString()
+    .split('+')
+    .map(normalitzarClau)
+    .includes(grup);
 }
 
 function validarClassesSenseAssignar(classesDepartament) {
@@ -217,14 +243,21 @@ function validarProfessorat(professorsDepartament, classes) {
     .filter(Boolean);
 }
 
-function validarGpPalic({ totalGPDepartament = 0, totalGPAssignades = 0, totalPALICDepartament = 0, totalPALICAssignades = 0 }) {
+function validarBorsesHoraries({
+  totalGPDepartament = 0,
+  totalGPAssignades = 0,
+  totalPALICDepartament = 0,
+  totalPALICAssignades = 0,
+  totalSDDepartament = 0,
+  totalSDAssignades = 0,
+}) {
   const items = [];
   if (totalGPDepartament > 0 && totalGPAssignades !== totalGPDepartament) {
     items.push(
       crearItem({
         id: 'gp-pendent',
         severitat: 'critica',
-        categoria: 'GP/PALIC',
+        categoria: 'Extres horaris',
         titol: 'Guàrdies de pati',
         detall:
           totalGPAssignades < totalGPDepartament
@@ -240,7 +273,7 @@ function validarGpPalic({ totalGPDepartament = 0, totalGPAssignades = 0, totalPA
       crearItem({
         id: 'palic-pendent',
         severitat: 'critica',
-        categoria: 'GP/PALIC',
+        categoria: 'Extres horaris',
         titol: 'PALIC',
         detall:
           totalPALICAssignades < totalPALICDepartament
@@ -251,6 +284,52 @@ function validarGpPalic({ totalGPDepartament = 0, totalGPAssignades = 0, totalPA
       })
     );
   }
+  if (totalSDDepartament > 0 && totalSDAssignades !== totalSDDepartament) {
+    items.push(
+      crearItem({
+        id: 'sd-pendent',
+        severitat: 'critica',
+        categoria: 'Extres horaris',
+        titol: 'Suport divisible',
+        detall:
+          totalSDAssignades < totalSDDepartament
+            ? `Falten ${formatHores(totalSDDepartament - totalSDAssignades)} hores de suport divisible per assignar.`
+            : `Hi ha ${formatHores(totalSDAssignades - totalSDDepartament)} hores de suport divisible de més.`,
+        context: `${formatHores(totalSDAssignades)} / ${formatHores(totalSDDepartament)}`,
+        target: { type: 'resum' },
+      })
+    );
+  }
+  return items;
+}
+
+function validarSuportDivisiblePerGrup(professorsDepartament, classes) {
+  const items = [];
+
+  professorsDepartament.forEach((professor) => {
+    normalitzarSDAssignacions(professor.sdAssignacions, professor.sdAssignades)
+      .forEach((assignacio, index) => {
+        const grupText = (assignacio.grup || '').toString().trim();
+        const grupResol = resoldreGrupSDAssignacio(assignacio, classes);
+        const existeix = grupResol && classes.some((classe) => classeTeGrup(classe, grupResol));
+        if (grupText && existeix) return;
+
+        items.push(
+          crearItem({
+            id: `sd-grup-${professor.id || professor.nom}-${index}`,
+            severitat: 'critica',
+            categoria: 'Extres horaris',
+            titol: 'Suport divisible',
+            detall: grupText
+              ? `L'hora ${index + 1} de ${professor.nom} apunta a "${grupText}", perÃ² no s'ha trobat aquest grup.`
+              : `L'hora ${index + 1} de ${professor.nom} no tÃ© grup de suport indicat.`,
+            context: professor.departament || '',
+            target: { type: 'professor', nom: professor.nom },
+          })
+        );
+      });
+  });
+
   return items;
 }
 
@@ -289,6 +368,8 @@ export function calcularValidacioDepartament({
   totalGPAssignades = 0,
   totalPALICDepartament = 0,
   totalPALICAssignades = 0,
+  totalSDDepartament = 0,
+  totalSDAssignades = 0,
 } = {}) {
   const classesDepartament = classes.filter((classe) =>
     classePertanyDepartament(classe, departament)
@@ -300,7 +381,15 @@ export function calcularValidacioDepartament({
     ...validarTutories(classesDepartament, classes),
     ...validarBlocsGermans(classesDepartament, classes),
     ...validarProfessorat(professorsDepartament, classes),
-    ...validarGpPalic({ totalGPDepartament, totalGPAssignades, totalPALICDepartament, totalPALICAssignades }),
+    ...validarSuportDivisiblePerGrup(professorsDepartament, classes),
+    ...validarBorsesHoraries({
+      totalGPDepartament,
+      totalGPAssignades,
+      totalPALICDepartament,
+      totalPALICAssignades,
+      totalSDDepartament,
+      totalSDAssignades,
+    }),
     ...validarCapsEstudis(classesDepartament, classes),
   ];
 

@@ -45,7 +45,7 @@
       </div>
       <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-900">
         Es buidaran professors assignats a classes, tutories, suports, desdoblaments, optatives i coordinacions.
-        També es reiniciaran les guàrdies de pati i PALIC assignades al professorat.
+        També es reiniciaran les guàrdies de pati, PALIC i suport divisible assignats al professorat.
       </div>
     </div>
 
@@ -135,7 +135,8 @@
             Es netejaran {{ resumAssignacions.classesAmbAssignacions }} classes amb professorat assignat,
             {{ resumAssignacions.participantsCoordinacio }} participants de coordinacions,
             {{ resumAssignacions.gpAssignades }} guàrdies de pati i
-            {{ resumAssignacions.palicAssignades }} hores PALIC.
+            {{ resumAssignacions.palicAssignades }} hores PALIC,
+            {{ resumAssignacions.sdAssignades || 0 }} hores de suport divisible.
           </template>
         </div>
 

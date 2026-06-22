@@ -27,7 +27,7 @@
       <div class="print-title">Departament de {{ departament }}</div>
       <div class="print-meta">
         <span>Data: {{ dataAvui }}</span>
-        <span>Hores lectives: {{ totalHoresAssignades }} / {{ totalHoresDepartament }}h</span>
+        <span>Total hores: {{ totalHoresAssignades }} / {{ totalHoresDepartament }}h</span>
         <span>Professors: {{ professors.length }}</span>
       </div>
     </div>
@@ -35,7 +35,7 @@
     <!-- Resum numèric (pantalla) -->
     <div class="print-hide mb-4 flex flex-wrap gap-x-6 gap-y-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800/50">
       <div>
-        <span class="text-slate-600 dark:text-slate-400">Hores lectives:</span>
+        <span class="text-slate-600 dark:text-slate-400">Total hores:</span>
         <strong class="ml-1.5" :class="totalHoresAssignades === totalHoresDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'">
           {{ totalHoresAssignades }} / {{ totalHoresDepartament }}h
         </strong>
@@ -55,6 +55,12 @@
         <span class="text-slate-600 dark:text-slate-400">PALIC:</span>
         <strong class="ml-1.5" :class="totalPalicAssignades === totalPalicDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'">
           {{ totalPalicAssignades }} / {{ totalPalicDepartament }}
+        </strong>
+      </div>
+      <div v-if="totalSdDepartament > 0">
+        <span class="text-slate-600 dark:text-slate-400">Suport divisible:</span>
+        <strong class="ml-1.5" :class="totalSdAssignades === totalSdDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'">
+          {{ totalSdAssignades }} / {{ totalSdDepartament }}
         </strong>
       </div>
       <div>
@@ -90,6 +96,12 @@
               class="w-14 border-b border-r border-slate-300 px-3 py-2.5 text-center font-semibold text-orange-700 dark:border-gray-600 dark:text-orange-300"
             >
               PALIC
+            </th>
+            <th
+              v-if="totalSdDepartament > 0"
+              class="w-16 border-b border-r border-slate-300 px-3 py-2.5 text-center font-semibold text-amber-700 dark:border-gray-600 dark:text-amber-300"
+            >
+              Suport divisible
             </th>
             <th class="w-14 border-b border-r border-slate-300 px-3 py-2.5 text-center font-semibold text-slate-700 dark:border-gray-600 dark:text-gray-200">
               Total
@@ -149,6 +161,13 @@
                   {{ c.hores }}h
                 </span>
               </div>
+              <div
+                v-if="getSdAssignacions(professor.nom).length"
+                class="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900 dark:bg-amber-900/20 dark:text-amber-200"
+              >
+                <span class="font-semibold">Suport divisible:</span>
+                {{ formatSDAssignacions(professor.nom) }}
+              </div>
             </td>
 
             <!-- Lectives -->
@@ -172,6 +191,15 @@
               :class="getHoresPalic(professor.nom) > 0 ? 'text-orange-700 dark:text-orange-300' : 'text-slate-300 dark:text-gray-600'"
             >
               {{ getHoresPalic(professor.nom) || '-' }}
+            </td>
+
+            <!-- SD -->
+            <td
+              v-if="totalSdDepartament > 0"
+              class="border-b border-r border-slate-200 px-3 py-2.5 text-center align-middle font-mono dark:border-gray-700"
+              :class="getHoresSd(professor.nom) > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-slate-300 dark:text-gray-600'"
+            >
+              {{ getHoresSd(professor.nom) || '-' }}
             </td>
 
             <!-- Total -->
@@ -215,6 +243,13 @@
               :class="totalPalicAssignades === totalPalicDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'"
             >
               {{ totalPalicAssignades }} / {{ totalPalicDepartament }}
+            </td>
+            <td
+              v-if="totalSdDepartament > 0"
+              class="border-t-primary border-slate-300 px-3 py-2.5 text-center font-mono dark:border-gray-500"
+              :class="totalSdAssignades === totalSdDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'"
+            >
+              {{ totalSdAssignades }} / {{ totalSdDepartament }}
             </td>
             <td class="border-t-primary border-slate-300 px-3 py-2.5 dark:border-gray-500" colspan="2"></td>
           </tr>
@@ -297,10 +332,14 @@ const props = defineProps({
   totalGpAssignades: { type: Number, default: 0 },
   totalPalicDepartament: { type: Number, default: 0 },
   totalPalicAssignades: { type: Number, default: 0 },
+  totalSdDepartament: { type: Number, default: 0 },
+  totalSdAssignades: { type: Number, default: 0 },
   getClassesProfessor: { type: Function, required: true },
   calcularHoresProfessor: { type: Function, required: true },
   getHoresGp: { type: Function, required: true },
   getHoresPalic: { type: Function, required: true },
+  getHoresSd: { type: Function, required: true },
+  getSdAssignacions: { type: Function, required: true },
 });
 
 const dataAvui = new Date().toLocaleDateString('ca-ES', {
@@ -323,7 +362,15 @@ const professorsNecessaris = computed(() => {
 });
 
 function totalComputable(nom) {
-  return props.calcularHoresProfessor(nom) + props.getHoresPalic(nom);
+  return props.calcularHoresProfessor(nom) + props.getHoresPalic(nom) + props.getHoresSd(nom);
+}
+
+function formatSDAssignacions(nom) {
+  const assignacions = props.getSdAssignacions(nom);
+  if (!assignacions.length) return '';
+  return assignacions
+    .map((assignacio, index) => assignacio.grup || `hora ${index + 1} sense grup`)
+    .join(', ');
 }
 
 function limitsProf(professor) {
@@ -376,20 +423,22 @@ function exportarExcel() {
   const nomFitxer = `distribucio_${props.departament}_${new Date().toISOString().slice(0, 10)}`;
 
   // Full 1: Resum per professor
-  const capDistribucio = ['Professor', 'H. Lectives', 'GP', 'PALIC', 'Total', 'Estat'];
+  const capDistribucio = ['Professor', 'H. Lectives', 'GP', 'PALIC', 'Suport divisible', 'Grups SD', 'Total', 'Estat'];
   const filesDistribucio = props.professors.map((p) => [
     p.nom,
     props.calcularHoresProfessor(p.nom),
     props.getHoresGp(p.nom) || 0,
     props.getHoresPalic(p.nom) || 0,
+    props.getHoresSd(p.nom) || 0,
+    formatSDAssignacions(p.nom),
     totalComputable(p.nom),
     estatText(p),
   ]);
-  filesDistribucio.push(['TOTAL', props.totalHoresAssignades, props.totalGpAssignades, props.totalPalicAssignades, '', '']);
+  filesDistribucio.push(['TOTAL', props.totalHoresAssignades, props.totalGpAssignades, props.totalPalicAssignades, props.totalSdAssignades, '', '', '']);
 
   const fullDistribucio = [
-    [`Full de distribució - ${props.departament}`, '', '', '', '', ''],
-    [`Data: ${data}`, '', '', '', '', ''],
+    [`Full de distribució - ${props.departament}`, '', '', '', '', '', '', ''],
+    [`Data: ${data}`, '', '', '', '', '', '', ''],
     [],
     capDistribucio,
     ...filesDistribucio,
@@ -400,12 +449,16 @@ function exportarExcel() {
   const filesAssig = [];
   for (const p of props.professors) {
     const classesProfessor = props.getClassesProfessor(p.nom);
-    if (classesProfessor.length === 0) {
+    const sdAssignacions = props.getSdAssignacions(p.nom);
+    if (classesProfessor.length === 0 && sdAssignacions.length === 0) {
       filesAssig.push([p.nom, '(Sense assignació)', '', '', '', '']);
     } else {
       for (const c of classesProfessor) {
         filesAssig.push([p.nom, c.materia, c.curs || '', c.grup || '', c.tipus || '', c.hores]);
       }
+    }
+    for (const sd of sdAssignacions) {
+      filesAssig.push([p.nom, 'Suport divisible', '', sd.grup || '', 'SD', 1]);
     }
   }
 

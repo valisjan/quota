@@ -28,9 +28,10 @@
  <tr>
  <th class="px-4 py-3 text-left font-bold text-slate-800">Professor</th>
  <th class="px-4 py-3 text-left font-bold text-slate-800">Departament</th>
- <th class="px-4 py-3 text-center font-bold text-slate-800">Lectives</th>
+ <th class="px-4 py-3 text-center font-bold text-slate-800">Total hores</th>
  <th class="px-4 py-3 text-center font-bold text-slate-800">GP</th>
  <th class="px-4 py-3 text-center font-bold text-slate-800">PALIC</th>
+ <th class="px-4 py-3 text-center font-bold text-slate-800">Suport divisible</th>
  <th class="px-4 py-3 text-left font-bold text-slate-800">Preferència</th>
  </tr>
  </thead>
@@ -51,6 +52,9 @@
  <td class="px-4 py-3 text-center text-slate-700">
  {{ professor.palicAssignades || 0 }}
  </td>
+ <td class="px-4 py-3 text-center text-slate-700">
+ {{ comptarSDAssignacions(professor) || 0 }}
+ </td>
  <td class="px-4 py-3 text-slate-700">
  {{ getPreferenciaText(professor.preferencia) }}
  </td>
@@ -66,6 +70,7 @@ import { ref, computed } from 'vue';
 import { classeAssignadaA, horesComputablesClasse, esMajorDe55Classe } from '../utils/horesProfessor';
 import { exclosaDelRepartiment } from '../utils/tipus';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
+import { comptarSDAssignacions } from '../utils/suportDivisible';
 
 const { items: classes, isConnected: classesOk } = useCursCollectionSnapshot({ colName: 'classes' });
 const { items: professors, isConnected: profsOk } = useCursCollectionSnapshot({ colName: 'professors' });
@@ -87,13 +92,15 @@ function esMajor55(professor) {
 }
 
 function calcularHoresProfessor(nomProfessor) {
- return classes.value
+ const lectives = classes.value
  .filter(
  (classe) =>
  classeAssignadaA(classe, nomProfessor) &&
  !exclosaDelRepartiment(classe.tipus)
  )
  .reduce((total, classe) => total + horesComputablesClasse(classe), 0);
+ const professor = professors.value.find((p) => p.nom === nomProfessor);
+ return lectives + comptarSDAssignacions(professor || {});
 }
 
 function getPreferenciaText(preferencia) {

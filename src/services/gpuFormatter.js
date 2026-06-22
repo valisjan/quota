@@ -8,8 +8,9 @@ import {
 } from './untisUtils';
 import { parseGestibXml, trobarMateriaGestib, trobarMateriaGestibAmbOverride } from './gestibMapper';
 import { agruparClassesPerLlicoExport } from './lessonBuilder';
-import { comptaPerGrupPerTipus } from '../utils/tipus';
+import { comptaPerGrupPerTipus, esSuportDivisible } from '../utils/tipus';
 import { guardesQueTocaFer } from '../utils/guardes';
+import { crearClassesSuportDivisible } from '../utils/suportDivisible';
 
 function cc(cursId, nom) { return collection(db, 'cursos', cursId, nom); }
 
@@ -113,6 +114,12 @@ function classeComptaPerGrupUntis(classe) {
   if (!classe?.curs || !classe?.grup) return false;
   if ((classe.materia || '').toString().trim().startsWith('*')) return false;
   return comptaPerGrupPerTipus(classe.tipus);
+}
+
+function classeTeGrupExportable(classe) {
+  if (!classe?.curs || !classe?.grup) return false;
+  if ((classe.materia || '').toString().trim().startsWith('*')) return false;
+  return codisClasse(classe).length > 0;
 }
 
 function codiMateriaClasse(classe, materiaGestib, codisMateries) {
@@ -570,8 +577,8 @@ function componentsLlico(classe, professors, codisProfessors, codisMateries, ref
     const codiMateria = codiMateriaClasse(fila, materiaGestib, codisMateries);
     const grupOriginal = classe._preservaGrupsOriginals ? fila.grup : classe.grup;
     const comptaGrup = classeComptaPerGrupUntis({ ...fila, grup: grupOriginal });
-    const codiGrups = comptaGrup ? codisClasse({ ...fila, grup: grupOriginal }).join(',') : '';
-    const teGrupDefinit = comptaGrup;
+    const teGrupDefinit = classeTeGrupExportable({ ...fila, grup: grupOriginal });
+    const codiGrups = teGrupDefinit ? codisClasse({ ...fila, grup: grupOriginal }).join(',') : '';
 
     obtenirProfessorsClasse(fila).forEach((nomProfessor) => {
       const codiProf = codiProfessor(nomProfessor, professors, codisProfessors);
@@ -583,6 +590,7 @@ function componentsLlico(classe, professors, codisProfessors, codisMateries, ref
         codiMateria,
         grup: grupOriginal,
         codiGrups,
+        comptaGrup,
         aula: fila.aula || fila.aulaPropria || fila.aulaEspecifica || '',
         fila,
       });
@@ -654,7 +662,7 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
       const liniesComponents = componentsUnics.map((component) => {
         const clauProfessor = `${component.codiProfessor}|${component.codiMateria}`;
         const flags = {
-          comptaGrup: Boolean(component.codiGrups) && !primerGrup.has(component.codiGrups),
+          comptaGrup: Boolean(component.codiGrups) && component.comptaGrup && !primerGrup.has(component.codiGrups),
           comptaProfessor: !primerProfessor.has(clauProfessor),
         };
         if (component.codiGrups) primerGrup.add(component.codiGrups);
@@ -791,6 +799,7 @@ function simularAssignacions(classes, professorsSimulacio) {
   const disponibles = professorsSimulacio.map((p) => p.nom).filter(Boolean);
 
   return classes.map((classe) => {
+    if (classe._virtualSuportDivisible) return classe;
     if (TIPUS_NO_LECTIUS.has((classe.tipus || '').toUpperCase())) return classe;
     if (!disponibles.length) return classe;
     const clau = [
@@ -820,9 +829,12 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
   const referenciaGestib = referenciaGestibXmlText ? parseGestibXml(referenciaGestibXmlText) : null;
   let professors = snapProfessors.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => !p.eliminatDelFull);
   const rawClasses = snapClasses.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const rawClassesSenseSD = rawClasses.filter((classe) => !esSuportDivisible(classe.tipus));
+  const classesSuportDivisible = crearClassesSuportDivisible(professors, rawClasses);
   let classes = [
-    ...afegirGuardiesPatiCalculades(rawClasses, professors),
-    ...crearClassesGuardiesPassadisIConvivencia(professors, rawClasses),
+    ...afegirGuardiesPatiCalculades(rawClassesSenseSD, professors),
+    ...crearClassesGuardiesPassadisIConvivencia(professors, rawClassesSenseSD),
+    ...classesSuportDivisible,
   ];
   const professorsSimulacio = simular ? professorsPerSimulacio(professors, referenciaGestib) : [];
   if (simular) {

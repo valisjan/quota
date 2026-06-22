@@ -1,4 +1,4 @@
-import { esGP, esOptativaCompartida } from './tipus';
+import { esGP, esPALIC, esSuportDivisible, esOptativaCompartida } from './tipus';
 
 export function professorsClasse(classe) {
   if (Array.isArray(classe.professors) && classe.professors.length > 0)
@@ -19,7 +19,7 @@ export function horesComputablesClasse(classe) {
 
 export function calcularHoresLectives(classes, nomProfessor) {
   return classes
-    .filter(c => !esGP(c.tipus) && classeAssignadaA(c, nomProfessor))
+    .filter(c => !esGP(c.tipus) && !esPALIC(c.tipus) && !esSuportDivisible(c.tipus) && classeAssignadaA(c, nomProfessor))
     .reduce((sum, c) => sum + horesComputablesClasse(c), 0);
 }
 

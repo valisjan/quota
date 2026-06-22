@@ -68,6 +68,8 @@ const professors = [
     rol: 'cap_departament',
     gpAssignades: 0,
     palicAssignades: 0,
+    sdAssignades: 0,
+    sdAssignacions: [],
   },
   {
     id: 'e2e-prof-mat',
@@ -79,6 +81,8 @@ const professors = [
     rol: 'professor',
     gpAssignades: 0,
     palicAssignades: 0,
+    sdAssignades: 0,
+    sdAssignacions: [],
   },
   {
     id: 'e2e-prof-tec',
@@ -90,6 +94,8 @@ const professors = [
     rol: 'professor',
     gpAssignades: 0,
     palicAssignades: 0,
+    sdAssignades: 0,
+    sdAssignacions: [],
   },
 ];
 
@@ -128,6 +134,7 @@ export function getE2ECollection(name) {
     departaments: item.departaments ? [...item.departaments] : item.departaments,
     professors: item.professors ? [...item.professors] : item.professors,
     participants: item.participants ? [...item.participants] : item.participants,
+    sdAssignacions: item.sdAssignacions ? [...item.sdAssignacions] : item.sdAssignacions,
   }));
 }
 

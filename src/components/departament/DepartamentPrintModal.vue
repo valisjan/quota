@@ -9,6 +9,7 @@
           <p><strong>Professors necessaris:</strong> {{ professorsNecessaris }} professors</p>
           <p><strong>Total GP:</strong> {{ totalGp }}h ({{ totalGpAssignades }}h assignades)</p>
           <p><strong>Total PALIC:</strong> {{ totalPalic }}h ({{ totalPalicAssignades }}h assignades)</p>
+          <p><strong>Total suport divisible:</strong> {{ totalSd }}h ({{ totalSdAssignades }}h assignades)</p>
         </div>
       </div>
 
@@ -31,6 +32,9 @@
               <span v-if="getHoresPalic(professor.nom) > 0" class="palic-badge">
                 {{ getHoresPalic(professor.nom) }} PALIC
               </span>
+              <span v-if="getHoresSd(professor.nom) > 0" class="palic-badge">
+                {{ getHoresSd(professor.nom) }} suport divisible
+              </span>
               <span v-if="professor.preferencia" class="preference-badge">
                 {{ professor.preferencia === 'pronto' ? 'Entrar prest' : 'Entrar tard' }}
               </span>
@@ -42,6 +46,15 @@
               <span class="class-name">{{ classe.materia }}</span>
               <span class="class-details">{{ classe.curs }} {{ classe.grup }}</span>
               <span class="class-hours">{{ classe.hores }}h</span>
+            </div>
+            <div
+              v-for="(sd, index) in getSdAssignacions(professor.nom)"
+              :key="`sd-${professor.id}-${index}`"
+              class="class-item"
+            >
+              <span class="class-name">Suport divisible</span>
+              <span class="class-details">{{ sd.grup || 'Sense grup indicat' }}</span>
+              <span class="class-hours">1h</span>
             </div>
           </div>
           
@@ -119,6 +132,14 @@ defineProps({
     type: Number,
     default: 0
   },
+  totalSd: {
+    type: Number,
+    default: 0
+  },
+  totalSdAssignades: {
+    type: Number,
+    default: 0
+  },
   getClassesProfessor: {
     type: Function,
     required: true
@@ -132,6 +153,14 @@ defineProps({
     required: true
   },
   getHoresPalic: {
+    type: Function,
+    required: true
+  },
+  getHoresSd: {
+    type: Function,
+    required: true
+  },
+  getSdAssignacions: {
     type: Function,
     required: true
   },

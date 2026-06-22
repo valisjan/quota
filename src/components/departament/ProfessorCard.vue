@@ -8,8 +8,8 @@
     <!-- Capçalera: nom + hores -->
     <div class="app-card-header px-4 pb-2 pt-3">
       <div class="flex items-start justify-between gap-2">
-        <h4 class="text-lg font-semibold leading-tight text-text-main">{{ professor.nom }}</h4>
-        <span class="shrink-0 rounded-md px-2.5 py-1 text-lg font-black leading-none" :class="horesBadgeClass">
+        <h4 class="text-lg font-medium leading-tight text-text-main">{{ professor.nom }}</h4>
+        <span class="shrink-0 rounded-md px-2.5 py-1 text-lg font-semibold leading-none" :class="horesBadgeClass">
           {{ totalHoresProfessor }}h
         </span>
       </div>
@@ -25,36 +25,36 @@
 
       <!-- Estat + etiquetes -->
       <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-        <span class="text-sm font-semibold" :class="estatTextClass">{{ estatText }}</span>
-        <span v-if="professor.jornada" class="app-chip px-1.5 py-0.5 text-xs font-medium">
+        <span class="text-[0.95rem] font-medium" :class="estatTextClass">{{ estatText }}</span>
+        <span v-if="professor.jornada" class="app-chip px-1.5 py-0.5 text-xs font-normal">
           {{ textJornada(professor) }}
         </span>
-        <span v-if="professor.preferencia" class="app-chip px-1.5 py-0.5 text-xs font-medium">
+        <span v-if="professor.preferencia" class="app-chip px-1.5 py-0.5 text-xs font-normal">
           {{ professor.preferencia === 'pronto' ? '↑ Prest' : '↓ Tard' }}
         </span>
-        <span v-if="guardesPrevistes !== null" class="app-chip px-1.5 py-0.5 text-xs font-medium"
+        <span v-if="guardesPrevistes !== null" class="app-chip px-1.5 py-0.5 text-xs font-normal"
           :class="guardesPrevistes === 0 ? 'bg-slate-100 text-slate-400' : ''">
-          {{ guardesPrevistes === 0 ? 'Exempt G' : `${guardesPrevistes}G` }}
+          {{ guardesPrevistes === 0 ? 'Exempt de guàrdies' : `${guardesPrevistes} guàrdies` }}
         </span>
       </div>
     </div>
 
     <!-- Matèries -->
     <div class="border-t border-border-soft px-3 py-2">
-      <div v-if="classes.length === 0" class="py-1 text-center text-sm italic text-text-muted">
+      <div v-if="classes.length === 0" class="py-1 text-center text-[0.95rem] italic text-text-muted">
         Sense matèries assignades
       </div>
       <div v-else class="space-y-0.5">
         <div
           v-for="classe in classes"
           :key="classe.id"
-          class="flex items-center gap-1.5 rounded px-1 py-1 text-sm hover:bg-surface-hover"
+          class="flex items-center gap-1.5 rounded px-1 py-1 text-[0.95rem] hover:bg-surface-hover"
         >
           <span class="w-16 shrink-0 font-mono text-text-muted">{{ classe.curs }} {{ classe.grup }}</span>
-          <span class="min-w-0 flex-1 truncate font-medium text-text-main">{{ classe.materia }}</span>
+          <span class="min-w-0 flex-1 truncate font-normal text-text-main">{{ classe.materia }}</span>
           <span v-if="classe.tipus" class="app-chip shrink-0 px-1.5 py-0 text-xs">{{ classe.tipus }}</span>
           <span v-if="rolClasse(classe)" class="shrink-0 text-xs italic text-text-muted">{{ rolClasse(classe) }}</span>
-          <span class="w-8 shrink-0 text-right font-semibold text-text-secondary">{{ horesComputablesClasse(classe) }}h</span>
+          <span class="w-8 shrink-0 text-right font-medium text-text-secondary">{{ horesComputablesClasse(classe) }}h</span>
           <button
             type="button"
             class="shrink-0 rounded px-1 text-text-muted hover:bg-red-50 hover:text-red-500 disabled:opacity-30"
@@ -66,58 +66,112 @@
       </div>
     </div>
 
-    <!-- GP, PALIC i GC: discrets, inline -->
+    <!-- Extres horaris -->
     <div
-      v-if="mostraGp || totalPalicDepartament > 0 || mostraGc"
-      class="flex flex-wrap gap-3 border-t border-border-soft bg-surface-soft px-4 py-2"
+      v-if="mostraGp || totalPalicDepartament > 0 || totalSdDepartament > 0 || mostraGc"
+      class="space-y-2 border-t border-border-soft bg-surface-soft px-4 py-3"
     >
-      <div v-if="mostraGp" class="flex items-center gap-1.5">
-        <span class="text-sm font-medium text-text-muted">Guàrdies de pati</span>
+      <div v-if="mostraGp" class="flex items-center justify-between gap-3">
+        <span class="text-[0.95rem] font-normal text-text-secondary">Guàrdies de pati</span>
+        <div class="flex items-center gap-2">
         <button
           type="button"
           class="app-mini-button"
           :disabled="bloquejat || horesGp === 0"
           @click="$emit('decrementar-gp', professor)"
         >−</button>
-        <span class="w-4 text-center text-sm font-bold text-text-main">{{ horesGp }}</span>
+        <span class="w-6 text-center text-[0.95rem] font-medium text-text-main">{{ horesGp }}</span>
         <button
           type="button"
           class="app-mini-button"
           :disabled="bloquejat || totalGpAssignades >= totalGpDepartament"
           @click="$emit('incrementar-gp', professor)"
         >+</button>
+        </div>
       </div>
-      <div v-if="totalPalicDepartament > 0" class="flex items-center gap-1.5">
-        <span class="text-sm font-medium text-text-muted">PALIC</span>
+      <div v-if="totalPalicDepartament > 0" class="flex items-center justify-between gap-3">
+        <span class="text-[0.95rem] font-normal text-text-secondary">PALIC</span>
+        <div class="flex items-center gap-2">
         <button
           type="button"
           class="app-mini-button"
           :disabled="bloquejat || horesPalic === 0"
           @click="$emit('decrementar-palic', professor)"
         >−</button>
-        <span class="w-4 text-center text-sm font-bold text-text-main">{{ horesPalic }}</span>
+        <span class="w-6 text-center text-[0.95rem] font-medium text-text-main">{{ horesPalic }}</span>
         <button
           type="button"
           class="app-mini-button"
           :disabled="bloquejat || totalPalicAssignades >= totalPalicDepartament"
           @click="$emit('incrementar-palic', professor)"
         >+</button>
+        </div>
       </div>
-      <div v-if="mostraGc" class="flex items-center gap-1.5">
-        <span class="text-sm font-medium text-text-muted">G. convivència</span>
+      <div v-if="totalSdDepartament > 0" class="space-y-2">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[0.95rem] font-normal text-text-secondary">Suport divisible</span>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="app-mini-button"
+              :disabled="bloquejat || horesSd === 0"
+              @click="$emit('decrementar-sd', { professor, index: sdAssignacions.length - 1 })"
+            >-</button>
+            <span class="w-6 text-center text-[0.95rem] font-medium text-text-main">{{ horesSd }}</span>
+            <button
+              type="button"
+              class="app-mini-button"
+              :disabled="bloquejat || totalSdAssignades >= totalSdDepartament"
+              @click="$emit('incrementar-sd', professor)"
+            >+</button>
+          </div>
+        </div>
+        <div v-if="sdAssignacions.length" class="space-y-1">
+          <div
+            v-for="(assignacio, index) in sdAssignacions"
+            :key="assignacio.id || index"
+            class="flex items-center gap-2"
+          >
+            <label class="w-20 shrink-0 text-xs text-text-muted">Hora {{ index + 1 }}</label>
+            <input
+              type="text"
+              class="form-input min-w-0 flex-1 px-2 py-1 text-sm"
+              :list="sdDatalistId"
+              :value="assignacio.grup"
+              placeholder="Grup de suport"
+              :disabled="bloquejat"
+              @change="$emit('actualitzar-sd-grup', { professor, index, grup: $event.target.value })"
+            />
+            <button
+              type="button"
+              class="rounded px-1 text-text-muted hover:bg-red-50 hover:text-red-500 disabled:opacity-30"
+              :disabled="bloquejat"
+              :aria-label="`Llevar hora ${index + 1} de suport divisible`"
+              @click="$emit('decrementar-sd', { professor, index })"
+            >x</button>
+          </div>
+          <datalist :id="sdDatalistId">
+            <option v-for="grup in grupsSd" :key="grup" :value="grup" />
+          </datalist>
+        </div>
+      </div>
+      <div v-if="mostraGc" class="flex items-center justify-between gap-3">
+        <span class="text-[0.95rem] font-normal text-text-secondary">Guàrdies de convivència</span>
+        <div class="flex items-center gap-2">
         <button
           type="button"
           class="app-mini-button"
           :disabled="bloquejat || horesGc === 0"
           @click="$emit('decrementar-gc', professor)"
         >−</button>
-        <span class="w-4 text-center text-sm font-bold text-text-main">{{ horesGc }}</span>
+        <span class="w-6 text-center text-[0.95rem] font-medium text-text-main">{{ horesGc }}</span>
         <button
           type="button"
           class="app-mini-button"
           :disabled="bloquejat || horesGc >= 2"
           @click="$emit('incrementar-gc', professor)"
         >+</button>
+        </div>
       </div>
     </div>
 
@@ -128,7 +182,7 @@
       <div v-if="coordinacions.length > 0">
         <button
           type="button"
-          class="flex w-full items-center justify-between px-4 py-2 text-sm font-semibold text-text-muted hover:bg-surface-hover"
+          class="flex w-full items-center justify-between px-4 py-2 text-[0.95rem] font-medium text-text-muted hover:bg-surface-hover"
           @click="mostrarComissions = !mostrarComissions"
         >
           <span>Comissions{{ coordinacionsProfessor.length ? ` (${coordinacionsProfessor.length})` : '' }}</span>
@@ -142,7 +196,7 @@
               class="app-surface-row flex items-center justify-between gap-2 text-sm"
             >
               <span class="text-text-main">{{ c.materia }}
-                <span class="text-text-muted">· {{ esCoordinador(c) ? 'coord.' : 'membre' }}</span>
+                <span class="text-text-muted">· {{ esCoordinador(c) ? 'coordinador/a' : 'membre' }}</span>
               </span>
               <button
                 v-if="!esCoordinador(c)"
@@ -176,7 +230,7 @@
       <!-- Preferències i comentaris -->
       <button
         type="button"
-        class="flex w-full items-center justify-between px-4 py-2 text-sm font-semibold text-text-muted hover:bg-surface-hover"
+          class="flex w-full items-center justify-between px-4 py-2 text-[0.95rem] font-medium text-text-muted hover:bg-surface-hover"
         @click="mostrarPreferencies = !mostrarPreferencies"
       >
         <span>Preferències i comentaris</span>
@@ -232,14 +286,19 @@ const props = defineProps({
   horesLectives: { type: Number, default: 0 },
   horesGp: { type: Number, default: 0 },
   horesPalic: { type: Number, default: 0 },
+  horesSd: { type: Number, default: 0 },
+  sdAssignacions: { type: Array, default: () => [] },
   horesGc: { type: Number, default: 0 },
   guardesPrevistes: { type: Number, default: null },
   mostraGp: { type: Boolean, default: true },
   mostraGc: { type: Boolean, default: false },
+  grupsSd: { type: Array, default: () => [] },
   totalGpDepartament: { type: Number, default: 0 },
   totalGpAssignades: { type: Number, default: 0 },
   totalPalicDepartament: { type: Number, default: 0 },
   totalPalicAssignades: { type: Number, default: 0 },
+  totalSdDepartament: { type: Number, default: 0 },
+  totalSdAssignades: { type: Number, default: 0 },
   coordinacions: { type: Array, default: () => [] },
   bloquejat: { type: Boolean, default: false },
 });
@@ -250,6 +309,9 @@ const emit = defineEmits([
   'decrementar-gp',
   'incrementar-palic',
   'decrementar-palic',
+  'incrementar-sd',
+  'decrementar-sd',
+  'actualitzar-sd-grup',
   'incrementar-gc',
   'decrementar-gc',
   'toggle-coordinacio',
@@ -260,8 +322,13 @@ const mostrarComissions = ref(false);
 const mostrarPreferencies = ref(false);
 const coordinacionsSeleccionades = ref([]);
 const bloquejat = computed(() => props.bloquejat);
+const sdDatalistId = computed(() =>
+  `sd-grups-${(props.professor.id || props.professor.nom || 'professor')
+    .toString()
+    .replace(/[^a-zA-Z0-9_-]/g, '-')}`
+);
 
-const totalHoresProfessor = computed(() => props.horesLectives + props.horesPalic);
+const totalHoresProfessor = computed(() => props.horesLectives + props.horesPalic + props.horesSd);
 const limits = computed(() => limitsHoresProfessor(props.professor));
 
 const isPerfectHours = computed(() => totalHoresProfessor.value === limits.value.ideal);

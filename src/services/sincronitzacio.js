@@ -1005,7 +1005,7 @@ export async function sincronitzar(cursId, options = {}) {
         batchProfs.set(novaRef, {
           ...campsFixos,
           preferencia: '', motiuAllegat: '', comentaris: '',
-          gpAssignades: 0, gcAssignades: 0, palicAssignades: 0,
+          gpAssignades: 0, gcAssignades: 0, palicAssignades: 0, sdAssignades: 0, sdAssignacions: [],
         });
         profsAfegits++;
       } else if (existent.id === prof.codiUntis) {
@@ -1019,6 +1019,8 @@ export async function sincronitzar(cursId, options = {}) {
           gpAssignades: existent.data.gpAssignades || 0,
           gcAssignades: existent.data.gcAssignades || 0,
           palicAssignades: existent.data.palicAssignades || 0,
+          sdAssignades: existent.data.sdAssignades || 0,
+          sdAssignacions: existent.data.sdAssignacions || [],
         });
         batchProfs.delete(dd(cursId, 'professors', existent.id));
         idsEliminatsMigracio.add(existent.id);
@@ -1029,7 +1031,7 @@ export async function sincronitzar(cursId, options = {}) {
         batchProfs.set(dd(cursId, 'professors'), {
           ...campsFixos,
           preferencia: '', motiuAllegat: '', comentaris: '',
-          gpAssignades: 0, gcAssignades: 0, palicAssignades: 0,
+          gpAssignades: 0, gcAssignades: 0, palicAssignades: 0, sdAssignades: 0, sdAssignacions: [],
         });
         profsAfegits++;
       } else {

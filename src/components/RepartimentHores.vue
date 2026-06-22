@@ -232,7 +232,7 @@ import { useCursStore } from '../stores/curs';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
 import { classeCompletamentAssignada, professorPrincipalClasse, professorSecundariClasse } from '../utils/assignacions';
-import { esGP, esOptativaCompartida, exclosaDelRepartiment, getTipusLabel, getTipusBadgeClass } from '../utils/tipus';
+import { esOptativaCompartida, exclosaDelRepartiment, getTipusLabel, getTipusBadgeClass } from '../utils/tipus';
 import { normalitzarGrup } from '../utils/grups';
 import { classePertanyDepartament } from '../utils/departaments';
 import {
@@ -333,7 +333,7 @@ watch(
 const horesPorProfessorMap = computed(() => {
   const map = new Map();
   for (const c of classes.value) {
-    if (esGP(c.tipus)) continue;
+    if (exclosaDelRepartiment(c.tipus)) continue;
     const hores = horesComputablesClasse(c);
     for (const nom of professorsClasse(c)) {
       if (!nom) continue;

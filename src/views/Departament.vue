@@ -73,7 +73,9 @@
                 <p class="truncate text-lg font-bold text-text-main">{{ departamentSeleccionat }}</p>
                 <span class="inline-flex shrink-0 items-baseline gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-3 py-1.5 text-primary">
                   <span class="text-xl font-black leading-none">{{ professorsDepartament.length }}</span>
-                  <span class="text-sm font-bold leading-none">prof.</span>
+                  <span class="text-sm font-bold leading-none">
+                    {{ professorsDepartament.length === 1 ? 'professor' : 'professors' }}
+                  </span>
                 </span>
                 <span class="hidden shrink-0 text-base font-semibold text-text-secondary md:inline">
                   {{ resumStickyDepartament }}
@@ -272,12 +274,14 @@
 
       <!-- Pestanya: Distribució -->
       <div v-show="activeTab === 'distribucio'" id="panel-distribucio" role="tabpanel" aria-labelledby="tab-distribucio">
-        <!-- Resum GP, PALIC i hores del departament -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4" data-validation-summary tabindex="-1">
+        <!-- Resum GP, PALIC, SD i hores del departament -->
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-[minmax(17rem,19rem)_minmax(0,1fr)] xl:grid-cols-[21rem_minmax(0,1fr)] xl:gap-5 items-start">
+          <div class="space-y-3 lg:sticky lg:top-4">
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-1" data-validation-summary tabindex="-1">
           <div class="card-stat-primary">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="font-bold text-text-main">Hores lectives</h3>
+                <h3 class="font-bold text-text-main">Total hores</h3>
                 <p class="text-xs text-text-secondary">Assignades als professors</p>
               </div>
               <div class="text-right">
@@ -359,10 +363,29 @@
               />
             </div>
           </div>
-        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)] lg:grid-cols-[340px_minmax(0,1fr)] gap-5 items-start">
-          <div class="lg:sticky lg:top-4">
+          <div v-if="totalSDDepartament > 0" class="card-stat-warning">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="font-bold text-text-main">Suport divisible</h3>
+                <p class="text-xs text-text-secondary">Hores de suport assignades</p>
+              </div>
+              <div class="text-right">
+                <span class="text-xl font-bold text-text-main">
+                  {{ totalSDAssignades }}
+                </span>
+                <span class="text-xl font-bold text-text-secondary"> / {{ totalSDDepartament }}</span>
+              </div>
+            </div>
+            <div class="app-progress-track mt-2 h-2 w-full">
+              <div
+                class="h-2 rounded-sm transition-all"
+                :class="totalSDAssignades === totalSDDepartament ? 'bg-success' : 'bg-danger'"
+                :style="`width: ${totalSDDepartament > 0 ? Math.min(100,(totalSDAssignades/totalSDDepartament)*100) : 0}%`"
+              />
+            </div>
+          </div>
+            </div>
             <RepartimentHores
               :departamentSeleccionat="departamentSeleccionat"
               :bloquejat="departamentTancat || solsLectura"
@@ -395,7 +418,7 @@
                 </button>
               </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3">
               <ProfessorCard
                 v-for="professor in professorsDepartament"
                 :key="professor.id"
@@ -404,14 +427,19 @@
                 :hores-lectives="calcularHoresProfessor(professor.nom)"
                 :hores-gp="getHoresGP(professor.nom)"
                 :hores-palic="getHoresPALIC(professor.nom)"
+                :hores-sd="getHoresSD(professor.nom)"
+                :sd-assignacions="getSDAssignacions(professor.nom)"
                 :hores-gc="getHoresGC(professor.nom)"
                 :guardes-previstes="getGuardesPrevistes(professor.nom)"
                 :mostra-gp="totalGPDepartament > 0 || totalGPAssignades > 0"
                 :mostra-gc="true"
+                :grups-sd="grupsDisponiblesSD"
                 :total-gp-departament="totalGPDepartament"
                 :total-gp-assignades="totalGPAssignades"
                 :total-palic-departament="totalPALICDepartament"
                 :total-palic-assignades="totalPALICAssignades"
+                :total-sd-departament="totalSDDepartament"
+                :total-sd-assignades="totalSDAssignades"
                 :coordinacions="coordinacions"
                 :bloquejat="departamentTancat || solsLectura"
                 @actualitzar-professor="actualitzarProfessor"
@@ -419,6 +447,9 @@
                 @decrementar-gp="decrementarGP"
                 @incrementar-palic="incrementarPALIC"
                 @decrementar-palic="decrementarPALIC"
+                @incrementar-sd="incrementarSD"
+                @decrementar-sd="decrementarSD"
+                @actualitzar-sd-grup="actualitzarSDGrup"
                 @incrementar-gc="incrementarGC"
                 @decrementar-gc="decrementarGC"
                 @toggle-coordinacio="toggleCoordinacioProfessor"
@@ -449,10 +480,14 @@
           :total-gp-assignades="totalGPAssignades"
           :total-palic-departament="totalPALICDepartament"
           :total-palic-assignades="totalPALICAssignades"
+          :total-sd-departament="totalSDDepartament"
+          :total-sd-assignades="totalSDAssignades"
           :get-classes-professor="getClassesProfessor"
           :calcular-hores-professor="calcularHoresProfessor"
           :get-hores-gp="getHoresGP"
           :get-hores-palic="getHoresPALIC"
+          :get-hores-sd="getHoresSD"
+          :get-sd-assignacions="getSDAssignacions"
         />
       </div>
       </template>
@@ -470,10 +505,14 @@
       :total-gp-assignades="totalGPAssignades"
       :total-palic="totalPALICDepartament"
       :total-palic-assignades="totalPALICAssignades"
+      :total-sd="totalSDDepartament"
+      :total-sd-assignades="totalSDAssignades"
       :get-classes-professor="getClassesProfessor"
       :calcular-hores-professor="calcularHoresProfessor"
       :get-hores-gp="getHoresGP"
       :get-hores-palic="getHoresPALIC"
+      :get-hores-sd="getHoresSD"
+      :get-sd-assignacions="getSDAssignacions"
       :is-perfect-hours="isPerfectHours"
       :is-over-recommended="isOverRecommended"
       :is-over-limit="isOverLimit"
@@ -494,8 +533,9 @@ import ProfessorCard from '../components/departament/ProfessorCard.vue';
 import DepartamentPrintModal from '../components/departament/DepartamentPrintModal.vue';
 import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
 import { departamentIconText, departamentFlagClass, departamentIconPaths, departamentInicials } from '../utils/departamentIcon';
-import { esGP, esPALIC, esOptativaCompartida, esCoordinacioAmbMembres, exclosaDelRepartiment } from '../utils/tipus';
+import { esGP, esPALIC, esSuportDivisible, esOptativaCompartida, esCoordinacioAmbMembres, exclosaDelRepartiment } from '../utils/tipus';
 import { classePertanyDepartament } from '../utils/departaments';
+import { comptarSDAssignacions, crearSDAssignacio, normalitzarSDAssignacions } from '../utils/suportDivisible';
 import { quotaGuardiesPatiDepartament } from '../utils/guardiesPati';
 import { guardesQueTocaFer } from '../utils/guardes';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
@@ -558,6 +598,8 @@ const {
       comentaris: data.comentaris || '',
       gpAssignades: data.gpAssignades || 0,
       palicAssignades: data.palicAssignades || 0,
+      sdAssignacions: normalitzarSDAssignacions(data.sdAssignacions, data.sdAssignades),
+      sdAssignades: comptarSDAssignacions(data),
       gcAssignades: data.gcAssignades || 0,
       exempteGuardies: data.exempteGuardies || false,
     };
@@ -604,7 +646,7 @@ const totalGuardiesPatiConfigurades = computed(() =>
 const totalHoresAssignades = computed(() => {
   return classesDepartament.value
     .filter(comptaHoresDepartament)
-    .reduce((total, c) => total + horesAssignadesClasse(c), 0);
+    .reduce((total, c) => total + horesAssignadesClasse(c), 0) + totalSDAssignades.value;
 });
 
 // Computed
@@ -620,11 +662,18 @@ const departamentsAmbResum = computed(() =>
     const nom = dep.nom || '';
     const classesDept = classes.value.filter((classe) => classePertanyDepartament(classe, nom));
     const classesComputables = classesDept.filter(comptaHoresDepartament);
-    const totalHores = classesComputables.reduce((total, classe) => total + (Number(classe.hores) || 0), 0);
-    const horesAssignades = classesComputables.reduce((total, classe) => total + horesAssignadesClasse(classe), 0);
-    const classesPendents = classesComputables.filter(
+    const totalSD = classesDept
+      .filter((classe) => esSuportDivisible(classe.tipus))
+      .reduce((total, classe) => total + (Number(classe.hores) || 0), 0);
+    const sdAssignades = professorsActius.value
+      .filter((professor) => professor.departament === nom)
+      .reduce((total, professor) => total + comptarSDAssignacions(professor), 0);
+    const totalHores = classesComputables.reduce((total, classe) => total + (Number(classe.hores) || 0), 0) + totalSD;
+    const horesAssignades = classesComputables.reduce((total, classe) => total + horesAssignadesClasse(classe), 0) + sdAssignades;
+    const classesPendentsBase = classesComputables.filter(
       (classe) => horesAssignadesClasse(classe) < (Number(classe.hores) || 0)
     ).length;
+    const classesPendents = classesPendentsBase + (sdAssignades < totalSD ? 1 : 0);
     const professorsCount = professorsActius.value.filter((professor) => professor.departament === nom).length;
     const percentatge = totalHores > 0
       ? Math.min(100, Math.round((horesAssignades / totalHores) * 100))
@@ -724,7 +773,7 @@ const autoAssignacionsEnCurs = ref(new Set());
 const totalHoresDepartament = computed(() => {
   return classesDepartament.value
     .filter(comptaHoresDepartament)
-    .reduce((total, c) => total + c.hores, 0);
+    .reduce((total, c) => total + (Number(c.hores) || 0), 0) + totalSDDepartament.value;
 });
 
 const horesPerProfessorDepartament = computed(() => {
@@ -781,6 +830,39 @@ const totalPALICAssignades = computed(() => {
   );
 });
 
+// SD: pool total de suport divisible del departament.
+const totalSDDepartament = computed(() => {
+  return classes.value
+    .filter(
+      (c) =>
+        esSuportDivisible(c.tipus) &&
+        classePertanyDepartament(c, departamentSeleccionat.value)
+    )
+    .reduce((total, c) => total + (Number(c.hores) || 0), 0);
+});
+
+const totalSDAssignades = computed(() => {
+  return professorsDepartament.value.reduce(
+    (total, p) => total + comptarSDAssignacions(p),
+    0
+  );
+});
+
+const grupsDisponiblesSD = computed(() => {
+  const grups = new Set();
+  for (const classe of classes.value) {
+    const curs = (classe.curs || '').toString().trim();
+    const grup = (classe.grup || '').toString().trim();
+    if (!curs || !grup) continue;
+    grup
+      .split('+')
+      .map((valor) => valor.trim())
+      .filter(Boolean)
+      .forEach((grupNet) => grups.add(`${curs} ${grupNet}`));
+  }
+  return [...grups].sort((a, b) => a.localeCompare(b, 'ca'));
+});
+
 const coordinacions = computed(() => {
   return classes.value
     .filter((c) => esCoordinacioAmbMembres(c.tipus))
@@ -802,6 +884,8 @@ const validacioDepartament = computed(() =>
     totalGPAssignades: totalGPAssignades.value,
     totalPALICDepartament: totalPALICDepartament.value,
     totalPALICAssignades: totalPALICAssignades.value,
+    totalSDDepartament: totalSDDepartament.value,
+    totalSDAssignades: totalSDAssignades.value,
   })
 );
 
@@ -849,7 +933,7 @@ function esOptativaCompartidaClasse(classe) {
 }
 
 function comptaHoresDepartament(classe) {
-  return !esGP(classe.tipus) && !esPALIC(classe.tipus);
+  return !esGP(classe.tipus) && !esPALIC(classe.tipus) && !esSuportDivisible(classe.tipus);
 }
 
 function horesAssignadesClasse(classe) {
@@ -864,7 +948,7 @@ function horesAssignadesClasse(classe) {
 const classesPorProfessorMap = computed(() => {
   const map = new Map();
   for (const c of classes.value) {
-    if (esGP(c.tipus) || esPALIC(c.tipus)) continue;
+    if (esGP(c.tipus) || esPALIC(c.tipus) || esSuportDivisible(c.tipus)) continue;
     for (const nom of professorsClasse(c)) {
       if (!nom) continue;
       if (!map.has(nom)) map.set(nom, []);
@@ -884,7 +968,7 @@ const classesPorProfessorMap = computed(() => {
 const horesPorProfessorMap = computed(() => {
   const map = new Map();
   for (const c of classes.value) {
-    if (esGP(c.tipus)) continue;
+    if (esGP(c.tipus) || esPALIC(c.tipus) || esSuportDivisible(c.tipus)) continue;
     const hores = horesComputablesClasse(c);
     for (const nom of professorsClasse(c)) {
       if (!nom) continue;
@@ -916,6 +1000,15 @@ function getHoresPALIC(nomProfessor) {
   return getProfessor(nomProfessor).palicAssignades || 0;
 }
 
+function getSDAssignacions(nomProfessor) {
+  const professor = getProfessor(nomProfessor);
+  return normalitzarSDAssignacions(professor.sdAssignacions, professor.sdAssignades);
+}
+
+function getHoresSD(nomProfessor) {
+  return getSDAssignacions(nomProfessor).length;
+}
+
 function getHoresGC(nomProfessor) {
   return getProfessor(nomProfessor).gcAssignades || 0;
 }
@@ -927,7 +1020,7 @@ function getGuardesPrevistes(nomProfessor) {
 }
 
 function calcularHoresComputablesProfessor(nomProfessor) {
-  return calcularHoresProfessor(nomProfessor) + getHoresPALIC(nomProfessor);
+  return calcularHoresProfessor(nomProfessor) + getHoresPALIC(nomProfessor) + getHoresSD(nomProfessor);
 }
 
 function distanciaIdealProfessor(professor) {
@@ -1102,6 +1195,53 @@ async function decrementarPALIC(professor) {
     console.error('Error decrementant PALIC:', e);
     toast.error("No s'ha pogut guardar el PALIC: " + (e.message || e.code || ''));
   }
+}
+
+// SD
+
+async function guardarSDAssignacions(professor, assignacions) {
+  if (departamentTancat.value) return;
+  const normalitzades = normalitzarSDAssignacions(assignacions);
+  try {
+    await updateDoc(cursStore.docRef('professors', professor.id), {
+      sdAssignacions: normalitzades,
+      sdAssignades: normalitzades.length,
+      lastModified: serverTimestamp(),
+    });
+  } catch (e) {
+    console.error('Error actualitzant SD:', e);
+    toast.error("No s'ha pogut guardar el suport divisible: " + (e.message || e.code || ''));
+  }
+}
+
+async function incrementarSD(professor) {
+  if (departamentTancat.value) return;
+  if (totalSDAssignades.value >= totalSDDepartament.value) return;
+  const assignacions = [
+    ...normalitzarSDAssignacions(professor.sdAssignacions, professor.sdAssignades),
+    crearSDAssignacio(),
+  ];
+  await guardarSDAssignacions(professor, assignacions);
+}
+
+async function decrementarSD({ professor, index }) {
+  if (departamentTancat.value) return;
+  const assignacions = normalitzarSDAssignacions(professor.sdAssignacions, professor.sdAssignades);
+  if (!assignacions.length) return;
+  const indexEliminar = Number.isInteger(index) ? index : assignacions.length - 1;
+  assignacions.splice(indexEliminar, 1);
+  await guardarSDAssignacions(professor, assignacions);
+}
+
+async function actualitzarSDGrup({ professor, index, grup }) {
+  if (departamentTancat.value) return;
+  const assignacions = normalitzarSDAssignacions(professor.sdAssignacions, professor.sdAssignades);
+  if (!assignacions[index]) return;
+  assignacions[index] = {
+    ...assignacions[index],
+    grup: (grup || '').toString().trim(),
+  };
+  await guardarSDAssignacions(professor, assignacions);
 }
 
 // Professor

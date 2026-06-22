@@ -42,9 +42,10 @@
  <thead class="border-b border-slate-300 bg-slate-200">
  <tr class="text-left text-xs font-bold uppercase tracking-wide text-slate-800">
  <th scope="col" class="px-4 py-2">Professor</th>
- <th scope="col" class="px-4 py-2 text-center">Lectives</th>
+ <th scope="col" class="px-4 py-2 text-center">Total hores</th>
  <th scope="col" class="px-4 py-2 text-center">GP</th>
  <th scope="col" class="px-4 py-2 text-center">PALIC</th>
+ <th scope="col" class="px-4 py-2 text-center">Suport divisible</th>
  <th scope="col" class="px-4 py-2">Preferència</th>
  <th scope="col" class="px-4 py-2">Avisos</th>
  </tr>
@@ -71,11 +72,12 @@
  </td>
  <td class="px-4 py-3 text-center">
  <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="horesBadgeClass(p)">
- {{ calcularHoresProfessor(p.nom) }}h
+ {{ calcularHoresTotalsProfessor(p.nom) }}h
  </span>
  </td>
  <td class="px-4 py-3 text-center text-slate-600">{{ getHoresGP(p.nom) || '-' }}</td>
  <td class="px-4 py-3 text-center text-slate-600">{{ getHoresPALIC(p.nom) || '-' }}</td>
+ <td class="px-4 py-3 text-center text-slate-600">{{ getHoresSD(p.nom) || '-' }}</td>
  <td class="px-4 py-3 text-slate-700">{{ getPreferenciaText(p.preferencia) || '-' }}</td>
  <td class="px-4 py-3">
  <ul v-if="getAvisos(p).length" class="space-y-0.5">
@@ -105,6 +107,7 @@ import { ref, computed } from 'vue';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { limitsHoresProfessor, textJornada, professorsClasse, classeAssignadaA, horesComputablesClasse, esMajorDe55Classe } from '../utils/horesProfessor';
 import { descarregarExcel } from '../utils/exportExcel';
+import { comptarSDAssignacions, normalitzarSDAssignacions } from '../utils/suportDivisible';
 
 const { items: classes, isConnected: classesOk } = useCursCollectionSnapshot({ colName: 'classes' });
 const { items: professors, isConnected: profsOk } = useCursCollectionSnapshot({ colName: 'professors' });
@@ -144,7 +147,7 @@ function professorsMostrats(dept) {
 }
 
 function totalHoresDept(dept) {
- return getProfessorsDepartament(dept).reduce((sum, p) => sum + calcularHoresProfessor(p.nom), 0);
+ return getProfessorsDepartament(dept).reduce((sum, p) => sum + calcularHoresTotalsProfessor(p.nom), 0);
 }
 
 function getClassesProfessor(nom) {
@@ -153,8 +156,12 @@ function getClassesProfessor(nom) {
 
 function calcularHoresProfessor(nom) {
  return getClassesProfessor(nom)
- .filter((c) => c.tipus !== 'GP' && c.tipus !== 'PALIC')
+ .filter((c) => !['GP', 'PALIC', 'SD'].includes((c.tipus || '').toString().toUpperCase().trim()))
  .reduce((sum, c) => sum + horesComputablesClasse(c), 0);
+}
+
+function calcularHoresTotalsProfessor(nom) {
+ return calcularHoresProfessor(nom) + getHoresPALIC(nom) + getHoresSD(nom);
 }
 
 function getHoresGP(nom) {
@@ -169,6 +176,18 @@ function getHoresPALIC(nom) {
  return c ? Number(c.hores) : 0;
 }
 
+function getHoresSD(nom) {
+ const professor = professors.value.find((p) => p.nom === nom);
+ return professor ? comptarSDAssignacions(professor) : 0;
+}
+
+function getGrupsSD(nom) {
+ const professor = professors.value.find((p) => p.nom === nom);
+ return normalitzarSDAssignacions(professor?.sdAssignacions, professor?.sdAssignades)
+ .map((assignacio, index) => assignacio.grup || `hora ${index + 1} sense grup`)
+ .join(', ');
+}
+
 function esMajor55(nom) {
  const prof = professors.value.find((p) => p.nom === nom);
  return prof?.major55 === true ||
@@ -180,7 +199,7 @@ function getPreferenciaText(pref) {
 }
 
 function getAvisos(professor) {
- const lectives = calcularHoresProfessor(professor.nom);
+ const lectives = calcularHoresTotalsProfessor(professor.nom);
  const limits = limitsHoresProfessor(professor);
  const classesProfessor = getClassesProfessor(professor.nom);
  const tutories = classesProfessor.filter(
@@ -196,7 +215,7 @@ function getAvisos(professor) {
 }
 
 function horesBadgeClass(professor) {
- const lectives = calcularHoresProfessor(professor.nom);
+ const lectives = calcularHoresTotalsProfessor(professor.nom);
  const limits = limitsHoresProfessor(professor);
  if (lectives > limits.maxim) return 'bg-red-200 text-red-900';
  if (lectives > limits.ideal) return 'bg-amber-200 text-amber-900';
@@ -214,7 +233,7 @@ function sortClasses(list) {
 
 function exportarExcel() {
  const data = new Date().toLocaleDateString('ca-ES');
- const cap = ['Departament', 'Professor', 'H. Lectives', 'GP', 'PALIC', 'Jornada', 'Preferència', 'Avisos'];
+ const cap = ['Departament', 'Professor', 'Total hores lectives', 'GP', 'PALIC', 'Suport divisible', 'Grups SD', 'Jornada', 'Preferència', 'Avisos'];
  const files = [];
  for (const dept of departamentsOrdenats.value) {
  for (const p of getProfessorsDepartament(dept)) {
@@ -224,6 +243,8 @@ function exportarExcel() {
  calcularHoresProfessor(p.nom),
  getHoresGP(p.nom) || 0,
  getHoresPALIC(p.nom) || 0,
+ getHoresSD(p.nom) || 0,
+ getGrupsSD(p.nom),
  textJornada(p) || '',
  getPreferenciaText(p.preferencia) || '',
  getAvisos(p).join('; ') || '',
@@ -236,6 +257,9 @@ function exportarExcel() {
  for (const p of getProfessorsDepartament(dept)) {
  for (const c of sortClasses(getClassesProfessor(p.nom))) {
  filesAssig.push([dept, p.nom, c.materia, c.curs || '', c.grup || '', c.tipus || '', horesComputablesClasse(c)]);
+ }
+ for (const sd of normalitzarSDAssignacions(p.sdAssignacions, p.sdAssignades)) {
+ filesAssig.push([dept, p.nom, 'Suport divisible', '', sd.grup || '', 'SD', 1]);
  }
  }
  }

@@ -10,6 +10,7 @@ import {
   esGP,
   esOptativaCompartida,
   esPALIC,
+  esSuportDivisible,
   esTipusConegut,
   normalitzarTipus,
 } from '../utils/tipus';
@@ -223,6 +224,7 @@ export function calcularValidacioFinal({ classes = [], professors = [], departam
     .filter((classe) => {
       if (esGP(classe.tipus) && !classeCompletamentAssignada(classe)) return false;
       if (esPALIC(classe.tipus) && !classeCompletamentAssignada(classe)) return false;
+      if (esSuportDivisible(classe.tipus) && !classeCompletamentAssignada(classe)) return false;
       return Number(classe.hores) > 0 && !classeCompletamentAssignada(classe);
     })
     .map((classe) =>

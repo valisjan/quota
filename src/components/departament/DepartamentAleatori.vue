@@ -211,7 +211,7 @@ import {
   trobarAssignaturesParelladesTutoria,
   esDedicacioPrefacturaClasse,
 } from '../../utils/tutories';
-import { esGP, esPALIC, esOptativaCompartida, getTipusBadgeClass, getTipusLabel } from '../../utils/tipus';
+import { esGP, esPALIC, esSuportDivisible, esOptativaCompartida, getTipusBadgeClass, getTipusLabel } from '../../utils/tipus';
 import { trobarGermanesBloc } from '../../utils/grups';
 
 const props = defineProps({
@@ -249,6 +249,7 @@ const assignables = computed(() =>
     (c) =>
       !esGP(c.tipus) &&
       !esPALIC(c.tipus) &&
+      !esSuportDivisible(c.tipus) &&
       !esMajorDe55Classe(c) &&
       !esDedicacioPrefacturaClasse(c) &&
       !teTutoriaPrincipalParellada(c, props.classes)
@@ -304,7 +305,7 @@ const totalHoresDisponibles = computed(() =>
 
 const totalHoresDepartament = computed(() =>
   props.classes
-    .filter((c) => !esGP(c.tipus) && !esPALIC(c.tipus))
+    .filter((c) => !esGP(c.tipus) && !esPALIC(c.tipus) && !esSuportDivisible(c.tipus))
     .reduce((sum, c) => sum + (Number(c.hores) || 0), 0)
 );
 
@@ -418,6 +419,7 @@ function classeEsAssignable(classe) {
   return (
     !esGP(classe.tipus) &&
     !esPALIC(classe.tipus) &&
+    !esSuportDivisible(classe.tipus) &&
     !esMajorDe55Classe(classe) &&
     !esDedicacioPrefacturaClasse(classe) &&
     !teTutoriaPrincipalParellada(classe, props.classes)
