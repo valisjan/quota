@@ -62,6 +62,26 @@ export function limitsHoresProfessor(professor = {}) {
   };
 }
 
+export function resumCapacitatProfessorat(professors = []) {
+  return professors.reduce(
+    (resum, professor) => {
+      const limits = limitsHoresProfessor(professor);
+      const jornada = normalitzarJornada(professor.jornada) || 'N';
+      resum.ideal += limits.ideal;
+      resum.maxim += limits.maxim;
+      resum.total += 1;
+      resum.perJornada[jornada] = (resum.perJornada[jornada] || 0) + 1;
+      return resum;
+    },
+    {
+      ideal: 0,
+      maxim: 0,
+      total: 0,
+      perJornada: { N: 0, T: 0, M: 0 },
+    }
+  );
+}
+
 export function textJornada(professor = {}) {
   const jornada = normalitzarJornada(professor.jornada);
   if (jornada === 'M') return 'Mitja jornada';

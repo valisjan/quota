@@ -29,6 +29,7 @@
         <span>Data: {{ dataAvui }}</span>
         <span>Total hores: {{ totalHoresAssignades }} / {{ totalHoresDepartament }}h</span>
         <span>Professors: {{ professors.length }}</span>
+        <span>Objectiu professorat: {{ capacitatIdealProfessorat }}h / màxim {{ capacitatMaximaProfessorat }}h</span>
       </div>
     </div>
 
@@ -43,7 +44,13 @@
       <div>
         <span class="text-slate-600 dark:text-slate-400">Professors:</span>
         <strong class="ml-1.5 text-slate-900 dark:text-white">{{ professors.length }}</strong>
-        <span class="ml-1 text-slate-500 dark:text-slate-500">(~{{ professorsNecessaris }} necessaris)</span>
+        <span class="ml-1 text-slate-500 dark:text-slate-500">({{ resumJornades }})</span>
+      </div>
+      <div>
+        <span class="text-slate-600 dark:text-slate-400">Objectiu professorat:</span>
+        <strong class="ml-1.5 text-slate-900 dark:text-white">
+          {{ capacitatIdealProfessorat }}h / màxim {{ capacitatMaximaProfessorat }}h
+        </strong>
       </div>
       <div v-if="totalGpDepartament > 0">
         <span class="text-slate-600 dark:text-slate-400">GP:</span>
@@ -317,7 +324,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { limitsHoresProfessor } from '../../utils/horesProfessor';
+import { limitsHoresProfessor, resumCapacitatProfessorat } from '../../utils/horesProfessor';
 import { descarregarExcel } from '../../utils/exportExcel';
 import { classeCompletamentAssignada } from '../../utils/assignacions';
 import { exclosaDelRepartiment } from '../../utils/tipus';
@@ -356,10 +363,26 @@ const classesNoAssignades = computed(() =>
   )
 );
 
-const professorsNecessaris = computed(() => {
-  const exact = props.totalHoresDepartament / 18;
-  return (Math.round(exact * 10) / 10).toString();
+const capacitatProfessorat = computed(() => resumCapacitatProfessorat(props.professors));
+
+const capacitatIdealProfessorat = computed(() => formatHores(capacitatProfessorat.value.ideal));
+
+const capacitatMaximaProfessorat = computed(() => formatHores(capacitatProfessorat.value.maxim));
+
+const resumJornades = computed(() => {
+  const resum = capacitatProfessorat.value;
+  const parts = [
+    resum.perJornada.N ? `${resum.perJornada.N} completa${resum.perJornada.N !== 1 ? 's' : ''}` : '',
+    resum.perJornada.T ? `${resum.perJornada.T} T` : '',
+    resum.perJornada.M ? `${resum.perJornada.M} M` : '',
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : 'sense professorat';
 });
+
+function formatHores(value) {
+  const number = Number(value) || 0;
+  return Number.isInteger(number) ? number.toString() : number.toFixed(1);
+}
 
 function totalComputable(nom) {
   return props.calcularHoresProfessor(nom) + props.getHoresPalic(nom) + props.getHoresSd(nom);

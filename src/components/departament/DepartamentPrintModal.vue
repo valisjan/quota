@@ -6,7 +6,7 @@
         <p>Data: {{ new Date().toLocaleDateString('ca-ES') }}</p>
         <div class="department-stats">
           <p><strong>Total hores:</strong> {{ totalHores }}h</p>
-          <p><strong>Professors necessaris:</strong> {{ professorsNecessaris }} professors</p>
+          <p><strong>Objectiu professorat:</strong> {{ professorsNecessaris }}</p>
           <p><strong>Total GP:</strong> {{ totalGp }}h ({{ totalGpAssignades }}h assignades)</p>
           <p><strong>Total PALIC:</strong> {{ totalPalic }}h ({{ totalPalicAssignades }}h assignades)</p>
           <p><strong>Total suport divisible:</strong> {{ totalSd }}h ({{ totalSdAssignades }}h assignades)</p>

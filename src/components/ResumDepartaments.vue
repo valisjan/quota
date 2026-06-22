@@ -26,12 +26,12 @@
  Total hores assignades: <span class="font-semibold">{{ calcularTotalHoresDepartament(departament) }}</span>
  </p>
  <p class="text-sm text-slate-700">
- Professors necessaris: 
+ Objectiu professorat:
  <span 
  class="font-semibold"
- :class="getProfessorsClass(calcularProfessorsNecessaris(departament))"
+ :class="getCapacitatClass(departament)"
  >
- {{ formatProfessorsNecessaris(calcularProfessorsNecessaris(departament)) }}
+ {{ formatCapacitatDepartament(departament) }}
  </span>
  </p>
  </div>
@@ -79,8 +79,12 @@
 import { computed } from 'vue';
 import { getTipusBadgeClass, getTipusLabel } from '../utils/tipus';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
+import { resumCapacitatProfessorat } from '../utils/horesProfessor';
+import { professorPertanyDepartament } from '../utils/departaments';
 
-const { items: classes, isConnected, lastUpdate } = useCursCollectionSnapshot({ colName: 'classes' });
+const { items: classes, isConnected: classesOk, lastUpdate } = useCursCollectionSnapshot({ colName: 'classes' });
+const { items: professors, isConnected: professorsOk } = useCursCollectionSnapshot({ colName: 'professors' });
+const isConnected = computed(() => classesOk.value && professorsOk.value);
 
 const departamentsInfo = computed(() => {
  const info = {};
@@ -125,26 +129,27 @@ function calcularTotalHoresDepartament(departament) {
  }, 0);
 }
 
-function calcularProfessorsNecessaris(departament) {
+function capacitatDepartament(departament) {
+ return resumCapacitatProfessorat(
+ professors.value.filter((professor) => professorPertanyDepartament(professor, departament))
+ );
+}
+
+function formatHores(value) {
+ const number = Number(value) || 0;
+ return Number.isInteger(number) ? number.toString() : number.toFixed(1);
+}
+
+function formatCapacitatDepartament(departament) {
+ const capacitat = capacitatDepartament(departament);
+ return `${formatHores(capacitat.ideal)}h / màxim ${formatHores(capacitat.maxim)}h`;
+}
+
+function getCapacitatClass(departament) {
  const totalHores = calcularTotalHoresDepartament(departament);
- return totalHores / 18;
-}
-
-function formatProfessorsNecessaris(num) {
- const rounded = Math.round(num * 2) / 2;
- return rounded.toFixed(1).replace('.0', '');
-}
-
-function getProfessorsClass(num) {
- const rounded = Math.round(num * 2) / 2;
- const decimal = rounded % 1 !== 0;
- 
- if (decimal) {
- return num > rounded 
- ? 'text-red-800'
- : 'text-amber-800 dark:text-yellow-400';
- }
- 
+ const capacitat = capacitatDepartament(departament);
+ if (totalHores > capacitat.maxim) return 'text-red-800';
+ if (totalHores > capacitat.ideal) return 'text-amber-800 dark:text-yellow-400';
  return 'text-green-600';
 }
 

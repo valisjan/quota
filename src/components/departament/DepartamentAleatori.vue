@@ -18,7 +18,7 @@
           {{ totalClassesFixadesActuals }} ja fixades · {{ classesPerDistribuir.length }} redistribuïdes
         </p>
         <p v-if="professorsExclosos > 0" class="text-xs text-amber-800">
-          {{ professorsExclosos }} {{ professorsExclosos === 1 ? 'professor exclòs' : 'professors exclosos' }} per jornada reduïda - no apareixen a la proposta
+          {{ professorsExclosos }} {{ professorsExclosos === 1 ? 'professor exclòs' : 'professors exclosos' }} per disponibilitat horària no vàlida - no apareixen a la proposta
         </p>
       </div>
       <button
@@ -287,7 +287,7 @@ const totalClassesFixadesActuals = computed(
 const professorsElegibles = computed(() =>
   props.professors.filter((p) => {
     const lim = limitsHoresProfessor(p);
-    return lim.ideal >= 18 && lim.maxim <= 21;
+    return lim.maxim > 0;
   })
 );
 
@@ -436,7 +436,7 @@ function professorEsElegible(nomProfessor) {
   const professor = props.professors.find((p) => p.nom === nomProfessor);
   if (!professor) return false;
   const lim = limitsHoresProfessor(professor);
-  return lim.ideal >= 18 && lim.maxim <= 21;
+  return lim.maxim > 0;
 }
 
 function horesComputablesPerProfessor(classe, totalProfessorsAssignats) {

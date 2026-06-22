@@ -305,7 +305,7 @@
               <div>
                 <h3 class="font-bold text-text-main">Mitjana per professor</h3>
                 <p class="text-xs text-text-secondary">
-                  {{ professorsDepartament.length }} professor{{ professorsDepartament.length !== 1 ? 's' : '' }}
+                  Ajustada a jornada · {{ resumJornadesDepartament }}
                 </p>
               </div>
               <div class="text-right">
@@ -316,7 +316,8 @@
               </div>
             </div>
             <p class="mt-2 text-sm font-medium text-text-secondary">
-              {{ totalHoresDepartament }} hores totals / professorat del departament
+              Objectiu {{ capacitatIdealDepartament }}h · màxim {{ capacitatMaximaDepartament }}h
+              <span v-if="carregaCapacitatDepartament">· {{ carregaCapacitatDepartament }}% de l'ideal</span>
             </p>
           </div>
 
@@ -514,7 +515,7 @@ import DepartamentFulla from '../components/departament/DepartamentFulla.vue';
 import DepartamentAleatori from '../components/departament/DepartamentAleatori.vue';
 import ProfessorCard from '../components/departament/ProfessorCard.vue';
 import DepartamentPrintModal from '../components/departament/DepartamentPrintModal.vue';
-import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
+import { limitsHoresProfessor, professorsClasse, horesComputablesClasse, resumCapacitatProfessorat } from '../utils/horesProfessor';
 import { departamentIconText, departamentFlagClass, departamentIconPaths, departamentInicials } from '../utils/departamentIcon';
 import { esGP, esPALIC, esSuportDivisible, esOptativaCompartida, esCoordinacioAmbMembres, exclosaDelRepartiment } from '../utils/tipus';
 import { classePertanyDepartament, professorPertanyDepartament } from '../utils/departaments';
@@ -761,10 +762,38 @@ const totalHoresDepartament = computed(() => {
     + totalSDDepartament.value;
 });
 
+const capacitatProfessoratDepartament = computed(() =>
+  resumCapacitatProfessorat(professorsDepartament.value)
+);
+
+const capacitatIdealDepartament = computed(() =>
+  formatHores(capacitatProfessoratDepartament.value.ideal)
+);
+
+const capacitatMaximaDepartament = computed(() =>
+  formatHores(capacitatProfessoratDepartament.value.maxim)
+);
+
 const horesPerProfessorDepartament = computed(() => {
-  const totalProfessors = professorsDepartament.value.length;
-  if (!totalProfessors) return '0';
-  return formatHores(totalHoresDepartament.value / totalProfessors);
+  const equivalentsComplets = capacitatProfessoratDepartament.value.ideal / 18;
+  if (!equivalentsComplets) return '0';
+  return formatHores(totalHoresDepartament.value / equivalentsComplets);
+});
+
+const carregaCapacitatDepartament = computed(() => {
+  const ideal = capacitatProfessoratDepartament.value.ideal;
+  if (!ideal) return 0;
+  return Math.round((totalHoresDepartament.value / ideal) * 100);
+});
+
+const resumJornadesDepartament = computed(() => {
+  const resum = capacitatProfessoratDepartament.value;
+  const parts = [
+    resum.perJornada.N ? `${resum.perJornada.N} completa${resum.perJornada.N !== 1 ? 's' : ''}` : '',
+    resum.perJornada.T ? `${resum.perJornada.T} T` : '',
+    resum.perJornada.M ? `${resum.perJornada.M} M` : '',
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : 'Sense professorat';
 });
 
 const gpOptions = computed(() => ({
@@ -906,9 +935,9 @@ function formatHores(value) {
 }
 
 function formatProfessorsNecessaris() {
-  const totalHores = totalHoresDepartament.value;
-  const exactProfessors = totalHores / 18;
-  return (Math.round(exactProfessors * 10) / 10).toString();
+  const ideal = capacitatProfessoratDepartament.value.ideal;
+  const maxim = capacitatProfessoratDepartament.value.maxim;
+  return `${formatHores(ideal)}h objectiu / ${formatHores(maxim)}h màxim`;
 }
 
 function esOptativaCompartidaClasse(classe) {
