@@ -2,7 +2,7 @@ import { classeCompletamentAssignada } from '../utils/assignacions';
 import { classeAssignadaA, horesComputablesClasse, limitsHoresProfessor, professorsClasse, textJornada } from '../utils/horesProfessor';
 import { exclosaDelRepartiment, esGP, esOptativaCompartida, esPALIC, esSuportDivisible } from '../utils/tipus';
 import { comptarSDAssignacions, normalitzarSDAssignacions, resoldreGrupSDAssignacio } from '../utils/suportDivisible';
-import { classePertanyDepartament } from '../utils/departaments';
+import { classePertanyDepartament, professorPertanyDepartament } from '../utils/departaments';
 import {
   esCapsEstudisClasse,
   esTutoriaAsterisc,
@@ -374,7 +374,9 @@ export function calcularValidacioDepartament({
   const classesDepartament = classes.filter((classe) =>
     classePertanyDepartament(classe, departament)
   );
-  const professorsDepartament = professors.filter((professor) => professor.departament === departament);
+  const professorsDepartament = professors.filter((professor) =>
+    professorPertanyDepartament(professor, departament)
+  );
 
   const items = [
     ...validarClassesSenseAssignar(classesDepartament),

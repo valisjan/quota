@@ -517,7 +517,7 @@ import DepartamentPrintModal from '../components/departament/DepartamentPrintMod
 import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
 import { departamentIconText, departamentFlagClass, departamentIconPaths, departamentInicials } from '../utils/departamentIcon';
 import { esGP, esPALIC, esSuportDivisible, esOptativaCompartida, esCoordinacioAmbMembres, exclosaDelRepartiment } from '../utils/tipus';
-import { classePertanyDepartament } from '../utils/departaments';
+import { classePertanyDepartament, professorPertanyDepartament } from '../utils/departaments';
 import { comptarSDAssignacions, crearSDAssignacio, normalitzarSDAssignacions } from '../utils/suportDivisible';
 import { quotaGuardiesPatiDepartament } from '../utils/guardiesPati';
 import { guardesQueTocaFer } from '../utils/guardes';
@@ -578,6 +578,7 @@ const {
       jornada: data.jornada || '',
       motiuAllegat: data.motiuAllegat || '',
       comentaris: data.comentaris || '',
+      comentariFull: data.comentariFull || '',
       gpAssignades: data.gpAssignades || 0,
       palicAssignades: data.palicAssignades || 0,
       sdAssignacions: normalitzarSDAssignacions(data.sdAssignacions, data.sdAssignades),
@@ -650,13 +651,13 @@ const departamentsAmbResum = computed(() =>
       .filter((classe) => esPALIC(classe.tipus))
       .reduce((total, classe) => total + (Number(classe.hores) || 0), 0);
     const palicAssignades = professorsActius.value
-      .filter((professor) => professor.departament === nom)
+      .filter((professor) => professorPertanyDepartament(professor, nom))
       .reduce((total, professor) => total + (Number(professor.palicAssignades) || 0), 0);
     const totalSD = classesDept
       .filter((classe) => esSuportDivisible(classe.tipus))
       .reduce((total, classe) => total + (Number(classe.hores) || 0), 0);
     const sdAssignades = professorsActius.value
-      .filter((professor) => professor.departament === nom)
+      .filter((professor) => professorPertanyDepartament(professor, nom))
       .reduce((total, professor) => total + comptarSDAssignacions(professor), 0);
     const totalHores = classesComputables.reduce((total, classe) => total + (Number(classe.hores) || 0), 0) + totalPALIC + totalSD;
     const horesAssignades = classesComputables.reduce((total, classe) => total + horesAssignadesClasse(classe), 0) + palicAssignades + sdAssignades;
@@ -666,7 +667,7 @@ const departamentsAmbResum = computed(() =>
     const classesPendents = classesPendentsBase
       + (palicAssignades < totalPALIC ? 1 : 0)
       + (sdAssignades < totalSD ? 1 : 0);
-    const professorsCount = professorsActius.value.filter((professor) => professor.departament === nom).length;
+    const professorsCount = professorsActius.value.filter((professor) => professorPertanyDepartament(professor, nom)).length;
     const percentatge = totalHores > 0
       ? Math.min(100, Math.round((horesAssignades / totalHores) * 100))
       : 0;
@@ -711,7 +712,7 @@ const resumStickyDepartament = computed(() => {
 
 const professorsDepartament = computed(() => {
   return professors.value
-    .filter((p) => p.departament === departamentSeleccionat.value && !p.eliminatDelFull)
+    .filter((p) => professorPertanyDepartament(p, departamentSeleccionat.value) && !p.eliminatDelFull)
     .sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'ca'));
 });
 
@@ -825,7 +826,7 @@ const totalSDDepartament = computed(() => {
 
 const totalSDAssignades = computed(() => {
   return professorsDepartament.value.reduce(
-    (total, p) => total + comptarSDAssignacions(p),
+    (total, p) => total + comptarSDAssignacions(p, departamentSeleccionat.value),
     0
   );
 });
@@ -1187,7 +1188,7 @@ async function incrementarSD(professor) {
   if (totalSDAssignades.value >= totalSDDepartament.value) return;
   const assignacions = [
     ...normalitzarSDAssignacions(professor.sdAssignacions, professor.sdAssignades),
-    crearSDAssignacio(),
+    crearSDAssignacio('', departamentSeleccionat.value),
   ];
   await guardarSDAssignacions(professor, assignacions);
 }

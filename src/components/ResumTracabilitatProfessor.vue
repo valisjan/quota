@@ -66,7 +66,7 @@
  {{ item.professor.nom }}
  </h4>
  <span class="rounded-full bg-white/75 px-2.5 py-1 text-xs font-bold text-slate-700 ">
- {{ item.professor.departament || 'Sense departament' }}
+ {{ formatDepartamentsProfessor(item.professor) || 'Sense departament' }}
  </span>
  <span v-if="item.professor.major55" class="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-bold text-violet-800">
  &gt;55
@@ -196,6 +196,7 @@ import { useColSnapshot } from '../composables/useColSnapshot';
 import { getTipusText } from '../utils/tipus';
 import { limitsHoresProfessor, textJornada, horesComputablesClasse, classeAssignadaA } from '../utils/horesProfessor';
 import { comptarSDAssignacions } from '../utils/suportDivisible';
+import { departamentsProfessor, formatDepartamentsProfessor, professorPertanyDepartament } from '../utils/departaments';
 
 const { items: classes, isConnected } = useColSnapshot('classes');
 const { items: professors } = useColSnapshot('professors');
@@ -204,7 +205,7 @@ const departamentFiltre = ref('');
 const nomesAvisos = ref(false);
 
 const departaments = computed(() =>
- [...new Set(professors.value.map((p) => p.departament).filter(Boolean))].sort()
+ [...new Set(professors.value.flatMap((p) => departamentsProfessor(p)).filter(Boolean))].sort()
 );
 
 const professorsInfo = computed(() =>
@@ -212,7 +213,7 @@ const professorsInfo = computed(() =>
  .map((professor) => construirInfoProfessor(professor))
  .sort(
  (a, b) =>
- (a.professor.departament || '').localeCompare(b.professor.departament || '') ||
+ formatDepartamentsProfessor(a.professor).localeCompare(formatDepartamentsProfessor(b.professor), 'ca') ||
  (a.professor.nom || '').localeCompare(b.professor.nom || '')
  )
 );
@@ -220,12 +221,12 @@ const professorsInfo = computed(() =>
 const professorsFiltrats = computed(() => {
  const terme = normalitzar(cerca.value);
  return professorsInfo.value.filter((item) => {
- if (departamentFiltre.value && item.professor.departament !== departamentFiltre.value) return false;
+ if (departamentFiltre.value && !professorPertanyDepartament(item.professor, departamentFiltre.value)) return false;
  if (nomesAvisos.value && item.avisos.length === 0) return false;
  if (!terme) return true;
  return normalitzar([
  item.professor.nom,
- item.professor.departament,
+ formatDepartamentsProfessor(item.professor),
  ...item.classes.map((classe) => `${classe.materia} ${classe.curs} ${classe.grup}`),
  ...item.coordinador.map((classe) => classe.materia),
  ...item.comissions.map((classe) => classe.materia),

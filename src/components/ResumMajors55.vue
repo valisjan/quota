@@ -42,7 +42,7 @@
  class="hover:bg-slate-100"
  >
  <td class="px-4 py-3 font-medium text-slate-950">{{ professor.nom }}</td>
- <td class="px-4 py-3 text-slate-700">{{ professor.departament }}</td>
+ <td class="px-4 py-3 text-slate-700">{{ formatDepartamentsProfessor(professor) }}</td>
  <td class="px-4 py-3 text-center font-semibold text-slate-950">
  {{ calcularHoresProfessor(professor.nom) }}h
  </td>
@@ -71,6 +71,7 @@ import { classeAssignadaA, horesComputablesClasse, esMajorDe55Classe } from '../
 import { exclosaDelRepartiment } from '../utils/tipus';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { comptarSDAssignacions } from '../utils/suportDivisible';
+import { formatDepartamentsProfessor } from '../utils/departaments';
 
 const { items: classes, isConnected: classesOk } = useCursCollectionSnapshot({ colName: 'classes' });
 const { items: professors, isConnected: profsOk } = useCursCollectionSnapshot({ colName: 'professors' });
@@ -81,7 +82,7 @@ const professorsMajors55 = computed(() =>
  .filter(esMajor55)
  .sort(
  (a, b) =>
- (a.departament || '').localeCompare(b.departament || '') ||
+ formatDepartamentsProfessor(a).localeCompare(formatDepartamentsProfessor(b), 'ca') ||
  (a.nom || '').localeCompare(b.nom || '')
  )
 );

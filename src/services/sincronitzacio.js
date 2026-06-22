@@ -1,6 +1,7 @@
 import { db } from '../firebase';
 import { collection, doc, getDoc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { normalitzarJornada } from '../utils/horesProfessor';
+import { departamentsProfessor, formatDepartamentsProfessor, separarDepartaments } from '../utils/departaments';
 import { E2E_AUTH_BYPASS, getE2ECollection } from './e2e';
 import { BatchSplit } from '../utils/firestoreBatch';
 
@@ -75,15 +76,20 @@ function llegirClassesDeResposta(data) {
 function llegirProfessorsDeResposta(data) {
   assertSheetOk(data, SHEET_PROFESSORAT);
   return (data.table?.rows || [])
-    .map((row) => ({
-      nom:          valorCel(row, 0),
-      departament: valorCel(row, 1),
-      jornada:      normalitzarJornada(valorCel(row, 2)),
-      codiUntis:    valorCel(row, 3),
-      email:        completarEmail(valorCel(row, 4)),
-      rol:          valorCel(row, 5),
-    }))
-    .filter((p) => p.nom && n(p.nom) !== 'nom' && p.departament);
+    .map((row) => {
+      const departaments = separarDepartaments(valorCel(row, 1));
+      return {
+        nom:          valorCel(row, 0),
+        departament: departaments[0] || '',
+        departaments,
+        jornada:      normalitzarJornada(valorCel(row, 2)),
+        codiUntis:    valorCel(row, 3),
+        email:        completarEmail(valorCel(row, 4)),
+        rol:          valorCel(row, 5),
+        comentariFull: valorCel(row, 6),
+      };
+    })
+    .filter((p) => p.nom && n(p.nom) !== 'nom' && p.departaments.length > 0);
 }
 
 function textSignatura(valor) {
@@ -107,11 +113,12 @@ function filesSignaturaProfessors(professors) {
   return professors
     .map((p) => [
       textSignatura(p.nom),
-      textSignatura(p.departament),
+      textSignatura(formatDepartamentsProfessor(p)),
       textSignatura(p.jornada),
       textSignatura(p.codiUntis),
       textSignatura(p.email),
       textSignatura(p.rol),
+      textSignatura(p.comentariFull),
     ].join('\u001f'))
     .sort();
 }
@@ -453,10 +460,11 @@ function resumAgrupatClasses(preview) {
 function resumProfessorCanvi(professor = {}) {
   return [
     professor.nom,
-    professor.departament,
+    formatDepartamentsProfessor(professor),
     professor.jornada,
     professor.codiUntis ? `Untis ${professor.codiUntis}` : '',
     professor.email,
+    professor.comentariFull,
   ]
     .map((part) => (part ?? '').toString().trim())
     .filter(Boolean)
@@ -492,11 +500,12 @@ function detallCanvisProfessor(existent = {}, nou = {}) {
     }
   };
 
-  afegir('Departament', existent.departament, nou.departament);
+  afegir('Departaments', formatDepartamentsProfessor(existent), formatDepartamentsProfessor(nou));
   afegir('Jornada', existent.jornada, nou.jornada);
   afegir('Codi Untis', existent.codiUntis, nou.codiUntis);
   afegir('Email', existent.email, nou.email);
   afegir('Rol', existent.rol, nou.rol);
+  afegir('Comentari', existent.comentariFull, nou.comentariFull);
   return detalls;
 }
 
@@ -714,7 +723,7 @@ async function calcularDiscrepanciesProfessors(cursId, professorsSheets) {
 
 async function calcularDiscrepanciesDepartaments(cursId, professorsSheets) {
   const snapDeps = await getDocs(cc(cursId, 'departaments'));
-  const nomsSheets = [...new Set(professorsSheets.map((p) => p.departament).filter(Boolean))].sort();
+  const nomsSheets = [...new Set(professorsSheets.flatMap((p) => departamentsProfessor(p)).filter(Boolean))].sort();
   const nomsSheetsNorm = new Set(nomsSheets.map(n));
   const existents = snapDeps.docs.map((d) => ({ id: d.id, data: d.data() }));
   const existentsNorm = new Set(existents.map((item) => n(item.data.nom)));
@@ -955,7 +964,7 @@ export async function sincronitzar(cursId, options = {}) {
   const professorsNous = estatFont.professors;
 
   // 4. Sincronitzar departaments
-  const nomsDepNous = [...new Set(professorsNous.map((p) => p.departament))].sort();
+  const nomsDepNous = [...new Set(professorsNous.flatMap((p) => departamentsProfessor(p)))].sort();
   const nomsDepNousNorm = new Set(nomsDepNous.map(n));
 
   const snapDeps = await getDocs(cc(cursId, 'departaments'));
@@ -990,11 +999,14 @@ export async function sincronitzar(cursId, options = {}) {
 
   professorsNous.forEach((prof) => {
     const existent = profsExistentsPerNom.get(n(prof.nom));
+    const departaments = departamentsProfessor(prof);
     const campsFixos = {
       nom: prof.nom,
-      departament: prof.departament,
+      departament: departaments[0] || '',
+      departaments,
       jornada: prof.jornada,
       codiUntis: prof.codiUntis,
+      comentariFull: prof.comentariFull || '',
       eliminatDelFull: false,
       updatedAt: new Date(),
     };
@@ -1164,6 +1176,7 @@ export async function sincronitzar(cursId, options = {}) {
         email: p.email,
         rol: p.rol,
         departament: p.departament || null,
+        departaments: departamentsProfessor(p),
         updatedAt: new Date(),
       });
     }

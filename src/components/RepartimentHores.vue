@@ -234,7 +234,7 @@ import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '
 import { classeCompletamentAssignada, professorPrincipalClasse, professorSecundariClasse } from '../utils/assignacions';
 import { esOptativaCompartida, exclosaDelRepartiment, getTipusLabel, getTipusBadgeClass } from '../utils/tipus';
 import { normalitzarGrup } from '../utils/grups';
-import { classePertanyDepartament } from '../utils/departaments';
+import { classePertanyDepartament, professorPertanyDepartament } from '../utils/departaments';
 import { comptarSDAssignacions } from '../utils/suportDivisible';
 import {
   crearActualitzacionsAssignacio,
@@ -316,7 +316,7 @@ const classesAssignadesFiltrades = computed(() =>
 const professorsDepartamentOrdenats = computed(() =>
   sortProfessors(
     professors.value.filter(
-      (professor) => professor.departament === props.departamentSeleccionat
+      (professor) => professorPertanyDepartament(professor, props.departamentSeleccionat)
     )
   )
 );

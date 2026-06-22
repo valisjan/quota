@@ -163,7 +163,7 @@
         <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ professorsOrdenats.length }} professors importats.</p>
       </div>
       <div class="overflow-x-auto">
-        <table class="w-full text-sm" style="min-width: 720px">
+        <table class="w-full text-sm" style="min-width: 900px">
           <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-600 dark:bg-gray-700 dark:text-slate-300">
             <tr>
               <th class="px-4 py-3">Nom</th>
@@ -171,15 +171,17 @@
               <th class="px-4 py-3">Jornada</th>
               <th class="px-4 py-3">Preferència</th>
               <th class="px-4 py-3">Motiu</th>
+              <th class="px-4 py-3">Comentari full</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
             <tr v-for="professor in professorsOrdenats" :key="professor.id" class="hover:bg-slate-50 dark:hover:bg-gray-700/50">
               <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ professor.nom }}</td>
-              <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ professor.departament || '-' }}</td>
+              <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ formatDepartamentsProfessor(professor) || '-' }}</td>
               <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ etiquetaJornada(professor.jornada) }}</td>
               <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ etiquetaPreferencia(professor.preferencia) }}</td>
               <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ professor.motiuAllegat || '-' }}</td>
+              <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ professor.comentariFull || '-' }}</td>
             </tr>
           </tbody>
         </table>
@@ -222,6 +224,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { getDocs, query, where } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
 import { professorsClasse } from '../utils/horesProfessor';
+import { classePertanyDepartament, departamentsProfessor, formatDepartamentsProfessor } from '../utils/departaments';
 import { getTipusText } from '../utils/tipus';
 import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
 import Sincronitzacio from './Sincronitzacio.vue';
@@ -264,7 +267,7 @@ const departamentsOrdenats = computed(() =>
 const professorsOrdenats = computed(() =>
   [...professors.value].sort(
     (a, b) =>
-      (a.departament || '').localeCompare(b.departament || '', 'ca') ||
+      formatDepartamentsProfessor(a).localeCompare(formatDepartamentsProfessor(b), 'ca') ||
       (a.nom || '').localeCompare(b.nom || '', 'ca')
   )
 );
@@ -283,7 +286,7 @@ const classesFiltrades = computed(() => {
       ].join(' ')).includes(terme);
     })
     .filter((classe) => {
-      if (filtresClasses.departament && departamentClasse(classe) !== filtresClasses.departament) return false;
+      if (filtresClasses.departament && !classePertanyDepartament(classe, filtresClasses.departament)) return false;
       if (filtresClasses.curs && classe.curs !== filtresClasses.curs) return false;
       if (filtresClasses.tipus === 'normal' && (classe.tipus || '').toString().trim()) return false;
       if (filtresClasses.tipus && filtresClasses.tipus !== 'normal') {
@@ -310,8 +313,14 @@ const classesFiltrades = computed(() => {
 const departamentsAmbProfessors = computed(() => {
   const recompte = new Map();
   professors.value.forEach((professor) => {
-    const nom = professor.departament || 'Sense departament';
-    recompte.set(nom, (recompte.get(nom) || 0) + 1);
+    const departamentsProfessorat = departamentsProfessor(professor);
+    if (!departamentsProfessorat.length) {
+      recompte.set('Sense departament', (recompte.get('Sense departament') || 0) + 1);
+      return;
+    }
+    departamentsProfessorat.forEach((nom) => {
+      recompte.set(nom, (recompte.get(nom) || 0) + 1);
+    });
   });
 
   departaments.value.forEach((dep) => {

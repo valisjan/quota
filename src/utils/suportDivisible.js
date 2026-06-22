@@ -1,3 +1,5 @@
+import { departamentPrincipalProfessor, departamentsProfessor } from './departaments';
+
 export function normalitzarSDAssignacions(assignacions = [], legacyCount = 0) {
   const llista = Array.isArray(assignacions) ? assignacions : [];
   const normalitzades = llista
@@ -8,6 +10,7 @@ export function normalitzarSDAssignacions(assignacions = [], legacyCount = 0) {
           grup: item,
           curs: '',
           materia: '',
+          departament: '',
         };
       }
       if (!item || typeof item !== 'object') return null;
@@ -16,6 +19,7 @@ export function normalitzarSDAssignacions(assignacions = [], legacyCount = 0) {
         grup: (item.grup || item.grupObjectiu || item.destinacio || '').toString().trim(),
         curs: (item.curs || '').toString().trim(),
         materia: (item.materia || '').toString().trim(),
+        departament: (item.departament || '').toString().trim(),
       };
     })
     .filter(Boolean);
@@ -27,25 +31,40 @@ export function normalitzarSDAssignacions(assignacions = [], legacyCount = 0) {
       grup: '',
       curs: '',
       materia: '',
+      departament: '',
     });
   }
 
   return normalitzades;
 }
 
-export function comptarSDAssignacions(professor = {}) {
-  return normalitzarSDAssignacions(
+export function sdAssignacionsProfessor(professor = {}, departament = '') {
+  const assignacions = normalitzarSDAssignacions(
     professor.sdAssignacions,
     professor.sdAssignades
-  ).length;
+  );
+
+  const departamentNormalitzat = normalitzarClau(departament);
+  if (!departamentNormalitzat) return assignacions;
+
+  const principal = departamentPrincipalProfessor(professor);
+  return assignacions.filter((assignacio) => {
+    const departamentAssignacio = assignacio.departament || principal;
+    return normalitzarClau(departamentAssignacio) === departamentNormalitzat;
+  });
 }
 
-export function crearSDAssignacio(grup = '') {
+export function comptarSDAssignacions(professor = {}, departament = '') {
+  return sdAssignacionsProfessor(professor, departament).length;
+}
+
+export function crearSDAssignacio(grup = '', departament = '') {
   return {
     id: `sd-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     grup: (grup || '').toString().trim(),
     curs: '',
     materia: '',
+    departament: (departament || '').toString().trim(),
   };
 }
 
@@ -159,12 +178,13 @@ function materiaGenericaSD(materia) {
 
 function materiaPerSuport({ assignacio, professor, grupResol, classes, poolMateria }) {
   if (assignacio.materia) return assignacio.materia;
+  const departamentAssignacio = assignacio.departament || departamentPrincipalProfessor(professor);
 
   const mateixaMateria = classes
     .filter((classe) =>
       !esSD(classe) &&
       classe.materia &&
-      mateixDepartament(classe, professor.departament) &&
+      mateixDepartament(classe, departamentAssignacio) &&
       normalitzarClau(classe.curs) === normalitzarClau(grupResol.curs) &&
       grupsClasse(classe).some((grup) => normalitzarClau(grup) === normalitzarClau(grupResol.grup))
     )
@@ -177,13 +197,14 @@ function materiaPerSuport({ assignacio, professor, grupResol, classes, poolMater
 
   if (mateixaMateria?.materia) return mateixaMateria.materia;
   if (!materiaGenericaSD(poolMateria)) return poolMateria;
-  return professor.departament || 'Suport';
+  return departamentAssignacio || 'Suport';
 }
 
-function poolMateriesSD(professor, classes) {
+function poolMateriesSD(professor, classes, departament) {
   const pool = [];
+  const departamentPool = departament || departamentPrincipalProfessor(professor);
   classes
-    .filter((classe) => esSD(classe) && mateixDepartament(classe, professor.departament))
+    .filter((classe) => esSD(classe) && mateixDepartament(classe, departamentPool))
     .forEach((classe) => {
       const hores = Math.max(1, Number(classe.hores) || 0);
       for (let index = 0; index < hores; index += 1) {
@@ -203,11 +224,16 @@ export function crearClassesSuportDivisible(professors = [], classes = []) {
         professor.sdAssignacions,
         professor.sdAssignades
       );
-      const pool = poolMateriesSD(professor, classes);
 
       assignacions.forEach((assignacio, index) => {
         const grupResol = resoldreGrupSDAssignacio(assignacio, classes);
         if (!grupResol?.curs || !grupResol?.grup) return;
+        const departamentAssignacio =
+          assignacio.departament ||
+          departamentPrincipalProfessor(professor) ||
+          departamentsProfessor(professor)[0] ||
+          '';
+        const pool = poolMateriesSD(professor, classes, departamentAssignacio);
 
         const materia = materiaPerSuport({
           assignacio,
@@ -236,8 +262,8 @@ export function crearClassesSuportDivisible(professors = [], classes = []) {
           grup: grupResol.grup,
           materia,
           hores: 1,
-          departament: professor.departament || '',
-          departaments: professor.departament ? [professor.departament] : [],
+          departament: departamentAssignacio,
+          departaments: departamentAssignacio ? [departamentAssignacio] : [],
           tipus: 'SD',
           professorAssignat: professor.nom,
           professors: [professor.nom],

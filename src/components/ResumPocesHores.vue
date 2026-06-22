@@ -52,7 +52,7 @@
  {{ professor.nom }}
  </td>
  <td class="px-6 py-3 text-slate-700">
- {{ professor.departament }}
+ {{ formatDepartamentsProfessor(professor) }}
  </td>
  <td class="px-6 py-3 text-center text-slate-700">
  {{ professor.objectiu }}h
@@ -82,6 +82,7 @@ import { computed } from 'vue';
 import { useColSnapshot } from '../composables/useColSnapshot';
 import { limitsHoresProfessor, calcularHoresLectives } from '../utils/horesProfessor';
 import { comptarSDAssignacions } from '../utils/suportDivisible';
+import { formatDepartamentsProfessor } from '../utils/departaments';
 
 const { items: classes, isConnected: classesOk, lastUpdate } = useColSnapshot('classes');
 const { items: professors, isConnected: profsOk } = useColSnapshot('professors');

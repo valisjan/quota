@@ -108,6 +108,7 @@ import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { limitsHoresProfessor, textJornada, professorsClasse, classeAssignadaA, horesComputablesClasse, esMajorDe55Classe } from '../utils/horesProfessor';
 import { descarregarExcel } from '../utils/exportExcel';
 import { comptarSDAssignacions, normalitzarSDAssignacions } from '../utils/suportDivisible';
+import { departamentsProfessor, professorPertanyDepartament } from '../utils/departaments';
 
 const { items: classes, isConnected: classesOk } = useCursCollectionSnapshot({ colName: 'classes' });
 const { items: professors, isConnected: profsOk } = useCursCollectionSnapshot({ colName: 'professors' });
@@ -117,7 +118,7 @@ const departamentFiltre = ref('');
 const nomesAvisos = ref(false);
 
 const departamentsOrdenats = computed(() =>
- [...new Set(professors.value.map((p) => p.departament).filter(Boolean))].sort()
+ [...new Set(professors.value.flatMap((p) => departamentsProfessor(p)).filter(Boolean))].sort()
 );
 
 const departamentsMostrats = computed(() =>
@@ -133,7 +134,7 @@ function normalitzar(text) {
 
 function getProfessorsDepartament(dept) {
  return professors.value
- .filter((p) => p.departament === dept)
+ .filter((p) => professorPertanyDepartament(p, dept))
  .sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'ca'));
 }
 

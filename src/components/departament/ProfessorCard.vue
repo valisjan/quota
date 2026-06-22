@@ -40,6 +40,11 @@
     </div>
 
     <!-- Matèries -->
+    <div v-if="comentariFull" class="border-t border-border-soft bg-amber-50 px-4 py-2 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+      <p class="text-xs font-semibold uppercase text-amber-800 dark:text-amber-200">Comentari del full Professorat</p>
+      <p class="mt-0.5 whitespace-pre-line font-medium">{{ comentariFull }}</p>
+    </div>
+
     <div class="border-t border-border-soft px-3 py-2">
       <div v-if="classes.length === 0" class="py-1 text-center text-[0.95rem] italic text-text-muted">
         Sense matèries assignades
@@ -330,6 +335,7 @@ const sdDatalistId = computed(() =>
 
 const totalHoresProfessor = computed(() => props.horesLectives + props.horesPalic + props.horesSd);
 const limits = computed(() => limitsHoresProfessor(props.professor));
+const comentariFull = computed(() => (props.professor.comentariFull || '').toString().trim());
 
 const isPerfectHours = computed(() => totalHoresProfessor.value === limits.value.ideal);
 const isOverRecommended = computed(() =>

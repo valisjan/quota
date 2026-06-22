@@ -179,7 +179,7 @@ import { ref, computed } from 'vue';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { classeCompletamentAssignada } from '../utils/assignacions';
 import { exclosaDelRepartiment, esPALIC } from '../utils/tipus';
-import { classePertanyDepartament } from '../utils/departaments';
+import { classePertanyDepartament, professorPertanyDepartament } from '../utils/departaments';
 
 const { items: classes, loading: carregant } = useCursCollectionSnapshot({ colName: 'classes' });
 const { items: professors } = useCursCollectionSnapshot({ colName: 'professors' });
@@ -210,7 +210,7 @@ function totalPALICDept(nomDept) {
 
 function palicAssignadesDept(nomDept) {
   return professors.value
-    .filter((professor) => professor.departament === nomDept)
+    .filter((professor) => professorPertanyDepartament(professor, nomDept))
     .reduce((total, professor) => total + (Number(professor.palicAssignades) || 0), 0);
 }
 
@@ -223,7 +223,7 @@ const perDepartament = computed(() => {
     const palicAssignades = palicAssignadesDept(dept.nom);
     const horesTotals = totes.reduce((s, c) => s + Number(c.hores || 0), 0) + palicTotals;
     const horesAssignades = assignades.reduce((s, c) => s + Number(c.hores || 0), 0) + palicAssignades;
-    const profsDelDept = professors.value.filter((p) => p.departament === dept.nom);
+    const profsDelDept = professors.value.filter((p) => professorPertanyDepartament(p, dept.nom));
     const pct = totes.length ? Math.round((assignades.length / totes.length) * 100) : 100;
 
     return {
