@@ -646,7 +646,9 @@ const totalGuardiesPatiConfigurades = computed(() =>
 const totalHoresAssignades = computed(() => {
   return classesDepartament.value
     .filter(comptaHoresDepartament)
-    .reduce((total, c) => total + horesAssignadesClasse(c), 0) + totalSDAssignades.value;
+    .reduce((total, c) => total + horesAssignadesClasse(c), 0)
+    + totalPALICAssignades.value
+    + totalSDAssignades.value;
 });
 
 // Computed
@@ -662,18 +664,26 @@ const departamentsAmbResum = computed(() =>
     const nom = dep.nom || '';
     const classesDept = classes.value.filter((classe) => classePertanyDepartament(classe, nom));
     const classesComputables = classesDept.filter(comptaHoresDepartament);
+    const totalPALIC = classesDept
+      .filter((classe) => esPALIC(classe.tipus))
+      .reduce((total, classe) => total + (Number(classe.hores) || 0), 0);
+    const palicAssignades = professorsActius.value
+      .filter((professor) => professor.departament === nom)
+      .reduce((total, professor) => total + (Number(professor.palicAssignades) || 0), 0);
     const totalSD = classesDept
       .filter((classe) => esSuportDivisible(classe.tipus))
       .reduce((total, classe) => total + (Number(classe.hores) || 0), 0);
     const sdAssignades = professorsActius.value
       .filter((professor) => professor.departament === nom)
       .reduce((total, professor) => total + comptarSDAssignacions(professor), 0);
-    const totalHores = classesComputables.reduce((total, classe) => total + (Number(classe.hores) || 0), 0) + totalSD;
-    const horesAssignades = classesComputables.reduce((total, classe) => total + horesAssignadesClasse(classe), 0) + sdAssignades;
+    const totalHores = classesComputables.reduce((total, classe) => total + (Number(classe.hores) || 0), 0) + totalPALIC + totalSD;
+    const horesAssignades = classesComputables.reduce((total, classe) => total + horesAssignadesClasse(classe), 0) + palicAssignades + sdAssignades;
     const classesPendentsBase = classesComputables.filter(
       (classe) => horesAssignadesClasse(classe) < (Number(classe.hores) || 0)
     ).length;
-    const classesPendents = classesPendentsBase + (sdAssignades < totalSD ? 1 : 0);
+    const classesPendents = classesPendentsBase
+      + (palicAssignades < totalPALIC ? 1 : 0)
+      + (sdAssignades < totalSD ? 1 : 0);
     const professorsCount = professorsActius.value.filter((professor) => professor.departament === nom).length;
     const percentatge = totalHores > 0
       ? Math.min(100, Math.round((horesAssignades / totalHores) * 100))
@@ -773,7 +783,9 @@ const autoAssignacionsEnCurs = ref(new Set());
 const totalHoresDepartament = computed(() => {
   return classesDepartament.value
     .filter(comptaHoresDepartament)
-    .reduce((total, c) => total + (Number(c.hores) || 0), 0) + totalSDDepartament.value;
+    .reduce((total, c) => total + (Number(c.hores) || 0), 0)
+    + totalPALICDepartament.value
+    + totalSDDepartament.value;
 });
 
 const horesPerProfessorDepartament = computed(() => {
@@ -815,9 +827,7 @@ const totalPALICDepartament = computed(() => {
     .filter(
       (c) =>
         esPALIC(c.tipus) &&
-        classePertanyDepartament(c, departamentSeleccionat.value) &&
-        (!c.curs || c.curs === '') &&
-        (!c.grup || c.grup === '')
+        classePertanyDepartament(c, departamentSeleccionat.value)
     )
     .reduce((total, c) => total + c.hores, 0);
 });

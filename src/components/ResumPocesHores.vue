@@ -81,6 +81,7 @@
 import { computed } from 'vue';
 import { useColSnapshot } from '../composables/useColSnapshot';
 import { limitsHoresProfessor, calcularHoresLectives } from '../utils/horesProfessor';
+import { comptarSDAssignacions } from '../utils/suportDivisible';
 
 const { items: classes, isConnected: classesOk, lastUpdate } = useColSnapshot('classes');
 const { items: professors, isConnected: profsOk } = useColSnapshot('professors');
@@ -90,7 +91,9 @@ const professorsPocesHores = computed(() => {
  return professors.value
  .map(p => {
  const objectiu = limitsHoresProfessor(p).ideal;
- const hores = calcularHoresLectives(classes.value, p.nom);
+ const hores = calcularHoresLectives(classes.value, p.nom)
+ + (Number(p.palicAssignades) || 0)
+ + comptarSDAssignacions(p);
  return {
  ...p,
  hores,

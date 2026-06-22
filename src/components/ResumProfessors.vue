@@ -233,14 +233,14 @@ function sortClasses(list) {
 
 function exportarExcel() {
  const data = new Date().toLocaleDateString('ca-ES');
- const cap = ['Departament', 'Professor', 'Total hores lectives', 'GP', 'PALIC', 'Suport divisible', 'Grups SD', 'Jornada', 'Preferència', 'Avisos'];
+ const cap = ['Departament', 'Professor', 'Total hores', 'GP', 'PALIC', 'Suport divisible', 'Grups SD', 'Jornada', 'Preferència', 'Avisos'];
  const files = [];
  for (const dept of departamentsOrdenats.value) {
  for (const p of getProfessorsDepartament(dept)) {
  files.push([
  dept,
  p.nom,
- calcularHoresProfessor(p.nom),
+ calcularHoresTotalsProfessor(p.nom),
  getHoresGP(p.nom) || 0,
  getHoresPALIC(p.nom) || 0,
  getHoresSD(p.nom) || 0,

@@ -178,7 +178,7 @@
 import { ref, computed } from 'vue';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { classeCompletamentAssignada } from '../utils/assignacions';
-import { exclosaDelRepartiment } from '../utils/tipus';
+import { exclosaDelRepartiment, esPALIC } from '../utils/tipus';
 import { classePertanyDepartament } from '../utils/departaments';
 
 const { items: classes, loading: carregant } = useCursCollectionSnapshot({ colName: 'classes' });
@@ -202,13 +202,27 @@ function classesDelDept(nomDept) {
   );
 }
 
+function totalPALICDept(nomDept) {
+  return classes.value
+    .filter((classe) => esPALIC(classe.tipus) && classePertanyDepartament(classe, nomDept))
+    .reduce((total, classe) => total + (Number(classe.hores) || 0), 0);
+}
+
+function palicAssignadesDept(nomDept) {
+  return professors.value
+    .filter((professor) => professor.departament === nomDept)
+    .reduce((total, professor) => total + (Number(professor.palicAssignades) || 0), 0);
+}
+
 const perDepartament = computed(() => {
   return departaments.value.map((dept) => {
     const totes = classesDelDept(dept.nom);
     const assignades = totes.filter(classeCompletamentAssignada);
     const senseProfessor = totes.filter((c) => !classeCompletamentAssignada(c));
-    const horesTotals = totes.reduce((s, c) => s + Number(c.hores || 0), 0);
-    const horesAssignades = assignades.reduce((s, c) => s + Number(c.hores || 0), 0);
+    const palicTotals = totalPALICDept(dept.nom);
+    const palicAssignades = palicAssignadesDept(dept.nom);
+    const horesTotals = totes.reduce((s, c) => s + Number(c.hores || 0), 0) + palicTotals;
+    const horesAssignades = assignades.reduce((s, c) => s + Number(c.hores || 0), 0) + palicAssignades;
     const profsDelDept = professors.value.filter((p) => p.departament === dept.nom);
     const pct = totes.length ? Math.round((assignades.length / totes.length) * 100) : 100;
 

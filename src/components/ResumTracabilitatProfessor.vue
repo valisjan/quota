@@ -271,7 +271,7 @@ function construirInfoProfessor(professor) {
  const sd = comptarSDAssignacions(professor);
  const lectives = assignades
  .filter((classe) => !['GP', 'PALIC', 'SD', 'C', 'CO'].includes(normalitzarTipus(classe.tipus)))
- .reduce((total, classe) => total + horesComputablesClasse(classe), 0) + sd;
+ .reduce((total, classe) => total + horesComputablesClasse(classe), 0) + palicAssignades + sd;
  const gp = Number(professor.gpAssignades || 0) || sumarTipus(assignades, 'GP');
  const palic = palicAssignades;
  const limits = limitsHoresProfessor(professor);

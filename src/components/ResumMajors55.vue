@@ -100,7 +100,7 @@ function calcularHoresProfessor(nomProfessor) {
  )
  .reduce((total, classe) => total + horesComputablesClasse(classe), 0);
  const professor = professors.value.find((p) => p.nom === nomProfessor);
- return lectives + comptarSDAssignacions(professor || {});
+ return lectives + (Number(professor?.palicAssignades) || 0) + comptarSDAssignacions(professor || {});
 }
 
 function getPreferenciaText(preferencia) {

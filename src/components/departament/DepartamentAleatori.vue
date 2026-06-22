@@ -298,14 +298,14 @@ const professorsExclosos = computed(() =>
 const teProfessors = computed(() => professorsElegibles.value.length > 0);
 const teClasses = computed(() => assignables.value.length > 0);
 
-// Total distributable hours (non-GP, non-PALIC)
+// Total distributable hours (non-GP, non-PALIC, non-SD)
 const totalHoresDisponibles = computed(() =>
   classesUnicesPerPaquets(assignables.value).reduce((sum, c) => sum + (Number(c.hores) || 0), 0)
 );
 
 const totalHoresDepartament = computed(() =>
   props.classes
-    .filter((c) => !esGP(c.tipus) && !esPALIC(c.tipus) && !esSuportDivisible(c.tipus))
+    .filter((c) => !esGP(c.tipus) && !esSuportDivisible(c.tipus))
     .reduce((sum, c) => sum + (Number(c.hores) || 0), 0)
 );
 
