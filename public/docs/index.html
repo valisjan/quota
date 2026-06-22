@@ -3,76 +3,241 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Documentació · Quota IESJSB</title>
+  <title>Com accedir · Quota IESJSB</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #5f75d6;
+      --brand-blue: #0024B6;
+      --text-main: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --surface-soft: #f1f5fb;
+    }
+
     body {
       font-family: 'Roboto', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--text-main);
+      background: #dde6f3;
       min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 3rem 1.5rem 5rem;
+    }
+
+    .wrap { width: 100%; max-width: 620px; }
+
+    .header { text-align: center; margin-bottom: 2.5rem; }
+
+    .header-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 3.5rem;
+      height: 3.5rem;
+      background: var(--brand-blue);
+      border-radius: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .header-logo svg { color: white; }
+    .header h1 { font-size: 1.75rem; font-weight: 700; color: var(--text-main); }
+    .header p { margin-top: 0.4rem; color: var(--text-muted); font-size: 0.95rem; }
+
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 2px 16px rgba(0, 36, 182, 0.07);
+      margin-bottom: 1.25rem;
+    }
+
+    .card-header {
+      background: linear-gradient(90deg, #eef1fb, white);
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--primary);
+    }
+
+    .card-body { padding: 1.5rem; }
+
+    .steps { list-style: none; counter-reset: steps; }
+
+    .steps li {
+      display: flex;
+      gap: 1rem;
+      padding-bottom: 1.25rem;
+      position: relative;
+    }
+
+    .steps li:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 0.9rem;
+      top: 2.1rem;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 1.8rem;
+      height: 1.8rem;
+      background: #eef1fb;
+      border: 2px solid var(--primary);
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #dde6f3;
-      padding: 2rem;
-    }
-    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; max-width: 800px; width: 100%; }
-    .header { grid-column: 1 / -1; text-align: center; margin-bottom: 1rem; }
-    .header h1 { font-size: 2rem; font-weight: 700; color: #0f172a; }
-    .header p { color: #64748b; margin-top: 0.4rem; }
-    .card {
-      background: white;
-      border-radius: 1rem;
-      overflow: hidden;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 4px 24px rgba(0,36,182,0.07);
-      text-decoration: none;
-      display: block;
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    .card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,36,182,0.13); }
-    .card-top { padding: 2rem; }
-    .card-icon { font-size: 2.5rem; margin-bottom: 1rem; }
-    .card-title { font-size: 1.3rem; font-weight: 700; color: #0f172a; }
-    .card-desc { font-size: 0.87rem; color: #64748b; margin-top: 0.4rem; line-height: 1.6; }
-    .card-footer {
-      padding: 1rem 2rem;
-      font-size: 0.82rem;
+      font-size: 0.72rem;
       font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: white;
+      color: var(--primary);
+      counter-increment: steps;
+    }
+
+    .step-num::after { content: counter(steps); }
+
+    .step-body { flex: 1; padding-top: 0.1rem; font-size: 0.92rem; color: var(--text-secondary); }
+    .step-body strong { color: var(--text-main); font-weight: 700; }
+
+    .callout {
       display: flex;
+      gap: 0.7rem;
+      align-items: flex-start;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 0.5rem;
+      padding: 0.85rem 1rem;
+      margin-top: 0.75rem;
+      font-size: 0.87rem;
+      color: #92400e;
+    }
+
+    .callout-icon { flex-shrink: 0; font-size: 1rem; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+    th { background: var(--surface-soft); padding: 0.55rem 1rem; text-align: left; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); border-bottom: 2px solid var(--border); }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-secondary); }
+    tr:last-child td { border-bottom: none; }
+
+    .badge { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 2rem; font-size: 0.72rem; font-weight: 700; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-gray { background: #f1f5f9; color: #475569; }
+
+    .back {
+      display: inline-flex;
       align-items: center;
       gap: 0.4rem;
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.87rem;
+      font-weight: 600;
+      margin-top: 1.5rem;
     }
-    .card-admin .card-footer { background: #0024B6; }
-    .card-caps .card-footer { background: #1a3d2b; }
+
+    .back:hover { text-decoration: underline; }
+
+    @media print {
+      body { background: white; padding: 1cm; }
+      .back { display: none; }
+    }
   </style>
 </head>
 <body>
-  <div class="card-grid">
-    <div class="header">
-      <h1>Quota · IESJSB</h1>
-      <p>Documentació de l'aplicació de distribució d'hores del professorat</p>
+<div class="wrap">
+
+  <div class="header">
+    <div class="header-logo">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="11" width="18" height="11" rx="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
     </div>
-    <a href="tutorial-admin.html" class="card card-admin">
-      <div class="card-top">
-        <div class="card-icon">⚙️</div>
-        <div class="card-title">Guia de l'Administrador</div>
-        <div class="card-desc">Crea cursos, importa des de Google Sheets, gestiona usuaris, configura guàrdies, tanca la distribució i exporta a Untis.</div>
-      </div>
-      <div class="card-footer">Obrir tutorial →</div>
-    </a>
-    <a href="tutorial-caps.html" class="card card-caps">
-      <div class="card-top">
-        <div class="card-icon">🏢</div>
-        <div class="card-title">Guia del Cap de Departament</div>
-        <div class="card-desc">Distribueix les hores del teu departament, gestiona guàrdies de pati, PALIC, comissions i tanca el departament quan acabis.</div>
-      </div>
-      <div class="card-footer">Obrir tutorial →</div>
-    </a>
+    <h1>Com accedir a Quota</h1>
+    <p>Aplicació de distribució d'hores del professorat · IES Josep Sureda i Blanes</p>
   </div>
+
+  <div class="card">
+    <div class="card-header">Passos per entrar</div>
+    <div class="card-body">
+      <ol class="steps">
+        <li>
+          <div class="step-num"></div>
+          <div class="step-body">
+            Obre el navegador i accedeix a <strong>quota.iessureda.com</strong>.
+          </div>
+        </li>
+        <li>
+          <div class="step-num"></div>
+          <div class="step-body">
+            Fes clic al botó <strong>"Inicia sessió amb Google"</strong> que apareix a la pantalla d'inici.
+          </div>
+        </li>
+        <li>
+          <div class="step-num"></div>
+          <div class="step-body">
+            Selecciona el teu compte <strong>@iesjosepsuredaiblanes.com</strong>. Si uses un altre compte de Google, l'accés serà denegat.
+          </div>
+        </li>
+        <li>
+          <div class="step-num"></div>
+          <div class="step-body">
+            L'aplicació et redirigirà automàticament a la secció corresponent al teu rol.
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout">
+        <span class="callout-icon">⚠️</span>
+        <div>Si entres per primera vegada i veus un missatge d'espera, el teu compte encara no té rol assignat. Avisa l'administrador perquè te'l assigni.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Accés segons el teu rol</div>
+    <div class="card-body">
+      <table>
+        <thead>
+          <tr><th>Rol</th><th>On accedeixo?</th><th>Què puc fer?</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-blue">admin</span></td>
+            <td>Administració · Departaments · Resums</td>
+            <td>Gestió completa: importació, usuaris, tancament, Untis...</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-green">cap_departament</span></td>
+            <td>Departaments · Resums</td>
+            <td>Distribuir hores del seu departament i tancar-lo.</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-gray">professor</span></td>
+            <td>Resums</td>
+            <td>Consulta de la distribució en mode lectura.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <a href="javascript:window.close()" class="back">← Tornar a l'aplicació</a>
+
+</div>
 </body>
 </html>
