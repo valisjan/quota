@@ -514,7 +514,7 @@ import DepartamentFulla from '../components/departament/DepartamentFulla.vue';
 import DepartamentAleatori from '../components/departament/DepartamentAleatori.vue';
 import ProfessorCard from '../components/departament/ProfessorCard.vue';
 import DepartamentPrintModal from '../components/departament/DepartamentPrintModal.vue';
-import { professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
+import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
 import { departamentIconText, departamentFlagClass, departamentIconPaths, departamentInicials } from '../utils/departamentIcon';
 import { esGP, esPALIC, esSuportDivisible, esOptativaCompartida, esCoordinacioAmbMembres, exclosaDelRepartiment } from '../utils/tipus';
 import { classePertanyDepartament } from '../utils/departaments';
@@ -999,6 +999,26 @@ function getGuardesPrevistes(nomProfessor) {
   const prof = getProfessor(nomProfessor);
   if (!prof.nom) return null;
   return guardesQueTocaFer(prof, classes.value);
+}
+
+function calcularHoresComputablesProfessor(nomProfessor) {
+  return calcularHoresProfessor(nomProfessor) + getHoresPALIC(nomProfessor) + getHoresSD(nomProfessor);
+}
+
+function isPerfectHours(nomProfessor) {
+  const limits = limitsHoresProfessor(getProfessor(nomProfessor));
+  return calcularHoresComputablesProfessor(nomProfessor) === limits.ideal;
+}
+
+function isOverRecommended(nomProfessor) {
+  const h = calcularHoresComputablesProfessor(nomProfessor);
+  const limits = limitsHoresProfessor(getProfessor(nomProfessor));
+  return h > limits.ideal && h <= limits.maxim;
+}
+
+function isOverLimit(nomProfessor) {
+  const limits = limitsHoresProfessor(getProfessor(nomProfessor));
+  return calcularHoresComputablesProfessor(nomProfessor) > limits.maxim;
 }
 
 function estatDepartamentResum(departament, resum) {
