@@ -399,24 +399,7 @@
                 <h3 class="text-base font-semibold text-text-main">Professorat</h3>
                 <span class="app-chip">{{ professorsDepartament.length }}</span>
               </div>
-              <div class="app-toolbar flex text-xs font-semibold">
-                <button
-                  type="button"
-                  class="app-toolbar-button rounded px-2.5 py-1 text-xs"
-                  :class="ordreProfessorat === 'necessitat' ? 'app-toolbar-button-active' : ''"
-                  @click="ordreProfessorat = 'necessitat'"
-                >
-                  Menys hores
-                </button>
-                <button
-                  type="button"
-                  class="app-toolbar-button rounded px-2.5 py-1 text-xs"
-                  :class="ordreProfessorat === 'nom' ? 'app-toolbar-button-active' : ''"
-                  @click="ordreProfessorat = 'nom'"
-                >
-                  A-Z
-                </button>
-              </div>
+              <span class="app-chip text-xs font-medium">Ordre alfabètic</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3">
               <ProfessorCard
@@ -531,7 +514,7 @@ import DepartamentFulla from '../components/departament/DepartamentFulla.vue';
 import DepartamentAleatori from '../components/departament/DepartamentAleatori.vue';
 import ProfessorCard from '../components/departament/ProfessorCard.vue';
 import DepartamentPrintModal from '../components/departament/DepartamentPrintModal.vue';
-import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
+import { professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
 import { departamentIconText, departamentFlagClass, departamentIconPaths, departamentInicials } from '../utils/departamentIcon';
 import { esGP, esPALIC, esSuportDivisible, esOptativaCompartida, esCoordinacioAmbMembres, exclosaDelRepartiment } from '../utils/tipus';
 import { classePertanyDepartament } from '../utils/departaments';
@@ -560,7 +543,6 @@ const solsLectura = computed(() => authStore.rol === 'professor');
 const mostrarResumen = ref(false);
 const mostrarValidacioDistribucio = ref(false);
 const activeTab = ref('distribucio');
-const ordreProfessorat = ref('necessitat');
 const focusClassId = ref('');
 const mostrarSelectorDepartaments = ref(true);
 const transicioPantallaDepartament = ref('departament-slide-forward');
@@ -730,17 +712,7 @@ const resumStickyDepartament = computed(() => {
 const professorsDepartament = computed(() => {
   return professors.value
     .filter((p) => p.departament === departamentSeleccionat.value && !p.eliminatDelFull)
-    .sort((a, b) => {
-      if (ordreProfessorat.value === 'nom') return a.nom.localeCompare(b.nom);
-
-      const prioritat = prioritatRepartimentProfessor(a) - prioritatRepartimentProfessor(b);
-      if (prioritat !== 0) return prioritat;
-
-      const distancia = distanciaIdealProfessor(b) - distanciaIdealProfessor(a);
-      if (distancia !== 0) return distancia;
-
-      return a.nom.localeCompare(b.nom);
-    });
+    .sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'ca'));
 });
 
 const classesDepartament = computed(() => {
@@ -1027,40 +999,6 @@ function getGuardesPrevistes(nomProfessor) {
   const prof = getProfessor(nomProfessor);
   if (!prof.nom) return null;
   return guardesQueTocaFer(prof, classes.value);
-}
-
-function calcularHoresComputablesProfessor(nomProfessor) {
-  return calcularHoresProfessor(nomProfessor) + getHoresPALIC(nomProfessor) + getHoresSD(nomProfessor);
-}
-
-function distanciaIdealProfessor(professor) {
-  const limits = limitsHoresProfessor(professor);
-  return limits.ideal - calcularHoresComputablesProfessor(professor.nom);
-}
-
-function prioritatRepartimentProfessor(professor) {
-  const hores = calcularHoresComputablesProfessor(professor.nom);
-  const limits = limitsHoresProfessor(professor);
-  if (hores < limits.ideal) return 0;
-  if (hores === limits.ideal) return 1;
-  if (hores <= limits.maxim) return 2;
-  return 3;
-}
-
-function isPerfectHours(nomProfessor) {
-  const limits = limitsHoresProfessor(getProfessor(nomProfessor));
-  return calcularHoresComputablesProfessor(nomProfessor) === limits.ideal;
-}
-
-function isOverRecommended(nomProfessor) {
-  const h = calcularHoresComputablesProfessor(nomProfessor);
-  const limits = limitsHoresProfessor(getProfessor(nomProfessor));
-  return h > limits.ideal && h <= limits.maxim;
-}
-
-function isOverLimit(nomProfessor) {
-  const limits = limitsHoresProfessor(getProfessor(nomProfessor));
-  return calcularHoresComputablesProfessor(nomProfessor) > limits.maxim;
 }
 
 function estatDepartamentResum(departament, resum) {
