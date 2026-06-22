@@ -26,42 +26,10 @@
           </div>
 
           <template v-if="authStore.estaAutenticat">
-            <div class="rounded-md border border-slate-200 bg-slate-50 p-4">
-              <p class="truncate text-sm font-semibold text-slate-950">{{ authStore.usuari }}</p>
-              <p class="mt-1 text-xs font-medium text-slate-600">{{ etiquetaRol }}</p>
-            </div>
-
             <UsuarisConnectats
               v-if="authStore.esAdmin()"
-              class="mt-4"
               :limit="5"
             />
-
-            <div class="mt-4 space-y-2">
-              <button
-                v-if="authStore.esAdmin()"
-                @click="router.push('/admin/dades')"
-                class="portal-action portal-action-primary"
-              >
-                Administració
-                <span>Centre de control</span>
-              </button>
-              <button
-                v-if="authStore.esCapDepartament()"
-                @click="router.push('/departament')"
-                class="portal-action"
-              >
-                Departament
-                <span>Distribució d'hores</span>
-              </button>
-              <button
-                @click="router.push('/resums')"
-                class="portal-action"
-              >
-                Seguiment
-                <span>Estat i resums</span>
-              </button>
-            </div>
 
             <button
               @click="authStore.tancarSessio()"
@@ -117,11 +85,9 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import UsuarisConnectats from '../components/UsuarisConnectats.vue';
 
-const router = useRouter();
 const authStore = useAuthStore();
 const carregant = ref(false);
 
@@ -133,16 +99,6 @@ const buildDate = (() => {
 const errorLogin = ref('');
 const appVersion = __APP_VERSION__;
 const heroImageUrl = 'https://content.gnoss.ws/carq/imagenes/Documentos/imgsem/37/3733/3733d88a-d57c-4dff-a4ba-a5951198b3f1/43c12d9f-45d9-468b-b164-6ee33c982047.jpg';
-
-const etiquetaRol = computed(() => {
-  const etiquetes = {
-    admin: 'Admin',
-    cap_departament: 'Cap de departament',
-    departament: 'Cap de departament',
-    professor: 'Professor',
-  };
-  return etiquetes[authStore.rol] || authStore.rol || '';
-});
 
 const titolAcces = computed(() => {
   if (authStore.estaAutenticat) return `Hola, ${(authStore.usuari || '').split(' ')[0]}`;
