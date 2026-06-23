@@ -64,7 +64,16 @@
               <span v-if="deptIconText" class="dept-icon-text" :class="{ 'dept-icon-text-small': deptIconText.length > 1 }">{{ deptIconText }}</span>
               <span v-else-if="deptFlagClass" class="dept-flag" :class="deptFlagClass"></span>
               <svg v-else-if="deptIconPaths.length" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
-                <path v-for="path in deptIconPaths" :key="path" stroke-linecap="round" stroke-linejoin="round" :d="path" />
+                <path
+                  v-for="path in deptIconPaths"
+                  :key="iconPathKey(path)"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  :d="iconPathD(path)"
+                  :fill="iconPathFill(path)"
+                  :stroke="iconPathStroke(path)"
+                  :stroke-width="iconPathStrokeWidth(path)"
+                />
               </svg>
               <span v-else class="text-sm font-black">{{ deptInicials }}</span>
             </div>
@@ -700,6 +709,26 @@ const deptIconText = computed(() => departamentIconText(departamentSeleccionat.v
 const deptFlagClass = computed(() => departamentFlagClass(departamentSeleccionat.value || ''));
 const deptIconPaths = computed(() => departamentIconPaths(departamentSeleccionat.value || ''));
 const deptInicials = computed(() => departamentInicials(departamentSeleccionat.value || ''));
+
+function iconPathD(path) {
+  return typeof path === 'string' ? path : path.d;
+}
+
+function iconPathKey(path) {
+  return iconPathD(path);
+}
+
+function iconPathFill(path) {
+  return typeof path === 'string' ? 'none' : path.fill || 'none';
+}
+
+function iconPathStroke(path) {
+  return typeof path === 'string' ? 'currentColor' : path.stroke || 'currentColor';
+}
+
+function iconPathStrokeWidth(path) {
+  return typeof path === 'string' ? 1.7 : path.strokeWidth || 1.7;
+}
 const pantallaDistribucio = computed(() =>
   Boolean(departamentSeleccionat.value) && !mostrarSelectorDepartaments.value
 );

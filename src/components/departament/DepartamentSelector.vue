@@ -75,10 +75,13 @@
             >
               <path
                 v-for="path in iconPaths(dep)"
-                :key="path"
+                :key="iconPathKey(path)"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                :d="path"
+                :d="iconPathD(path)"
+                :fill="iconPathFill(path)"
+                :stroke="iconPathStroke(path)"
+                :stroke-width="iconPathStrokeWidth(path)"
               />
             </svg>
             <span v-else class="text-sm font-black">{{ inicials(dep.nom) }}</span>
@@ -178,6 +181,26 @@ function iconText(dep) { return departamentIconText(dep.nom); }
 function flagClass(dep) { return departamentFlagClass(dep.nom); }
 function iconPaths(dep) { return departamentIconPaths(dep.nom); }
 function inicials(nom) { return departamentInicials(nom); }
+
+function iconPathD(path) {
+  return typeof path === 'string' ? path : path.d;
+}
+
+function iconPathKey(path) {
+  return iconPathD(path);
+}
+
+function iconPathFill(path) {
+  return typeof path === 'string' ? 'none' : path.fill || 'none';
+}
+
+function iconPathStroke(path) {
+  return typeof path === 'string' ? 'currentColor' : path.stroke || 'currentColor';
+}
+
+function iconPathStrokeWidth(path) {
+  return typeof path === 'string' ? 1.7 : path.strokeWidth || 1.7;
+}
 
 function iconClass(dep) {
   return 'border-border-soft bg-surface-soft text-text-secondary';
