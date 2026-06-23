@@ -397,13 +397,51 @@ function afegirClasseUnica(llista, classe) {
   llista.push(classe);
 }
 
+function classePotEntrarPaquet(classe) {
+  return (
+    classe &&
+    !esGP(classe.tipus) &&
+    !esPALIC(classe.tipus) &&
+    !esSuportDivisible(classe.tipus) &&
+    !esMajorDe55Classe(classe)
+  );
+}
+
+function haDeRespectarAssignacioActual(classeBase, relacionada) {
+  if (!partirActual.value) return false;
+  if (!relacionada?.id || relacionada.id === classeBase?.id) return false;
+  return classeCompletamentAssignada(relacionada);
+}
+
+function afegirRelacionadesPaquet(paquet, classeBase, classeActual) {
+  if (!classeActual?.id) return;
+
+  if (esTutoriaPrincipal(classeActual)) {
+    [
+      trobarTutoriaAsterisc(classeActual, props.classes),
+      ...trobarAssignaturesParelladesTutoria(classeActual, props.classes),
+    ].forEach((relacionada) => {
+      if (!classePotEntrarPaquet(relacionada)) return;
+      if (haDeRespectarAssignacioActual(classeBase, relacionada)) return;
+      afegirClasseUnica(paquet, relacionada);
+    });
+  }
+
+  trobarGermanesBloc(classeActual, props.classes).forEach((germana) => {
+    if (!classePotEntrarPaquet(germana)) return;
+    if (haDeRespectarAssignacioActual(classeBase, germana)) return;
+    afegirClasseUnica(paquet, germana);
+  });
+}
+
 function paquetClasses(classe) {
   const paquet = [];
   afegirClasseUnica(paquet, classe);
-  // *Tutoria always travels with its principal tutoria (1:1 mandatory pair)
-  if (esTutoriaPrincipal(classe)) {
-    afegirClasseUnica(paquet, trobarTutoriaAsterisc(classe, props.classes));
+
+  for (let index = 0; index < paquet.length; index += 1) {
+    afegirRelacionadesPaquet(paquet, classe, paquet[index]);
   }
+
   return paquet;
 }
 
@@ -413,6 +451,35 @@ function horesPaquetClasse(classe) {
 
 function idsPaquet(classe) {
   return paquetClasses(classe).map((item) => item.id);
+}
+
+function tutoriesSlot(slot, idsIgnorats = new Set()) {
+  const ids = new Set();
+  return [...slot.classesFixades, ...slot.classes].filter((classe) => {
+    if (!classe?.id || idsIgnorats.has(classe.id) || !esTutoriaPrincipal(classe)) return false;
+    if (ids.has(classe.id)) return false;
+    ids.add(classe.id);
+    return true;
+  });
+}
+
+function excedeixTutories(slot, classe, idsIgnorats = new Set()) {
+  const ids = new Set(tutoriesSlot(slot, idsIgnorats).map((item) => item.id));
+  for (const item of paquetClasses(classe)) {
+    if (!item?.id || idsIgnorats.has(item.id) || !esTutoriaPrincipal(item)) continue;
+    ids.add(item.id);
+  }
+  return ids.size > 1;
+}
+
+function potAfegirPaquet(slot, classe) {
+  return slot.hores + horesPaquetClasse(classe) <= slot.maxim && !excedeixTutories(slot, classe);
+}
+
+function potAfegirPaquetDespresDeTreure(slot, classe, classeATreure) {
+  const idsTreure = new Set(classeATreure ? idsPaquet(classeATreure) : []);
+  const horesDespresTreure = slot.hores - (classeATreure ? horesPaquetClasse(classeATreure) : 0);
+  return horesDespresTreure + horesPaquetClasse(classe) <= slot.maxim && !excedeixTutories(slot, classe, idsTreure);
 }
 
 function classeEsAssignable(classe) {
@@ -447,18 +514,33 @@ function horesComputablesPerProfessor(classe, totalProfessorsAssignats) {
   return hores;
 }
 
-function classesUnicesPerPaquets(classes) {
+function paquetsUnics(classes) {
   const resultat = [];
   const vistes = new Set();
-  for (const classe of classes) {
-    const paquet = paquetClasses(classe);
+  const paquetsOrdenats = classes
+    .map((classe, index) => ({ classe, index, paquet: paquetClasses(classe) }))
+    .sort((a, b) => {
+      if (a.paquet.length !== b.paquet.length) return b.paquet.length - a.paquet.length;
+      return a.index - b.index;
+    });
+
+  for (const item of paquetsOrdenats) {
+    const { paquet } = item;
     if (paquet.some((item) => vistes.has(item.id))) continue;
     paquet.forEach((item) => {
       vistes.add(item.id);
-      resultat.push(item);
     });
+    resultat.push(item);
   }
   return resultat;
+}
+
+function representantsPaquets(classes) {
+  return paquetsUnics(classes).map((item) => item.classe);
+}
+
+function classesUnicesPerPaquets(classes) {
+  return paquetsUnics(classes).flatMap((item) => item.paquet);
 }
 
 function resumSlots(slots) {
@@ -510,6 +592,13 @@ function explicarNoAssignacio(classe, slots) {
       detallNoAssignada: professorsExclosos.value
         ? `${professorsExclosos.value} professors queden fora de la simulació per la seva disponibilitat horària.`
         : '',
+    };
+  }
+
+  if (paquet.some(esTutoriaPrincipal) && slots.every((slot) => excedeixTutories(slot, classe))) {
+    return {
+      motiuNoAssignada: 'No es pot assignar perquè cap professor pot tenir dues tutories.',
+      detallNoAssignada: `${detallPaquet}${detallMarges}`,
     };
   }
 
@@ -569,7 +658,7 @@ function copiarSlots(slots) {
 }
 
 function ordenarPaquetsPerIntent(classes) {
-  const paquets = classesUnicesPerPaquets(classes);
+  const paquets = representantsPaquets(classes);
   return [...paquets].sort((a, b) => {
     const ha = horesPaquetClasse(a);
     const hb = horesPaquetClasse(b);
@@ -611,7 +700,7 @@ function paquetsMovibles(slot) {
 function intentarReubicarPerEncabir(slots, classe) {
   const h = horesPaquetClasse(classe);
   for (const target of ordenarCandidats(slots)) {
-    if (target.hores + h <= target.maxim) {
+    if (potAfegirPaquet(target, classe)) {
       afegirPaquetASlot(target, classe);
       return true;
     }
@@ -622,10 +711,10 @@ function intentarReubicarPerEncabir(slots, classe) {
     );
 
     for (const movible of movibles) {
-      const hm = horesPaquetClasse(movible);
       for (const receptor of ordenarCandidats(slots)) {
         if (receptor === target) continue;
-        if (receptor.hores + hm > receptor.maxim) continue;
+        if (!potAfegirPaquet(receptor, movible)) continue;
+        if (!potAfegirPaquetDespresDeTreure(target, classe, movible)) continue;
         llevarPaquetDeSlot(target, movible);
         afegirPaquetASlot(receptor, movible);
         afegirPaquetASlot(target, classe);
@@ -645,7 +734,14 @@ function scoreProposta(slots, classesNoAssignades) {
     const underIdeal = Math.max(slot.ideal - slot.hores, 0);
     const overIdeal = Math.max(slot.hores - slot.ideal, 0);
     const overMax = Math.max(slot.hores - slot.maxim, 0);
-    return sum + underIdeal * underIdeal * 7 + overIdeal * overIdeal + overMax * overMax * 100000;
+    const overTutories = Math.max(0, tutoriesSlot(slot).length - 1);
+    return (
+      sum +
+      underIdeal * underIdeal * 7 +
+      overIdeal * overIdeal +
+      overMax * overMax * 100000 +
+      overTutories * 1000000
+    );
   }, horesNoAssignades * 100000);
 }
 
@@ -703,7 +799,7 @@ async function generar() {
 
   // 2. Already-assigned classes (only when partirActual)
   const classesFixadesIds = new Set();
-  for (const classe of classesJaAssignades.value) {
+  for (const classe of representantsPaquets(classesJaAssignades.value)) {
     if (classesFixadesIds.has(classe.id)) continue;
     const profs = professorsDeClasse(classe);
     const eligibleProfs = profs.filter((nom) => fixatMap.has(nom));
@@ -723,7 +819,7 @@ async function generar() {
     }
   }
 
-  const perDistribuir = classesUnicesPerPaquets(classesPerDistribuir.value);
+  const perDistribuir = classesPerDistribuir.value;
   const inici = performance.now();
   let millor = null;
   let millorScore = Infinity;
@@ -751,7 +847,7 @@ async function generar() {
 
       let assignat = false;
       for (const slot of ordenarCandidats(slots)) {
-        if (slot.hores + horesPaquetClasse(classe) <= slot.maxim) {
+        if (potAfegirPaquet(slot, classe)) {
           afegirPaquetASlot(slot, classe);
           assignat = true;
           break;
@@ -848,6 +944,7 @@ async function generar() {
 
   const professorsSotaMinim = proposta.value.filter((slot) => slot.hores < slot.ideal);
   const professorsSobreMaxim = proposta.value.filter((slot) => slot.hores > slot.maxim);
+  const professorsAmbDuesTutories = proposta.value.filter((slot) => tutoriesSlot(slot).length > 1);
   const avisos = [];
 
   if (professorsSotaMinim.length) {
@@ -856,6 +953,10 @@ async function generar() {
 
   if (professorsSobreMaxim.length) {
     avisos.push(`Ja superen el màxim per hores fixes: ${resumSlots(professorsSobreMaxim)}.`);
+  }
+
+  if (professorsAmbDuesTutories.length) {
+    avisos.push(`Ja hi ha professorat amb més d'una tutoria fixada: ${resumSlots(professorsAmbDuesTutories)}.`);
   }
 
   if (millorNoAssignades.length) {
