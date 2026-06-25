@@ -1,7 +1,7 @@
 <template>
  <div class="space-y-8">
  <!-- Connection indicator -->
- <div class="mb-4 flex items-center justify-between">
+ <div class="print-hide mb-4 flex items-center justify-between">
  <div class="flex items-center gap-2">
  <div class="flex items-center gap-2 px-3 py-1 rounded-full text-sm" 
  :class="isConnected ? 'bg-green-200 text-green-900' : 'bg-red-200 text-red-900'">

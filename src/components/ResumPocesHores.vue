@@ -1,6 +1,6 @@
 <template>
  <div class="space-y-6">
- <div class="flex items-center justify-between">
+ <div class="print-hide flex items-center justify-between">
  <div class="flex items-center gap-2">
  <div
  class="flex items-center gap-2 px-3 py-1 rounded-full text-sm"

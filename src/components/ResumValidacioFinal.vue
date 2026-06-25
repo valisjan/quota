@@ -1,6 +1,6 @@
 ﻿<template>
  <div class="space-y-6">
- <div class="app-card flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+ <div class="app-card print-hide flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
  <div>
  <h2 class="text-3xl font-bold text-text-main">
  Validació final
@@ -137,7 +137,7 @@
  :class="bloc.borderClass"
  >
  <button
- class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+ class="print-keep-button flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
  :class="bloc.headerClass"
  @click="toggleBloc(bloc.id)"
  >
@@ -153,7 +153,7 @@
  </div>
  </button>
 
- <div v-if="blocsOberts[bloc.id]" class="divide-y divide-slate-200">
+ <div v-show="blocsOberts[bloc.id]" class="print-force-open divide-y divide-slate-200">
  <div
  v-for="item in bloc.items"
  :key="item.key"

@@ -1,6 +1,6 @@
 <template>
  <div class="space-y-4">
- <div class="flex flex-wrap items-center gap-3">
+ <div class="print-hide flex flex-wrap items-center gap-3">
  <input
  v-model="cerca"
  type="text"

@@ -1581,9 +1581,75 @@ html:not(.dark) .bg-gray-100 {
   button, input, select, textarea,
   [role="button"], .resums-tab { display: none !important; }
 
+  button.print-keep-button {
+    display: flex !important;
+    cursor: default !important;
+  }
+
+  button.print-keep-button > div:last-child > span:last-child {
+    display: none !important;
+  }
+
+  .print-force-open {
+    display: block !important;
+  }
+
   /* ── Salts de pàgina ── */
   h2, h3 { page-break-after: avoid; }
   .page-break { page-break-before: always; }
+  .card,
+  .app-card,
+  .metric-card,
+  article,
+  table {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .resums-page > [class*="space-y-"] {
+    display: block !important;
+  }
+
+  .resums-page .card,
+  .resums-page .app-card,
+  .resums-page .metric-card {
+    border: 0.5pt solid #cbd5e1 !important;
+    border-radius: 0 !important;
+    margin-bottom: 0.28cm !important;
+  }
+
+  .resums-page .card > div[class*="border-b"],
+  .resums-page .app-card > div[class*="border-b"] {
+    padding: 6pt 8pt !important;
+  }
+
+  .resums-page .metric-card {
+    padding: 6pt 8pt !important;
+  }
+
+  .resums-page .metric-label,
+  .resums-page .metric-detail {
+    font-size: 7pt !important;
+  }
+
+  .resums-page .metric-value {
+    font-size: 15pt !important;
+    line-height: 1.05 !important;
+  }
+
+  .resums-page article {
+    padding: 6pt 8pt !important;
+  }
+
+  .department-print-pending {
+    border-top: 0.4pt solid #cbd5e1;
+    padding-top: 4pt;
+  }
+
+  .department-print-pending-item {
+    border: 0.35pt solid #d7dee8 !important;
+    padding: 2pt 4pt !important;
+  }
 
   /* Classes sense assignar */
   .classes-sense-assignar { margin-top: 0.4cm; }

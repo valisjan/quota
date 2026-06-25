@@ -1,6 +1,6 @@
 <template>
  <div class="space-y-4">
- <div class="flex items-center justify-between">
+ <div class="print-hide flex items-center justify-between">
  <div>
  <h3 class="text-lg font-semibold text-slate-950">
  Professorat &gt;55

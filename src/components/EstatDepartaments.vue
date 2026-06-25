@@ -13,7 +13,7 @@
           </p>
         </div>
 
-        <div class="flex flex-wrap gap-2">
+        <div class="print-hide flex flex-wrap gap-2">
           <router-link to="/admin/dades" class="rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-primary-dark">
             Revisar pendents
           </router-link>
@@ -85,7 +85,7 @@
               Ordenat per classes sense assignar. Clica un departament per veure el detall.
             </p>
           </div>
-          <div class="flex gap-1 border border-slate-200 bg-white p-1">
+          <div class="print-hide flex gap-1 border border-slate-200 bg-white p-1">
             <button
               v-for="o in ordres"
               :key="o.valor"
@@ -168,6 +168,23 @@
               </div>
             </div>
           </div>
+
+          <div
+            v-if="dept.classesSenseProfessorPrint.length"
+            class="department-print-pending print-only mt-3"
+          >
+            <div class="mb-1 text-xs font-bold uppercase text-slate-600">Elements pendents</div>
+            <div class="grid gap-1 md:grid-cols-2 xl:grid-cols-3">
+              <div
+                v-for="(c, i) in dept.classesSenseProfessorPrint"
+                :key="`print-${dept.nom}-${i}`"
+                class="department-print-pending-item border border-slate-200 bg-white px-2 py-1 text-xs"
+              >
+                <span class="font-semibold">{{ c.curs }} {{ c.grup }}</span>
+                <span class="text-slate-700"> · {{ c.materia }} · {{ c.hores }}h</span>
+              </div>
+            </div>
+          </div>
         </article>
       </div>
     </section>
@@ -237,6 +254,7 @@ const perDepartament = computed(() => {
       horesAssignades,
       professors: profsDelDept.length,
       pct,
+      classesSenseProfessorPrint: senseProfessor,
     };
   });
 });
