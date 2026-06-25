@@ -74,6 +74,13 @@
           <div v-if="professor.comentaris" class="professor-comments">
             <strong>Comentaris:</strong> {{ professor.comentaris }}
           </div>
+          <div v-if="professor.motiuAllegat" class="professor-comments">
+            <strong>Peticions:</strong> {{ professor.motiuAllegat }}
+          </div>
+          <div v-if="getComissionsParticipant(professor.nom).length" class="professor-comments">
+            <strong>Comissions:</strong>
+            {{ getComissionsParticipant(professor.nom).map((c) => c.materia).join(', ') }}
+          </div>
         </div>
       </div>
 
@@ -108,7 +115,7 @@
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   departament: {
     type: String,
     required: true
@@ -204,8 +211,18 @@ defineProps({
   isOverLimit: {
     type: Function,
     required: true
+  },
+  coordinacions: {
+    type: Array,
+    default: () => []
   }
 });
+
+function getComissionsParticipant(nomProfessor) {
+  return props.coordinacions.filter(
+    (c) => (c.participants || []).includes(nomProfessor) && c.professorAssignat !== nomProfessor
+  );
+}
 
 function formatProfessorsClasse(classe) {
   const professors = Array.isArray(classe.professors) && classe.professors.length > 0

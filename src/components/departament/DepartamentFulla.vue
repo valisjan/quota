@@ -151,6 +151,9 @@
               <div v-if="professor.comentaris" class="mt-0.5 text-xs italic text-slate-500 dark:text-gray-500">
                 {{ professor.comentaris }}
               </div>
+              <div v-if="professor.motiuAllegat" class="mt-0.5 text-xs text-amber-700 dark:text-amber-400">
+                {{ professor.motiuAllegat }}
+              </div>
             </td>
 
             <!-- Matèries -->
@@ -193,6 +196,13 @@
               >
                 <span class="font-semibold">Desdoblament divisible:</span>
                 {{ formatDDAssignacions(professor.nom) }}
+              </div>
+              <div
+                v-if="getComissionsParticipant(professor.nom).length"
+                class="mt-1 rounded bg-violet-50 px-2 py-1 text-xs text-violet-900 dark:bg-violet-900/20 dark:text-violet-200"
+              >
+                <span class="font-semibold">Comissions:</span>
+                {{ getComissionsParticipant(professor.nom).map((c) => etiquetaComissio(c.materia)).join(', ') }}
               </div>
             </td>
 
@@ -386,6 +396,7 @@ const props = defineProps({
   getSdAssignacions: { type: Function, required: true },
   getHoresDd: { type: Function, required: true },
   getDdAssignacions: { type: Function, required: true },
+  coordinacions: { type: Array, default: () => [] },
 });
 
 const dataAvui = new Date().toLocaleDateString('ca-ES', {
@@ -441,6 +452,22 @@ function formatDDAssignacions(nom) {
   return assignacions
     .map((assignacio, index) => assignacio.grup || `hora ${index + 1} sense grup`)
     .join(', ');
+}
+
+function etiquetaComissio(materia) {
+  let text = (materia || '').trim();
+  text = text.replace(/(?:coordinaci[oó]n?|coord(?:inaci[oó]n?)?\.?|coor\.?)\s+(?=comissi[oó])/gi, '');
+  text = text
+    .replace(/coordinaci[oó]n?/gi, 'Comissió')
+    .replace(/\bcoor(?:d(?:inaci[oó]n?)?)?\.?(?=\s|$)/gi, 'Comissió')
+    .trim();
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function getComissionsParticipant(nomProfessor) {
+  return props.coordinacions.filter(
+    (c) => (c.participants || []).includes(nomProfessor) && c.professorAssignat !== nomProfessor
+  );
 }
 
 function limitsProf(professor) {

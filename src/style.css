@@ -1452,7 +1452,7 @@ html:not(.dark) .bg-gray-100 {
    ═══════════════════════════════════════════════════════════ */
 @media print {
   /* Pàgina A4 amb marges petits */
-  @page { size: A4 portrait; margin: 1cm 1.2cm; }
+  @page { size: A4 landscape; margin: 1cm 1.2cm; }
 
   /* Visibilitat */
   .print-hide { display: none !important; }

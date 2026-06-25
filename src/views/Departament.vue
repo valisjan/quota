@@ -515,6 +515,7 @@
           :get-sd-assignacions="getSDAssignacions"
           :get-hores-dd="getHoresDD"
           :get-dd-assignacions="getDDAssignacions"
+          :coordinacions="coordinacions"
         />
       </div>
       </template>
@@ -547,6 +548,7 @@
       :is-perfect-hours="isPerfectHours"
       :is-over-recommended="isOverRecommended"
       :is-over-limit="isOverLimit"
+      :coordinacions="coordinacions"
     />
     </div>
   </div>
