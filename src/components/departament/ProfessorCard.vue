@@ -248,7 +248,7 @@
               :key="c.id"
               class="app-surface-row flex items-center justify-between gap-2 text-sm"
             >
-              <span class="text-text-main">{{ c.materia }}
+              <span class="text-text-main">{{ esCoordinador(c) ? c.materia : etiquetaComissio(c.materia) }}
                 <span class="text-text-muted">· {{ esCoordinador(c) ? 'coordinador/a' : 'membre' }}</span>
               </span>
               <button
@@ -268,7 +268,7 @@
               :disabled="bloquejat"
               class="form-input w-full py-1 text-sm"
             >
-              <option v-for="c in coordinacionsDisponibles" :key="c.id" :value="c.id">{{ c.materia }}</option>
+              <option v-for="c in coordinacionsDisponibles" :key="c.id" :value="c.id">{{ etiquetaComissio(c.materia) }}</option>
             </select>
             <button
               type="button"
@@ -445,6 +445,15 @@ const coordinacionsProfessor = computed(() =>
 const coordinacionsDisponibles = computed(() =>
   props.coordinacions.filter((c) => !esCoordinador(c) && !participaEnCoordinacio(c))
 );
+
+function etiquetaComissio(materia) {
+  const text = materia || '';
+  if (/comissi[oó]/i.test(text)) return text;
+  return text
+    .replace(/coordinaci[oó]n?/gi, 'Comissió')
+    .replace(/\bcoord\.?\b/gi, 'Comissió')
+    .replace(/\bcoor\.?\b/gi, 'Comissió');
+}
 
 function participaEnCoordinacio(c) {
   return (c.participants || []).includes(props.professor.nom);
