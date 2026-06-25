@@ -447,12 +447,15 @@ const coordinacionsDisponibles = computed(() =>
 );
 
 function etiquetaComissio(materia) {
-  const text = materia || '';
-  if (/comissi[oó]/i.test(text)) return text;
-  return text
+  let text = (materia || '').trim();
+  // Elimina prefix coord-* quan va seguit de "comissió" (redundant)
+  text = text.replace(/(?:coordinaci[oó]n?|coord(?:inaci[oó]n?)?\.?|coor\.?)\s+(?=comissi[oó])/gi, '');
+  // Substitueix les formes restants per "Comissió"
+  text = text
     .replace(/coordinaci[oó]n?/gi, 'Comissió')
-    .replace(/\bcoord\.?\b/gi, 'Comissió')
-    .replace(/\bcoor\.?\b/gi, 'Comissió');
+    .replace(/\bcoor(?:d(?:inaci[oó]n?)?)?\.?(?=\s|$)/gi, 'Comissió')
+    .trim();
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function participaEnCoordinacio(c) {
