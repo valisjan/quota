@@ -276,7 +276,7 @@
             Historial de sincronitzacions
           </h3>
           <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            {{ historial.length }} registres de sincronització.
+            {{ historial.length === 100 ? '100+ registres' : historial.length + ' registres' }} de sincronització.
           </p>
         </div>
         <span class="rounded-md border border-slate-200 px-2 py-1 text-sm font-semibold text-slate-700">
@@ -292,22 +292,45 @@
           :key="item.id"
           class="px-5 py-4"
         >
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p class="font-bold text-slate-950 dark:text-white">
                 {{ formatDataHora(item.createdAt || item.timestamp) }}
               </p>
               <p class="text-sm text-slate-600 dark:text-slate-400">
-                {{ item.actor || 'admin' }} · {{ item.total }} classes · {{ item.totalProfs }} professors · {{ item.totalDeps }} departaments
+                {{ item.actor || 'admin' }} · {{ item.total }} classes · {{ item.totalProfs }} professors · {{ item.totalDeps }} dep.
               </p>
             </div>
-            <div class="flex flex-wrap gap-2 text-xs font-semibold">
-              <span class="rounded bg-green-100 px-2 py-1 text-green-800 dark:bg-green-900 dark:text-green-100">+{{ item.afegides || 0 }}</span>
-              <span class="rounded bg-blue-100 px-2 py-1 text-blue-800 dark:bg-blue-900 dark:text-blue-100">={{ item.actualitzades || 0 }}</span>
-              <span class="rounded bg-orange-100 px-2 py-1 text-orange-800 dark:bg-orange-900 dark:text-orange-100">-{{ item.eliminades || 0 }}</span>
-              <span class="rounded bg-slate-100 px-2 py-1 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
-                {{ item.assignacionsConservades || 0 }} conservades
-              </span>
+            <div class="flex flex-col gap-1.5">
+              <!-- Classes -->
+              <div class="flex flex-wrap gap-1.5 text-xs font-semibold">
+                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-slate-500 dark:bg-slate-700 dark:text-slate-400">Classes</span>
+                <span class="rounded bg-green-100 px-1.5 py-0.5 text-green-800 dark:bg-green-900 dark:text-green-100">+{{ item.afegides || 0 }}</span>
+                <span class="rounded bg-blue-100 px-1.5 py-0.5 text-blue-800 dark:bg-blue-900 dark:text-blue-100">~{{ item.actualitzades || 0 }}</span>
+                <span class="rounded bg-orange-100 px-1.5 py-0.5 text-orange-800 dark:bg-orange-900 dark:text-orange-100">-{{ item.eliminades || 0 }}</span>
+                <span v-if="item.assignacionsConservades" class="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                  {{ item.assignacionsConservades }} conservades
+                </span>
+              </div>
+              <!-- Professors -->
+              <div
+                v-if="(item.profsAfegits || 0) + (item.profsMigrats || 0) + (item.profsEliminats || 0) > 0"
+                class="flex flex-wrap gap-1.5 text-xs font-semibold"
+              >
+                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-slate-500 dark:bg-slate-700 dark:text-slate-400">Professors</span>
+                <span v-if="item.profsAfegits" class="rounded bg-green-100 px-1.5 py-0.5 text-green-800 dark:bg-green-900 dark:text-green-100">+{{ item.profsAfegits }}</span>
+                <span v-if="item.profsMigrats" class="rounded bg-blue-100 px-1.5 py-0.5 text-blue-800 dark:bg-blue-900 dark:text-blue-100">~{{ item.profsMigrats }} migrats</span>
+                <span v-if="item.profsEliminats" class="rounded bg-rose-100 px-1.5 py-0.5 text-rose-800 dark:bg-rose-900 dark:text-rose-100">-{{ item.profsEliminats }}</span>
+              </div>
+              <!-- Departaments -->
+              <div
+                v-if="(item.depsAfegits || 0) + (item.depsEliminats || 0) > 0"
+                class="flex flex-wrap gap-1.5 text-xs font-semibold"
+              >
+                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-slate-500 dark:bg-slate-700 dark:text-slate-400">Dep.</span>
+                <span v-if="item.depsAfegits" class="rounded bg-green-100 px-1.5 py-0.5 text-green-800 dark:bg-green-900 dark:text-green-100">+{{ item.depsAfegits }}</span>
+                <span v-if="item.depsEliminats" class="rounded bg-rose-100 px-1.5 py-0.5 text-rose-800 dark:bg-rose-900 dark:text-rose-100">-{{ item.depsEliminats }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -318,6 +341,7 @@
 
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue';
+import { query, orderBy, limit } from 'firebase/firestore';
 import { sincronitzar, comprovarDiscrepancies } from '../services/sincronitzacio.js';
 import { useAuthStore } from '../stores/auth';
 import { useCursStore } from '../stores/curs';
@@ -347,12 +371,11 @@ const historialObert = ref(false);
 const settings = ref({ ...DEFAULT_APP_SETTINGS });
 let settingsUnsubscribe = null;
 
-const { items: historialRaw, error: historialError } = useCursCollectionSnapshot({ colName: 'sync_history' });
-const historial = computed(() =>
-  [...historialRaw.value]
-    .sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))
-    .slice(0, 10)
-);
+const { items: historialRaw, error: historialError } = useCursCollectionSnapshot({
+  colName: 'sync_history',
+  queryFactory: (col) => query(col, orderBy('createdAt', 'desc'), limit(100)),
+});
+const historial = computed(() => historialRaw.value);
 const errorHistorialMsg = computed(() =>
   historialError.value ? `No es pot carregar l'historial: ${historialError.value.message}` : ''
 );
