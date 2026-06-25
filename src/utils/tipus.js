@@ -87,7 +87,7 @@ export function esTipusConegut(tipus) {
 
 export function clauFranjaOptativa(tipus) {
   const normal = normalitzarTipus(tipus);
-  if (normal.startsWith('T')) return `O${normal.slice(1)}`;
+  if (normal.startsWith('T')) return 'O4';
   return normal || 'O';
 }
 

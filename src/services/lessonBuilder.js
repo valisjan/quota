@@ -58,7 +58,7 @@ export function esOptativaCompartida(classe) {
 function franjaOptativa(tipus) {
   const normal = netejarText(tipus).toUpperCase();
   if (!normal.startsWith('O') && !normal.startsWith('T')) return '';
-  if (normal.startsWith('T')) return `O${normal.slice(1)}`;
+  if (normal.startsWith('T')) return 'O4';
   return normal;
 }
 
