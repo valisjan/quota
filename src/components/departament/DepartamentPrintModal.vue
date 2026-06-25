@@ -10,6 +10,7 @@
           <p><strong>Total GP:</strong> {{ totalGp }}h ({{ totalGpAssignades }}h assignades)</p>
           <p><strong>Total PALIC:</strong> {{ totalPalic }}h ({{ totalPalicAssignades }}h assignades)</p>
           <p><strong>Total suport divisible:</strong> {{ totalSd }}h ({{ totalSdAssignades }}h assignades)</p>
+          <p><strong>Total desdoblament divisible:</strong> {{ totalDd }}h ({{ totalDdAssignades }}h assignades)</p>
         </div>
       </div>
 
@@ -35,6 +36,9 @@
               <span v-if="getHoresSd(professor.nom) > 0" class="palic-badge">
                 {{ getHoresSd(professor.nom) }} suport divisible
               </span>
+              <span v-if="getHoresDd(professor.nom) > 0" class="palic-badge">
+                {{ getHoresDd(professor.nom) }} desdoblament divisible
+              </span>
               <span v-if="professor.preferencia" class="preference-badge">
                 {{ professor.preferencia === 'pronto' ? 'Entrar prest' : 'Entrar tard' }}
               </span>
@@ -54,6 +58,15 @@
             >
               <span class="class-name">Suport divisible</span>
               <span class="class-details">{{ sd.grup || 'Sense grup indicat' }}</span>
+              <span class="class-hours">1h</span>
+            </div>
+            <div
+              v-for="(dd, index) in getDdAssignacions(professor.nom)"
+              :key="`dd-${professor.id}-${index}`"
+              class="class-item"
+            >
+              <span class="class-name">Desdoblament divisible</span>
+              <span class="class-details">{{ dd.grup || 'Sense grup indicat' }}</span>
               <span class="class-hours">1h</span>
             </div>
           </div>
@@ -140,6 +153,14 @@ defineProps({
     type: Number,
     default: 0
   },
+  totalDd: {
+    type: Number,
+    default: 0
+  },
+  totalDdAssignades: {
+    type: Number,
+    default: 0
+  },
   getClassesProfessor: {
     type: Function,
     required: true
@@ -161,6 +182,14 @@ defineProps({
     required: true
   },
   getSdAssignacions: {
+    type: Function,
+    required: true
+  },
+  getHoresDd: {
+    type: Function,
+    required: true
+  },
+  getDdAssignacions: {
     type: Function,
     required: true
   },

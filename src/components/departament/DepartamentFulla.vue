@@ -70,6 +70,12 @@
           {{ totalSdAssignades }} / {{ totalSdDepartament }}
         </strong>
       </div>
+      <div v-if="totalDdDepartament > 0">
+        <span class="text-slate-600 dark:text-slate-400">Desdoblament divisible:</span>
+        <strong class="ml-1.5" :class="totalDdAssignades === totalDdDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'">
+          {{ totalDdAssignades }} / {{ totalDdDepartament }}
+        </strong>
+      </div>
       <div>
         <span class="text-slate-600 dark:text-slate-400">Sense assignar:</span>
         <strong class="ml-1.5" :class="classesNoAssignades.length > 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'">
@@ -109,6 +115,12 @@
               class="w-16 border-b border-r border-slate-300 px-3 py-2.5 text-center font-semibold text-amber-700 dark:border-gray-600 dark:text-amber-300"
             >
               Suport divisible
+            </th>
+            <th
+              v-if="totalDdDepartament > 0"
+              class="w-16 border-b border-r border-slate-300 px-3 py-2.5 text-center font-semibold text-blue-700 dark:border-gray-600 dark:text-blue-300"
+            >
+              Desdoblament divisible
             </th>
             <th class="w-14 border-b border-r border-slate-300 px-3 py-2.5 text-center font-semibold text-slate-700 dark:border-gray-600 dark:text-gray-200">
               Total
@@ -175,6 +187,13 @@
                 <span class="font-semibold">Suport divisible:</span>
                 {{ formatSDAssignacions(professor.nom) }}
               </div>
+              <div
+                v-if="getDdAssignacions(professor.nom).length"
+                class="mt-1 rounded bg-blue-50 px-2 py-1 text-xs text-blue-900 dark:bg-blue-900/20 dark:text-blue-200"
+              >
+                <span class="font-semibold">Desdoblament divisible:</span>
+                {{ formatDDAssignacions(professor.nom) }}
+              </div>
             </td>
 
             <!-- Lectives -->
@@ -207,6 +226,15 @@
               :class="getHoresSd(professor.nom) > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-slate-300 dark:text-gray-600'"
             >
               {{ getHoresSd(professor.nom) || '-' }}
+            </td>
+
+            <!-- DD -->
+            <td
+              v-if="totalDdDepartament > 0"
+              class="border-b border-r border-slate-200 px-3 py-2.5 text-center align-middle font-mono dark:border-gray-700"
+              :class="getHoresDd(professor.nom) > 0 ? 'text-blue-700 dark:text-blue-300' : 'text-slate-300 dark:text-gray-600'"
+            >
+              {{ getHoresDd(professor.nom) || '-' }}
             </td>
 
             <!-- Total -->
@@ -257,6 +285,13 @@
               :class="totalSdAssignades === totalSdDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'"
             >
               {{ totalSdAssignades }} / {{ totalSdDepartament }}
+            </td>
+            <td
+              v-if="totalDdDepartament > 0"
+              class="border-t-primary border-slate-300 px-3 py-2.5 text-center font-mono dark:border-gray-500"
+              :class="totalDdAssignades === totalDdDepartament ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-900 dark:text-amber-400'"
+            >
+              {{ totalDdAssignades }} / {{ totalDdDepartament }}
             </td>
             <td class="border-t-primary border-slate-300 px-3 py-2.5 dark:border-gray-500" colspan="2"></td>
           </tr>
@@ -341,12 +376,16 @@ const props = defineProps({
   totalPalicAssignades: { type: Number, default: 0 },
   totalSdDepartament: { type: Number, default: 0 },
   totalSdAssignades: { type: Number, default: 0 },
+  totalDdDepartament: { type: Number, default: 0 },
+  totalDdAssignades: { type: Number, default: 0 },
   getClassesProfessor: { type: Function, required: true },
   calcularHoresProfessor: { type: Function, required: true },
   getHoresGp: { type: Function, required: true },
   getHoresPalic: { type: Function, required: true },
   getHoresSd: { type: Function, required: true },
   getSdAssignacions: { type: Function, required: true },
+  getHoresDd: { type: Function, required: true },
+  getDdAssignacions: { type: Function, required: true },
 });
 
 const dataAvui = new Date().toLocaleDateString('ca-ES', {
@@ -385,11 +424,19 @@ function formatHores(value) {
 }
 
 function totalComputable(nom) {
-  return props.calcularHoresProfessor(nom) + props.getHoresPalic(nom) + props.getHoresSd(nom);
+  return props.calcularHoresProfessor(nom) + props.getHoresPalic(nom) + props.getHoresSd(nom) + props.getHoresDd(nom);
 }
 
 function formatSDAssignacions(nom) {
   const assignacions = props.getSdAssignacions(nom);
+  if (!assignacions.length) return '';
+  return assignacions
+    .map((assignacio, index) => assignacio.grup || `hora ${index + 1} sense grup`)
+    .join(', ');
+}
+
+function formatDDAssignacions(nom) {
+  const assignacions = props.getDdAssignacions(nom);
   if (!assignacions.length) return '';
   return assignacions
     .map((assignacio, index) => assignacio.grup || `hora ${index + 1} sense grup`)
@@ -446,7 +493,7 @@ function exportarExcel() {
   const nomFitxer = `distribucio_${props.departament}_${new Date().toISOString().slice(0, 10)}`;
 
   // Full 1: Resum per professor
-  const capDistribucio = ['Professor', 'H. Lectives', 'GP', 'PALIC', 'Suport divisible', 'Grups SD', 'Total', 'Estat'];
+  const capDistribucio = ['Professor', 'H. Lectives', 'GP', 'PALIC', 'Suport divisible', 'Grups SD', 'Desdoblament divisible', 'Grups DD', 'Total', 'Estat'];
   const filesDistribucio = props.professors.map((p) => [
     p.nom,
     props.calcularHoresProfessor(p.nom),
@@ -454,14 +501,16 @@ function exportarExcel() {
     props.getHoresPalic(p.nom) || 0,
     props.getHoresSd(p.nom) || 0,
     formatSDAssignacions(p.nom),
+    props.getHoresDd(p.nom) || 0,
+    formatDDAssignacions(p.nom),
     totalComputable(p.nom),
     estatText(p),
   ]);
-  filesDistribucio.push(['TOTAL', props.totalHoresAssignades, props.totalGpAssignades, props.totalPalicAssignades, props.totalSdAssignades, '', '', '']);
+  filesDistribucio.push(['TOTAL', props.totalHoresAssignades, props.totalGpAssignades, props.totalPalicAssignades, props.totalSdAssignades, '', props.totalDdAssignades, '', '', '']);
 
   const fullDistribucio = [
-    [`Full de distribució - ${props.departament}`, '', '', '', '', '', '', ''],
-    [`Data: ${data}`, '', '', '', '', '', '', ''],
+    [`Full de distribució - ${props.departament}`, '', '', '', '', '', '', '', '', ''],
+    [`Data: ${data}`, '', '', '', '', '', '', '', '', ''],
     [],
     capDistribucio,
     ...filesDistribucio,
@@ -473,7 +522,8 @@ function exportarExcel() {
   for (const p of props.professors) {
     const classesProfessor = props.getClassesProfessor(p.nom);
     const sdAssignacions = props.getSdAssignacions(p.nom);
-    if (classesProfessor.length === 0 && sdAssignacions.length === 0) {
+    const ddAssignacions = props.getDdAssignacions(p.nom);
+    if (classesProfessor.length === 0 && sdAssignacions.length === 0 && ddAssignacions.length === 0) {
       filesAssig.push([p.nom, '(Sense assignació)', '', '', '', '']);
     } else {
       for (const c of classesProfessor) {
@@ -482,6 +532,9 @@ function exportarExcel() {
     }
     for (const sd of sdAssignacions) {
       filesAssig.push([p.nom, 'Suport divisible', '', sd.grup || '', 'SD', 1]);
+    }
+    for (const dd of ddAssignacions) {
+      filesAssig.push([p.nom, 'Desdoblament divisible', '', dd.grup || '', 'DD', 1]);
     }
   }
 

@@ -235,7 +235,7 @@ import { classeCompletamentAssignada, professorPrincipalClasse, professorSecunda
 import { esOptativaCompartida, exclosaDelRepartiment, getTipusLabel, getTipusBadgeClass } from '../utils/tipus';
 import { normalitzarGrup } from '../utils/grups';
 import { classePertanyDepartament, professorPertanyDepartament } from '../utils/departaments';
-import { comptarSDAssignacions } from '../utils/suportDivisible';
+import { comptarDDAssignacions, comptarSDAssignacions } from '../utils/suportDivisible';
 import {
   crearActualitzacionsAssignacio,
   crearActualitzacionsCanviProfessor,
@@ -417,7 +417,8 @@ function calcularHoresProfessor(nomProfessor) {
   const professor = getProfessor(nomProfessor);
   return (horesPorProfessorMap.value.get(nomProfessor) || 0)
     + (Number(professor.palicAssignades) || 0)
-    + comptarSDAssignacions(professor);
+    + comptarSDAssignacions(professor)
+    + comptarDDAssignacions(professor);
 }
 
 function horesClasseAmbProfessors(classe, professorsAssignats) {

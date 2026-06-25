@@ -80,6 +80,7 @@
               <option value="O">Optativa</option>
               <option value="T">Optativa compartida</option>
               <option value="D">Desdoblament</option>
+              <option value="DD">Desdoblament divisible</option>
               <option value="CD">Codocència</option>
               <option value="S">Suport</option>
               <option value="SD">Suport divisible</option>
@@ -294,7 +295,7 @@ const classesFiltrades = computed(() => {
         if (filtresClasses.tipus === 'C' || filtresClasses.tipus === 'CO') {
           return tipus === filtresClasses.tipus;
         }
-        if (['S', 'SD', 'D', 'CD', 'F', 'GP', 'PALIC'].includes(filtresClasses.tipus)) {
+        if (['S', 'SD', 'D', 'DD', 'CD', 'F', 'GP', 'PALIC'].includes(filtresClasses.tipus)) {
           return tipus === filtresClasses.tipus;
         }
         if (!tipus.startsWith(filtresClasses.tipus)) return false;

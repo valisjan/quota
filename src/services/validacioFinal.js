@@ -7,6 +7,7 @@ import {
 import { classeCompletamentAssignada } from '../utils/assignacions';
 import {
   esCoordinacio,
+  esDesdoblamentDivisible,
   esGP,
   esOptativaCompartida,
   esPALIC,
@@ -225,6 +226,7 @@ export function calcularValidacioFinal({ classes = [], professors = [], departam
       if (esGP(classe.tipus) && !classeCompletamentAssignada(classe)) return false;
       if (esPALIC(classe.tipus) && !classeCompletamentAssignada(classe)) return false;
       if (esSuportDivisible(classe.tipus) && !classeCompletamentAssignada(classe)) return false;
+      if (esDesdoblamentDivisible(classe.tipus) && !classeCompletamentAssignada(classe)) return false;
       return Number(classe.hores) > 0 && !classeCompletamentAssignada(classe);
     })
     .map((classe) =>

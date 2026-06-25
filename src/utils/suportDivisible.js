@@ -68,6 +68,74 @@ export function crearSDAssignacio(grup = '', departament = '') {
   };
 }
 
+export function normalitzarDDAssignacions(assignacions = [], legacyCount = 0) {
+  const llista = Array.isArray(assignacions) ? assignacions : [];
+  const normalitzades = llista
+    .map((item, index) => {
+      if (typeof item === 'string') {
+        return {
+          id: `dd-${index}`,
+          grup: item,
+          curs: '',
+          materia: '',
+          departament: '',
+        };
+      }
+      if (!item || typeof item !== 'object') return null;
+      return {
+        id: item.id || `dd-${index}`,
+        grup: (item.grup || item.grupObjectiu || item.destinacio || '').toString().trim(),
+        curs: (item.curs || '').toString().trim(),
+        materia: (item.materia || '').toString().trim(),
+        departament: (item.departament || '').toString().trim(),
+      };
+    })
+    .filter(Boolean);
+
+  const totalLegacy = Math.max(0, Number(legacyCount) || 0);
+  for (let index = normalitzades.length; index < totalLegacy; index++) {
+    normalitzades.push({
+      id: `dd-legacy-${index}`,
+      grup: '',
+      curs: '',
+      materia: '',
+      departament: '',
+    });
+  }
+
+  return normalitzades;
+}
+
+export function ddAssignacionsProfessor(professor = {}, departament = '') {
+  const assignacions = normalitzarDDAssignacions(
+    professor.ddAssignacions,
+    professor.ddAssignades
+  );
+
+  const departamentNormalitzat = normalitzarClau(departament);
+  if (!departamentNormalitzat) return assignacions;
+
+  const principal = departamentPrincipalProfessor(professor);
+  return assignacions.filter((assignacio) => {
+    const departamentAssignacio = assignacio.departament || principal;
+    return normalitzarClau(departamentAssignacio) === departamentNormalitzat;
+  });
+}
+
+export function comptarDDAssignacions(professor = {}, departament = '') {
+  return ddAssignacionsProfessor(professor, departament).length;
+}
+
+export function crearDDAssignacio(grup = '', departament = '') {
+  return {
+    id: `dd-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    grup: (grup || '').toString().trim(),
+    curs: '',
+    materia: '',
+    departament: (departament || '').toString().trim(),
+  };
+}
+
 function senseAccents(valor) {
   return (valor || '')
     .toString()
@@ -171,9 +239,18 @@ function esSD(classe = {}) {
   return normalitzarClau(classe.tipus) === 'SD';
 }
 
+function esDD(classe = {}) {
+  return normalitzarClau(classe.tipus) === 'DD';
+}
+
 function materiaGenericaSD(materia) {
   const normal = normalitzarClau(materia);
   return !normal || normal === 'SD' || normal.includes('SUPORTDIVISIBLE');
+}
+
+function materiaGenericaDD(materia) {
+  const normal = normalitzarClau(materia);
+  return !normal || normal === 'DD' || normal.includes('DESDOBLAMENTDIVISIBLE');
 }
 
 function materiaPerSuport({ assignacio, professor, grupResol, classes, poolMateria }) {
@@ -183,6 +260,7 @@ function materiaPerSuport({ assignacio, professor, grupResol, classes, poolMater
   const mateixaMateria = classes
     .filter((classe) =>
       !esSD(classe) &&
+      !esDD(classe) &&
       classe.materia &&
       mateixDepartament(classe, departamentAssignacio) &&
       normalitzarClau(classe.curs) === normalitzarClau(grupResol.curs) &&
@@ -200,11 +278,50 @@ function materiaPerSuport({ assignacio, professor, grupResol, classes, poolMater
   return departamentAssignacio || 'Suport';
 }
 
+function materiaPerDesdoblament({ assignacio, professor, grupResol, classes, poolMateria }) {
+  if (assignacio.materia) return assignacio.materia;
+  const departamentAssignacio = assignacio.departament || departamentPrincipalProfessor(professor);
+
+  const mateixaMateria = classes
+    .filter((classe) =>
+      !esSD(classe) &&
+      !esDD(classe) &&
+      classe.materia &&
+      mateixDepartament(classe, departamentAssignacio) &&
+      normalitzarClau(classe.curs) === normalitzarClau(grupResol.curs) &&
+      grupsClasse(classe).some((grup) => normalitzarClau(grup) === normalitzarClau(grupResol.grup))
+    )
+    .sort((a, b) => {
+      const aStar = (a.materia || '').toString().trim().startsWith('*') ? 1 : 0;
+      const bStar = (b.materia || '').toString().trim().startsWith('*') ? 1 : 0;
+      if (aStar !== bStar) return aStar - bStar;
+      return (a.materia || '').localeCompare(b.materia || '', 'ca');
+    })[0];
+
+  if (mateixaMateria?.materia) return mateixaMateria.materia;
+  if (!materiaGenericaDD(poolMateria)) return poolMateria;
+  return departamentAssignacio || 'Desdoblament';
+}
+
 function poolMateriesSD(professor, classes, departament) {
   const pool = [];
   const departamentPool = departament || departamentPrincipalProfessor(professor);
   classes
     .filter((classe) => esSD(classe) && mateixDepartament(classe, departamentPool))
+    .forEach((classe) => {
+      const hores = Math.max(1, Number(classe.hores) || 0);
+      for (let index = 0; index < hores; index += 1) {
+        pool.push(classe.materia || '');
+      }
+    });
+  return pool;
+}
+
+function poolMateriesDD(professor, classes, departament) {
+  const pool = [];
+  const departamentPool = departament || departamentPrincipalProfessor(professor);
+  classes
+    .filter((classe) => esDD(classe) && mateixDepartament(classe, departamentPool))
     .forEach((classe) => {
       const hores = Math.max(1, Number(classe.hores) || 0);
       for (let index = 0; index < hores; index += 1) {
@@ -269,6 +386,68 @@ export function crearClassesSuportDivisible(professors = [], classes = []) {
           professors: [professor.nom],
           _virtualSuportDivisible: true,
           _sdAssignacions: [assignacio.id || `sd-${index}`],
+        });
+      });
+    });
+
+  return [...agrupades.values()];
+}
+
+export function crearClassesDesdoblamentDivisible(professors = [], classes = []) {
+  const agrupades = new Map();
+
+  professors
+    .filter((professor) => professor?.nom && !professor.eliminatDelFull)
+    .forEach((professor) => {
+      const assignacions = normalitzarDDAssignacions(
+        professor.ddAssignacions,
+        professor.ddAssignades
+      );
+
+      assignacions.forEach((assignacio, index) => {
+        const grupResol = resoldreGrupSDAssignacio(assignacio, classes);
+        if (!grupResol?.curs || !grupResol?.grup) return;
+        const departamentAssignacio =
+          assignacio.departament ||
+          departamentPrincipalProfessor(professor) ||
+          departamentsProfessor(professor)[0] ||
+          '';
+        const pool = poolMateriesDD(professor, classes, departamentAssignacio);
+
+        const materia = materiaPerDesdoblament({
+          assignacio,
+          professor,
+          grupResol,
+          classes,
+          poolMateria: pool[index] || pool[0] || '',
+        });
+        const key = [
+          professor.nom,
+          normalitzarClau(grupResol.curs),
+          normalitzarClau(grupResol.grup),
+          normalitzarClau(materia),
+        ].join('|');
+
+        const existent = agrupades.get(key);
+        if (existent) {
+          existent.hores += 1;
+          existent._ddAssignacions.push(assignacio.id || `dd-${index}`);
+          return;
+        }
+
+        agrupades.set(key, {
+          id: `dd-${professor.id || normalitzarClau(professor.nom)}-${normalitzarClau(grupResol.curs)}-${normalitzarClau(grupResol.grup)}-${normalitzarClau(materia)}`,
+          curs: grupResol.curs,
+          grup: grupResol.grup,
+          materia,
+          hores: 1,
+          departament: departamentAssignacio,
+          departaments: departamentAssignacio ? [departamentAssignacio] : [],
+          tipus: 'DD',
+          professorAssignat: professor.nom,
+          professors: [professor.nom],
+          _virtualDesdoblamentDivisible: true,
+          _ddAssignacions: [assignacio.id || `dd-${index}`],
         });
       });
     });

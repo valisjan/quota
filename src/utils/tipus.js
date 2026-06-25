@@ -1,5 +1,6 @@
 export const TIPUS = {
   DESDOBLAMENT: 'D',
+  DESDOBLAMENT_DIVISIBLE: 'DD',
   CODOCENCIA: 'CD',
   SUPORT: 'S',
   SUPORT_DIVISIBLE: 'SD',
@@ -13,6 +14,7 @@ export const TIPUS = {
 export const TIPUS_CONEGUTS = [
   '',
   TIPUS.DESDOBLAMENT,
+  TIPUS.DESDOBLAMENT_DIVISIBLE,
   TIPUS.CODOCENCIA,
   TIPUS.SUPORT,
   TIPUS.SUPORT_DIVISIBLE,
@@ -43,9 +45,13 @@ export function esSuportDivisible(tipus) {
   return esTipus(tipus, TIPUS.SUPORT_DIVISIBLE);
 }
 
+export function esDesdoblamentDivisible(tipus) {
+  return esTipus(tipus, TIPUS.DESDOBLAMENT_DIVISIBLE);
+}
+
 export function esDesdoblament(tipus) {
   const normal = normalitzarTipus(tipus);
-  return normal === TIPUS.DESDOBLAMENT || normal === TIPUS.CODOCENCIA;
+  return normal === TIPUS.DESDOBLAMENT || normal === TIPUS.DESDOBLAMENT_DIVISIBLE || normal === TIPUS.CODOCENCIA;
 }
 
 export function esCoordinacio(tipus) {
@@ -93,6 +99,7 @@ function tipusBase(tipus) {
 
   const map = {
     D: { text: 'Desdoblament', group: 'desdoblament' },
+    DD: { text: 'Desdoblament divisible', group: 'desdoblament-divisible' },
     CD: { text: 'Codoc\u00e8ncia', group: 'desdoblament' },
     S: { text: 'Suport', group: 'suport' },
     SD: { text: 'Suport divisible', group: 'suport-divisible' },
@@ -125,6 +132,7 @@ export function getTipusText(tipus, options = {}) {
 const GRUP_ICONES = {
   optativa:     '✦',
   desdoblament: '⇄',
+  'desdoblament-divisible': '⇄',
   suport:       '⊕',
   autodesdoble: '↺',
   flexible:     '≈',
@@ -144,6 +152,7 @@ export function getTipusBadgeClass(tipus, variant = 'badge') {
   const colors = {
     optativa:     'badge-green',
     desdoblament: 'badge-blue',
+    'desdoblament-divisible': 'badge-blue',
     suport:       'badge-yellow',
     'suport-divisible': 'badge-yellow',
     autodesdoble: 'badge-purple',
@@ -159,13 +168,14 @@ export function getTipusBadgeClass(tipus, variant = 'badge') {
 
 export function exclosaDelRepartiment(tipus) {
   const normal = normalitzarTipus(tipus);
-  return normal === TIPUS.GP || normal === TIPUS.PALIC || normal === TIPUS.SUPORT_DIVISIBLE;
+  return normal === TIPUS.GP || normal === TIPUS.PALIC || normal === TIPUS.SUPORT_DIVISIBLE || normal === TIPUS.DESDOBLAMENT_DIVISIBLE;
 }
 
 export function comptaPerGrupPerTipus(tipus) {
   const normal = normalitzarTipus(tipus);
   return ![
     TIPUS.DESDOBLAMENT,
+    TIPUS.DESDOBLAMENT_DIVISIBLE,
     TIPUS.CODOCENCIA,
     TIPUS.SUPORT,
     TIPUS.SUPORT_DIVISIBLE,

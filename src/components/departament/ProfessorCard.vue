@@ -73,7 +73,7 @@
 
     <!-- Extres horaris -->
     <div
-      v-if="mostraGp || totalPalicDepartament > 0 || totalSdDepartament > 0 || mostraGc"
+      v-if="mostraGp || totalPalicDepartament > 0 || totalSdDepartament > 0 || totalDdDepartament > 0 || mostraGc"
       class="space-y-2 border-t border-border-soft bg-surface-soft px-4 py-3"
     >
       <div v-if="mostraGp" class="flex items-center justify-between gap-3">
@@ -157,6 +157,54 @@
           </div>
           <datalist :id="sdDatalistId">
             <option v-for="grup in grupsSd" :key="grup" :value="grup" />
+          </datalist>
+        </div>
+      </div>
+      <div v-if="totalDdDepartament > 0" class="space-y-2">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[0.95rem] font-normal text-text-secondary">Desdoblament divisible</span>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="app-mini-button"
+              :disabled="bloquejat || horesDd === 0"
+              @click="$emit('decrementar-dd', { professor, index: ddAssignacions.length - 1 })"
+            >-</button>
+            <span class="w-6 text-center text-[0.95rem] font-medium text-text-main">{{ horesDd }}</span>
+            <button
+              type="button"
+              class="app-mini-button"
+              :disabled="bloquejat || totalDdAssignades >= totalDdDepartament"
+              @click="$emit('incrementar-dd', professor)"
+            >+</button>
+          </div>
+        </div>
+        <div v-if="ddAssignacions.length" class="space-y-1">
+          <div
+            v-for="(assignacio, index) in ddAssignacions"
+            :key="assignacio.id || index"
+            class="flex items-center gap-2"
+          >
+            <label class="w-20 shrink-0 text-xs text-text-muted">Hora {{ index + 1 }}</label>
+            <input
+              type="text"
+              class="form-input min-w-0 flex-1 px-2 py-1 text-sm"
+              :list="ddDatalistId"
+              :value="assignacio.grup"
+              placeholder="Grup de desdoblament"
+              :disabled="bloquejat"
+              @change="$emit('actualitzar-dd-grup', { professor, index, grup: $event.target.value })"
+            />
+            <button
+              type="button"
+              class="rounded px-1 text-text-muted hover:bg-red-50 hover:text-red-500 disabled:opacity-30"
+              :disabled="bloquejat"
+              :aria-label="`Llevar hora ${index + 1} de desdoblament divisible`"
+              @click="$emit('decrementar-dd', { professor, index })"
+            >x</button>
+          </div>
+          <datalist :id="ddDatalistId">
+            <option v-for="grup in grupsDd" :key="grup" :value="grup" />
           </datalist>
         </div>
       </div>
@@ -293,17 +341,22 @@ const props = defineProps({
   horesPalic: { type: Number, default: 0 },
   horesSd: { type: Number, default: 0 },
   sdAssignacions: { type: Array, default: () => [] },
+  horesDd: { type: Number, default: 0 },
+  ddAssignacions: { type: Array, default: () => [] },
   horesGc: { type: Number, default: 0 },
   guardesPrevistes: { type: Number, default: null },
   mostraGp: { type: Boolean, default: true },
   mostraGc: { type: Boolean, default: false },
   grupsSd: { type: Array, default: () => [] },
+  grupsDd: { type: Array, default: () => [] },
   totalGpDepartament: { type: Number, default: 0 },
   totalGpAssignades: { type: Number, default: 0 },
   totalPalicDepartament: { type: Number, default: 0 },
   totalPalicAssignades: { type: Number, default: 0 },
   totalSdDepartament: { type: Number, default: 0 },
   totalSdAssignades: { type: Number, default: 0 },
+  totalDdDepartament: { type: Number, default: 0 },
+  totalDdAssignades: { type: Number, default: 0 },
   coordinacions: { type: Array, default: () => [] },
   bloquejat: { type: Boolean, default: false },
 });
@@ -317,6 +370,9 @@ const emit = defineEmits([
   'incrementar-sd',
   'decrementar-sd',
   'actualitzar-sd-grup',
+  'incrementar-dd',
+  'decrementar-dd',
+  'actualitzar-dd-grup',
   'incrementar-gc',
   'decrementar-gc',
   'toggle-coordinacio',
@@ -332,8 +388,13 @@ const sdDatalistId = computed(() =>
     .toString()
     .replace(/[^a-zA-Z0-9_-]/g, '-')}`
 );
+const ddDatalistId = computed(() =>
+  `dd-grups-${(props.professor.id || props.professor.nom || 'professor')
+    .toString()
+    .replace(/[^a-zA-Z0-9_-]/g, '-')}`
+);
 
-const totalHoresProfessor = computed(() => props.horesLectives + props.horesPalic + props.horesSd);
+const totalHoresProfessor = computed(() => props.horesLectives + props.horesPalic + props.horesSd + props.horesDd);
 const limits = computed(() => limitsHoresProfessor(props.professor));
 const comentariFull = computed(() => (props.professor.comentariFull || '').toString().trim());
 

@@ -46,6 +46,7 @@
  <th scope="col" class="px-4 py-2 text-center">GP</th>
  <th scope="col" class="px-4 py-2 text-center">PALIC</th>
  <th scope="col" class="px-4 py-2 text-center">Suport divisible</th>
+ <th scope="col" class="px-4 py-2 text-center">Desdoblament divisible</th>
  <th scope="col" class="px-4 py-2">Preferència</th>
  <th scope="col" class="px-4 py-2">Avisos</th>
  </tr>
@@ -78,6 +79,7 @@
  <td class="px-4 py-3 text-center text-slate-600">{{ getHoresGP(p.nom) || '-' }}</td>
  <td class="px-4 py-3 text-center text-slate-600">{{ getHoresPALIC(p.nom) || '-' }}</td>
  <td class="px-4 py-3 text-center text-slate-600">{{ getHoresSD(p.nom) || '-' }}</td>
+ <td class="px-4 py-3 text-center text-slate-600">{{ getHoresDD(p.nom) || '-' }}</td>
  <td class="px-4 py-3 text-slate-700">{{ getPreferenciaText(p.preferencia) || '-' }}</td>
  <td class="px-4 py-3">
  <ul v-if="getAvisos(p).length" class="space-y-0.5">
@@ -107,7 +109,7 @@ import { ref, computed } from 'vue';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { limitsHoresProfessor, textJornada, professorsClasse, classeAssignadaA, horesComputablesClasse, esMajorDe55Classe } from '../utils/horesProfessor';
 import { descarregarExcel } from '../utils/exportExcel';
-import { comptarSDAssignacions, normalitzarSDAssignacions } from '../utils/suportDivisible';
+import { comptarDDAssignacions, comptarSDAssignacions, normalitzarDDAssignacions, normalitzarSDAssignacions } from '../utils/suportDivisible';
 import { departamentsProfessor, professorPertanyDepartament } from '../utils/departaments';
 
 const { items: classes, isConnected: classesOk } = useCursCollectionSnapshot({ colName: 'classes' });
@@ -157,12 +159,12 @@ function getClassesProfessor(nom) {
 
 function calcularHoresProfessor(nom) {
  return getClassesProfessor(nom)
- .filter((c) => !['GP', 'PALIC', 'SD'].includes((c.tipus || '').toString().toUpperCase().trim()))
+ .filter((c) => !['GP', 'PALIC', 'SD', 'DD'].includes((c.tipus || '').toString().toUpperCase().trim()))
  .reduce((sum, c) => sum + horesComputablesClasse(c), 0);
 }
 
 function calcularHoresTotalsProfessor(nom) {
- return calcularHoresProfessor(nom) + getHoresPALIC(nom) + getHoresSD(nom);
+ return calcularHoresProfessor(nom) + getHoresPALIC(nom) + getHoresSD(nom) + getHoresDD(nom);
 }
 
 function getHoresGP(nom) {
@@ -185,6 +187,18 @@ function getHoresSD(nom) {
 function getGrupsSD(nom) {
  const professor = professors.value.find((p) => p.nom === nom);
  return normalitzarSDAssignacions(professor?.sdAssignacions, professor?.sdAssignades)
+ .map((assignacio, index) => assignacio.grup || `hora ${index + 1} sense grup`)
+ .join(', ');
+}
+
+function getHoresDD(nom) {
+ const professor = professors.value.find((p) => p.nom === nom);
+ return professor ? comptarDDAssignacions(professor) : 0;
+}
+
+function getGrupsDD(nom) {
+ const professor = professors.value.find((p) => p.nom === nom);
+ return normalitzarDDAssignacions(professor?.ddAssignacions, professor?.ddAssignades)
  .map((assignacio, index) => assignacio.grup || `hora ${index + 1} sense grup`)
  .join(', ');
 }
@@ -234,7 +248,7 @@ function sortClasses(list) {
 
 function exportarExcel() {
  const data = new Date().toLocaleDateString('ca-ES');
- const cap = ['Departament', 'Professor', 'Total hores', 'GP', 'PALIC', 'Suport divisible', 'Grups SD', 'Jornada', 'Preferència', 'Avisos'];
+ const cap = ['Departament', 'Professor', 'Total hores', 'GP', 'PALIC', 'Suport divisible', 'Grups SD', 'Desdoblament divisible', 'Grups DD', 'Jornada', 'Preferència', 'Avisos'];
  const files = [];
  for (const dept of departamentsOrdenats.value) {
  for (const p of getProfessorsDepartament(dept)) {
@@ -246,6 +260,8 @@ function exportarExcel() {
  getHoresPALIC(p.nom) || 0,
  getHoresSD(p.nom) || 0,
  getGrupsSD(p.nom),
+ getHoresDD(p.nom) || 0,
+ getGrupsDD(p.nom),
  textJornada(p) || '',
  getPreferenciaText(p.preferencia) || '',
  getAvisos(p).join('; ') || '',
@@ -261,6 +277,9 @@ function exportarExcel() {
  }
  for (const sd of normalitzarSDAssignacions(p.sdAssignacions, p.sdAssignades)) {
  filesAssig.push([dept, p.nom, 'Suport divisible', '', sd.grup || '', 'SD', 1]);
+ }
+ for (const dd of normalitzarDDAssignacions(p.ddAssignacions, p.ddAssignades)) {
+ filesAssig.push([dept, p.nom, 'Desdoblament divisible', '', dd.grup || '', 'DD', 1]);
  }
  }
  }

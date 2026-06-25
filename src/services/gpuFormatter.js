@@ -8,9 +8,9 @@ import {
 } from './untisUtils';
 import { parseGestibXml, trobarMateriaGestib, trobarMateriaGestibAmbOverride } from './gestibMapper';
 import { agruparClassesPerLlicoExport } from './lessonBuilder';
-import { comptaPerGrupPerTipus, esSuportDivisible } from '../utils/tipus';
+import { comptaPerGrupPerTipus, esDesdoblamentDivisible, esSuportDivisible } from '../utils/tipus';
 import { guardesQueTocaFer } from '../utils/guardes';
-import { crearClassesSuportDivisible } from '../utils/suportDivisible';
+import { crearClassesDesdoblamentDivisible, crearClassesSuportDivisible } from '../utils/suportDivisible';
 
 function cc(cursId, nom) { return collection(db, 'cursos', cursId, nom); }
 
@@ -799,7 +799,7 @@ function simularAssignacions(classes, professorsSimulacio) {
   const disponibles = professorsSimulacio.map((p) => p.nom).filter(Boolean);
 
   return classes.map((classe) => {
-    if (classe._virtualSuportDivisible) return classe;
+    if (classe._virtualSuportDivisible || classe._virtualDesdoblamentDivisible) return classe;
     if (TIPUS_NO_LECTIUS.has((classe.tipus || '').toUpperCase())) return classe;
     if (!disponibles.length) return classe;
     const clau = [
@@ -829,12 +829,14 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
   const referenciaGestib = referenciaGestibXmlText ? parseGestibXml(referenciaGestibXmlText) : null;
   let professors = snapProfessors.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => !p.eliminatDelFull);
   const rawClasses = snapClasses.docs.map((d) => ({ id: d.id, ...d.data() }));
-  const rawClassesSenseSD = rawClasses.filter((classe) => !esSuportDivisible(classe.tipus));
+  const rawClassesSenseDivisibles = rawClasses.filter((classe) => !esSuportDivisible(classe.tipus) && !esDesdoblamentDivisible(classe.tipus));
   const classesSuportDivisible = crearClassesSuportDivisible(professors, rawClasses);
+  const classesDesdoblamentDivisible = crearClassesDesdoblamentDivisible(professors, rawClasses);
   let classes = [
-    ...afegirGuardiesPatiCalculades(rawClassesSenseSD, professors),
-    ...crearClassesGuardiesPassadisIConvivencia(professors, rawClassesSenseSD),
+    ...afegirGuardiesPatiCalculades(rawClassesSenseDivisibles, professors),
+    ...crearClassesGuardiesPassadisIConvivencia(professors, rawClassesSenseDivisibles),
     ...classesSuportDivisible,
+    ...classesDesdoblamentDivisible,
   ];
   const professorsSimulacio = simular ? professorsPerSimulacio(professors, referenciaGestib) : [];
   if (simular) {

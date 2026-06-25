@@ -32,6 +32,7 @@
  <th class="px-4 py-3 text-center font-bold text-slate-800">GP</th>
  <th class="px-4 py-3 text-center font-bold text-slate-800">PALIC</th>
  <th class="px-4 py-3 text-center font-bold text-slate-800">Suport divisible</th>
+ <th class="px-4 py-3 text-center font-bold text-slate-800">Desdoblament divisible</th>
  <th class="px-4 py-3 text-left font-bold text-slate-800">Preferència</th>
  </tr>
  </thead>
@@ -55,6 +56,9 @@
  <td class="px-4 py-3 text-center text-slate-700">
  {{ comptarSDAssignacions(professor) || 0 }}
  </td>
+ <td class="px-4 py-3 text-center text-slate-700">
+ {{ comptarDDAssignacions(professor) || 0 }}
+ </td>
  <td class="px-4 py-3 text-slate-700">
  {{ getPreferenciaText(professor.preferencia) }}
  </td>
@@ -70,7 +74,7 @@ import { ref, computed } from 'vue';
 import { classeAssignadaA, horesComputablesClasse, esMajorDe55Classe } from '../utils/horesProfessor';
 import { exclosaDelRepartiment } from '../utils/tipus';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
-import { comptarSDAssignacions } from '../utils/suportDivisible';
+import { comptarDDAssignacions, comptarSDAssignacions } from '../utils/suportDivisible';
 import { formatDepartamentsProfessor } from '../utils/departaments';
 
 const { items: classes, isConnected: classesOk } = useCursCollectionSnapshot({ colName: 'classes' });
@@ -101,7 +105,7 @@ function calcularHoresProfessor(nomProfessor) {
  )
  .reduce((total, classe) => total + horesComputablesClasse(classe), 0);
  const professor = professors.value.find((p) => p.nom === nomProfessor);
- return lectives + (Number(professor?.palicAssignades) || 0) + comptarSDAssignacions(professor || {});
+ return lectives + (Number(professor?.palicAssignades) || 0) + comptarSDAssignacions(professor || {}) + comptarDDAssignacions(professor || {});
 }
 
 function getPreferenciaText(preferencia) {

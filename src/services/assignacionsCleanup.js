@@ -26,11 +26,18 @@ function resumAssignacioProfessor(data = {}) {
       ? data.sdAssignacions.length
       : Number(data.sdAssignades) || 0
   );
+  const ddAssignades = Math.max(
+    0,
+    Array.isArray(data.ddAssignacions)
+      ? data.ddAssignacions.length
+      : Number(data.ddAssignades) || 0
+  );
   return {
-    teAssignacio: gpAssignades > 0 || palicAssignades > 0 || sdAssignades > 0,
+    teAssignacio: gpAssignades > 0 || palicAssignades > 0 || sdAssignades > 0 || ddAssignades > 0,
     gpAssignades,
     palicAssignades,
     sdAssignades,
+    ddAssignades,
   };
 }
 
@@ -46,6 +53,7 @@ function crearResumBase(cursId) {
     gpAssignades: 0,
     palicAssignades: 0,
     sdAssignades: 0,
+    ddAssignades: 0,
   };
 }
 
@@ -83,6 +91,7 @@ async function llegirResum(cursId) {
     resum.gpAssignades += assignacio.gpAssignades;
     resum.palicAssignades += assignacio.palicAssignades;
     resum.sdAssignades += assignacio.sdAssignades;
+    resum.ddAssignades += assignacio.ddAssignades;
     professors.push({ ref: docu.ref, assignacio });
   });
 
@@ -118,6 +127,8 @@ export async function eliminarAssignacionsCurs(cursId) {
       palicAssignades: 0,
       sdAssignades: 0,
       sdAssignacions: [],
+      ddAssignades: 0,
+      ddAssignacions: [],
       lastModified: serverTimestamp(),
     });
     professorsActualitzats++;

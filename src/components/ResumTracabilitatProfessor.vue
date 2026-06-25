@@ -79,7 +79,7 @@
  {{ item.estat.text }}
  </p>
  </div>
- <div class="grid grid-cols-4 gap-2 text-center sm:min-w-[28rem]">
+ <div class="grid grid-cols-5 gap-2 text-center sm:min-w-[32rem]">
  <div class="rounded-lg bg-white/80 px-3 py-2 ">
  <p class="text-xs font-medium uppercase text-slate-600">Lectives</p>
  <p class="text-xl font-bold text-slate-900">{{ item.lectives }}</p>
@@ -95,6 +95,10 @@
  <div class="rounded-lg bg-white/80 px-3 py-2 ">
  <p class="text-xs font-medium uppercase text-slate-600">Suport divisible</p>
  <p class="text-xl font-bold text-slate-900">{{ item.sd }}</p>
+ </div>
+ <div class="rounded-lg bg-white/80 px-3 py-2 ">
+ <p class="text-xs font-medium uppercase text-slate-600">Desdoblament divisible</p>
+ <p class="text-xl font-bold text-slate-900">{{ item.dd }}</p>
  </div>
  </div>
  </div>
@@ -195,7 +199,7 @@ import { computed, ref } from 'vue';
 import { useColSnapshot } from '../composables/useColSnapshot';
 import { getTipusText } from '../utils/tipus';
 import { limitsHoresProfessor, textJornada, horesComputablesClasse, classeAssignadaA } from '../utils/horesProfessor';
-import { comptarSDAssignacions } from '../utils/suportDivisible';
+import { comptarDDAssignacions, comptarSDAssignacions } from '../utils/suportDivisible';
 import { departamentsProfessor, formatDepartamentsProfessor, professorPertanyDepartament } from '../utils/departaments';
 
 const { items: classes, isConnected } = useColSnapshot('classes');
@@ -270,9 +274,10 @@ function construirInfoProfessor(professor) {
  const assignades = classes.value.filter((classe) => classeAssignadaA(classe, professor.nom));
  const palicAssignades = Number(professor.palicAssignades || 0) || sumarTipus(assignades, 'PALIC');
  const sd = comptarSDAssignacions(professor);
+ const dd = comptarDDAssignacions(professor);
  const lectives = assignades
- .filter((classe) => !['GP', 'PALIC', 'SD', 'C', 'CO'].includes(normalitzarTipus(classe.tipus)))
- .reduce((total, classe) => total + horesComputablesClasse(classe), 0) + palicAssignades + sd;
+ .filter((classe) => !['GP', 'PALIC', 'SD', 'DD', 'C', 'CO'].includes(normalitzarTipus(classe.tipus)))
+ .reduce((total, classe) => total + horesComputablesClasse(classe), 0) + palicAssignades + sd + dd;
  const gp = Number(professor.gpAssignades || 0) || sumarTipus(assignades, 'GP');
  const palic = palicAssignades;
  const limits = limitsHoresProfessor(professor);
@@ -292,6 +297,7 @@ function construirInfoProfessor(professor) {
  gp,
  palic,
  sd,
+ dd,
  limits,
  coordinador,
  comissions,

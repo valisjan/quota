@@ -70,6 +70,8 @@ const professors = [
     palicAssignades: 0,
     sdAssignades: 0,
     sdAssignacions: [],
+    ddAssignades: 0,
+    ddAssignacions: [],
   },
   {
     id: 'e2e-prof-mat',
@@ -83,6 +85,8 @@ const professors = [
     palicAssignades: 0,
     sdAssignades: 0,
     sdAssignacions: [],
+    ddAssignades: 0,
+    ddAssignacions: [],
   },
   {
     id: 'e2e-prof-tec',
@@ -96,6 +100,8 @@ const professors = [
     palicAssignades: 0,
     sdAssignades: 0,
     sdAssignacions: [],
+    ddAssignades: 0,
+    ddAssignacions: [],
   },
 ];
 

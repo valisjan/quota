@@ -154,7 +154,7 @@
  {{ coordinationActivitiesSenseAssignar.length }} sense assignar
  </span>
  </div>
- <p class="mt-0.5 text-xs text-slate-600">Tutories, caps de departament, PALIC, suport divisible i altres activitats sense grup específic</p>
+ <p class="mt-0.5 text-xs text-slate-600">Tutories, caps de departament, PALIC, suport divisible, desdoblament divisible i altres activitats sense grup específic</p>
  </div>
  <div class="p-4">
  <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -270,7 +270,7 @@ import {
  normalitzarTipus,
 } from '../utils/tipus';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
-import { crearClassesSuportDivisible } from '../utils/suportDivisible';
+import { crearClassesDesdoblamentDivisible, crearClassesSuportDivisible } from '../utils/suportDivisible';
 
 const { items: classes } = useCursCollectionSnapshot({ colName: 'classes' });
 const { items: professors } = useCursCollectionSnapshot({ colName: 'professors' });
@@ -295,15 +295,16 @@ function getCursCategoria(curs) {
  return 'fp';
 }
 
-const TIPUS_NO_COMPTEN_GRUP = ['D', 'F', 'PALIC', 'SD', 'GP', 'C', 'CO'];
+const TIPUS_NO_COMPTEN_GRUP = ['D', 'DD', 'F', 'PALIC', 'SD', 'GP', 'C', 'CO'];
 
 const classesBaseResum = computed(() =>
- classes.value.filter((classe) => normalitzarTipus(classe.tipus) !== 'SD')
+ classes.value.filter((classe) => !['SD', 'DD'].includes(normalitzarTipus(classe.tipus)))
 );
 
 const classesResum = computed(() => [
  ...classesBaseResum.value,
  ...crearClassesSuportDivisible(professors.value, classes.value),
+ ...crearClassesDesdoblamentDivisible(professors.value, classes.value),
 ]);
 
 
@@ -446,7 +447,7 @@ function getTipusChipClass(tipus) {
  const normal = normalitzarTipus(tipus);
  if (normal === 'S') return `${base} bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/30 dark:text-amber-200 dark:ring-amber-800/60`;
  if (normal === 'F') return `${base} bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-200 dark:ring-indigo-800/60`;
- if (normal === 'D' || normal === 'CD') return `${base} bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-950/30 dark:text-blue-200 dark:ring-blue-800/60`;
+ if (normal === 'D' || normal === 'DD' || normal === 'CD') return `${base} bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-950/30 dark:text-blue-200 dark:ring-blue-800/60`;
  if (normal === 'C' || normal === 'CO') return `${base} bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-950/30 dark:text-violet-200 dark:ring-violet-800/60`;
  if (normal === 'GP') return `${base} bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-950/30 dark:text-rose-200 dark:ring-rose-800/60`;
  if (normal === 'PALIC') return `${base} bg-orange-50 text-orange-700 ring-orange-200 dark:bg-orange-950/30 dark:text-orange-200 dark:ring-orange-800/60`;
@@ -618,7 +619,7 @@ function tipusPrint(classe) {
 
 const coordinationActivities = computed(() => {
  return classesBaseResum.value.filter(c =>
- !['C', 'CO', 'SD'].includes((c.tipus || '').toString().toUpperCase().trim()) &&
+ !['C', 'CO', 'SD', 'DD'].includes((c.tipus || '').toString().toUpperCase().trim()) &&
  (!c.curs || c.curs === '') &&
  (!c.grup || c.grup === '') &&
  c.materia && c.materia !== ''

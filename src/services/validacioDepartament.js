@@ -1,7 +1,13 @@
 import { classeCompletamentAssignada } from '../utils/assignacions';
 import { classeAssignadaA, horesComputablesClasse, limitsHoresProfessor, professorsClasse, textJornada } from '../utils/horesProfessor';
-import { exclosaDelRepartiment, esGP, esOptativaCompartida, esPALIC, esSuportDivisible } from '../utils/tipus';
-import { comptarSDAssignacions, normalitzarSDAssignacions, resoldreGrupSDAssignacio } from '../utils/suportDivisible';
+import { exclosaDelRepartiment, esDesdoblamentDivisible, esGP, esOptativaCompartida, esPALIC, esSuportDivisible } from '../utils/tipus';
+import {
+  comptarDDAssignacions,
+  comptarSDAssignacions,
+  normalitzarDDAssignacions,
+  normalitzarSDAssignacions,
+  resoldreGrupSDAssignacio,
+} from '../utils/suportDivisible';
 import { classePertanyDepartament, professorPertanyDepartament } from '../utils/departaments';
 import {
   esCapsEstudisClasse,
@@ -61,9 +67,9 @@ function crearItem({ id, severitat = 'avis', categoria, titol, detall, context, 
 
 function horesTotalsProfessor(professor, classes) {
   const horesClasses = classes
-    .filter((classe) => !esGP(classe.tipus) && !esPALIC(classe.tipus) && !esSuportDivisible(classe.tipus) && classeAssignadaA(classe, professor.nom))
+    .filter((classe) => !esGP(classe.tipus) && !esPALIC(classe.tipus) && !esSuportDivisible(classe.tipus) && !esDesdoblamentDivisible(classe.tipus) && classeAssignadaA(classe, professor.nom))
     .reduce((total, classe) => total + horesComputablesClasse(classe), 0);
-  return horesClasses + Number(professor.palicAssignades || 0) + comptarSDAssignacions(professor);
+  return horesClasses + Number(professor.palicAssignades || 0) + comptarSDAssignacions(professor) + comptarDDAssignacions(professor);
 }
 
 function normalitzarClau(valor) {
@@ -250,6 +256,8 @@ function validarBorsesHoraries({
   totalPALICAssignades = 0,
   totalSDDepartament = 0,
   totalSDAssignades = 0,
+  totalDDDepartament = 0,
+  totalDDAssignades = 0,
 }) {
   const items = [];
   if (totalGPDepartament > 0 && totalGPAssignades !== totalGPDepartament) {
@@ -300,6 +308,22 @@ function validarBorsesHoraries({
       })
     );
   }
+  if (totalDDDepartament > 0 && totalDDAssignades !== totalDDDepartament) {
+    items.push(
+      crearItem({
+        id: 'dd-pendent',
+        severitat: 'critica',
+        categoria: 'Extres horaris',
+        titol: 'Desdoblament divisible',
+        detall:
+          totalDDAssignades < totalDDDepartament
+            ? `Falten ${formatHores(totalDDDepartament - totalDDAssignades)} hores de desdoblament divisible per assignar.`
+            : `Hi ha ${formatHores(totalDDAssignades - totalDDDepartament)} hores de desdoblament divisible de més.`,
+        context: `${formatHores(totalDDAssignades)} / ${formatHores(totalDDDepartament)}`,
+        target: { type: 'resum' },
+      })
+    );
+  }
   return items;
 }
 
@@ -323,6 +347,36 @@ function validarSuportDivisiblePerGrup(professorsDepartament, classes) {
             detall: grupText
               ? `L'hora ${index + 1} de ${professor.nom} apunta a "${grupText}", perÃ² no s'ha trobat aquest grup.`
               : `L'hora ${index + 1} de ${professor.nom} no tÃ© grup de suport indicat.`,
+            context: professor.departament || '',
+            target: { type: 'professor', nom: professor.nom },
+          })
+        );
+      });
+  });
+
+  return items;
+}
+
+function validarDesdoblamentDivisiblePerGrup(professorsDepartament, classes) {
+  const items = [];
+
+  professorsDepartament.forEach((professor) => {
+    normalitzarDDAssignacions(professor.ddAssignacions, professor.ddAssignades)
+      .forEach((assignacio, index) => {
+        const grupText = (assignacio.grup || '').toString().trim();
+        const grupResol = resoldreGrupSDAssignacio(assignacio, classes);
+        const existeix = grupResol && classes.some((classe) => classeTeGrup(classe, grupResol));
+        if (grupText && existeix) return;
+
+        items.push(
+          crearItem({
+            id: `dd-grup-${professor.id || professor.nom}-${index}`,
+            severitat: 'critica',
+            categoria: 'Extres horaris',
+            titol: 'Desdoblament divisible',
+            detall: grupText
+              ? `L'hora ${index + 1} de ${professor.nom} apunta a "${grupText}", perÃ² no s'ha trobat aquest grup.`
+              : `L'hora ${index + 1} de ${professor.nom} no tÃ© grup de desdoblament indicat.`,
             context: professor.departament || '',
             target: { type: 'professor', nom: professor.nom },
           })
@@ -370,6 +424,8 @@ export function calcularValidacioDepartament({
   totalPALICAssignades = 0,
   totalSDDepartament = 0,
   totalSDAssignades = 0,
+  totalDDDepartament = 0,
+  totalDDAssignades = 0,
 } = {}) {
   const classesDepartament = classes.filter((classe) =>
     classePertanyDepartament(classe, departament)
@@ -384,6 +440,7 @@ export function calcularValidacioDepartament({
     ...validarBlocsGermans(classesDepartament, classes),
     ...validarProfessorat(professorsDepartament, classes),
     ...validarSuportDivisiblePerGrup(professorsDepartament, classes),
+    ...validarDesdoblamentDivisiblePerGrup(professorsDepartament, classes),
     ...validarBorsesHoraries({
       totalGPDepartament,
       totalGPAssignades,
@@ -391,6 +448,8 @@ export function calcularValidacioDepartament({
       totalPALICAssignades,
       totalSDDepartament,
       totalSDAssignades,
+      totalDDDepartament,
+      totalDDAssignades,
     }),
     ...validarCapsEstudis(classesDepartament, classes),
   ];
