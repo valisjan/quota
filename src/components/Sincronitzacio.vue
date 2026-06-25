@@ -9,6 +9,9 @@
         <p class="mt-1 text-base text-slate-700">
           Llegeix les pestanyes <strong>Classes</strong> i <strong>Professorat</strong>.
         </p>
+        <p class="mt-2 text-sm font-medium text-slate-600">
+          L'administració comprova Google Sheets en segon pla i sincronitza automàticament quan detecta canvis al full configurat.
+        </p>
       </div>
 
       <div class="space-y-3 p-5">

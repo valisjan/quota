@@ -693,10 +693,10 @@
         <div class="section-title">Importació des de Google Sheets</div>
         <div class="section-subtitle">Sincronitzar classes i professorat</div>
       </div>
-      <div class="section-route">/admin/sincronitzacio</div>
+      <div class="section-route">/admin/dades</div>
     </div>
     <div class="section-body">
-      <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">Les dades provenen del full de càlcul de Google Sheets. El procés és en dues fases: primer es comproven els canvis, i després es sincronitzen.</p>
+      <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">Les dades provenen del full de càlcul de Google Sheets. L'aplicació comprova el full en segon pla i, si detecta canvis al full configurat, els sincronitza automàticament.</p>
 
       <div class="subsection">
         <div class="subsection-title">Estructura del Google Sheet requerida</div>
@@ -718,42 +718,42 @@
       </div>
 
       <div class="subsection">
-        <div class="subsection-title">Pas 1 — Comprovar canvis</div>
+        <div class="subsection-title">Comprovació automàtica</div>
         <ol class="steps">
           <li>
             <div class="step-dot"></div>
-            <div class="step-content">Fes clic a <strong>"Comprovar canvis"</strong>. El sistema consulta el Sheet i el compara amb la base de dades actual.</div>
+            <div class="step-content">Quan un administrador entra a l'àrea d'administració, el sistema consulta el Sheet configurat i el compara amb la base de dades actual.</div>
           </li>
           <li>
             <div class="step-dot"></div>
-            <div class="step-content">Revisa el resum de canvis: <span class="badge badge-green">+ Noves</span> <span class="badge badge-blue">= Modificades</span> <span class="badge badge-red">− Eliminades</span></div>
+            <div class="step-content">La comprovació detecta canvis tant a <strong>Classes</strong> com a <strong>Professorat</strong>: altes, modificacions, baixes i migracions de codi Untis.</div>
           </li>
           <li>
             <div class="step-dot"></div>
-            <div class="step-content">Si hi ha classes modificades que ja estan assignades a professors, el sistema mostrarà un avís de risc.</div>
+            <div class="step-content">Si hi ha canvis, la sincronització s'executa automàticament i queda registrada a l'historial.</div>
           </li>
         </ol>
       </div>
 
       <div class="subsection">
-        <div class="subsection-title">Pas 2 — Sincronitzar</div>
+        <div class="subsection-title">Sincronització manual</div>
         <ol class="steps">
           <li>
             <div class="step-dot"></div>
-            <div class="step-content">Si els canvis semblen correctes, fes clic a <strong>"Sincronitzar"</strong>.</div>
+            <div class="step-content">El botó <strong>"Comprovar canvis"</strong> continua disponible per veure el resum abans d'aplicar res manualment.</div>
           </li>
           <li>
             <div class="step-dot"></div>
-            <div class="step-content">El sistema importa classes, professorat i departaments. Les assignacions de professors ja existents es <strong>conserven</strong> sempre que la classe no hagi canviat.</div>
+            <div class="step-content">El botó <strong>"Sincronitzar"</strong> serveix per forçar una sincronització puntual si cal.</div>
           </li>
           <li>
             <div class="step-dot"></div>
-            <div class="step-content">Un cop finalitzat, el sistema mostra el resum: quantes s'han afegit, actualitzat, eliminat i quantes assignacions s'han conservat.</div>
+            <div class="step-content">El sistema importa classes, professorat i departaments. Les assignacions existents es <strong>conserven</strong> quan la classe es pot emparellar amb el full.</div>
           </li>
         </ol>
         <div class="callout callout-tip">
           <span class="callout-icon">✅</span>
-          <div>Pots sincronitzar tantes vegades com calgui. El sistema detecta només els canvis reals. L'historial de les darreres 10 sincronitzacions es guarda a la part inferior de la pantalla.</div>
+          <div>La sincronització automàtica no s'executa si el curs està bloquejat, si l'administració està tancada o si ha canviat l'ID del Google Sheet. En aquests casos es manté l'avís perquè un administrador ho revisi.</div>
         </div>
       </div>
 

@@ -783,17 +783,27 @@ export async function comprovarEstatActualitzacioSheets(cursId, options = {}) {
   ]);
   const estatGuardat = stateSnap.exists() ? stateSnap.data() : null;
   const signaturaGuardada = estatGuardat?.classesSignature || '';
+  const signaturaProfessorsGuardada = estatGuardat?.professorsSignature || '';
   const signaturaCompletaGuardada = estatGuardat?.sourceSignature || '';
-  const origenCanviat = Boolean(signaturaGuardada && estatGuardat?.sheetsId && estatGuardat.sheetsId !== sheetsId);
-  const signaturaCanviada = Boolean(signaturaGuardada && signaturaGuardada !== estatFont.signaturaClasses);
-  let senseReferencia = !signaturaGuardada;
+  const teReferencia = Boolean(signaturaCompletaGuardada || signaturaGuardada || signaturaProfessorsGuardada);
+  const origenCanviat = Boolean(teReferencia && estatGuardat?.sheetsId && estatGuardat.sheetsId !== sheetsId);
+  const classesCanviades = Boolean(signaturaGuardada && signaturaGuardada !== estatFont.signaturaClasses);
+  const professorsCanviats = Boolean(signaturaProfessorsGuardada && signaturaProfessorsGuardada !== estatFont.signaturaProfessors);
+  const signaturaCanviada = signaturaCompletaGuardada
+    ? signaturaCompletaGuardada !== estatFont.signatura
+    : classesCanviades || professorsCanviats;
+  let senseReferencia = !teReferencia;
   let classes = resumCanvisBuit();
   let professors = resumCanvisBuit();
   let sheetsCanviat = signaturaCanviada;
 
   if ((senseReferencia || signaturaCanviada) && !origenCanviat) {
-    classes = await calcularDiscrepanciesClasses(cursId, estatFont.classes);
-    sheetsCanviat = classes.totalCanvis > 0;
+    [classes, professors] = await Promise.all([
+      calcularDiscrepanciesClasses(cursId, estatFont.classes),
+      calcularDiscrepanciesProfessors(cursId, estatFont.professors),
+    ]);
+    const departaments = await calcularDiscrepanciesDepartaments(cursId, estatFont.professors);
+    sheetsCanviat = classes.totalCanvis + professors.totalCanvis + departaments.totalCanvis > 0;
     if (!sheetsCanviat) {
       try {
         await ajustarEstatFontSenseCanvis(cursId, estatFont);
@@ -813,6 +823,8 @@ export async function comprovarEstatActualitzacioSheets(cursId, options = {}) {
     signaturaCanviada,
     signaturaActual: estatFont.signaturaClasses,
     signaturaGuardada,
+    signaturaProfessorsActual: estatFont.signaturaProfessors,
+    signaturaProfessorsGuardada,
     signaturaCompletaActual: estatFont.signatura,
     signaturaCompletaGuardada,
     sheetsId,

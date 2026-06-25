@@ -165,8 +165,10 @@ import UsuarisConnectats from '../components/UsuarisConnectats.vue';
 import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
 import {
   comprovarEstatActualitzacioSheets,
+  sincronitzar,
   subscribeEstatSincronitzacio,
 } from '../services/sincronitzacio.js';
+import { useToastStore } from '../stores/toast';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { exclosaDelRepartiment, esCoordinacio } from '../utils/tipus';
 
@@ -174,23 +176,30 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const cursStore = useCursStore();
+const toast = useToastStore();
 
 const CHECK_INTERVAL_MS = 60 * 1000;
 const ACTIVITY_DELAY_MS = 900;
+const AUTO_SYNC_COOLDOWN_MS = 30 * 1000;
 const ACTIVITY_EVENTS = ['pointerdown', 'keydown'];
 
 const settings = ref({ ...DEFAULT_APP_SETTINGS });
 const syncState = ref(null);
 const estatActualitzacio = ref('idle');
+const estatAutoSync = ref('idle');
 const actualitzacioSheets = ref(null);
 const errorActualitzacio = ref('');
+const errorAutoSync = ref('');
 const settingsReady = ref(false);
 
 let settingsUnsubscribe = null;
 let syncStateUnsubscribe = null;
 let activityTimer = null;
 let lastCheckAt = 0;
+let lastAutoSyncAt = 0;
+let lastAutoSyncSignature = '';
 let checkPromise = null;
+let autoSyncPromise = null;
 
 // ─── Stats live per al workflow ────────────────────────────────────────────────
 
@@ -276,13 +285,23 @@ const tabs = [
 const pestanyaActual = computed(() => tabs.find((tab) => isActive(tab)) || null);
 const mostrarAvisDesactualitzat = computed(() => actualitzacioSheets.value?.desactualitzat === true);
 const mostrarBotoAvisSincronitzar = computed(() =>
-  mostrarAvisDesactualitzat.value && route.path !== '/admin/dades'
+  mostrarAvisDesactualitzat.value && route.path !== '/admin/dades' && estatAutoSync.value !== 'sincronitzant'
 );
 const ultimaSyncSheets = computed(() => actualitzacioSheets.value?.ultimaSync || syncState.value?.syncedAt || '');
 const titolAvisActualitzacio = computed(() =>
-  actualitzacioSheets.value?.senseReferencia ? 'Cal sincronitzar Google Sheets' : 'Canvis pendents a Google Sheets'
+  estatAutoSync.value === 'sincronitzant'
+    ? 'Sincronització automàtica en curs'
+    : estatAutoSync.value === 'error'
+    ? 'No s\'ha pogut sincronitzar automàticament'
+    : actualitzacioSheets.value?.senseReferencia ? 'Cal sincronitzar Google Sheets' : 'Canvis pendents a Google Sheets'
 );
 const detallAvisActualitzacio = computed(() => {
+  if (estatAutoSync.value === 'sincronitzant') {
+    return "S'han detectat canvis al full i s'estan aplicant automàticament.";
+  }
+  if (estatAutoSync.value === 'error') {
+    return errorAutoSync.value || "Revisa la sincronització manualment.";
+  }
   if (actualitzacioSheets.value?.senseReferencia) {
     return "Encara no hi ha una referència de sincronització per a aquest curs. Sincronitza una vegada per activar l'avís automàtic.";
   }
@@ -290,11 +309,16 @@ const detallAvisActualitzacio = computed(() => {
     return 'Ha canviat el full de Google Sheets configurat. Cal sincronitzar abans de continuar.';
   }
   const classes = actualitzacioSheets.value?.totalClasses ?? 0;
-  const canvis = actualitzacioSheets.value?.canvisClasses;
-  if (canvis?.totalCanvis) {
-    const verb = canvis.totalCanvis === 1 ? "S'ha detectat" : "S'han detectat";
-    const total = canvis.totalCanvis === 1 ? '1 canvi' : `${canvis.totalCanvis} canvis`;
-    return `${verb} ${total} a Classes: ${resumRecompteCanvis(canvis)}.`;
+  const canvisClasses = actualitzacioSheets.value?.canvisClasses;
+  const canvisProfessors = actualitzacioSheets.value?.canvisProfessors;
+  const totalCanvis = (canvisClasses?.totalCanvis || 0) + (canvisProfessors?.totalCanvis || 0);
+  if (totalCanvis) {
+    const verb = totalCanvis === 1 ? "S'ha detectat" : "S'han detectat";
+    const total = totalCanvis === 1 ? '1 canvi' : `${totalCanvis} canvis`;
+    const parts = [];
+    if (canvisClasses?.totalCanvis) parts.push(`Classes: ${resumRecompteCanvis(canvisClasses)}`);
+    if (canvisProfessors?.totalCanvis) parts.push(`Professorat: ${resumRecompteCanvis(canvisProfessors)}`);
+    return `${verb} ${total} a Google Sheets (${parts.join(' · ')}).`;
   }
   return `Google Sheets té canvis pendents a Classes (${classes} files). Sincronitza abans de distribuir o exportar.`;
 });
@@ -425,6 +449,7 @@ function resumRecompteCanvis(canvis) {
   const parts = [];
   if (canvis.noves) parts.push(`${canvis.noves} ${canvis.noves === 1 ? 'nova' : 'noves'}`);
   if (canvis.modificades) parts.push(`${canvis.modificades} ${canvis.modificades === 1 ? 'modificada' : 'modificades'}`);
+  if (canvis.migracions) parts.push(`${canvis.migracions} ${canvis.migracions === 1 ? 'migració' : 'migracions'}`);
   if (canvis.eliminades) parts.push(`${canvis.eliminades} ${canvis.eliminades === 1 ? 'eliminada' : 'eliminades'}`);
   return parts.join(', ') || '0 canvis';
 }
@@ -445,10 +470,14 @@ function classeCanviAvis(tipus) {
 }
 
 function reconciliarAvisAmbEstatGuardat() {
-  if (!actualitzacioSheets.value?.signaturaActual || !syncState.value?.classesSignature) return;
+  if (!actualitzacioSheets.value || !syncState.value) return;
   const mateixOrigen =
     !syncState.value.sheetsId || syncState.value.sheetsId === (settings.value.sheetsId || DEFAULT_APP_SETTINGS.sheetsId);
-  if (mateixOrigen && actualitzacioSheets.value.signaturaActual === syncState.value.classesSignature) {
+  const signaturaActual =
+    actualitzacioSheets.value.signaturaCompletaActual || actualitzacioSheets.value.signaturaActual;
+  const signaturaGuardada =
+    syncState.value.sourceSignature || syncState.value.classesSignature;
+  if (mateixOrigen && signaturaActual && signaturaActual === signaturaGuardada) {
     actualitzacioSheets.value = {
       ...actualitzacioSheets.value,
       desactualitzat: false,
@@ -460,15 +489,23 @@ function reconciliarAvisAmbEstatGuardat() {
 }
 
 function marcarAvisComSincronitzat(estatGuardat) {
-  if (!estatGuardat?.classesSignature) return;
+  if (!estatGuardat?.classesSignature && !estatGuardat?.sourceSignature) return;
+  if (estatAutoSync.value !== 'sincronitzant') estatAutoSync.value = 'idle';
+  errorAutoSync.value = '';
+  const signaturaCompleta = estatGuardat.sourceSignature || estatGuardat.classesSignature;
+  const signaturaClasses = estatGuardat.classesSignature || signaturaCompleta;
   actualitzacioSheets.value = {
     ...(actualitzacioSheets.value || {}),
     desactualitzat: false,
     senseReferencia: false,
     origenCanviat: false,
     sheetsCanviat: false,
-    signaturaActual: estatGuardat.classesSignature,
-    signaturaGuardada: estatGuardat.classesSignature,
+    signaturaActual: signaturaClasses,
+    signaturaGuardada: signaturaClasses,
+    signaturaCompletaActual: signaturaCompleta,
+    signaturaCompletaGuardada: signaturaCompleta,
+    signaturaProfessorsActual: estatGuardat.professorsSignature || actualitzacioSheets.value?.signaturaProfessorsActual || '',
+    signaturaProfessorsGuardada: estatGuardat.professorsSignature || actualitzacioSheets.value?.signaturaProfessorsGuardada || '',
     sheetsId: estatGuardat.sheetsId || settings.value.sheetsId,
     sheetsIdGuardat: estatGuardat.sheetsId || settings.value.sheetsId,
     totalClasses: estatGuardat.totalClasses ?? actualitzacioSheets.value?.totalClasses ?? 0,
@@ -478,6 +515,79 @@ function marcarAvisComSincronitzat(estatGuardat) {
   };
   estatActualitzacio.value = 'ok';
   lastCheckAt = Date.now();
+}
+
+function potSincronitzarAutomaticament(result) {
+  if (!result?.desactualitzat) return false;
+  if (result.senseReferencia || result.origenCanviat) return false;
+  if (settings.value.tancamentAdmin || cursStore.esBloqueig) return false;
+  if (!cursStore.cursActiuId || !settingsReady.value) return false;
+  return true;
+}
+
+async function sincronitzarAutomaticament(result) {
+  if (!potSincronitzarAutomaticament(result)) return null;
+
+  const signatura = [
+    cursStore.cursActiuId,
+    result.sheetsId,
+    result.signaturaCompletaActual || result.signaturaActual,
+  ].join('|');
+  const ara = Date.now();
+  if (autoSyncPromise) return autoSyncPromise;
+  if (signatura === lastAutoSyncSignature && ara - lastAutoSyncAt < AUTO_SYNC_COOLDOWN_MS) return null;
+
+  const cursIdSincronitzat = cursStore.cursActiuId;
+  const sheetsIdSincronitzat = settings.value.sheetsId;
+  lastAutoSyncSignature = signatura;
+  lastAutoSyncAt = ara;
+  estatAutoSync.value = 'sincronitzant';
+  errorAutoSync.value = '';
+
+  autoSyncPromise = sincronitzar(cursIdSincronitzat, {
+    actor: `auto · ${authStore.usuari || authStore.email || authStore.rol || 'admin'}`,
+    sheetsId: sheetsIdSincronitzat,
+  })
+    .then((syncResult) => {
+      if (syncResult?.estatFontGuardat === false) {
+        errorAutoSync.value = syncResult.errorEstatFont || "La sincronització s'ha aplicat, però no s'ha pogut guardar l'estat de referència.";
+        estatAutoSync.value = 'error';
+        toast.error(`Error en la sincronització automàtica: ${errorAutoSync.value}`);
+        return syncResult;
+      }
+      if (
+        cursStore.cursActiuId === cursIdSincronitzat &&
+        settings.value.sheetsId === sheetsIdSincronitzat
+      ) {
+        estatAutoSync.value = 'ok';
+        marcarAvisComSincronitzat({
+          sourceSignature: result.signaturaCompletaActual || result.signaturaActual,
+          classesSignature: result.signaturaActual,
+          professorsSignature: result.signaturaProfessorsActual,
+          sheetsId: sheetsIdSincronitzat,
+          totalClasses: syncResult.total,
+          totalProfessors: syncResult.totalProfs,
+          syncedAt: syncResult.timestamp,
+          checkedAt: syncResult.timestamp,
+        });
+        toast.ok(
+          `Google Sheets sincronitzat automàticament: ${syncResult.afegides || 0} afegides, `
+          + `${syncResult.actualitzades || 0} actualitzades, ${syncResult.eliminades || 0} eliminades.`
+        );
+      }
+      return syncResult;
+    })
+    .catch((error) => {
+      errorAutoSync.value = error.message || "No s'ha pogut sincronitzar automàticament.";
+      estatAutoSync.value = 'error';
+      toast.error(`Error en la sincronització automàtica: ${errorAutoSync.value}`);
+      return null;
+    })
+    .finally(() => {
+      autoSyncPromise = null;
+    });
+
+  return autoSyncPromise;
 }
 
 function programarComprovacio(delay = ACTIVITY_DELAY_MS, force = false) {
@@ -517,8 +627,8 @@ async function comprovarActualitzacioAutomatica({ force = false } = {}) {
 
       const estatGuardatActual = syncState.value;
       const mateixaSignatura =
-        estatGuardatActual?.classesSignature
-        && result.signaturaActual === estatGuardatActual.classesSignature
+        (estatGuardatActual?.sourceSignature || estatGuardatActual?.classesSignature)
+        && (result.signaturaCompletaActual || result.signaturaActual) === (estatGuardatActual.sourceSignature || estatGuardatActual.classesSignature)
         && (!estatGuardatActual.sheetsId || estatGuardatActual.sheetsId === result.sheetsId);
 
       actualitzacioSheets.value = mateixaSignatura
@@ -531,6 +641,7 @@ async function comprovarActualitzacioAutomatica({ force = false } = {}) {
         : result;
       estatActualitzacio.value = actualitzacioSheets.value.desactualitzat ? 'desactualitzat' : 'ok';
       reconciliarAvisAmbEstatGuardat();
+      sincronitzarAutomaticament(actualitzacioSheets.value);
       return result;
     })
     .catch((error) => {
@@ -564,12 +675,17 @@ function setupAdminSubscriptions(cursId) {
   actualitzacioSheets.value = null;
   settingsReady.value = false;
   lastCheckAt = 0;
+  lastAutoSyncAt = 0;
+  lastAutoSyncSignature = '';
+  estatAutoSync.value = 'idle';
+  errorAutoSync.value = '';
 
   if (!cursId) return;
 
   settingsUnsubscribe = subscribeAppSettings(cursId, (value) => {
     settings.value = value;
     settingsReady.value = true;
+    programarComprovacio(0, true);
   });
   syncStateUnsubscribe = subscribeEstatSincronitzacio(cursId, (value) => {
     syncState.value = value;
