@@ -105,13 +105,13 @@
       </div>
     </section>
 
-    <!-- Secció: Guàrdies de corredor -->
+    <!-- Secció: Guàrdies -->
     <section v-show="activeSection === 'guardies-passadis'" id="guardies-passadis" class="admin-anchor-section card">
       <div class="border-b border-slate-200 p-5">
-        <h3 class="text-xl font-bold text-slate-950">Guàrdies de passadís</h3>
+        <h3 class="text-xl font-bold text-slate-950">Guàrdies</h3>
         <p class="mt-1 text-sm text-slate-600">
           Cada professor fa 4 guàrdies (2 si és tutor). Exempts: departaments d'Agrària i Indústries Alimentàries (automàtic) i professors amb dedicació a equip directiu o orientació (manual).
-          Reduccions: comissió −1, cada GP −1, cada GC −1. S'exportaran a Untis com a activitat <code class="rounded bg-slate-100 px-1">*Guà</code>.
+          El llistat mostra les guàrdies de passadís pendents, les guàrdies de pati i les de convivència. Reduccions: comissió −1, cada GP −1, cada GC −1. S'exportaran a Untis com a activitat <code class="rounded bg-slate-100 px-1">*Guà</code>.
         </p>
       </div>
 
@@ -133,12 +133,24 @@
               >{{ motiu }}</span>
             </div>
           </div>
-          <div class="flex shrink-0 items-center gap-4">
+          <div class="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:min-w-[22rem]">
             <span
-              class="w-20 text-right text-sm font-bold"
-              :class="prof.guardes === 0 ? 'text-slate-400' : 'text-slate-950'"
+              class="inline-flex min-w-24 justify-center rounded-md px-2.5 py-1 text-sm font-bold"
+              :class="prof.guardes === 0 ? 'bg-slate-100 text-slate-400' : 'bg-amber-100 text-amber-800'"
             >
-              {{ prof.guardes === 0 ? 'Exempt' : `${prof.guardes} guàrd.` }}
+              {{ prof.guardes === 0 ? 'Passadís 0' : `Passadís ${prof.guardes}` }}
+            </span>
+            <span
+              class="inline-flex min-w-20 justify-center rounded-md px-2.5 py-1 text-sm font-bold"
+              :class="prof.gpAssignades > 0 ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-400'"
+            >
+              Pati {{ prof.gpAssignades || 0 }}
+            </span>
+            <span
+              class="inline-flex min-w-16 justify-center rounded-md px-2.5 py-1 text-sm font-bold"
+              :class="prof.gcAssignades > 0 ? 'bg-violet-100 text-violet-800' : 'bg-slate-100 text-slate-400'"
+            >
+              GC {{ prof.gcAssignades || 0 }}
             </span>
             <label class="flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
               <input
@@ -157,7 +169,9 @@
       </div>
 
       <div class="border-t border-slate-200 bg-slate-50 px-5 py-3 text-sm text-slate-600">
-        Total guàrdies previstes: <strong>{{ totalGuardesPrevistes }}</strong>
+        Total passadís pendents: <strong>{{ totalGuardesPrevistes }}</strong>
+        · Total pati assignades: <strong>{{ totalGuardiesPatiAssignades }}</strong>
+        · Total convivència assignades: <strong>{{ totalGuardiesConvivenciaAssignades }}</strong>
         · Professors exempts: <strong>{{ professorsExempts }}</strong>
       </div>
     </section>
@@ -324,8 +338,8 @@ const sectionItems = [
   },
   {
     id: 'guardies-passadis',
-    label: 'Guàrdies de passadís',
-    description: 'Exempcions i reduccions',
+    label: 'Guàrdies',
+    description: 'Passadís, pati i convivència',
   },
   {
     id: 'google-sheets',
@@ -342,6 +356,8 @@ const professorsAmbGuardes = computed(() =>
       ...prof,
       guardes: guardesQueTocaFer(prof, classes.value),
       motius: motiusReduccio(prof, classes.value),
+      gpAssignades: Math.max(0, Number(prof.gpAssignades || 0)),
+      gcAssignades: Math.max(0, Number(prof.gcAssignades || 0)),
       exempt: prof.exempteGuardies || false,
     }))
 );
@@ -352,6 +368,14 @@ const totalGuardesPrevistes = computed(() =>
 
 const professorsExempts = computed(() =>
   professorsAmbGuardes.value.filter((p) => p.guardes === 0).length
+);
+
+const totalGuardiesPatiAssignades = computed(() =>
+  professorsAmbGuardes.value.reduce((s, p) => s + p.gpAssignades, 0)
+);
+
+const totalGuardiesConvivenciaAssignades = computed(() =>
+  professorsAmbGuardes.value.reduce((s, p) => s + p.gcAssignades, 0)
 );
 
 async function toggleExempteGuardies(prof, valor) {
