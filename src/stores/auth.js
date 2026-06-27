@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, getRedirectResult } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
@@ -18,6 +18,8 @@ export const useAuthStore = defineStore('auth', () => {
   const departament = ref('');
   const uid = ref('');
   const authReady = ref(false);
+  const rolVista = ref(null);
+  const departamentVista = ref('');
   // stubs kept for backward compat with components that read them
   const sessionExpiry = ref(null);
 
@@ -121,11 +123,46 @@ export const useAuthStore = defineStore('auth', () => {
     estaAutenticat.value = false;
     esPendent.value = false;
     rol.value = null;
+    rolVista.value = null;
     usuari.value = '';
     email.value = '';
     photoURL.value = '';
     departament.value = '';
+    departamentVista.value = '';
     uid.value = '';
+  }
+
+  const esVistaSimulada = computed(() => rol.value === 'admin' && Boolean(rolVista.value));
+  const rolActiu = computed(() => esVistaSimulada.value ? rolVista.value : rol.value);
+  const departamentActiu = computed(() =>
+    esVistaSimulada.value ? departamentVista.value : departament.value
+  );
+
+  function esAdminReal() {
+    return estaAutenticat.value && rol.value === 'admin';
+  }
+
+  function activarVistaRol(nouRol, nouDepartament = '') {
+    if (!esAdminReal()) return;
+    if (!nouRol || nouRol === 'admin') {
+      rolVista.value = null;
+      departamentVista.value = '';
+      return;
+    }
+    rolVista.value = nouRol;
+    departamentVista.value = ['cap_departament', 'departament'].includes(nouRol)
+      ? (nouDepartament || departamentVista.value || departament.value || '')
+      : '';
+  }
+
+  function actualitzarDepartamentVista(nouDepartament) {
+    if (!esAdminReal() || !['cap_departament', 'departament'].includes(rolVista.value)) return;
+    departamentVista.value = nouDepartament || '';
+  }
+
+  function netejarVistaRol() {
+    rolVista.value = null;
+    departamentVista.value = '';
   }
 
   async function waitForAuth() {
@@ -153,11 +190,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function esAdmin() {
-    return estaAutenticat.value && rol.value === 'admin';
+    return estaAutenticat.value && rolActiu.value === 'admin';
   }
 
   function esCapDepartament() {
-    return estaAutenticat.value && ['cap_departament', 'departament', 'admin'].includes(rol.value);
+    return estaAutenticat.value && ['cap_departament', 'departament', 'admin'].includes(rolActiu.value);
   }
 
   function esProfessor() {
@@ -173,19 +210,28 @@ export const useAuthStore = defineStore('auth', () => {
     estaAutenticat,
     esPendent,
     rol,
+    rolActiu,
+    rolVista,
     usuari,
     email,
     photoURL,
     departament,
+    departamentActiu,
+    departamentVista,
     uid,
     authReady,
     sessionExpiry,
+    esVistaSimulada,
     waitForAuth,
     iniciarSessioGoogle,
     tancarSessio,
+    esAdminReal,
     esAdmin,
     esCapDepartament,
     esProfessor,
+    activarVistaRol,
+    actualitzarDepartamentVista,
+    netejarVistaRol,
     inicialitzarContrasenya,
     verificarSessio,
     renovarSessio,

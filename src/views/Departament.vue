@@ -596,7 +596,7 @@ const departamentSeleccionat = ref('');
 const authStore = useAuthStore();
 const cursStore = useCursStore();
 const toast = useToastStore();
-const solsLectura = computed(() => authStore.rol === 'professor');
+const solsLectura = computed(() => authStore.rolActiu === 'professor');
 const mostrarResumen = ref(false);
 const mostrarValidacioDistribucio = ref(false);
 const activeTab = ref('distribucio');
@@ -702,8 +702,21 @@ const departamentsSorted = computed(() => {
   return [...departaments.value].sort((a, b) => a.nom.localeCompare(b.nom));
 });
 
+const esVistaCapDepartament = computed(() =>
+  ['cap_departament', 'departament'].includes(authStore.rolActiu) && !authStore.esAdmin()
+);
+
+const departamentLimitat = computed(() =>
+  esVistaCapDepartament.value ? authStore.departamentActiu : ''
+);
+
+const departamentsVisibles = computed(() => {
+  if (!departamentLimitat.value) return departamentsSorted.value;
+  return departamentsSorted.value.filter((dep) => dep.nom === departamentLimitat.value);
+});
+
 const departamentsAmbResum = computed(() =>
-  departamentsSorted.value.map((dep) => {
+  departamentsVisibles.value.map((dep) => {
     const nom = dep.nom || '';
     const classesDept = classes.value.filter((classe) => classePertanyDepartament(classe, nom));
     const classesComputables = classesDept.filter(comptaHoresDepartament);
@@ -1546,7 +1559,7 @@ async function tancarDepartament() {
   try {
     await updateDoc(cursStore.docRef('departaments', departamentActual.value.id), {
       tancat: true,
-      tancatPer: authStore.usuari || authStore.rol || 'usuari',
+      tancatPer: authStore.usuari || authStore.rolActiu || 'usuari',
       tancatAt: new Date().toISOString(),
     });
   } catch (error) {
@@ -1563,6 +1576,27 @@ function imprimirFulla() {
 }
 
 // Lifecycle
+
+watch(
+  [departamentLimitat, departamentsAmbResum],
+  ([departament]) => {
+    if (departament) {
+      if (departamentSeleccionat.value !== departament) {
+        departamentSeleccionat.value = departament;
+      }
+      mostrarSelectorDepartaments.value = false;
+      return;
+    }
+
+    if (
+      departamentSeleccionat.value &&
+      !departamentsAmbResum.value.some((dep) => dep.nom === departamentSeleccionat.value)
+    ) {
+      departamentSeleccionat.value = '';
+    }
+  },
+  { immediate: true }
+);
 
 watch(departamentSeleccionat, (newDept) => {
   if (newDept) {

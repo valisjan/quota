@@ -35,10 +35,10 @@ export function usePresenceDepartament({ departamentSeleccionat, authStore, curs
   function getUserData() {
     return {
       uid: authStore.uid || '',
-      usuari: authStore.usuari || authStore.rol || 'Usuari',
+      usuari: authStore.usuari || authStore.rolActiu || authStore.rol || 'Usuari',
       email: authStore.email || '',
       photoURL: authStore.photoURL || '',
-      rol: authStore.rol || '',
+      rol: authStore.rolActiu || authStore.rol || '',
       path: '/departament',
     };
   }

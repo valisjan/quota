@@ -336,11 +336,11 @@ const etiquetaRol = computed(() => {
     departament: 'Cap de departament',
     professor: 'Professorat',
   };
-  return etiquetes[authStore.rol] || authStore.rol || 'Sense rol';
+  return etiquetes[authStore.rolActiu] || authStore.rolActiu || 'Sense rol';
 });
 
 const inicialUsuari = computed(() =>
-  (authStore.usuari || authStore.email || authStore.rol || 'U').toString().trim().charAt(0).toUpperCase()
+  (authStore.usuari || authStore.email || authStore.rolActiu || 'U').toString().trim().charAt(0).toUpperCase()
 );
 const etiquetaCursActiu = computed(() =>
   cursStore.cursActiu?.nom || cursStore.cursActiu?.id || cursStore.cursActiuId || 'Sense curs actiu'

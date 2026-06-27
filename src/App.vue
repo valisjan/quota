@@ -43,11 +43,43 @@
                 </option>
               </select>
 
+              <div
+                v-if="authStore.esAdminReal()"
+                class="flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-1 shadow-sm"
+                title="Canvia la vista sense perdre permisos reals d'administració"
+              >
+                <span class="hidden text-xs font-bold uppercase text-amber-800 xl:inline">Vista</span>
+                <select
+                  :value="vistaRolSeleccionada"
+                  @change="canviarVistaRol($event.target.value)"
+                  class="rounded border border-amber-200 bg-white px-2 py-1 text-xs font-bold text-amber-950 focus:outline-none"
+                >
+                  <option value="admin">Administració</option>
+                  <option value="cap_departament">Cap de departament</option>
+                  <option value="professor">Professor</option>
+                </select>
+                <select
+                  v-if="mostraDepartamentVista"
+                  :value="authStore.departamentVista"
+                  @change="authStore.actualitzarDepartamentVista($event.target.value)"
+                  class="max-w-[11rem] rounded border border-amber-200 bg-white px-2 py-1 text-xs font-bold text-amber-950 focus:outline-none"
+                >
+                  <option value="">Tria departament</option>
+                  <option
+                    v-for="dep in departamentsVistaOrdenats"
+                    :key="dep.id || dep.nom"
+                    :value="dep.nom"
+                  >
+                    {{ dep.nom }}
+                  </option>
+                </select>
+              </div>
+
               <span
                 v-if="authStore.estaAutenticat"
                 class="app-user-label max-w-[13rem] truncate border-l pl-3 text-sm font-medium"
               >
-                {{ authStore.usuari || authStore.email || authStore.rol }}
+                {{ etiquetaUsuariActiu }}
               </span>
 
               <a
@@ -167,9 +199,42 @@
               </option>
             </select>
 
+            <div
+              v-if="authStore.esAdminReal()"
+              class="rounded-md border border-amber-200 bg-amber-50 p-2"
+            >
+              <label class="mb-1 block text-xs font-bold uppercase text-amber-800">Vista</label>
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <select
+                  :value="vistaRolSeleccionada"
+                  @change="canviarVistaRol($event.target.value)"
+                  class="rounded border border-amber-200 bg-white px-3 py-2 text-sm font-bold text-amber-950 focus:outline-none"
+                >
+                  <option value="admin">Administració</option>
+                  <option value="cap_departament">Cap de departament</option>
+                  <option value="professor">Professor</option>
+                </select>
+                <select
+                  v-if="mostraDepartamentVista"
+                  :value="authStore.departamentVista"
+                  @change="authStore.actualitzarDepartamentVista($event.target.value)"
+                  class="rounded border border-amber-200 bg-white px-3 py-2 text-sm font-bold text-amber-950 focus:outline-none"
+                >
+                  <option value="">Tria departament</option>
+                  <option
+                    v-for="dep in departamentsVistaOrdenats"
+                    :key="dep.id || dep.nom"
+                    :value="dep.nom"
+                  >
+                    {{ dep.nom }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
             <div v-if="authStore.estaAutenticat" class="flex items-center justify-between gap-3">
               <span class="app-user-label truncate text-sm font-medium">
-                {{ authStore.usuari || authStore.email || authStore.rol }}
+                {{ etiquetaUsuariActiu }}
               </span>
               <button
                 type="button"
@@ -215,6 +280,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 import { useCursStore } from './stores/curs';
 import { iniciarPresenciaGlobal } from './services/presencia';
+import { useCursCollectionSnapshot } from './composables/useColSnapshot';
 import { useTheme } from './composables/useTheme';
 import ToastContainer from './components/ToastContainer.vue';
 
@@ -226,16 +292,39 @@ const mobileMenuOpen = ref(false);
 const { isDark, themeLabel, themeAriaLabel, toggleTheme } = useTheme();
 let stopPresenciaGlobal = null;
 
-const links = [
-  { to: '/', label: 'Inici' },
-  { to: '/admin', label: 'Administració' },
-  { to: '/departament', label: 'Departaments' },
-  { to: '/resums', label: 'Resums' },
-];
+const { items: departamentsVista } = useCursCollectionSnapshot({
+  colName: 'departaments',
+  enabled: computed(() => authStore.esAdminReal() && Boolean(cursStore.cursActiuId)),
+});
+
+const departamentsVistaOrdenats = computed(() =>
+  [...departamentsVista.value].sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'ca'))
+);
+
+const links = computed(() => {
+  const visibles = [{ to: '/', label: 'Inici' }];
+  if (authStore.esAdmin()) visibles.push({ to: '/admin', label: 'Administració' });
+  if (authStore.esCapDepartament()) visibles.push({ to: '/departament', label: 'Departaments' });
+  if (authStore.estaAutenticat) visibles.push({ to: '/resums', label: 'Resums' });
+  return visibles;
+});
+
+const vistaRolSeleccionada = computed(() => authStore.rolVista || 'admin');
+const mostraDepartamentVista = computed(() =>
+  ['cap_departament', 'departament'].includes(authStore.rolVista)
+);
+
+const etiquetaUsuariActiu = computed(() => {
+  const nom = authStore.usuari || authStore.email || authStore.rolActiu || '';
+  if (!authStore.esVistaSimulada) return nom;
+  const rol = authStore.rolActiu === 'professor' ? 'Professor' : 'Cap de departament';
+  const departament = authStore.departamentActiu ? ` · ${authStore.departamentActiu}` : '';
+  return `${nom} (${rol}${departament})`;
+});
 
 const tutorialUrl = computed(() => {
   if (!authStore.estaAutenticat) return '/docs/index.html';
-  if (authStore.rol === 'admin') return '/docs/tutorial-admin.html';
+  if (authStore.rolActiu === 'admin') return '/docs/tutorial-admin.html';
   return '/docs/tutorial-caps.html';
 });
 
@@ -249,6 +338,28 @@ function isActive(to) {
   return route.path === to || (to !== '/' && route.path.startsWith(`${to}/`));
 }
 
+function canviarVistaRol(nouRol) {
+  if (nouRol === 'cap_departament' || nouRol === 'departament') {
+    const departament =
+      authStore.departamentVista ||
+      authStore.departament ||
+      departamentsVistaOrdenats.value[0]?.nom ||
+      '';
+    authStore.activarVistaRol(nouRol, departament);
+    if (!route.path.startsWith('/departament')) {
+      router.push('/departament');
+    }
+    return;
+  }
+  authStore.activarVistaRol(nouRol);
+  if (
+    nouRol === 'professor' &&
+    (route.path === '/' || route.path.startsWith('/admin') || route.path.startsWith('/departament'))
+  ) {
+    router.push('/resums');
+  }
+}
+
 watch(() => route.path, () => { mobileMenuOpen.value = false; });
 
 watch(
@@ -258,8 +369,8 @@ watch(
     authStore.usuari,
     authStore.email,
     authStore.photoURL,
-    authStore.rol,
-    authStore.departament,
+    authStore.rolActiu,
+    authStore.departamentActiu,
     cursStore.cursActiuId,
     route.fullPath,
   ],
@@ -276,11 +387,35 @@ watch(
         usuari: authStore.usuari,
         email: authStore.email,
         photoURL: authStore.photoURL,
-        rol: authStore.rol,
-        departament: authStore.departament,
+        rol: authStore.rolActiu,
+        departament: authStore.departamentActiu,
       },
       getPath: () => route.fullPath,
     });
+  },
+  { immediate: true }
+);
+
+watch(
+  () => [authStore.rolActiu, authStore.departamentActiu, route.path],
+  () => {
+    if (!authStore.estaAutenticat) return;
+    if (route.path.startsWith('/admin') && !authStore.esAdmin()) {
+      router.push(authStore.esCapDepartament() ? '/departament' : '/resums');
+    } else if (route.path.startsWith('/departament') && !authStore.esCapDepartament()) {
+      router.push('/resums');
+    }
+  }
+);
+
+watch(
+  [mostraDepartamentVista, departamentsVistaOrdenats],
+  ([mostra, departaments]) => {
+    if (!mostra || !departaments.length) return;
+    const existeix = departaments.some((dep) => dep.nom === authStore.departamentVista);
+    if (!existeix) {
+      authStore.actualitzarDepartamentVista(departaments[0].nom);
+    }
   },
   { immediate: true }
 );
