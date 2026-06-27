@@ -14,11 +14,11 @@
  class="w-2 h-2 rounded-full"
  :class="isConnected ? 'bg-green-500' : 'bg-red-500'"
  ></div>
- {{ isConnected ? 'Sincronització activa' : 'Desconnectat' }}
+ {{ isConnected ? 'En línia' : 'Desconnectat' }}
  </div>
  </div>
  <div class="text-sm text-slate-600">
- Última actualització: {{ lastUpdate }}
+ Actualitzat: {{ lastUpdate }}
  </div>
  </div>
 
@@ -33,7 +33,7 @@
  Tutories
  </h3>
  <p class="text-sm text-slate-600 mt-1">
- {{ tutoriesOrdenades.length }} tutors
+ {{ tutoriesOrdenades.length }} tutories
  </p>
  </div>
 
@@ -53,7 +53,7 @@
  v-if="tutoriesOrdenades.length === 0"
  class="p-8 text-center text-slate-600 italic"
  >
- No hi ha tutories assignades.
+ Sense tutories.
  </div>
 
  <div v-else class="overflow-x-auto">

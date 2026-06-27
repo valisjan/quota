@@ -7,18 +7,18 @@
  :class="isConnected ? 'bg-green-200 text-green-900' : 'bg-red-200 text-red-900'"
  >
  <div class="w-2 h-2 rounded-full" :class="isConnected ? 'bg-green-500' : 'bg-red-500'"></div>
- {{ isConnected ? 'Sincronització activa' : 'Desconnectat' }}
+ {{ isConnected ? 'En línia' : 'Desconnectat' }}
  </div>
  </div>
- <div class="text-sm text-slate-600">Última actualització: {{ lastUpdate }}</div>
+ <div class="text-sm text-slate-600">Actualitzat: {{ lastUpdate }}</div>
  </div>
 
  <section class="overflow-hidden card">
  <div class="border-b border-slate-300 bg-slate-200 px-6 py-4">
  <div class="flex items-center justify-between gap-4">
  <div>
- <h3 class="text-xl font-semibold text-slate-950">Coordinacions i comissions</h3>
- <p class="text-sm text-slate-700 mt-1">Activitats de coordinació assignades al professorat.</p>
+ <h3 class="text-xl font-semibold text-slate-950">Coordinacions</h3>
+ <p class="text-sm text-slate-700 mt-1">{{ coordinacions.length }} coordinacions</p>
  </div>
  <div class="text-right">
  <div class="text-3xl font-bold text-slate-950">{{ totalHoresCoordinacions }}h</div>
@@ -28,7 +28,7 @@
  </div>
 
  <div v-if="coordinacions.length === 0" class="p-8 text-center text-slate-600 italic">
- No hi ha coordinacions importades.
+ Sense coordinacions.
  </div>
 
  <div v-else class="overflow-x-auto">
@@ -47,7 +47,7 @@
  <td class="px-6 py-3 text-center font-semibold text-slate-950">{{ classe.hores }}h</td>
  <td class="px-6 py-3">
  <span v-if="classe.professorAssignat" class="text-slate-800">{{ classe.professorAssignat }}</span>
- <span v-else class="text-amber-700 font-medium italic">Pendent d'assignar</span>
+ <span v-else class="text-amber-700 font-medium italic">Sense coordinador/a</span>
  </td>
  <td class="px-6 py-3 text-slate-700">
  <div v-if="membresCoordinacio(classe).length" class="space-y-0.5">

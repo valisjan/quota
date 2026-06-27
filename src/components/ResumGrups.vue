@@ -3,7 +3,7 @@
  <!-- Capçalera: filtre + botó -->
  <div class="print-hide flex justify-end">
  <button @click="imprimirGrups" class="btn-primary flex items-center gap-2 text-sm">
- Imprimir resum de grups
+ Imprimir
  </button>
  </div>
 
@@ -55,7 +55,7 @@
  <p class="text-sm font-bold" :class="getHoresClass(classes)">
  {{ calcularHoresAssignades(classes) }} / {{ calcularTotalHoresGrup(classes) }}h
  </p>
- <p class="text-[11px] font-medium text-slate-500">assignades</p>
+ <p class="text-[11px] font-medium text-slate-500">assignat</p>
  </div>
  </div>
  <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
@@ -115,7 +115,7 @@
  <span v-if="classe.tipus" :class="getTipusChipClass(classe.tipus)">{{ getTipusLabel(classe.tipus) }}</span>
  <span v-else class="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-600">🎓 Titular</span>
  <span v-if="classe.hores !== item.hores" class="text-[11px] font-semibold text-slate-500">{{ classe.hores }}h</span>
- <span v-if="!comptaPerGrup(classe)" class="text-[11px] font-medium text-slate-500">no compta grup</span>
+ <span v-if="!comptaPerGrup(classe)" class="text-[11px] font-medium text-slate-500">no computa</span>
  </div>
  <p class="mt-1 text-xs leading-snug" :class="classeAssignada(classe) ? 'text-slate-600' : 'font-semibold text-rose-600'">
  {{ professoratClasseText(classe) || '⚠ Sense professor' }}
@@ -130,10 +130,10 @@
  <div class="flex min-w-0 flex-wrap items-center gap-1.5">
  <strong class="text-sm font-bold leading-snug text-slate-950">{{ formatMateriaVista(item.classe.materia) }}</strong>
  <span v-if="item.classe.tipus" :class="getTipusChipClass(item.classe.tipus)">{{ getTipusLabel(item.classe.tipus) }}</span>
- <span v-if="!comptaPerGrup(item.classe)" class="text-[11px] font-medium text-slate-500">no compta grup</span>
+ <span v-if="!comptaPerGrup(item.classe)" class="text-[11px] font-medium text-slate-500">no computa</span>
  </div>
  <p class="mt-1 text-xs leading-snug" :class="classeAssignada(item.classe) ? 'text-slate-600' : 'font-semibold text-rose-600'">
- {{ professoratClasseText(item.classe) || '⚠ Sense professor assignat' }}
+ {{ professoratClasseText(item.classe) || '⚠ Sense professor' }}
  </p>
  </div>
  <span class="shrink-0 text-sm font-bold text-slate-700">{{ item.classe.hores }}h</span>
@@ -149,12 +149,12 @@
  <section v-if="coordinationActivities.length > 0" class="overflow-hidden card">
  <div class="border-b border-slate-200 bg-white px-5 py-3">
  <div class="flex flex-wrap items-center gap-2">
- <h3 class="text-base font-bold text-slate-950">Activitats de coordinació</h3>
+ <h3 class="text-base font-bold text-slate-950">Activitats sense grup</h3>
  <span v-if="coordinationActivitiesSenseAssignar.length > 0" class="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 dark:bg-rose-950/30 dark:text-rose-200 dark:ring-rose-800/60">
  {{ coordinationActivitiesSenseAssignar.length }} sense assignar
  </span>
  </div>
- <p class="mt-0.5 text-xs text-slate-600">Tutories, caps de departament, PALIC, suport divisible, desdoblament divisible i altres activitats sense grup específic</p>
+ <p class="mt-0.5 text-xs text-slate-600">Hores sense grup específic.</p>
  </div>
  <div class="p-4">
  <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -171,7 +171,7 @@
  <span v-if="activity.tipus" :class="getTipusChipClass(activity.tipus)">{{ getTipusLabel(activity.tipus) }}</span>
  </div>
  <p class="mt-1 text-xs leading-snug" :class="classeAssignada(activity) ? 'text-slate-600' : 'font-semibold text-rose-600'">
- {{ professoratClasseText(activity) || '⚠ Sense professor assignat' }}
+ {{ professoratClasseText(activity) || '⚠ Sense professor' }}
  </p>
  <p v-if="activity.departaments?.[0]" class="mt-1 text-xs font-medium text-slate-500">{{ activity.departaments[0] }}</p>
  </div>
@@ -242,7 +242,7 @@
  </template>
  <template v-if="coordinationActivities.length > 0">
  <tr>
- <td colspan="5" class="print-curs-sep">Activitats de coordinació i sense grup</td>
+ <td colspan="5" class="print-curs-sep">Activitats sense grup</td>
  </tr>
  <tr v-for="activity in sortCoordinationActivities(coordinationActivities)" :key="activity.id + '-p'">
  <td>—</td>

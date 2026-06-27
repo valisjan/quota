@@ -13,7 +13,7 @@
         <p class="text-sm font-semibold uppercase text-white/70">IES Josep Sureda i Blanes</p>
         <h1 class="mt-4 text-5xl font-semibold leading-none sm:text-6xl lg:text-7xl">QUOTA</h1>
         <p class="mt-5 max-w-2xl text-lg leading-8 text-white/85">
-          Eina pròpia de l'IES Josep Sureda i Blanes per gestionar la quota i la distribució d'hores per departaments.
+          Quota i repartiment d'hores del centre.
         </p>
       </div>
 
@@ -41,9 +41,9 @@
 
           <template v-else-if="authStore.esPendent">
             <div class="rounded-md border border-amber-200 bg-amber-50 p-4">
-              <p class="font-semibold text-amber-900">Accés pendent d'aprovació</p>
+              <p class="font-semibold text-amber-900">Accés pendent</p>
               <p class="mt-2 text-sm leading-6 text-amber-900/80">
-                Has iniciat sessió com <strong>{{ authStore.email }}</strong>, però encara no tens cap rol assignat.
+                {{ authStore.email }} encara no té rol assignat.
               </p>
             </div>
             <button
@@ -70,7 +70,7 @@
             </button>
             <p v-if="errorLogin" class="mt-4 text-sm font-semibold text-red-800">{{ errorLogin }}</p>
             <p class="mt-4 text-center text-xs font-medium text-slate-600">
-              Només comptes @iesjosepsuredaiblanes.com
+              Compte del domini @iesjosepsuredaiblanes.com
             </p>
           </template>
         </div>
@@ -108,7 +108,7 @@ const titolAcces = computed(() => {
 
 const textAcces = computed(() => {
   if (authStore.estaAutenticat) return '';
-  if (authStore.esPendent) return "Encara no tens rol assignat. Avissa l'administrador si ho necessites.";
+  if (authStore.esPendent) return '';
   return '';
 });
 
@@ -120,9 +120,9 @@ async function iniciarSessio() {
   } catch (err) {
     carregant.value = false;
     if (err.code === 'auth/unauthorized-domain') {
-      errorLogin.value = 'Domini no autoritzat. Afegeix-lo a Firebase Console -> Authentication -> Authorized domains.';
+      errorLogin.value = 'Aquest domini no està autoritzat per iniciar sessió.';
     } else {
-      errorLogin.value = 'Error iniciant la sessió: ' + (err.message || err.code);
+      errorLogin.value = 'No s’ha pogut iniciar sessió: ' + (err.message || err.code);
     }
   }
 }

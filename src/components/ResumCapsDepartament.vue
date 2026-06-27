@@ -14,11 +14,11 @@
  class="w-2 h-2 rounded-full"
  :class="isConnected ? 'bg-green-500' : 'bg-red-500'"
  ></div>
- {{ isConnected ? 'Sincronització activa' : 'Desconnectat' }}
+ {{ isConnected ? 'En línia' : 'Desconnectat' }}
  </div>
  </div>
  <div class="text-sm text-slate-600">
- Última actualització: {{ lastUpdate }}
+ Actualitzat: {{ lastUpdate }}
  </div>
  </div>
 
@@ -34,7 +34,7 @@
  Caps de departament
  </h3>
  <p class="text-sm text-slate-600 mt-1">
- {{ capsDepartament.length }} registres
+ {{ capsDepartament.length }} caps
  </p>
  </div>
  <div class="text-right">
@@ -42,7 +42,7 @@
  {{ totalHores }}h
  </div>
  <div class="text-sm text-slate-600">
- Total hores
+ Hores
  </div>
  </div>
  </div>
@@ -52,7 +52,7 @@
  v-if="capsDepartament.length === 0"
  class="p-8 text-center text-slate-600 italic"
  >
- No hi ha caps de departament importats.
+ Sense caps de departament.
  </div>
 
  <div v-else class="overflow-x-auto">
@@ -82,7 +82,7 @@
  {{ cap.professorAssignat }}
  </span>
  <span v-else class="text-red-800 font-medium">
- Sense cap assignat
+ Sense assignar
  </span>
  </td>
  <td class="px-6 py-3 text-center font-semibold text-slate-950">

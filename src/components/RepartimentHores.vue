@@ -2,7 +2,7 @@
   <div class="space-y-3">
     <div>
       <h3 class="text-base font-semibold text-text-main">
-        Classes del departament
+        Classes
       </h3>
       <p class="text-sm text-text-secondary">
         {{ classesSenseAssignar.length }} pendents · {{ classesAssignades.length }} assignades
@@ -14,12 +14,12 @@
       class="app-card p-3"
     >
       <label class="block text-xs font-bold uppercase tracking-wide text-text-muted">
-        Cerca classes
+        Cerca
         <input
           v-model="cerca"
           type="search"
           class="form-input mt-1.5 py-1.5 text-sm"
-          placeholder="Matèria, curs, grup, tipus..."
+          placeholder="Matèria, grup, tipus..."
         />
       </label>
       <div class="mt-3 grid grid-cols-3 gap-2 text-center">
@@ -52,14 +52,14 @@
       class="flex items-center gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm font-medium text-emerald-800 dark:border-emerald-800/30 dark:bg-emerald-950/20 dark:text-emerald-300"
     >
       <span class="text-base leading-none">✓</span>
-      <span>Totes les classes assignades</span>
+      <span>Tot assignat</span>
     </div>
 
     <div
       v-if="classesDepartament.length > 0 && classesFiltrades.length === 0"
       class="app-empty-state p-5"
     >
-      Cap classe coincideix amb la cerca.
+      Cap resultat.
     </div>
 
     <!-- Pendents -->
@@ -69,7 +69,7 @@
     >
       <div class="app-card-header-warning px-3 py-2">
         <h4 class="text-sm font-bold text-text-main">
-          Pendents d'assignar ({{ classesSenseAssignarFiltrades.length }}<span v-if="cercaNormalitzada">/{{ classesSenseAssignar.length }}</span>)
+          Pendents ({{ classesSenseAssignarFiltrades.length }}<span v-if="cercaNormalitzada">/{{ classesSenseAssignar.length }}</span>)
         </h4>
       </div>
       <div class="divide-y divide-slate-100">
@@ -99,7 +99,7 @@
             :aria-label="`Assignar professor a ${formatClasseLabel(classe)}`"
             class="form-input w-full py-1.5 text-sm"
           >
-            <option value="">Assignar professor</option>
+            <option value="">Tria professor</option>
             <option
               v-for="professor in professorsDepartamentOrdenats"
               :key="professor.nom"
@@ -110,7 +110,7 @@
             </option>
           </select>
           <p v-if="classe.professors?.length" class="mt-1 text-xs font-medium text-text-muted">
-            Assignació actual: {{ classe.professors.join(', ') }}
+            Ara: {{ classe.professors.join(', ') }}
           </p>
           <select
             v-if="esOptativaCompartidaClasse(classe)"
@@ -141,7 +141,7 @@
     >
       <div class="app-card-header-success px-3 py-2">
         <h4 class="text-sm font-bold text-text-main">
-          Assignades ({{ classesAssignadesFiltrades.length }}<span v-if="cercaNormalitzada">/{{ classesAssignades.length }}</span>)
+          Fetes ({{ classesAssignadesFiltrades.length }}<span v-if="cercaNormalitzada">/{{ classesAssignades.length }}</span>)
         </h4>
       </div>
       <div class="divide-y divide-slate-100">
@@ -190,7 +190,7 @@
               :aria-label="`Professor de ${formatClasseLabel(classe)}`"
               class="form-input flex-1 py-1.5 text-sm"
             >
-              <option value="">Sense assignar</option>
+              <option value="">Sense professor</option>
               <option
                 v-for="professor in professorsDepartamentOrdenats"
                 :key="professor.nom"
@@ -216,7 +216,7 @@
       v-if="classesDepartament.length === 0"
       class="app-empty-state p-8"
     >
-      No hi ha classes per a aquest departament.
+      Sense classes.
     </div>
   </div>
 </template>
@@ -518,7 +518,7 @@ async function guardarActualitzacionsAssignacio(actualitzacions) {
     emit('assignacionsActualitzades');
   } catch (err) {
     console.error('Error assignant professors:', err);
-    error.value = 'Error al guardar. Torna-ho a intentar.';
+    error.value = "No s'ha pogut guardar.";
   }
 }
 

@@ -2,11 +2,11 @@
   <div id="print-content" class="hidden">
     <div class="print-page">
       <div class="print-header">
-        <h1>Assignació Horària - {{ departament }}</h1>
+        <h1>Distribució d'hores - {{ departament }}</h1>
         <p>Data: {{ new Date().toLocaleDateString('ca-ES') }}</p>
         <div class="department-stats">
           <p><strong>Total hores:</strong> {{ totalHores }}h</p>
-          <p><strong>Objectiu professorat:</strong> {{ professorsNecessaris }}</p>
+          <p><strong>Objectiu:</strong> {{ professorsNecessaris }}</p>
           <p><strong>Total GP:</strong> {{ totalGp }}h ({{ totalGpAssignades }}h assignades)</p>
           <p><strong>Total PALIC:</strong> {{ totalPalic }}h ({{ totalPalicAssignades }}h assignades)</p>
           <p><strong>Total suport divisible:</strong> {{ totalSd }}h ({{ totalSdAssignades }}h assignades)</p>
@@ -15,7 +15,7 @@
       </div>
 
       <div class="print-section">
-        <h2>Professors i Assignacions</h2>
+        <h2>Professorat</h2>
         <div v-for="professor in professors" :key="professor.id" class="print-professor">
           <div class="professor-header">
             <h3>{{ professor.nom }}</h3>
@@ -57,7 +57,7 @@
               class="class-item"
             >
               <span class="class-name">Suport divisible</span>
-              <span class="class-details">{{ sd.grup || 'Sense grup indicat' }}</span>
+              <span class="class-details">{{ sd.grup || 'Sense grup' }}</span>
               <span class="class-hours">1h</span>
             </div>
             <div
@@ -66,7 +66,7 @@
               class="class-item"
             >
               <span class="class-name">Desdoblament divisible</span>
-              <span class="class-details">{{ dd.grup || 'Sense grup indicat' }}</span>
+              <span class="class-details">{{ dd.grup || 'Sense grup' }}</span>
               <span class="class-hours">1h</span>
             </div>
           </div>
@@ -85,7 +85,7 @@
       </div>
 
       <div class="print-section">
-        <h2>Resum de Classes</h2>
+        <h2>Classes</h2>
         
         <table class="classes-table">
           <thead>

@@ -47,7 +47,7 @@ import { computed, defineAsyncComponent, ref } from 'vue';
 const activeTab = ref('grups');
 
 const tabs = [
-  { id: 'grups', name: 'Resum de grups' },
+  { id: 'grups', name: 'Grups' },
   { id: 'caps-departament', name: 'Caps de departament' },
   { id: 'coordinacions', name: 'Coordinacions' },
   { id: 'tutories', name: 'Tutories' },

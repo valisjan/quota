@@ -259,13 +259,13 @@
         v-if="esperantCurs"
         class="card p-8 text-center text-sm font-medium text-slate-700"
       >
-        Carregant el curs actiu...
+        Carregant curs...
       </div>
       <div
         v-else-if="senseCurs"
         class="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center text-sm font-medium text-amber-900 shadow-sm"
       >
-        No hi ha cap curs actiu. Ves a Administració > Curs acadèmic per crear o seleccionar un curs.
+        Cap curs actiu. Selecciona'n un a Administració > Curs acadèmic.
       </div>
       <router-view v-else />
     </main>

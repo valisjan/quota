@@ -3,7 +3,7 @@
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex flex-col gap-2">
         <p class="text-sm text-text-secondary">
-          Proposta orientativa de distribució. No modifica les dades actuals.
+          Simulació sense canvis en les dades.
         </p>
         <label class="flex cursor-pointer items-center gap-2 text-sm text-text-secondary">
           <input
@@ -11,14 +11,13 @@
             v-model="partirActual"
             class="h-4 w-4 rounded border-slate-300 accent-primary"
           />
-          Partir de la distribució actual (manté les classes ja assignades)
+          Mantenir assignacions actuals
         </label>
         <p v-if="proposta" class="text-xs text-text-muted">
-          Millor resultat de {{ iteracionsProvades }} combinacions ·
-          {{ totalClassesFixadesActuals }} ja fixades · {{ classesPerDistribuir.length }} redistribuïdes
+          {{ iteracionsProvades }} intents · {{ totalClassesFixadesActuals }} fixades · {{ classesPerDistribuir.length }} per repartir
         </p>
         <p v-if="professorsExclosos > 0" class="text-xs text-amber-800">
-          {{ professorsExclosos }} {{ professorsExclosos === 1 ? 'professor exclòs' : 'professors exclosos' }} per disponibilitat horària no vàlida - no apareixen a la proposta
+          {{ professorsExclosos }} fora de la proposta per disponibilitat horària.
         </p>
       </div>
       <button
@@ -35,11 +34,11 @@
       v-if="!teProfessors || !teClasses"
       class="app-empty-state py-10"
     >
-      {{ !teProfessors ? 'No hi ha professors al departament' : 'No hi ha classes per distribuir' }}
+      {{ !teProfessors ? 'Sense professorat al departament' : 'Sense classes per distribuir' }}
     </div>
 
     <div v-else-if="calculant" class="app-card p-4 text-center text-sm font-medium text-text-main">
-      <div>Calculant la millor proposta... {{ iteracionsProvades }} combinacions provades</div>
+      <div>Calculant... {{ iteracionsProvades }} intents</div>
       <div class="app-progress-track mt-3 h-2 rounded-full">
         <div
           class="h-full rounded-full bg-primary transition-[width] duration-150"
@@ -50,7 +49,7 @@
     </div>
 
     <div v-else-if="!proposta" class="app-empty-state py-10">
-      Encara no hi ha cap proposta generada.
+      Genera una proposta per veure resultats.
     </div>
 
     <template v-else>
@@ -79,12 +78,12 @@
           >
             {{ totalHoresCobertes }}/{{ totalHoresDepartament }}h
           </div>
-          <div class="text-xs text-text-secondary">Hores repartides</div>
+          <div class="text-xs text-text-secondary">Hores cobertes</div>
           <div
             class="mt-1 text-[11px] font-semibold leading-snug"
             :class="totalHoresPerRepartir === 0 ? 'text-green-700' : 'text-rose-600'"
           >
-            {{ totalHoresPerRepartir }}h per distribuir
+            {{ totalHoresPerRepartir }}h pendents
           </div>
         </div>
       </div>
@@ -169,11 +168,10 @@
         class="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4 dark:border-rose-900/60 dark:bg-rose-950/20"
       >
         <h5 class="mb-2 text-sm font-semibold text-rose-800">
-          Classes sense encaix en la simulació
+          Sense encaix
         </h5>
         <p class="mb-2 text-xs text-rose-700">
-          Queden {{ totalHoresDesbordades }}h repartibles sense col·locar. Cada fila indica el
-          motiu detectat.
+          {{ totalHoresDesbordades }}h sense col·locar.
         </p>
         <div class="space-y-2">
           <div
@@ -186,7 +184,7 @@
               <span class="font-bold">{{ c.hores }}h</span>
             </div>
             <p class="mt-1 font-medium">
-              {{ c.motiuNoAssignada || 'No hi ha marge suficient en cap professor elegible.' }}
+              {{ c.motiuNoAssignada || 'Cap professor elegible té marge suficient.' }}
             </p>
             <p
               v-if="c.detallNoAssignada"
@@ -591,37 +589,37 @@ function explicarNoAssignacio(classe, slots) {
 
   if (!slots.length) {
     return {
-      motiuNoAssignada: 'No hi ha professorat elegible disponible per fer la simulació.',
+      motiuNoAssignada: 'Sense professorat elegible per simular.',
       detallNoAssignada: professorsExclosos.value
-        ? `${professorsExclosos.value} professors queden fora de la simulació per la seva disponibilitat horària.`
+        ? `${professorsExclosos.value} professors fora per disponibilitat horària.`
         : '',
     };
   }
 
   if (paquet.some(esTutoriaPrincipal) && slots.every((slot) => excedeixTutories(slot, classe))) {
     return {
-      motiuNoAssignada: 'No es pot assignar perquè cap professor pot tenir dues tutories.',
+      motiuNoAssignada: 'Cap professor pot assumir una segona tutoria.',
       detallNoAssignada: `${detallPaquet}${detallMarges}`,
     };
   }
 
   if (millorMarge <= 0) {
     return {
-      motiuNoAssignada: `Calen ${formatHores(horesNecessaries)}, però tot el professorat elegible ja està al màxim.`,
+      motiuNoAssignada: `Calen ${formatHores(horesNecessaries)}, però tothom ja és al màxim.`,
       detallNoAssignada: `${detallPaquet}${detallMarges}`,
     };
   }
 
   if (millorMarge < horesNecessaries) {
     return {
-      motiuNoAssignada: `Calen ${formatHores(horesNecessaries)} lliures i el marge més gran és ${formatHores(millorMarge)}.`,
+      motiuNoAssignada: `Calen ${formatHores(horesNecessaries)} lliures; el marge més gran és ${formatHores(millorMarge)}.`,
       detallNoAssignada: `${detallPaquet}${detallMarges}`,
     };
   }
 
   return {
     motiuNoAssignada:
-      'Hi ha marge parcial, però no s’ha trobat cap reubicació sense superar els màxims individuals.',
+      'No s’ha trobat cap reubicació dins els màxims.',
     detallNoAssignada: `${detallPaquet}${detallMarges}`,
   };
 }
@@ -951,20 +949,20 @@ async function generar() {
   const avisos = [];
 
   if (professorsSotaMinim.length) {
-    avisos.push(`Queden per sota de l'ideal: ${resumSlots(professorsSotaMinim)}.`);
+    avisos.push(`Per sota de l'ideal: ${resumSlots(professorsSotaMinim)}.`);
   }
 
   if (professorsSobreMaxim.length) {
-    avisos.push(`Ja superen el màxim per hores fixes: ${resumSlots(professorsSobreMaxim)}.`);
+    avisos.push(`Sobre màxim per hores fixes: ${resumSlots(professorsSobreMaxim)}.`);
   }
 
   if (professorsAmbDuesTutories.length) {
-    avisos.push(`Ja hi ha professorat amb més d'una tutoria fixada: ${resumSlots(professorsAmbDuesTutories)}.`);
+    avisos.push(`Més d'una tutoria fixada: ${resumSlots(professorsAmbDuesTutories)}.`);
   }
 
   if (millorNoAssignades.length) {
     avisos.push(
-      `${millorNoAssignades.length} classes queden sense assignar. Revisa el motiu a la llista inferior.`
+      `${millorNoAssignades.length} classes sense assignar.`
     );
   }
 

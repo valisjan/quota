@@ -3,9 +3,9 @@
     <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="text-xs font-semibold uppercase text-primary">Departaments</p>
-        <h2 class="mt-1 text-xl font-semibold text-text-main">Espai de distribució</h2>
+        <h2 class="mt-1 text-xl font-semibold text-text-main">Distribució d'hores</h2>
         <p class="mt-1 text-sm font-medium text-text-secondary">
-          Tria un departament per començar la distribució d'hores.
+          Tria departament.
         </p>
       </div>
 
@@ -15,7 +15,7 @@
           v-model.trim="cerca"
           type="search"
           class="form-input w-full"
-          placeholder="Cerca departament..."
+          placeholder="Cerca..."
         />
       </label>
     </div>
@@ -124,9 +124,9 @@
     </div>
 
     <div v-else class="rounded-lg border border-dashed border-border-soft bg-surface-soft px-4 py-8 text-center">
-      <p class="font-semibold text-text-main">No hi ha cap departament amb aquest filtre.</p>
+      <p class="font-semibold text-text-main">Cap departament coincideix.</p>
       <button type="button" class="mt-2 text-sm font-semibold text-primary hover:underline" @click="cerca = ''">
-        Neteja la cerca
+        Neteja
       </button>
     </div>
   </section>
@@ -226,7 +226,7 @@ function estatText(estat) {
     pendent: 'Pendent',
     exces: 'Excés',
     tancat: 'Tancat',
-    buit: 'Sense dades',
+    buit: 'Buit',
     exclos: 'Exclòs',
   };
   return textos[estat] || 'Obert';

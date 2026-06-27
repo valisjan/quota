@@ -29,7 +29,7 @@
         <span>Data: {{ dataAvui }}</span>
         <span>Total hores: {{ totalHoresAssignades }} / {{ totalHoresDepartament }}h</span>
         <span>Professors: {{ professors.length }}</span>
-        <span>Objectiu professorat: {{ capacitatIdealProfessorat }}h / màxim {{ capacitatMaximaProfessorat }}h</span>
+        <span>Objectiu: {{ capacitatIdealProfessorat }}h / màx. {{ capacitatMaximaProfessorat }}h</span>
       </div>
     </div>
 
@@ -47,9 +47,9 @@
         <span class="ml-1 text-slate-500 dark:text-slate-500">({{ resumJornades }})</span>
       </div>
       <div>
-        <span class="text-slate-600 dark:text-slate-400">Objectiu professorat:</span>
+        <span class="text-slate-600 dark:text-slate-400">Objectiu:</span>
         <strong class="ml-1.5 text-slate-900 dark:text-white">
-          {{ capacitatIdealProfessorat }}h / màxim {{ capacitatMaximaProfessorat }}h
+          {{ capacitatIdealProfessorat }}h / màx. {{ capacitatMaximaProfessorat }}h
         </strong>
       </div>
       <div v-if="totalGpDepartament > 0">
@@ -312,7 +312,7 @@
     <!-- Classes sense assignar -->
     <div class="classes-sense-assignar mt-6">
       <div class="mb-2 flex items-center gap-2">
-        <h3 class="font-semibold text-slate-700 dark:text-gray-200">Classes sense assignar</h3>
+        <h3 class="font-semibold text-slate-700 dark:text-gray-200">Sense assignar</h3>
         <span
           class="rounded-full px-2.5 py-0.5 text-xs font-bold"
           :class="classesNoAssignades.length > 0
@@ -327,7 +327,7 @@
         v-if="classesNoAssignades.length === 0"
         class="rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300"
       >
-        Totes les classes estan assignades &#10003;
+        Tot assignat
       </div>
 
       <div v-else class="overflow-x-auto rounded-lg border border-red-200 dark:border-red-900/50">
@@ -478,9 +478,9 @@ function estatText(professor) {
   const h = totalComputable(professor.nom);
   const lim = limitsProf(professor);
   if (h === 0) return 'Sense hores';
-  if (h === lim.ideal) return 'Complert';
+  if (h === lim.ideal) return 'En quota';
   if (h > lim.maxim) return 'Excés';
-  if (h > lim.ideal) return 'Sobre ideal';
+  if (h > lim.ideal) return "Sobre l'ideal";
   return `Pendent ${lim.ideal - h}h`;
 }
 
@@ -569,7 +569,7 @@ function exportarExcel() {
   const capSense = ['Curs', 'Grup', 'Matèria', 'Tipus', 'Hores'];
   const filesSense = classesNoAssignades.value.length
     ? classesNoAssignades.value.map((c) => [c.curs || '', c.grup || '', c.materia, c.tipus || '', c.hores])
-    : [['(Totes les classes estan assignades)', '', '', '', '']];
+    : [['(Tot assignat)', '', '', '', '']];
 
   descarregarExcel([
     { nom: 'Distribució', dades: fullDistribucio },

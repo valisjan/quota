@@ -7,9 +7,9 @@
         <div class="flex items-center gap-4">
           <div class="department-loading-mark" aria-hidden="true"></div>
           <div class="min-w-0">
-            <p class="text-base font-semibold text-text-main">Carregant departaments...</p>
+            <p class="text-base font-semibold text-text-main">Carregant departaments</p>
             <p class="mt-1 text-sm font-medium text-text-secondary">
-              Preparant classes, professorat i resum de distribució.
+              Carregant dades del curs.
             </p>
           </div>
         </div>
@@ -24,10 +24,10 @@
 
       <div v-if="!departamentSeleccionat && !carregantDadesDepartament" class="app-empty-state">
         <p class="text-xl font-semibold text-text-main">
-          Tria un departament per començar la distribució
+          Tria un departament
         </p>
         <p class="mt-2 text-sm font-medium text-text-secondary">
-          Les targetes mostren l'estat de cada departament abans d'entrar-hi.
+          El repartiment s'obre des de la seva targeta.
         </p>
       </div>
     </section>
@@ -39,7 +39,7 @@
           <div class="min-w-0">
             <p class="text-base font-semibold text-text-main">Carregant {{ departamentSeleccionat }}</p>
             <p class="mt-1 text-sm font-medium text-text-secondary">
-              Preparant les dades de distribució del departament.
+              Carregant repartiment.
             </p>
           </div>
         </div>
@@ -112,7 +112,7 @@
         v-if="departamentTancat"
         class="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-slate-800"
       >
-        Aquest departament està tancat. La distribució es pot consultar, però no modificar.
+        Departament tancat. Consulta disponible; edició bloquejada.
         <span v-if="settings.missatgeTancament" class="ml-1 font-normal">{{ settings.missatgeTancament }}</span>
       </div>
 
@@ -175,7 +175,7 @@
               class="rounded-md border border-border-soft bg-surface px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-surface-hover"
               @click="anarAProblema(validacioDepartament.critiques[0])"
             >
-              Primer problema
+              Primer
             </button>
             <button
               type="button"
@@ -253,7 +253,7 @@
               ? 'app-toolbar-button-active'
               : ''"
           >
-            Full de treball
+            Full
           </button>
           <button
             id="tab-aleatori"
@@ -291,7 +291,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="font-bold text-text-main">Total hores</h3>
-                <p class="text-xs text-text-secondary">Assignades als professors</p>
+                <p class="text-xs text-text-secondary">Assignades</p>
               </div>
               <div class="text-right">
                 <span class="text-xl font-bold text-text-main">
@@ -314,7 +314,7 @@
               <div>
                 <h3 class="font-bold text-text-main">Mitjana per professor</h3>
                 <p class="text-xs text-text-secondary">
-                  Ajustada a jornada · {{ resumJornadesDepartament }}
+                  Jornades: {{ resumJornadesDepartament }}
                 </p>
               </div>
               <div class="text-right">
@@ -325,7 +325,7 @@
               </div>
             </div>
             <p class="mt-2 text-sm font-medium text-text-secondary">
-              Objectiu {{ capacitatIdealDepartament }}h · màxim {{ capacitatMaximaDepartament }}h
+              Objectiu {{ capacitatIdealDepartament }}h · màx. {{ capacitatMaximaDepartament }}h
               <span v-if="carregaCapacitatDepartament">· {{ carregaCapacitatDepartament }}% de l'ideal</span>
             </p>
           </div>
@@ -334,7 +334,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="font-bold text-text-main">Guàrdies de pati</h3>
-                <p class="text-xs text-text-secondary">Assignades als professors</p>
+                <p class="text-xs text-text-secondary">Assignades</p>
               </div>
               <div class="text-right">
                 <span class="text-xl font-bold text-text-main">
@@ -356,7 +356,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="font-bold text-text-main">PALIC</h3>
-                <p class="text-xs text-text-secondary">Hores assignades als professors</p>
+                <p class="text-xs text-text-secondary">Assignades</p>
               </div>
               <div class="text-right">
                 <span class="text-xl font-bold text-text-main">
@@ -378,7 +378,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="font-bold text-text-main">Suport divisible</h3>
-                <p class="text-xs text-text-secondary">Hores de suport assignades</p>
+                <p class="text-xs text-text-secondary">Assignades</p>
               </div>
               <div class="text-right">
                 <span class="text-xl font-bold text-text-main">
@@ -400,7 +400,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="font-bold text-text-main">Desdoblament divisible</h3>
-                <p class="text-xs text-text-secondary">Hores de desdoblament assignades</p>
+                <p class="text-xs text-text-secondary">Assignades</p>
               </div>
               <div class="text-right">
                 <span class="text-xl font-bold text-text-main">
@@ -1477,7 +1477,7 @@ async function desassignarClasseProfessor({ professor, classe }) {
     await batch.commit();
   } catch (e) {
     console.error('Error desassignant classe:', e);
-    toast.error('Error al desassignar. Torna-ho a intentar.');
+    toast.error("No s'ha pogut desassignar.");
   }
 }
 

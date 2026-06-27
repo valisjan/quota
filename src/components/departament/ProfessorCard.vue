@@ -34,20 +34,20 @@
         </span>
         <span v-if="guardesPrevistes !== null" class="app-chip px-1.5 py-0.5 text-xs font-normal"
           :class="guardesPrevistes === 0 ? 'bg-slate-100 text-slate-400' : ''">
-          {{ guardesPrevistes === 0 ? 'Exempt de guàrdies' : `${guardesPrevistes} guàrdies` }}
+          {{ guardesPrevistes === 0 ? 'Sense guàrdies' : `${guardesPrevistes} guàrdies` }}
         </span>
       </div>
     </div>
 
     <!-- Matèries -->
     <div v-if="comentariFull" class="border-t border-border-soft bg-amber-50 px-4 py-2 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
-      <p class="text-xs font-semibold uppercase text-amber-800 dark:text-amber-200">Comentari del full Professorat</p>
+      <p class="text-xs font-semibold uppercase text-amber-800 dark:text-amber-200">Comentari</p>
       <p class="mt-0.5 whitespace-pre-line font-medium">{{ comentariFull }}</p>
     </div>
 
     <div class="border-t border-border-soft px-3 py-2">
       <div v-if="classes.length === 0" class="py-1 text-center text-[0.95rem] italic text-text-muted">
-        Sense matèries assignades
+        Sense assignació
       </div>
       <div v-else class="space-y-0.5">
         <div
@@ -143,7 +143,7 @@
               class="form-input min-w-0 flex-1 px-2 py-1 text-sm"
               :list="sdDatalistId"
               :value="assignacio.grup"
-              placeholder="Grup de suport"
+              placeholder="Grup"
               :disabled="bloquejat"
               @change="$emit('actualitzar-sd-grup', { professor, index, grup: $event.target.value })"
             />
@@ -191,7 +191,7 @@
               class="form-input min-w-0 flex-1 px-2 py-1 text-sm"
               :list="ddDatalistId"
               :value="assignacio.grup"
-              placeholder="Grup de desdoblament"
+              placeholder="Grup"
               :disabled="bloquejat"
               @change="$emit('actualitzar-dd-grup', { professor, index, grup: $event.target.value })"
             />
@@ -275,7 +275,7 @@
               class="mt-2 w-full rounded-md bg-success py-1.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-success-dark"
               :disabled="bloquejat || coordinacionsSeleccionades.length === 0"
               @click="afegirCoordinacions"
-            >Afegeix seleccionades</button>
+            >Afegeix</button>
           </div>
         </div>
       </div>
@@ -286,12 +286,12 @@
           class="flex w-full items-center justify-between px-4 py-2 text-[0.95rem] font-medium text-text-muted hover:bg-surface-hover"
         @click="mostrarPreferencies = !mostrarPreferencies"
       >
-        <span>Preferències i comentaris</span>
+        <span>Preferències</span>
         <span class="text-text-muted">{{ mostrarPreferencies ? '▲' : '▼' }}</span>
       </button>
       <div v-if="mostrarPreferencies" class="space-y-3 px-4 pb-4">
         <label class="block text-sm font-medium text-text-secondary">
-          Horari preferit
+          Preferència horària
           <select
             :value="professor.preferencia"
             @change="updatePreferencia($event.target.value)"
@@ -304,7 +304,7 @@
           </select>
         </label>
         <label v-if="professor.preferencia" class="block text-sm font-medium text-text-secondary">
-          Motiu al·legat
+          Motiu
           <textarea
             :value="professor.motiuAllegat"
             @input="updateMotiuAllegat($event.target.value)"
@@ -314,7 +314,7 @@
           />
         </label>
         <label class="block text-sm font-medium text-text-secondary">
-          Comentaris
+          Comentari
           <textarea
             :value="professor.comentaris"
             @input="updateComentaris($event.target.value)"
@@ -431,11 +431,11 @@ const estatTextClass = computed(() => {
 
 const estatText = computed(() => {
   const diff = totalHoresProfessor.value - limits.value.ideal;
-  if (isOverLimit.value) return `+${diff}h (sobre màxim)`;
+  if (isOverLimit.value) return `Excés +${diff}h`;
   if (isOverRecommended.value) return `+${diff}h`;
-  if (isPerfectHours.value) return '✓ Complet';
+  if (isPerfectHours.value) return 'En quota';
   if (isEmpty.value) return 'Sense hores';
-  if (diff < 0) return `Falta ${Math.abs(diff)}h`;
+  if (diff < 0) return `Pendent ${Math.abs(diff)}h`;
   return `${totalHoresProfessor.value}h`;
 });
 
