@@ -53,7 +53,8 @@ service cloud.firestore {
     }
 
     function esProfessorDelDepartament(data) {
-      return data.departament == departamentUsuari();
+      return data.departament == departamentUsuari()
+        || (data.departaments is list && departamentUsuari() in data.departaments);
     }
 
     function canvisAssignacioClasse() {
@@ -76,7 +77,12 @@ service cloud.firestore {
     function canvisProfessorDepartament() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'gpAssignades',
+        'gcAssignades',
         'palicAssignades',
+        'sdAssignades',
+        'sdAssignacions',
+        'ddAssignades',
+        'ddAssignacions',
         'preferencia',
         'motiuAllegat',
         'comentaris',
