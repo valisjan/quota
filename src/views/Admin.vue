@@ -454,6 +454,32 @@ function resumRecompteCanvis(canvis) {
   return parts.join(', ') || '0 canvis';
 }
 
+function formatRecompteSincronitzacio(parts) {
+  return parts.filter((part) => part.valor > 0).map((part) => `${part.valor} ${part.text}`).join(', ');
+}
+
+function resumToastSincronitzacio(result) {
+  const classes = formatRecompteSincronitzacio([
+    { valor: result.afegides || 0, text: 'classes afegides' },
+    { valor: result.actualitzades || 0, text: 'classes actualitzades' },
+    { valor: result.eliminades || 0, text: 'classes eliminades' },
+  ]);
+  const professors = formatRecompteSincronitzacio([
+    { valor: result.profsAfegits || 0, text: 'professors afegits' },
+    { valor: result.profsMigrats || 0, text: 'professors migrats' },
+    { valor: result.profsEliminats || 0, text: 'professors marcats com a fora del full' },
+  ]);
+  const departaments = formatRecompteSincronitzacio([
+    { valor: result.depsAfegits || 0, text: 'departaments afegits' },
+    { valor: result.depsEliminats || 0, text: 'departaments eliminats' },
+  ]);
+  return [
+    classes ? `Classes: ${classes}` : '',
+    professors ? `Professorat: ${professors}` : '',
+    departaments ? `Departaments: ${departaments}` : '',
+  ].filter(Boolean).join(' · ') || 'sense canvis aplicats';
+}
+
 function etiquetaCanviAvis(tipus) {
   const etiquetes = {
     nova: 'Nova',
@@ -570,10 +596,7 @@ async function sincronitzarAutomaticament(result) {
           syncedAt: syncResult.timestamp,
           checkedAt: syncResult.timestamp,
         });
-        toast.ok(
-          `Google Sheets sincronitzat automàticament: ${syncResult.afegides || 0} afegides, `
-          + `${syncResult.actualitzades || 0} actualitzades, ${syncResult.eliminades || 0} eliminades.`
-        );
+        toast.ok(`Google Sheets sincronitzat automàticament. ${resumToastSincronitzacio(syncResult)}.`);
       }
       return syncResult;
     })

@@ -916,6 +916,10 @@ export async function comprovarDiscrepancies(cursId, options = {}) {
   }
   const sheetsId = options.sheetsId || DEFAULT_SHEETS_ID;
   const estatFont = await llegirEstatFontSheets(sheetsId);
+  return calcularResumCanvis(cursId, estatFont);
+}
+
+async function calcularResumCanvis(cursId, estatFont) {
   const [classes, professors, departaments] = await Promise.all([
     calcularDiscrepanciesClasses(cursId, estatFont.classes),
     calcularDiscrepanciesProfessors(cursId, estatFont.professors),
@@ -938,6 +942,49 @@ export async function comprovarDiscrepancies(cursId, options = {}) {
     riscos,
     alDia: totalCanvis === 0,
     timestamp: new Date().toISOString(),
+  };
+}
+
+function limitarArray(items = [], limit = 30) {
+  return items.slice(0, limit);
+}
+
+function limitarResumPerResultat(resum) {
+  const classes = resum.classes || resumCanvisBuit();
+  const professors = resum.professors || {};
+  const departaments = resum.departaments || {};
+
+  return {
+    ...resum,
+    detalls: limitarArray(resum.detalls || []),
+    classes: {
+      ...classes,
+      detalls: limitarArray(classes.detalls || []),
+      preview: {
+        noves: limitarArray(classes.preview?.noves || []),
+        modificades: limitarArray(classes.preview?.modificades || []),
+        eliminades: limitarArray(classes.preview?.eliminades || []),
+      },
+      resumPerDepartament: limitarArray(classes.resumPerDepartament || []),
+      resumPerMateria: limitarArray(classes.resumPerMateria || []),
+    },
+    professors: {
+      ...professors,
+      preview: {
+        noves: limitarArray(professors.preview?.noves || []),
+        modificades: limitarArray(professors.preview?.modificades || []),
+        migracions: limitarArray(professors.preview?.migracions || []),
+        conservatsForaFull: limitarArray(professors.preview?.conservatsForaFull || []),
+      },
+    },
+    departaments: {
+      ...departaments,
+      preview: {
+        afegits: limitarArray(departaments.preview?.afegits || []),
+        eliminats: limitarArray(departaments.preview?.eliminats || []),
+      },
+    },
+    riscos: limitarArray(resum.riscos || []),
   };
 }
 
@@ -972,6 +1019,8 @@ export async function sincronitzar(cursId, options = {}) {
 
   // 2. Llegir Classes i Professorat des de Sheets
   const estatFont = await llegirEstatFontSheets(sheetsId);
+  const resumCanvis = await calcularResumCanvis(cursId, estatFont);
+  const resumResultat = limitarResumPerResultat(resumCanvis);
   const classesNoves = estatFont.classes;
   const professorsNous = estatFont.professors;
 
@@ -1209,6 +1258,13 @@ export async function sincronitzar(cursId, options = {}) {
     profsEliminats,
     totalDeps: nomsDepNous.length,
     totalProfs: professorsNous.length,
+    totalCanvis: resumCanvis.totalCanvis,
+    detalls: resumResultat.detalls,
+    classes: resumResultat.classes,
+    professors: resumResultat.professors,
+    departaments: resumResultat.departaments,
+    riscos: resumResultat.riscos,
+    alDia: true,
     timestamp: new Date().toISOString(),
   };
 

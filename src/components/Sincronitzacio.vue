@@ -230,7 +230,7 @@
           </div>
           <template v-else>
             <div class="font-semibold text-green-800 dark:text-green-300">Sincronització completada</div>
-            <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <div
                 v-for="item in resumCanvisSync"
                 :key="item.label"
@@ -248,6 +248,104 @@
               {{ statsSync.totalProfs }} professors · {{ statsSync.totalDeps }} departaments ·
               Sincronitzat: {{ formatDataHora(ultimaSync) }}
             </div>
+            <div v-if="totalCanvisSyncAplicats > 0" class="mt-4 space-y-4">
+              <div class="rounded-lg border border-slate-200 bg-white/80 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/40">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 class="font-semibold text-slate-950 dark:text-white">Canvis aplicats</h4>
+                    <p class="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+                      Detall dels canvis que s'han escrit a l'app en aquesta sincronització.
+                    </p>
+                  </div>
+                  <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                    {{ totalCanvisSyncAplicats }}
+                  </span>
+                </div>
+
+                <div class="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
+                  <section
+                    v-for="seccio in llistesCanvisSync"
+                    :key="`sync-${seccio.titol}`"
+                    class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-950/40"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <h5 class="font-semibold text-slate-950 dark:text-white">{{ seccio.titol }}</h5>
+                      <span class="rounded-full px-2 py-0.5 text-xs font-bold" :class="seccio.badgeClass">
+                        {{ seccio.total }}
+                      </span>
+                    </div>
+                    <div v-if="seccio.items.length" class="mt-3 space-y-2">
+                      <div
+                        v-for="(canvi, index) in seccio.items"
+                        :key="`sync-${seccio.titol}-${index}-${canvi.resum}`"
+                        class="rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900/70"
+                      >
+                        <div class="flex items-start justify-between gap-2">
+                          <span class="font-semibold text-slate-900 dark:text-slate-100">{{ canvi.resum }}</span>
+                          <span class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold" :class="classeCanviComprova(canvi.tipus)">
+                            {{ etiquetaCanviComprova(canvi.tipus) }}
+                          </span>
+                        </div>
+                        <div v-if="canvi.detall" class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ canvi.detall }}</div>
+                        <div v-if="canvi.assignacio" class="mt-1 text-xs font-medium text-rose-700 dark:text-rose-300">
+                          {{ canvi.assignacio }}
+                        </div>
+                      </div>
+                      <p v-if="seccio.restants > 0" class="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        + {{ seccio.restants }} canvis més
+                      </p>
+                    </div>
+                    <p v-else class="mt-3 text-sm text-slate-500 dark:text-slate-400">{{ seccio.buit }}</p>
+                  </section>
+                </div>
+              </div>
+
+              <div v-if="comparadorAgrupatSync.length" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <section
+                  v-for="seccio in comparadorAgrupatSync"
+                  :key="`sync-${seccio.titol}`"
+                  class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-900"
+                >
+                  <div class="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-700">
+                    <div>
+                      <h4 class="font-semibold text-slate-950 dark:text-white">{{ seccio.titol }}</h4>
+                      <p class="text-xs text-slate-600 dark:text-slate-400">{{ seccio.subtitol }}</p>
+                    </div>
+                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                      {{ seccio.total }}
+                    </span>
+                  </div>
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                      <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-gray-800 dark:text-slate-400">
+                        <tr>
+                          <th class="px-4 py-2">{{ seccio.columna }}</th>
+                          <th class="px-2 py-2 text-center">+</th>
+                          <th class="px-2 py-2 text-center">=</th>
+                          <th class="px-2 py-2 text-center">-</th>
+                          <th class="px-4 py-2 text-right">Hores</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        <tr v-for="fila in seccio.items" :key="`sync-${seccio.titol}-${fila.nom}`">
+                          <td class="px-4 py-2 font-semibold text-slate-900 dark:text-white">{{ fila.nom }}</td>
+                          <td class="px-2 py-2 text-center font-bold text-emerald-700 dark:text-emerald-300">{{ fila.noves }}</td>
+                          <td class="px-2 py-2 text-center font-bold text-sky-700 dark:text-sky-300">{{ fila.modificades }}</td>
+                          <td class="px-2 py-2 text-center font-bold text-amber-700 dark:text-amber-300">{{ fila.eliminades }}</td>
+                          <td class="px-4 py-2 text-right font-mono font-bold" :class="classeDeltaHores(fila.deltaHores)">
+                            {{ formatDeltaHores(fila.deltaHores) }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p v-if="seccio.restants > 0" class="border-t border-slate-100 px-4 py-2 text-xs font-medium text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                    + {{ seccio.restants }} files més
+                  </p>
+                </section>
+              </div>
+            </div>
+
             <div
               v-if="statsSync.historialGuardat === false"
               class="mt-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
@@ -388,9 +486,19 @@ const totalDiscrepancies = computed(() =>
 );
 
 const resumCanvisSync = computed(() => [
-  { label: 'Afegides', valor: statsSync.value.afegides || 0, color: 'text-green-700 dark:text-green-300' },
-  { label: 'Actualitzades', valor: statsSync.value.actualitzades || 0, color: 'text-blue-700 dark:text-blue-300' },
-  { label: 'Eliminades', valor: statsSync.value.eliminades || 0, color: 'text-orange-700 dark:text-orange-300' },
+  { label: 'Classes afegides', valor: statsSync.value.afegides || 0, color: 'text-green-700 dark:text-green-300' },
+  { label: 'Classes actualitzades', valor: statsSync.value.actualitzades || 0, color: 'text-blue-700 dark:text-blue-300' },
+  { label: 'Classes eliminades', valor: statsSync.value.eliminades || 0, color: 'text-orange-700 dark:text-orange-300' },
+  {
+    label: 'Professorat i deps.',
+    valor:
+      (statsSync.value.profsAfegits || 0) +
+      (statsSync.value.profsMigrats || 0) +
+      (statsSync.value.profsEliminats || 0) +
+      (statsSync.value.depsAfegits || 0) +
+      (statsSync.value.depsEliminats || 0),
+    color: 'text-violet-700 dark:text-violet-300',
+  },
 ]);
 
 const riscosComprova = computed(() => resultComprova.value?.riscos || []);
@@ -440,10 +548,10 @@ function limitarCanvis(items = [], limit = 6) {
   };
 }
 
-const llistesCanvisComprova = computed(() => {
-  const classes = resultComprova.value?.classes?.preview || {};
-  const professors = resultComprova.value?.professors?.preview || {};
-  const departaments = resultComprova.value?.departaments?.preview || {};
+function construirLlistesCanvis(dades) {
+  const classes = dades?.classes?.preview || {};
+  const professors = dades?.professors?.preview || {};
+  const departaments = dades?.departaments?.preview || {};
 
   const classesItems = [
     ...(classes.eliminades || []),
@@ -487,7 +595,17 @@ const llistesCanvisComprova = computed(() => {
       buit: 'Sense canvis de departaments.',
     },
   ];
-});
+}
+
+const llistesCanvisComprova = computed(() => construirLlistesCanvis(resultComprova.value));
+const llistesCanvisSync = computed(() =>
+  construirLlistesCanvis(statsSync.value).filter((seccio) => seccio.total > 0)
+);
+
+const totalCanvisSyncAplicats = computed(() =>
+  statsSync.value?.totalCanvis ??
+  llistesCanvisSync.value.reduce((sum, seccio) => sum + seccio.total, 0)
+);
 
 function limitarResumAgrupat(items = [], limit = 8) {
   return {
@@ -497,8 +615,8 @@ function limitarResumAgrupat(items = [], limit = 8) {
   };
 }
 
-const comparadorAgrupatComprova = computed(() => {
-  const classes = resultComprova.value?.classes || {};
+function construirComparadorAgrupat(dades) {
+  const classes = dades?.classes || {};
   const perDepartament = limitarResumAgrupat(classes.resumPerDepartament || []);
   const perMateria = limitarResumAgrupat(classes.resumPerMateria || []);
 
@@ -516,7 +634,10 @@ const comparadorAgrupatComprova = computed(() => {
       ...perMateria,
     },
   ].filter((seccio) => seccio.total > 0);
-});
+}
+
+const comparadorAgrupatComprova = computed(() => construirComparadorAgrupat(resultComprova.value));
+const comparadorAgrupatSync = computed(() => construirComparadorAgrupat(statsSync.value));
 
 function formatDataHora(ts) {
   if (!ts) return '?';
@@ -569,6 +690,33 @@ function classeDeltaHores(valor) {
   return 'text-slate-600 dark:text-slate-300';
 }
 
+function formatRecompteCanvis(parts) {
+  return parts.filter((part) => part.valor > 0).map((part) => `${part.valor} ${part.text}`).join(', ');
+}
+
+function resumToastSincronitzacio(result) {
+  const classes = formatRecompteCanvis([
+    { valor: result.afegides || 0, text: 'classes afegides' },
+    { valor: result.actualitzades || 0, text: 'classes actualitzades' },
+    { valor: result.eliminades || 0, text: 'classes eliminades' },
+  ]);
+  const professors = formatRecompteCanvis([
+    { valor: result.profsAfegits || 0, text: 'professors afegits' },
+    { valor: result.profsMigrats || 0, text: 'professors migrats' },
+    { valor: result.profsEliminats || 0, text: 'professors marcats com a fora del full' },
+  ]);
+  const departaments = formatRecompteCanvis([
+    { valor: result.depsAfegits || 0, text: 'departaments afegits' },
+    { valor: result.depsEliminats || 0, text: 'departaments eliminats' },
+  ]);
+  const blocs = [
+    classes ? `Classes: ${classes}` : '',
+    professors ? `Professorat: ${professors}` : '',
+    departaments ? `Departaments: ${departaments}` : '',
+  ].filter(Boolean);
+  return blocs.length ? blocs.join(' · ') : 'sense canvis aplicats';
+}
+
 async function comprovar() {
   if (estatComprova.value === 'comprovant') return;
   estatComprova.value = 'comprovant';
@@ -589,10 +737,7 @@ async function ferSync() {
     statsSync.value = result;
     ultimaSync.value = result.timestamp;
     estatSync.value = 'ok';
-    toast.ok(
-      `Sincronització completada: ${result.afegides || 0} afegides, `
-      + `${result.actualitzades || 0} actualitzades, ${result.eliminades || 0} eliminades.`
-    );
+    toast.ok(`Sincronització completada. ${resumToastSincronitzacio(result)}.`);
     // Actualitzar la comprovació automàticament després del sync
     resultComprova.value = {
       totalSheets: result.total,
