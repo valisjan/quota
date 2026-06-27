@@ -1,7 +1,31 @@
 const DEPTS_EXEMPTS_FP = ['agraria', 'industries alimentaries'];
 
 function normalitzarText(text) {
-  return (text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  return (text || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalitzarTipus(tipus) {
+  return (tipus || '').toString().trim().toUpperCase();
+}
+
+function llistaNoms(valor) {
+  return Array.isArray(valor)
+    ? valor.map((nom) => (nom || '').toString().trim()).filter(Boolean)
+    : [];
+}
+
+function mateixProfessor(a, b) {
+  return Boolean(a && b && normalitzarText(a) === normalitzarText(b));
+}
+
+function professorEnLlista(professor, noms) {
+  return llistaNoms(noms).some((nom) => mateixProfessor(nom, professor.nom));
 }
 
 export function esDepartamentFP(departament) {
@@ -12,20 +36,20 @@ export function esDepartamentFP(departament) {
 export function esTutor(professor, classes) {
   return classes.some((c) => {
     const esAssignat =
-      c.professorAssignat === professor.nom || (c.professors || []).includes(professor.nom);
+      mateixProfessor(c.professorAssignat, professor.nom) ||
+      professorEnLlista(professor, c.professors);
     if (!esAssignat) return false;
-    const materia = (c.materia || '').trim().replace(/^\*/, '').toLowerCase();
+    const materia = normalitzarText((c.materia || '').trim().replace(/^\*/, ''));
     return materia === 'tutoria';
   });
 }
 
 export function esParticipantComissio(professor, classes) {
-  return classes.some(
-    (c) =>
-      (c.tipus || '').toUpperCase() === 'C' &&
-      (c.participants || []).includes(professor.nom) &&
-      c.professorAssignat !== professor.nom
-  );
+  return classes.some((c) => {
+    if (normalitzarTipus(c.tipus) !== 'C') return false;
+    if (mateixProfessor(c.professorAssignat, professor.nom)) return false;
+    return professorEnLlista(professor, c.participants) || professorEnLlista(professor, c.professors);
+  });
 }
 
 export function guardesQueTocaFer(professor, classes) {
@@ -43,7 +67,7 @@ export function motiusReduccio(professor, classes) {
   if (esDepartamentFP(professor.departament)) return ['Exempt (dept. FP)'];
   const motius = [];
   if (esTutor(professor, classes)) motius.push('Tutor (base 2)');
-  if (esParticipantComissio(professor, classes)) motius.push('Comissió −1');
+  if (esParticipantComissio(professor, classes)) motius.push('Membre de comissió −1');
   const gp = Number(professor.gpAssignades || 0);
   if (gp > 0) motius.push(`GP −${gp}`);
   const gc = Number(professor.gcAssignades || 0);

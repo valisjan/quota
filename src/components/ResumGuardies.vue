@@ -144,7 +144,7 @@
             <tr>
               <th class="px-4 py-3 text-left">Professor</th>
               <th class="px-3 py-3 text-left">Departament</th>
-              <th class="px-3 py-3 text-center" title="Guàrdies esperades (base menys comissió)">Esperades</th>
+              <th class="px-3 py-3 text-center" title="Guàrdies esperades (base menys participació en comissió)">Esperades</th>
               <th class="px-3 py-3 text-center">GP</th>
               <th class="px-3 py-3 text-center">GC</th>
               <th class="px-3 py-3 text-center">Passadís</th>
@@ -188,7 +188,7 @@
     </div>
 
     <p class="text-xs text-slate-400 px-1">
-      T = Tutor (base 2) · C = Participant de comissió (−1) · GP = Guàrdia de pati · GC = Guàrdia de convivència · Passadís = guàrdies de passadís pendents
+      T = Tutor (base 2) · C = Membre de comissió (−1 màxim; coordinar la pròpia comissió no descompta) · GP = Guàrdia de pati · GC = Guàrdia de convivència · Passadís = guàrdies de passadís pendents
     </p>
   </div>
 </template>
