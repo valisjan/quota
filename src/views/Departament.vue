@@ -420,6 +420,8 @@
             </div>
             <RepartimentHores
               :departamentSeleccionat="departamentSeleccionat"
+              :classes="classes"
+              :professors="professors"
               :bloquejat="departamentTancat || solsLectura"
               :focus-class-id="focusClassId"
               @assignacionsActualitzades="handleAssignacionsActualitzades"
@@ -557,7 +559,7 @@
 <script setup>
 import { ref, computed, nextTick, onUnmounted, watch } from 'vue';
 import { db } from '../firebase';
-import { writeBatch, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore';
 import RepartimentHores from '../components/RepartimentHores.vue';
 import DepartamentSelector from '../components/departament/DepartamentSelector.vue';
 import DepartamentFulla from '../components/departament/DepartamentFulla.vue';
@@ -606,6 +608,23 @@ const transicioPantallaDepartament = ref('departament-slide-forward');
 const settings = ref({ ...DEFAULT_APP_SETTINGS });
 const sessionId = ref(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
+const esVistaCapDepartament = computed(() =>
+  ['cap_departament', 'departament'].includes(authStore.rolActiu) && !authStore.esAdmin()
+);
+
+const departamentsLimitats = computed(() =>
+  esVistaCapDepartament.value ? authStore.departamentsActius : []
+);
+
+const carregaDadesDepartamentEnabled = computed(() =>
+  !esVistaCapDepartament.value || departamentsLimitats.value.length > 0
+);
+
+function queryDepartamentsLimitats(colRef) {
+  if (!esVistaCapDepartament.value) return colRef;
+  return query(colRef, where('departaments', 'array-contains-any', departamentsLimitats.value.slice(0, 30)));
+}
+
 // Subscripcions Firestore
 const {
   items: classes,
@@ -615,6 +634,8 @@ const {
   lastUpdate,
 } = useCursCollectionSnapshot({
   colName: 'classes',
+  enabled: carregaDadesDepartamentEnabled,
+  queryFactory: queryDepartamentsLimitats,
   mapDoc: (d) => {
     const data = d.data();
     return { id: d.id, ...data, professors: data.professors || [data.professorAssignat].filter(Boolean) };
@@ -627,6 +648,8 @@ const {
   error: profsError,
 } = useCursCollectionSnapshot({
   colName: 'professors',
+  enabled: carregaDadesDepartamentEnabled,
+  queryFactory: queryDepartamentsLimitats,
   mapDoc: (d) => {
     const data = d.data();
     return {
@@ -701,14 +724,6 @@ const professorsActius = computed(() => professors.value.filter((p) => !p.elimin
 const departamentsSorted = computed(() => {
   return [...departaments.value].sort((a, b) => a.nom.localeCompare(b.nom));
 });
-
-const esVistaCapDepartament = computed(() =>
-  ['cap_departament', 'departament'].includes(authStore.rolActiu) && !authStore.esAdmin()
-);
-
-const departamentsLimitats = computed(() =>
-  esVistaCapDepartament.value ? authStore.departamentsActius : []
-);
 
 const departamentsVisibles = computed(() => {
   if (!departamentsLimitats.value.length) return departamentsSorted.value;

@@ -17,6 +17,15 @@ function filtrarItemsActivos(colName, items) {
   return items.filter((item) => !item.eliminatDelFull);
 }
 
+function itemsDesdeCache(colName, cache, ordre) {
+  return filtrarItemsActivos(colName, ordre.map((id) => cache.get(id)).filter(Boolean));
+}
+
+function mouId(ordre, oldIndex, newIndex, id) {
+  if (oldIndex >= 0) ordre.splice(oldIndex, 1);
+  ordre.splice(newIndex, 0, id);
+}
+
 /**
  * Subscripció reactiva a una subcol·lecció del curs actiu.
  *
@@ -64,10 +73,27 @@ export function useCursCollectionSnapshot({
     // queryFactory pot accedir a refs/props reactius; watchEffect els rastreja automàticament
     const q = queryFactory ? queryFactory(colRef) : colRef;
 
+    const cache = new Map();
+    const ordre = [];
+
     const unsub = onSnapshot(
       q,
       (snap) => {
-        items.value = filtrarItemsActivos(colName, snap.docs.map(mapper));
+        for (const canvi of snap.docChanges()) {
+          if (canvi.type === 'removed') {
+            cache.delete(canvi.doc.id);
+            ordre.splice(canvi.oldIndex, 1);
+            continue;
+          }
+
+          cache.set(canvi.doc.id, mapper(canvi.doc));
+          if (canvi.type === 'added') {
+            ordre.splice(canvi.newIndex, 0, canvi.doc.id);
+          } else if (canvi.oldIndex !== canvi.newIndex) {
+            mouId(ordre, canvi.oldIndex, canvi.newIndex, canvi.doc.id);
+          }
+        }
+        items.value = itemsDesdeCache(colName, cache, ordre);
         isConnected.value = true;
         lastUpdate.value = horaActual();
         loading.value = false;

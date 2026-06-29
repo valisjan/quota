@@ -256,18 +256,34 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  classes: {
+    type: Array,
+    default: null,
+  },
+  professors: {
+    type: Array,
+    default: null,
+  },
 });
 const bloquejat = computed(() => props.bloquejat);
 
 const cursStore = useCursStore();
-const { items: classes } = useCursCollectionSnapshot({
+const usaClassesExternes = computed(() => Array.isArray(props.classes));
+const usaProfessorsExterns = computed(() => Array.isArray(props.professors));
+const { items: classesSnapshot } = useCursCollectionSnapshot({
   colName: 'classes',
+  enabled: computed(() => !usaClassesExternes.value),
   mapDoc: (d) => {
     const data = d.data();
     return { id: d.id, ...data, professors: data.professors || [data.professorAssignat].filter(Boolean) };
   },
 });
-const { items: professors } = useCursCollectionSnapshot({ colName: 'professors' });
+const { items: professorsSnapshot } = useCursCollectionSnapshot({
+  colName: 'professors',
+  enabled: computed(() => !usaProfessorsExterns.value),
+});
+const classes = computed(() => usaClassesExternes.value ? props.classes : classesSnapshot.value);
+const professors = computed(() => usaProfessorsExterns.value ? props.professors : professorsSnapshot.value);
 const error = ref(null);
 const cerca = ref('');
 
