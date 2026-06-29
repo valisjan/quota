@@ -340,11 +340,11 @@ function isActive(to) {
 
 function canviarVistaRol(nouRol) {
   if (nouRol === 'cap_departament' || nouRol === 'departament') {
-    const departament =
-      authStore.departamentVista ||
-      authStore.departament ||
-      departamentsVistaOrdenats.value[0]?.nom ||
-      '';
+    const departaments = departamentsVistaOrdenats.value;
+    const departamentVistaValida = departaments.some((dep) => dep.nom === authStore.departamentVista);
+    const departament = departamentVistaValida
+      ? authStore.departamentVista
+      : departaments[0]?.nom || '';
     authStore.activarVistaRol(nouRol, departament);
     if (!route.path.startsWith('/departament')) {
       router.push('/departament');

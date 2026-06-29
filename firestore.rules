@@ -18,6 +18,30 @@ service cloud.firestore {
       return usuari().departament;
     }
 
+    function departamentsUsuari() {
+      return usuari().departaments is list ? usuari().departaments : [];
+    }
+
+    function departamentsPreautoritzats(email) {
+      return preautoritzat(email).departaments is list
+        ? preautoritzat(email).departaments
+        : (
+          preautoritzat(email).departament is string
+          ? [preautoritzat(email).departament]
+          : []
+        );
+    }
+
+    function departamentPreautoritzat(email) {
+      return preautoritzat(email).departament != null
+        ? preautoritzat(email).departament
+        : (
+          departamentsPreautoritzats(email).size() > 0
+          ? departamentsPreautoritzats(email)[0]
+          : null
+        );
+    }
+
     function esAdmin() {
       return autenticat() && rolUsuari() == 'admin';
     }
@@ -38,23 +62,57 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email
         && (
           !('rol' in request.resource.data)
-          || (request.resource.data.rol == null && request.resource.data.departament == null)
+          || (
+            request.resource.data.rol == null
+            && request.resource.data.departament == null
+            && (
+              !('departaments' in request.resource.data)
+              || request.resource.data.departaments == []
+            )
+          )
           || (
             preautoritzat(request.resource.data.email) != null
             && request.resource.data.rol == preautoritzat(request.resource.data.email).rol
-            && request.resource.data.departament == preautoritzat(request.resource.data.email).departament
+            && request.resource.data.departament == departamentPreautoritzat(request.resource.data.email)
+            && request.resource.data.departaments == departamentsPreautoritzats(request.resource.data.email)
           )
         );
     }
 
+    function updateUsuariPreautoritzatValid(uid) {
+      return autenticat()
+        && request.auth.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && preautoritzat(request.auth.token.email) != null
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['rol', 'departament', 'departaments', 'updatedAt'])
+        && request.resource.data.rol == preautoritzat(request.auth.token.email).rol
+        && request.resource.data.departament == departamentPreautoritzat(request.auth.token.email)
+        && request.resource.data.departaments == departamentsPreautoritzats(request.auth.token.email);
+    }
+
     function esClasseDelDepartament(data) {
       return data.departament == departamentUsuari()
-        || (data.departaments is list && departamentUsuari() in data.departaments);
+        || data.departament in departamentsUsuari()
+        || (
+          data.departaments is list
+          && (
+            departamentUsuari() in data.departaments
+            || data.departaments.hasAny(departamentsUsuari())
+          )
+        );
     }
 
     function esProfessorDelDepartament(data) {
       return data.departament == departamentUsuari()
-        || (data.departaments is list && departamentUsuari() in data.departaments);
+        || data.departament in departamentsUsuari()
+        || (
+          data.departaments is list
+          && (
+            departamentUsuari() in data.departaments
+            || data.departaments.hasAny(departamentsUsuari())
+          )
+        );
     }
 
     function canvisAssignacioClasse() {
@@ -133,7 +191,10 @@ service cloud.firestore {
         allow update: if esAdmin()
           || (
             esCap()
-            && resource.data.nom == departamentUsuari()
+            && (
+              resource.data.nom == departamentUsuari()
+              || resource.data.nom in departamentsUsuari()
+            )
             && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['tancat', 'tancatPer', 'tancatAt'])
           );
@@ -157,10 +218,12 @@ service cloud.firestore {
       allow read: if autenticat() && (request.auth.uid == uid || esAdmin());
       allow create: if createUsuariValid(uid);
       allow update: if esAdmin()
+        || updateUsuariPreautoritzatValid(uid)
         || (
           autenticat()
           && request.auth.uid == uid
-          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['rol', 'departament'])
+          && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['rol', 'departament', 'departaments'])
         );
       allow delete: if esAdmin();
     }

@@ -16,6 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
   const email = ref('');
   const photoURL = ref('');
   const departament = ref('');
+  const departaments = ref([]);
   const uid = ref('');
   const authReady = ref(false);
   const rolVista = ref(null);
@@ -33,6 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
     photoURL.value = '';
     rol.value = 'admin';
     departament.value = 'Catala';
+    departaments.value = ['Catala'];
     estaAutenticat.value = true;
     esPendent.value = false;
     authReady.value = true;
@@ -53,18 +55,18 @@ export const useAuthStore = defineStore('auth', () => {
         const snap = await getDoc(doc(db, 'usuaris', firebaseUser.uid));
         if (snap.exists()) {
           let data = snap.data();
-          // Si l'usuari és pendent, comprova si el full té un rol pre-assignat
-          if (!data.rol) {
-            const preSnap = await getDoc(doc(db, 'preautoritzats', userEmail));
-            if (preSnap.exists()) {
-              const pre = preSnap.data();
-              await updateDoc(doc(db, 'usuaris', firebaseUser.uid), {
-                rol: pre.rol,
-                departament: pre.departament || null,
-                updatedAt: new Date(),
-              });
-              data = { ...data, rol: pre.rol, departament: pre.departament || null };
-            }
+          const preSnap = await getDoc(doc(db, 'preautoritzats', userEmail));
+          const pre = preSnap.exists() ? preSnap.data() : null;
+          if (pre && calAplicarPreautoritzacio(data, pre)) {
+            const preDepartaments = normalitzarDepartamentsUsuari(pre);
+            const actualitzacio = {
+              rol: pre.rol,
+              departament: pre.departament || preDepartaments[0] || null,
+              departaments: preDepartaments,
+              updatedAt: new Date(),
+            };
+            await updateDoc(doc(db, 'usuaris', firebaseUser.uid), actualitzacio);
+            data = { ...data, ...actualitzacio };
           }
           uid.value = firebaseUser.uid;
           email.value = userEmail;
@@ -72,6 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
           photoURL.value = firebaseUser.photoURL || data.photoURL || '';
           rol.value = data.rol || null;
           departament.value = data.departament || '';
+          departaments.value = normalitzarDepartamentsUsuari(data);
           estaAutenticat.value = !!data.rol;
           esPendent.value = !data.rol;
           updateDoc(doc(db, 'usuaris', firebaseUser.uid), {
@@ -83,12 +86,14 @@ export const useAuthStore = defineStore('auth', () => {
           // Primer login: comprova si el full té un rol pre-assignat
           const preSnap = await getDoc(doc(db, 'preautoritzats', userEmail));
           const pre = preSnap.exists() ? preSnap.data() : null;
+          const preDepartaments = normalitzarDepartamentsUsuari(pre || {});
           await setDoc(doc(db, 'usuaris', firebaseUser.uid), {
             email: userEmail,
             nom: firebaseUser.displayName || userEmail,
             photoURL: firebaseUser.photoURL || '',
             rol: pre?.rol || null,
-            departament: pre?.departament || null,
+            departament: pre?.departament || preDepartaments[0] || null,
+            departaments: preDepartaments,
             createdAt: new Date(),
             lastLogin: new Date(),
           });
@@ -97,7 +102,8 @@ export const useAuthStore = defineStore('auth', () => {
           usuari.value = firebaseUser.displayName || userEmail;
           photoURL.value = firebaseUser.photoURL || '';
           rol.value = pre?.rol || null;
-          departament.value = pre?.departament || '';
+          departament.value = pre?.departament || preDepartaments[0] || '';
+          departaments.value = preDepartaments;
           estaAutenticat.value = !!pre?.rol;
           esPendent.value = !pre?.rol;
         }
@@ -128,15 +134,48 @@ export const useAuthStore = defineStore('auth', () => {
     email.value = '';
     photoURL.value = '';
     departament.value = '';
+    departaments.value = [];
     departamentVista.value = '';
     uid.value = '';
   }
 
   const esVistaSimulada = computed(() => rol.value === 'admin' && Boolean(rolVista.value));
   const rolActiu = computed(() => esVistaSimulada.value ? rolVista.value : rol.value);
-  const departamentActiu = computed(() =>
-    esVistaSimulada.value ? departamentVista.value : departament.value
-  );
+  function normalitzarDepartamentsUsuari(data = {}) {
+    return [
+      ...(Array.isArray(data.departaments) ? data.departaments : []),
+      data.departament,
+    ]
+      .map((valor) => (valor || '').toString().trim())
+      .filter(Boolean)
+      .filter((valor, index, array) => array.indexOf(valor) === index);
+  }
+
+  const departamentsActius = computed(() => {
+    if (esVistaSimulada.value) return departamentVista.value ? [departamentVista.value] : [];
+    return departaments.value.length ? departaments.value : normalitzarDepartamentsUsuari({ departament: departament.value });
+  });
+
+  const departamentActiu = computed(() => departamentsActius.value[0] || '');
+
+  function mateixosDepartaments(a = [], b = []) {
+    if (a.length !== b.length) return false;
+    const bSet = new Set(b);
+    return a.every((valor) => bSet.has(valor));
+  }
+
+  function calAplicarPreautoritzacio(data = {}, pre = {}) {
+    if (!pre.rol) return false;
+    if (data.rol === 'admin' && pre.rol !== 'admin') return false;
+    if (!data.rol) return true;
+    const preDepartaments = normalitzarDepartamentsUsuari(pre);
+    const dataDepartaments = normalitzarDepartamentsUsuari(data);
+    return (
+      data.rol !== pre.rol ||
+      (data.departament || '') !== (pre.departament || preDepartaments[0] || '') ||
+      !mateixosDepartaments(dataDepartaments, preDepartaments)
+    );
+  }
 
   function esAdminReal() {
     return estaAutenticat.value && rol.value === 'admin';
@@ -151,7 +190,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
     rolVista.value = nouRol;
     departamentVista.value = ['cap_departament', 'departament'].includes(nouRol)
-      ? (nouDepartament || departamentVista.value || departament.value || '')
+      ? (nouDepartament || departamentVista.value || '')
       : '';
   }
 
@@ -216,6 +255,8 @@ export const useAuthStore = defineStore('auth', () => {
     email,
     photoURL,
     departament,
+    departaments,
+    departamentsActius,
     departamentActiu,
     departamentVista,
     uid,

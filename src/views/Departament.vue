@@ -706,13 +706,13 @@ const esVistaCapDepartament = computed(() =>
   ['cap_departament', 'departament'].includes(authStore.rolActiu) && !authStore.esAdmin()
 );
 
-const departamentLimitat = computed(() =>
-  esVistaCapDepartament.value ? authStore.departamentActiu : ''
+const departamentsLimitats = computed(() =>
+  esVistaCapDepartament.value ? authStore.departamentsActius : []
 );
 
 const departamentsVisibles = computed(() => {
-  if (!departamentLimitat.value) return departamentsSorted.value;
-  return departamentsSorted.value.filter((dep) => dep.nom === departamentLimitat.value);
+  if (!departamentsLimitats.value.length) return departamentsSorted.value;
+  return departamentsSorted.value.filter((dep) => departamentsLimitats.value.includes(dep.nom));
 });
 
 const departamentsAmbResum = computed(() =>
@@ -1031,7 +1031,7 @@ const validacioRestants = computed(() =>
 );
 
 const validacioEstatText = computed(() => {
-  if (validacioDepartament.value.estat === 'bloquejat') return 'Bloquejat';
+  if (validacioDepartament.value.estat === 'bloquejat') return 'Crítics';
   if (validacioDepartament.value.estat === 'revisar') return 'Revisar';
   return 'Pot tancar';
 });
@@ -1578,13 +1578,14 @@ function imprimirFulla() {
 // Lifecycle
 
 watch(
-  [departamentLimitat, departamentsAmbResum],
-  ([departament]) => {
-    if (departament) {
-      if (departamentSeleccionat.value !== departament) {
-        departamentSeleccionat.value = departament;
+  [departamentsLimitats, departamentsAmbResum],
+  ([departaments]) => {
+    if (departaments.length) {
+      const departamentActualPermes = departaments.includes(departamentSeleccionat.value);
+      if (!departamentActualPermes) {
+        departamentSeleccionat.value = departaments[0];
       }
-      mostrarSelectorDepartaments.value = false;
+      mostrarSelectorDepartaments.value = departaments.length > 1;
       return;
     }
 
