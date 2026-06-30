@@ -114,9 +114,12 @@
   }
 
   .app-nav {
-    background: var(--nav-bg);
-    border-color: var(--border-soft);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, var(--pastel-blue-bg)), var(--surface)),
+      var(--nav-bg);
+    border-color: var(--border-strong);
     color: var(--text-main);
+    box-shadow: 0 8px 22px rgb(15 23 42 / 0.10), 0 1px 0 rgb(255 255 255 / 0.82) inset;
   }
 
   .app-brand-title {
@@ -125,28 +128,30 @@
 
   .app-brand-subtitle,
   .app-user-label {
-    color: var(--text-muted);
+    color: var(--text-secondary);
     border-color: var(--border-soft);
   }
 
   .app-nav-tabs {
-    background: var(--surface-muted);
+    border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--border-soft));
+    background: color-mix(in srgb, var(--surface-muted) 82%, var(--surface));
   }
 
   .app-nav-link-active {
-    background: var(--surface-active);
-    color: var(--primary);
+    background: var(--primary);
+    color: white;
+    box-shadow: var(--shadow-primary-glow);
   }
 
   .app-nav-link-idle,
   .app-nav-button {
-    color: var(--text-secondary);
+    color: color-mix(in srgb, var(--text-main) 82%, var(--text-secondary));
   }
 
   .app-nav-link-idle:hover,
   .app-nav-button:hover {
-    background: var(--surface-hover);
-    color: var(--text-main);
+    background: color-mix(in srgb, var(--primary) 10%, var(--surface-hover));
+    color: var(--primary-dark);
   }
 
   .app-mobile-menu,
@@ -155,9 +160,9 @@
   }
 
   .app-select {
-    border: 1px solid var(--border-soft);
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border-strong));
     background: var(--surface);
-    color: var(--text-secondary);
+    color: var(--text-main);
   }
 
   .theme-toggle {
@@ -469,9 +474,9 @@
     @apply overflow-hidden rounded-lg border p-3
            lg:flex lg:flex-col lg:justify-between lg:p-4 lg:min-h-[calc(100vh-8rem)];
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface) 94%, var(--pastel-blue-bg)), var(--surface) 42%),
+      linear-gradient(180deg, color-mix(in srgb, var(--surface) 74%, var(--pastel-blue-bg)), var(--surface) 44%),
       var(--surface);
-    border-color: color-mix(in srgb, var(--primary) 16%, var(--border-soft));
+    border-color: color-mix(in srgb, var(--primary) 30%, var(--border-strong));
     box-shadow: var(--card-shadow-soft);
   }
 
@@ -483,13 +488,13 @@
   .admin-brand {
     @apply flex shrink-0 items-center gap-2 rounded-md border p-2
            lg:gap-3 lg:p-3;
-    background: color-mix(in srgb, var(--surface) 78%, var(--pastel-blue-bg));
-    border-color: color-mix(in srgb, var(--primary) 18%, var(--border-soft));
+    background: color-mix(in srgb, var(--surface) 64%, var(--pastel-blue-bg));
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--border-soft));
   }
 
   .admin-brand-mark {
     @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-md border bg-white;
-    border-color: color-mix(in srgb, var(--primary) 18%, var(--border-soft));
+    border-color: color-mix(in srgb, var(--primary) 30%, var(--border-soft));
     box-shadow: var(--card-shadow-soft);
   }
 
@@ -511,9 +516,9 @@
   .admin-nav-item {
     @apply relative flex min-h-10 shrink-0 cursor-pointer items-center justify-center rounded-md border px-3 py-2.5 text-left transition
            lg:min-h-12 lg:w-full lg:shrink lg:justify-start lg:gap-2.5 lg:px-3 lg:py-3;
-    background: color-mix(in srgb, var(--surface) 92%, white);
-    border-color: transparent;
-    color: var(--text-secondary);
+    background: color-mix(in srgb, var(--surface) 84%, var(--surface-soft));
+    border-color: color-mix(in srgb, var(--border-soft) 72%, transparent);
+    color: color-mix(in srgb, var(--text-main) 82%, var(--text-secondary));
   }
 
   .admin-nav-item-warning {
@@ -523,15 +528,15 @@
   .admin-nav-item-active {
     @apply shadow-sm;
     background:
-      linear-gradient(90deg, color-mix(in srgb, var(--pastel-blue-bg) 76%, white), var(--surface) 72%),
+      linear-gradient(90deg, color-mix(in srgb, var(--primary) 14%, var(--pastel-blue-bg)), var(--surface) 72%),
       var(--surface);
-    border-color: color-mix(in srgb, var(--primary) 24%, var(--border-soft));
+    border-color: color-mix(in srgb, var(--primary) 44%, var(--border-soft));
     color: var(--primary-dark);
   }
 
   .admin-nav-item:hover {
-    background: color-mix(in srgb, var(--pastel-blue-bg) 46%, var(--surface));
-    border-color: color-mix(in srgb, var(--primary) 16%, var(--border-soft));
+    background: color-mix(in srgb, var(--pastel-blue-bg) 66%, var(--surface));
+    border-color: color-mix(in srgb, var(--primary) 30%, var(--border-soft));
     color: var(--primary-dark);
   }
 
@@ -569,7 +574,7 @@
 
   .admin-nav-help {
     @apply mt-0.5 hidden truncate text-xs lg:block;
-    color: var(--text-secondary);
+    color: var(--text-muted);
   }
 
   .admin-nav-item-active .admin-nav-help {
@@ -598,8 +603,8 @@
 
   .admin-user-card {
     @apply mt-4 flex items-center gap-3 rounded-md border p-3;
-    background: color-mix(in srgb, var(--surface) 80%, var(--pastel-green-bg));
-    border-color: color-mix(in srgb, var(--pastel-green-border) 62%, var(--border-soft));
+    background: color-mix(in srgb, var(--surface) 62%, var(--pastel-green-bg));
+    border-color: color-mix(in srgb, var(--pastel-green-border) 74%, var(--border-soft));
     color: var(--text-main);
   }
 
