@@ -30,7 +30,10 @@ Els dos XML queden guardats a la memòria local del navegador. Quan tornes a obr
 - Cerca interactiva del professorat absent.
 - Visualització vertical de l'horari del professor seleccionat.
 - Marcatge de les sessions concretes que falten.
+- Acció ràpida per afegir totes les hores marcables d'un professor.
 - Llistat diari amb les hores apilades per anar afegint absències.
+- Comentari per cada absència.
+- Comptador de cobertures ja assignades a cada professor en la mateixa franja.
 - Cerca del professorat que té guàrdia a la mateixa franja.
 - Assignació provisional de cobertura en memòria.
 

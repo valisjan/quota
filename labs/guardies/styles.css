@@ -568,6 +568,13 @@ label {
   grid-template-columns: 1fr;
 }
 
+.schedule-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .teacher-list.compact {
   max-height: 360px;
   overflow: auto;
@@ -744,6 +751,22 @@ label {
 
 .assignment select {
   min-width: 0;
+}
+
+.comment-field {
+  margin-top: 10px;
+}
+
+.comment-field textarea {
+  min-height: 54px;
+  margin-top: 6px;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.print-comment {
+  margin-top: 6px;
+  font-size: 0.86rem;
 }
 
 .covered {

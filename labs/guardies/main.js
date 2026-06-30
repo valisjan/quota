@@ -22,6 +22,7 @@
     guardiaCodes: new Set(loadJson(STORAGE.guardCodes, [])),
     absencies: new Map(),
     assignacions: new Map(),
+    comentaris: new Map(),
   };
 
   const el = {
@@ -46,6 +47,7 @@
     activityList: document.getElementById('activity-list'),
     clearGuardCodes: document.getElementById('clear-guard-codes'),
     scheduleTitle: document.getElementById('schedule-title'),
+    addAllHours: document.getElementById('add-all-hours'),
     clearMissing: document.getElementById('clear-missing'),
     printCoverage: document.getElementById('print-coverage'),
     clearDayList: document.getElementById('clear-day-list'),
@@ -73,11 +75,16 @@
     state.date = el.dateInput.value;
     state.absencies.clear();
     state.assignacions.clear();
+    state.comentaris.clear();
     render();
   });
   el.clearGuardCodes.addEventListener('click', () => {
     state.guardiaCodes.clear();
     saveGuardCodes();
+    render();
+  });
+  el.addAllHours.addEventListener('click', () => {
+    addAllCurrentProfessorAbsences();
     render();
   });
   el.clearMissing.addEventListener('click', () => {
@@ -90,6 +97,7 @@
   el.clearDayList.addEventListener('click', () => {
     state.absencies.clear();
     state.assignacions.clear();
+    state.comentaris.clear();
     render();
   });
 
@@ -221,6 +229,7 @@
           state.professor = '';
           state.absencies.clear();
           state.assignacions.clear();
+          state.comentaris.clear();
         }
         renderInitialData();
       } else {
@@ -235,6 +244,7 @@
       state.professor = '';
       state.absencies.clear();
       state.assignacions.clear();
+      state.comentaris.clear();
       showError(error.message || String(error));
     }
 
@@ -270,6 +280,7 @@
     state.guardiaCodes.clear();
     state.absencies.clear();
     state.assignacions.clear();
+    state.comentaris.clear();
     showError('');
     render();
   }
@@ -443,12 +454,13 @@
   function renderSchedule() {
     const dia = diaXmlSeleccionat();
     const professorLabel = labelProfessor(state.professor);
-    const sessions = sessionsProfessorDia(state.professor, dia);
-    const items = parser.agruparSessionsCobertura(sessions)
-      .sort((a, b) => (a.hora || '').localeCompare(b.hora || '', 'ca', { numeric: true }));
+    const items = currentProfessorDayItems();
+    const selectableItems = items.filter(isAbsenceSelectable);
 
     trimCurrentProfessorAbsences(items);
     el.scheduleTitle.textContent = `${professorLabel} · ${parser.diaLabel(dia)}`;
+    el.addAllHours.disabled = !selectableItems.length;
+    el.clearMissing.disabled = !selectableItems.some((item) => state.absencies.has(item.id));
 
     if (!items.length) {
       el.scheduleGrid.innerHTML = '<div class="empty-small">Aquest professor no té sessions aquest dia.</div>';
@@ -477,8 +489,11 @@
       input.addEventListener('change', () => {
         const item = items.find((candidate) => candidate.id === input.dataset.absence);
         if (input.checked && item) state.absencies.set(item.id, item);
-        else state.absencies.delete(input.dataset.absence);
-        state.assignacions.delete(input.dataset.absence);
+        else {
+          state.absencies.delete(input.dataset.absence);
+          state.assignacions.delete(input.dataset.absence);
+          state.comentaris.delete(input.dataset.absence);
+        }
         renderCoverage();
       });
     });
@@ -533,10 +548,24 @@
       });
     });
 
+    el.coverageList.querySelectorAll('[data-comment]').forEach((input) => {
+      input.addEventListener('input', () => {
+        const value = input.value.trim();
+        if (value) state.comentaris.set(input.dataset.comment, value);
+        else state.comentaris.delete(input.dataset.comment);
+        const printComment = Array.from(el.coverageList.querySelectorAll('[data-comment-print]'))
+          .find((node) => node.dataset.commentPrint === input.dataset.comment);
+        if (printComment) {
+          printComment.textContent = value ? `Comentari: ${value}` : '';
+        }
+      });
+    });
+
     el.coverageList.querySelectorAll('[data-remove-absence]').forEach((button) => {
       button.addEventListener('click', () => {
         state.absencies.delete(button.dataset.removeAbsence);
         state.assignacions.delete(button.dataset.removeAbsence);
+        state.comentaris.delete(button.dataset.removeAbsence);
         renderSchedule();
         renderCoverage();
       });
@@ -545,6 +574,12 @@
 
   function sessionsProfessorDia(placa, dia) {
     return state.sessions.filter((sessio) => sessio.placa === placa && sessio.dia === dia);
+  }
+
+  function currentProfessorDayItems() {
+    const dia = diaXmlSeleccionat();
+    return parser.agruparSessionsCobertura(sessionsProfessorDia(state.professor, dia))
+      .sort((a, b) => (a.hora || '').localeCompare(b.hora || '', 'ca', { numeric: true }));
   }
 
   function selectedAbsenceItems() {
@@ -566,6 +601,7 @@
       if (item.placa === state.professor && item.dia === diaXmlSeleccionat() && !valid.has(id)) {
         state.absencies.delete(id);
         state.assignacions.delete(id);
+        state.comentaris.delete(id);
       }
     });
   }
@@ -576,8 +612,17 @@
       if (item.placa === state.professor && item.dia === dia) {
         state.absencies.delete(id);
         state.assignacions.delete(id);
+        state.comentaris.delete(id);
       }
     });
+  }
+
+  function addAllCurrentProfessorAbsences() {
+    currentProfessorDayItems()
+      .filter(isAbsenceSelectable)
+      .forEach((item) => {
+        state.absencies.set(item.id, item);
+      });
   }
 
   function sortCoverageItems(a, b) {
@@ -617,6 +662,7 @@
     const assignat = state.assignacions.get(item.id) || '';
     const hasCandidates = candidates.length > 0;
     const assignatLabel = assignat ? labelProfessor(assignat) : 'Pendent';
+    const comentari = state.comentaris.get(item.id) || '';
 
     return `
       <article class="coverage-item ${assignat ? 'covered' : ''}">
@@ -635,7 +681,7 @@
             <option value="">Tria professorat de guàrdia</option>
             ${candidates.map((candidate) => `
               <option value="${escapeHtml(candidate.placa)}" ${candidate.placa === assignat ? 'selected' : ''}>
-                ${escapeHtml(labelProfessor(candidate.placa))} · ${escapeHtml(formatSessionsActivitat(candidate.guardies))}
+                ${escapeHtml(labelProfessor(candidate.placa))} · ${escapeHtml(assignmentLoadLabel(item, candidate.placa))} · ${escapeHtml(formatSessionsActivitat(candidate.guardies))}
               </option>
             `).join('')}
           </select>
@@ -643,8 +689,28 @@
           <button type="button" class="ghost" data-remove-absence="${escapeHtml(item.id)}">Treu</button>
           <span class="print-only print-assignment">Guàrdia: ${escapeHtml(assignatLabel)}</span>
         </div>
+        <label class="comment-field no-print">
+          Comentari
+          <textarea data-comment="${escapeHtml(item.id)}" rows="2" placeholder="Aula, feina, incidència...">${escapeHtml(comentari)}</textarea>
+        </label>
+        <div class="print-only print-comment" data-comment-print="${escapeHtml(item.id)}">${comentari ? `Comentari: ${escapeHtml(comentari)}` : ''}</div>
       </article>
     `;
+  }
+
+  function assignmentLoadLabel(item, placa) {
+    const count = countAssignmentsSameSlot(item.dia, item.hora, placa);
+    return plural(count, 'en aquesta hora', 'en aquesta hora');
+  }
+
+  function countAssignmentsSameSlot(dia, hora, placa) {
+    let count = 0;
+    state.assignacions.forEach((assignedPlaca, absenceId) => {
+      if (assignedPlaca !== placa) return;
+      const absence = state.absencies.get(absenceId);
+      if (absence?.dia === dia && absence?.hora === hora) count += 1;
+    });
+    return count;
   }
 
   function horaLabel(hora) {
