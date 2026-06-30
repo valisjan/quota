@@ -19,11 +19,14 @@ Obre `index.html` al navegador i carrega un XML amb estructura:
 ## Què valida
 
 - Lectura de sessions del XML.
-- Agrupació per professor, dia i hora.
+- Selecció d'una data i conversió al dia setmanal del XML.
+- Selecció del professorat absent.
+- Visualització de l'horari d'aquest professor en aquella data.
 - Selecció de codis d'activitat que equivalen a guàrdia.
-- Marcatge de professorat absent.
-- Sessions que queden descobertes.
+- Marcatge de les sessions concretes que falten.
+- Cerca del professorat que té Guà a la mateixa franja.
 - Assignació provisional de cobertura en memòria.
+- Equivalències temporals `placa -> abreviatura` per treballar amb el codi de 4 lletres.
 
 ## Què no fa encara
 

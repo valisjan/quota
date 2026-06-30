@@ -1,16 +1,18 @@
 (function initGuardiesLab() {
   const parser = window.HorariXmlParser;
   const STORAGE_GUARD_CODES = 'quota_guardies_lab_codes';
+  const STORAGE_ABBR_MAP = 'quota_guardies_lab_abbr_map';
 
   const state = {
     sessions: [],
     resum: null,
-    dia: '',
-    hora: '',
-    guardiaCodes: new Set(loadGuardCodes()),
-    absents: new Set(),
+    professor: '',
+    date: localDateString(new Date()),
+    guardiaCodes: new Set(loadJson(STORAGE_GUARD_CODES, [])),
+    abbrText: localStorage.getItem(STORAGE_ABBR_MAP) || '',
+    abbrMap: new Map(),
+    missing: new Set(),
     assignacions: new Map(),
-    includeFree: false,
   };
 
   const el = {
@@ -22,31 +24,45 @@
     statProfessors: document.getElementById('stat-professors'),
     statGrups: document.getElementById('stat-grups'),
     statActivitats: document.getElementById('stat-activitats'),
-    diaSelect: document.getElementById('dia-select'),
-    horaSelect: document.getElementById('hora-select'),
+    professorSelect: document.getElementById('professor-select'),
+    dateInput: document.getElementById('date-input'),
+    dateLabel: document.getElementById('date-label'),
+    abbrMapInput: document.getElementById('abbr-map-input'),
+    abbrMapCount: document.getElementById('abbr-map-count'),
+    applyAbbrMap: document.getElementById('apply-abbr-map'),
     activityList: document.getElementById('activity-list'),
     clearGuardCodes: document.getElementById('clear-guard-codes'),
-    absentSelect: document.getElementById('absent-select'),
-    addAbsent: document.getElementById('add-absent'),
-    absentList: document.getElementById('absent-list'),
-    clearAbsents: document.getElementById('clear-absents'),
-    includeFree: document.getElementById('include-free'),
-    uncoveredList: document.getElementById('uncovered-list'),
+    scheduleTitle: document.getElementById('schedule-title'),
+    clearMissing: document.getElementById('clear-missing'),
+    scheduleGrid: document.getElementById('schedule-grid'),
     coverageCount: document.getElementById('coverage-count'),
-    guardList: document.getElementById('guard-list'),
-    guardCount: document.getElementById('guard-count'),
-    freeList: document.getElementById('free-list'),
-    freeCount: document.getElementById('free-count'),
+    coverageList: document.getElementById('coverage-list'),
   };
 
+  state.abbrMap = parseAbbrMap(state.abbrText);
+  el.abbrMapInput.value = state.abbrText;
+  el.dateInput.value = state.date;
+  updateAbbrCount();
+
   el.file.addEventListener('change', onFileChange);
-  el.diaSelect.addEventListener('change', () => {
-    state.dia = el.diaSelect.value;
-    ajustarHoraDisponible();
+  el.professorSelect.addEventListener('change', () => {
+    state.professor = el.professorSelect.value;
+    state.missing.clear();
+    state.assignacions.clear();
     render();
   });
-  el.horaSelect.addEventListener('change', () => {
-    state.hora = el.horaSelect.value;
+  el.dateInput.addEventListener('change', () => {
+    state.date = el.dateInput.value;
+    state.missing.clear();
+    state.assignacions.clear();
+    render();
+  });
+  el.applyAbbrMap.addEventListener('click', () => {
+    state.abbrText = el.abbrMapInput.value || '';
+    state.abbrMap = parseAbbrMap(state.abbrText);
+    localStorage.setItem(STORAGE_ABBR_MAP, state.abbrText);
+    updateAbbrCount();
+    renderProfessorSelect();
     render();
   });
   el.clearGuardCodes.addEventListener('click', () => {
@@ -54,25 +70,17 @@
     saveGuardCodes();
     render();
   });
-  el.addAbsent.addEventListener('click', afegirAbsentSeleccionat);
-  el.absentSelect.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') afegirAbsentSeleccionat();
-  });
-  el.clearAbsents.addEventListener('click', () => {
-    state.absents.clear();
+  el.clearMissing.addEventListener('click', () => {
+    state.missing.clear();
     state.assignacions.clear();
     render();
   });
-  el.includeFree.addEventListener('change', () => {
-    state.includeFree = el.includeFree.checked;
-    render();
-  });
 
-  function loadGuardCodes() {
+  function loadJson(key, fallback) {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_GUARD_CODES) || '[]');
+      return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
     } catch {
-      return [];
+      return fallback;
     }
   }
 
@@ -104,12 +112,10 @@
       const result = parser.parseHorariXml(text);
       state.sessions = result.sessions;
       state.resum = result.resum;
-      state.absents.clear();
+      state.professor = '';
+      state.missing.clear();
       state.assignacions.clear();
-      state.dia = result.resum.dies[0] || '';
-      state.hora = result.resum.hores[0] || '';
       renderInitialData();
-      ajustarHoraDisponible();
       render();
     } catch (error) {
       state.sessions = [];
@@ -121,34 +127,36 @@
 
   function renderInitialData() {
     if (!state.resum) return;
-
     el.statSessions.textContent = state.resum.sessions;
     el.statProfessors.textContent = state.resum.professors;
     el.statGrups.textContent = state.resum.grups;
     el.statActivitats.textContent = state.resum.activitats.length;
-
-    el.diaSelect.innerHTML = state.resum.dies
-      .map((dia) => `<option value="${escapeHtml(dia)}">${escapeHtml(parser.diaLabel(dia))}</option>`)
-      .join('');
-
-    el.horaSelect.innerHTML = state.resum.hores
-      .map((hora) => `<option value="${escapeHtml(hora)}">${escapeHtml(hora)}</option>`)
-      .join('');
-
+    renderProfessorSelect();
     renderActivityList();
-    renderAbsentSelect();
   }
 
-  function ajustarHoraDisponible() {
-    const frangesDia = state.resum?.franges.filter((f) => f.dia === state.dia) || [];
-    const hores = frangesDia.map((f) => f.hora);
-    el.horaSelect.innerHTML = hores
-      .map((hora) => `<option value="${escapeHtml(hora)}">${escapeHtml(hora)}</option>`)
-      .join('');
+  function renderProfessorSelect() {
+    if (!state.sessions.length) return;
+    const professors = professorsOrdenatsAmbLabel();
+    if (!state.professor || !professors.some((prof) => prof.placa === state.professor)) {
+      state.professor = professors[0]?.placa || '';
+    }
 
-    if (!hores.includes(state.hora)) state.hora = hores[0] || '';
-    el.diaSelect.value = state.dia;
-    el.horaSelect.value = state.hora;
+    el.professorSelect.innerHTML = professors.map((professor) => `
+      <option value="${escapeHtml(professor.placa)}" ${professor.placa === state.professor ? 'selected' : ''}>
+        ${escapeHtml(professor.label)}
+      </option>
+    `).join('');
+  }
+
+  function professorsOrdenatsAmbLabel() {
+    return parser.professorsOrdenats(state.sessions)
+      .map((professor) => ({
+        ...professor,
+        abbr: abbrProfessor(professor.placa),
+        label: labelProfessor(professor.placa),
+      }))
+      .sort((a, b) => (a.abbr || a.placa).localeCompare(b.abbr || b.placa, 'ca', { numeric: true }));
   }
 
   function renderActivityList() {
@@ -179,143 +187,105 @@
     });
   }
 
-  function renderAbsentSelect() {
-    const professors = parser.professorsOrdenats(state.sessions);
-    el.absentSelect.innerHTML = professors
-      .map((professor) => `<option value="${escapeHtml(professor.placa)}">${escapeHtml(professor.label)}</option>`)
-      .join('');
-  }
-
-  function afegirAbsentSeleccionat() {
-    const placa = el.absentSelect.value;
-    if (!placa) return;
-    state.absents.add(placa);
-    render();
-  }
-
   function render() {
     const teDades = Boolean(state.sessions.length);
     el.workspace.classList.toggle('hidden', !teDades);
     el.empty.classList.toggle('hidden', teDades);
     if (!teDades) return;
 
-    el.includeFree.checked = state.includeFree;
+    renderDateLabel();
     renderActivityList();
-    renderAbsents();
-    renderFranja();
+    renderSchedule();
+    renderCoverage();
   }
 
-  function renderAbsents() {
-    const absents = Array.from(state.absents).sort((a, b) => a.localeCompare(b, 'ca', { numeric: true }));
-    if (!absents.length) {
-      el.absentList.innerHTML = '<div class="empty-small">Cap absent marcat.</div>';
+  function renderDateLabel() {
+    const dia = diaXmlSeleccionat();
+    const label = formatData(state.date);
+    const teDiaLectiu = ['1', '2', '3', '4', '5'].includes(dia);
+    el.dateLabel.textContent = teDiaLectiu
+      ? `${label} · dia XML ${dia}`
+      : `${label} · sense horari lectiu al XML`;
+  }
+
+  function renderSchedule() {
+    const dia = diaXmlSeleccionat();
+    const professorLabel = labelProfessor(state.professor);
+    const sessions = sessionsProfessorDia(state.professor, dia);
+    const items = parser.agruparSessionsCobertura(sessions)
+      .sort((a, b) => (a.hora || '').localeCompare(b.hora || '', 'ca', { numeric: true }));
+
+    trimMissing(items);
+    el.scheduleTitle.textContent = `${professorLabel} · ${parser.diaLabel(dia)}`;
+
+    if (!items.length) {
+      el.scheduleGrid.innerHTML = '<div class="empty-small">Aquest professor no té sessions aquest dia.</div>';
       return;
     }
 
-    el.absentList.innerHTML = absents.map((placa) => `
-      <span class="chip">
-        ${escapeHtml(labelProfessor(placa))}
-        <button type="button" data-remove-absent="${escapeHtml(placa)}" aria-label="Lleva ${escapeHtml(labelProfessor(placa))}">x</button>
-      </span>
-    `).join('');
+    el.scheduleGrid.innerHTML = items.map((item) => {
+      const selectable = item.sessions.some((sessio) => sessio.teClasse);
+      const checked = state.missing.has(item.id) ? 'checked' : '';
+      const disabled = selectable ? '' : 'disabled';
+      const tipus = tipusItem(item);
+      return `
+        <label class="schedule-item ${selectable ? '' : 'schedule-item-muted'}">
+          <input type="checkbox" data-missing="${escapeHtml(item.id)}" ${checked} ${disabled} />
+          <span class="schedule-time">${escapeHtml(item.hora)}</span>
+          <span class="schedule-main">
+            <strong>${escapeHtml(formatMateria(item))}</strong>
+            <small>${escapeHtml(formatBlocCurt(item))}</small>
+          </span>
+          <span class="schedule-type">${escapeHtml(tipus)}</span>
+        </label>
+      `;
+    }).join('');
 
-    el.absentList.querySelectorAll('[data-remove-absent]').forEach((button) => {
-      button.addEventListener('click', () => {
-        state.absents.delete(button.dataset.removeAbsent);
-        state.assignacions.clear();
-        render();
+    el.scheduleGrid.querySelectorAll('[data-missing]').forEach((input) => {
+      input.addEventListener('change', () => {
+        if (input.checked) state.missing.add(input.dataset.missing);
+        else state.missing.delete(input.dataset.missing);
+        state.assignacions.delete(input.dataset.missing);
+        renderCoverage();
       });
     });
   }
 
-  function renderFranja() {
-    const ocupacio = parser.ocupacioFranja(state.sessions, state.dia, state.hora, state.guardiaCodes);
-    const absents = new Set(state.absents);
-    const guardies = ocupacio
-      .filter((p) => !absents.has(p.placa) && p.guardies.length)
-      .sort((a, b) => a.placa.localeCompare(b.placa, 'ca', { numeric: true }));
-    const lliures = ocupacio
-      .filter((p) => !absents.has(p.placa) && p.lliure)
-      .sort((a, b) => a.placa.localeCompare(b.placa, 'ca', { numeric: true }));
+  function renderCoverage() {
+    const dia = diaXmlSeleccionat();
+    const selected = selectedMissingItems(dia);
+    const pendents = selected.filter((item) => !state.assignacions.get(item.id)).length;
+    el.coverageCount.textContent = `${selected.length} sessions · ${pendents} pendents`;
 
-    const sessionsAbsents = parser.sessionsDeFranja(state.sessions, state.dia, state.hora)
-      .filter((sessio) => absents.has(sessio.placa) && sessio.teClasse);
-    const descobertes = parser.agruparSessionsCobertura(sessionsAbsents);
-
-    netejarAssignacionsOrfes(descobertes, guardies, lliures);
-    renderGuardies(guardies);
-    renderLliures(lliures);
-    renderDescobertes(descobertes, guardies, lliures);
-  }
-
-  function renderGuardies(guardies) {
-    el.guardCount.textContent = guardies.length;
     if (!state.guardiaCodes.size) {
-      el.guardList.innerHTML = '<div class="empty-small">Marca els codis de guàrdia.</div>';
-      return;
-    }
-    if (!guardies.length) {
-      el.guardList.innerHTML = '<div class="empty-small">Cap professor de guàrdia en aquesta franja.</div>';
-      return;
-    }
-    el.guardList.innerHTML = guardies.map((prof) => `
-      <div class="teacher-item">
-        <div class="teacher-name">${escapeHtml(labelProfessor(prof.placa))}</div>
-        <div class="teacher-detail">${escapeHtml(formatSessionsActivitat(prof.guardies))}</div>
-      </div>
-    `).join('');
-  }
-
-  function renderLliures(lliures) {
-    el.freeCount.textContent = lliures.length;
-    if (!lliures.length) {
-      el.freeList.innerHTML = '<div class="empty-small">Sense professorat lliure.</div>';
-      return;
-    }
-    el.freeList.innerHTML = lliures.map((prof) => `
-      <div class="teacher-item">
-        <div class="teacher-name">${escapeHtml(labelProfessor(prof.placa))}</div>
-      </div>
-    `).join('');
-  }
-
-  function renderDescobertes(descobertes, guardies, lliures) {
-    const candidates = [
-      ...guardies.map((p) => ({ ...p, origen: 'guardia' })),
-      ...(state.includeFree ? lliures.map((p) => ({ ...p, origen: 'lliure' })) : []),
-    ];
-    const pendents = descobertes.filter((item) => !state.assignacions.get(item.id)).length;
-    el.coverageCount.textContent = `${pendents} pendents`;
-
-    if (!state.absents.size) {
-      el.uncoveredList.innerHTML = '<div class="empty-small">Marca professorat absent per veure les sessions afectades.</div>';
+      el.coverageList.innerHTML = '<div class="empty-small">Marca el codi de Guà per trobar professorat de guàrdia.</div>';
       return;
     }
 
-    if (!descobertes.length) {
-      el.uncoveredList.innerHTML = '<div class="empty-small">No hi ha classes descobertes en aquesta franja.</div>';
+    if (!selected.length) {
+      el.coverageList.innerHTML = '<div class="empty-small">Marca les sessions que falten al seu horari.</div>';
       return;
     }
 
-    el.uncoveredList.innerHTML = descobertes.map((item) => {
+    el.coverageList.innerHTML = selected.map((item) => {
+      const candidates = guardiesPerFranja(item.dia, item.hora, item.placa);
       const assignat = state.assignacions.get(item.id) || '';
-      const coveredClass = assignat ? 'covered' : '';
+      const hasCandidates = candidates.length > 0;
       return `
-        <article class="uncovered-item ${coveredClass}">
-          <div class="uncovered-head">
+        <article class="coverage-item ${assignat ? 'covered' : ''}">
+          <div class="coverage-head">
             <div>
-              <div class="session-title">${escapeHtml(formatMateria(item))}</div>
-              <div class="session-meta">${escapeHtml(formatBloc(item))}</div>
-              <div class="session-meta">Falta ${escapeHtml(labelProfessor(item.placa))}</div>
+              <div class="session-title">${escapeHtml(item.hora)} · ${escapeHtml(formatMateria(item))}</div>
+              <div class="session-meta">${escapeHtml(formatBlocCurt(item))}</div>
             </div>
-            <span class="pill">${assignat ? 'Coberta' : 'Pendent'}</span>
+            <span class="pill">${assignat ? 'Assignada' : hasCandidates ? `${candidates.length} Guà` : 'Sense Guà'}</span>
           </div>
           <div class="assignment">
-            <select data-assignacio="${escapeHtml(item.id)}">
-              <option value="">Tria professor</option>
-              ${candidates.map((prof) => `
-                <option value="${escapeHtml(prof.placa)}" ${prof.placa === assignat ? 'selected' : ''}>
-                  ${escapeHtml(labelProfessor(prof.placa))}${prof.origen === 'lliure' ? ' · lliure' : ''}
+            <select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates ? '' : 'disabled'}>
+              <option value="">Tria professor de Guà</option>
+              ${candidates.map((candidate) => `
+                <option value="${escapeHtml(candidate.placa)}" ${candidate.placa === assignat ? 'selected' : ''}>
+                  ${escapeHtml(labelProfessor(candidate.placa))} · ${escapeHtml(formatSessionsActivitat(candidate.guardies))}
                 </option>
               `).join('')}
             </select>
@@ -325,40 +295,111 @@
       `;
     }).join('');
 
-    el.uncoveredList.querySelectorAll('[data-assignacio]').forEach((select) => {
+    el.coverageList.querySelectorAll('[data-assignacio]').forEach((select) => {
       select.addEventListener('change', () => {
         if (select.value) state.assignacions.set(select.dataset.assignacio, select.value);
         else state.assignacions.delete(select.dataset.assignacio);
-        render();
+        renderCoverage();
       });
     });
 
-    el.uncoveredList.querySelectorAll('[data-clear-assignacio]').forEach((button) => {
+    el.coverageList.querySelectorAll('[data-clear-assignacio]').forEach((button) => {
       button.addEventListener('click', () => {
         state.assignacions.delete(button.dataset.clearAssignacio);
-        render();
+        renderCoverage();
       });
     });
   }
 
-  function netejarAssignacionsOrfes(descobertes, guardies, lliures) {
-    const ids = new Set(descobertes.map((item) => item.id));
-    const candidats = new Set([
-      ...guardies.map((p) => p.placa),
-      ...(state.includeFree ? lliures.map((p) => p.placa) : []),
-    ]);
-    Array.from(state.assignacions.entries()).forEach(([id, professor]) => {
-      if (!ids.has(id) || !candidats.has(professor)) state.assignacions.delete(id);
+  function sessionsProfessorDia(placa, dia) {
+    return state.sessions.filter((sessio) => sessio.placa === placa && sessio.dia === dia);
+  }
+
+  function selectedMissingItems(dia) {
+    const items = parser.agruparSessionsCobertura(sessionsProfessorDia(state.professor, dia));
+    return items
+      .filter((item) => state.missing.has(item.id))
+      .sort((a, b) => (a.hora || '').localeCompare(b.hora || '', 'ca', { numeric: true }));
+  }
+
+  function guardiesPerFranja(dia, hora, professorAbsent) {
+    return parser.ocupacioFranja(state.sessions, dia, hora, state.guardiaCodes)
+      .filter((professor) => professor.placa !== professorAbsent && professor.guardies.length)
+      .sort((a, b) => (abbrProfessor(a.placa) || a.placa).localeCompare(abbrProfessor(b.placa) || b.placa, 'ca', { numeric: true }));
+  }
+
+  function trimMissing(items) {
+    const valid = new Set(items.map((item) => item.id));
+    Array.from(state.missing).forEach((id) => {
+      if (!valid.has(id)) {
+        state.missing.delete(id);
+        state.assignacions.delete(id);
+      }
     });
+  }
+
+  function diaXmlSeleccionat() {
+    if (!state.date) return '';
+    const date = new Date(`${state.date}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return '';
+    const jsDay = date.getDay();
+    return jsDay === 0 ? '7' : String(jsDay);
+  }
+
+  function localDateString(date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function formatData(value) {
+    if (!value) return 'Sense data';
+    const date = new Date(`${value}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat('ca-ES', {
+      weekday: 'long',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(date);
+  }
+
+  function parseAbbrMap(text) {
+    const map = new Map();
+    String(text || '').split(/\r?\n/).forEach((line) => {
+      const clean = line.trim();
+      if (!clean || clean.startsWith('#')) return;
+      const parts = clean.split(/[;,]/).map((part) => part.trim()).filter(Boolean);
+      if (parts.length < 2) return;
+      map.set(parts[0], parts[1].toUpperCase());
+    });
+    return map;
+  }
+
+  function updateAbbrCount() {
+    const count = state.abbrMap.size;
+    el.abbrMapCount.textContent = `${count} ${count === 1 ? 'equivalència carregada' : 'equivalències carregades'}.`;
+  }
+
+  function abbrProfessor(placa) {
+    return state.abbrMap.get(placa) || '';
   }
 
   function labelProfessor(placa) {
-    return `Placa ${placa}`;
+    const abbr = abbrProfessor(placa);
+    return abbr ? `${abbr} · ${placa}` : `Placa ${placa}`;
+  }
+
+  function tipusItem(item) {
+    if (item.activitat && state.guardiaCodes.has(item.activitat)) return 'Guà';
+    if (item.activitat) return `Act. ${item.activitat}`;
+    return 'Classe';
   }
 
   function formatSessionsActivitat(sessions) {
     const codis = Array.from(new Set(sessions.map((s) => s.activitat).filter(Boolean)));
-    return codis.length ? `Activitat ${codis.join(', ')}` : 'Guàrdia';
+    return codis.length ? `Guà ${codis.join(', ')}` : 'Guà';
   }
 
   function formatMateria(item) {
@@ -367,13 +408,12 @@
     return 'Sessió';
   }
 
-  function formatBloc(item) {
+  function formatBlocCurt(item) {
     const parts = [];
     if (item.cursos.length) parts.push(`Curs ${item.cursos.join('+')}`);
     if (item.grups.length) parts.push(`Grup ${item.grups.join('+')}`);
     if (item.aula) parts.push(`Aula ${item.aula}`);
-    parts.push(`${item.diaLabel} ${item.hora}`);
-    return parts.join(' · ');
+    return parts.join(' · ') || 'Sense grup';
   }
 
   function escapeHtml(value) {

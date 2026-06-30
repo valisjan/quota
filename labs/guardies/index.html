@@ -15,7 +15,7 @@
           <p class="kicker">Laboratori local</p>
           <h1>Gestió de guàrdies</h1>
           <p class="lead">
-            Prova de lectura d'horaris i cobertura de sessions sense tocar la base de dades.
+            Selecciona el professorat absent, marca les sessions que falten i comprova qui té guàrdia a la mateixa franja.
           </p>
         </div>
         <label class="upload">
@@ -54,81 +54,70 @@
         <section class="layout">
           <aside class="panel controls">
             <div class="panel-header">
-              <p class="kicker">Franja</p>
-              <h2>Dia i sessio</h2>
+              <p class="kicker">Professorat</p>
+              <h2>Qui falta?</h2>
             </div>
-            <div class="field-grid">
-              <label>
-                Dia
-                <select id="dia-select"></select>
-              </label>
-              <label>
-                Hora
-                <select id="hora-select"></select>
-              </label>
+
+            <label>
+              Professor absent
+              <select id="professor-select"></select>
+            </label>
+
+            <label class="mt-field">
+              Data de l'absència
+              <input id="date-input" type="date" />
+            </label>
+            <p id="date-label" class="date-label">Selecciona una data.</p>
+
+            <div class="block">
+              <div class="block-title">
+                <h3>Equivalències</h3>
+                <button id="apply-abbr-map" type="button" class="ghost">Aplica</button>
+              </div>
+              <p class="hint">
+                Temporal per al laboratori. Una línia per professor: <code>placa, ABRV</code>.
+              </p>
+              <textarea
+                id="abbr-map-input"
+                class="map-input"
+                rows="7"
+                spellcheck="false"
+                placeholder="213036, VILA&#10;9392, GILI"
+              ></textarea>
+              <p id="abbr-map-count" class="hint tight">0 equivalències carregades.</p>
             </div>
 
             <div class="block">
               <div class="block-title">
-                <h3>Codis de guàrdia</h3>
+                <h3>Activitat Guà</h3>
                 <button id="clear-guard-codes" type="button" class="ghost">Neteja</button>
               </div>
-              <p class="hint">Marca quines activitats del XML representen professorat de guàrdia.</p>
+              <p class="hint">Marca quines activitats del XML són hores de guàrdia.</p>
               <div id="activity-list" class="activity-list"></div>
             </div>
-
-            <div class="block">
-              <div class="block-title">
-                <h3>Absències</h3>
-                <button id="clear-absents" type="button" class="ghost">Neteja</button>
-              </div>
-              <div class="add-row">
-                <select id="absent-select"></select>
-                <button id="add-absent" type="button">Afegeix</button>
-              </div>
-              <div id="absent-list" class="chip-list"></div>
-            </div>
-
-            <label class="check-row">
-              <input id="include-free" type="checkbox" />
-              Incloure professorat lliure com a alternativa
-            </label>
           </aside>
 
           <section class="content">
             <section class="panel">
               <div class="panel-header row">
                 <div>
-                  <p class="kicker">Cobertura</p>
-                  <h2>Sessions descobertes</h2>
+                  <p class="kicker">Horari</p>
+                  <h2 id="schedule-title">Sessions del professor</h2>
                 </div>
-                <span id="coverage-count" class="pill">0 pendents</span>
+                <button id="clear-missing" type="button" class="ghost">Neteja selecció</button>
               </div>
-              <div id="uncovered-list" class="uncovered-list"></div>
+              <div id="schedule-grid" class="schedule-grid"></div>
             </section>
 
-            <section class="grid-two">
-              <article class="panel">
-                <div class="panel-header row">
-                  <div>
-                    <p class="kicker">Disponibles</p>
-                    <h2>Professorat de guàrdia</h2>
-                  </div>
-                  <span id="guard-count" class="pill">0</span>
+            <section class="panel">
+              <div class="panel-header row">
+                <div>
+                  <p class="kicker">Cobertura</p>
+                  <h2>Guàrdies disponibles</h2>
                 </div>
-                <div id="guard-list" class="teacher-list"></div>
-              </article>
-
-              <article class="panel">
-                <div class="panel-header row">
-                  <div>
-                    <p class="kicker">Sense sessio</p>
-                    <h2>Professorat lliure</h2>
-                  </div>
-                  <span id="free-count" class="pill">0</span>
-                </div>
-                <div id="free-list" class="teacher-list compact"></div>
-              </article>
+                <span id="coverage-count" class="pill">0 sessions</span>
+              </div>
+              <div id="coverage-list" class="coverage-list"></div>
             </section>
           </section>
         </section>
