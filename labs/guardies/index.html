@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ca">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Laboratori de guàrdies</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./horariXmlParser.js" defer></script>
+    <script src="./main.js" defer></script>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <div>
+          <p class="kicker">Laboratori local</p>
+          <h1>Gestió de guàrdies</h1>
+          <p class="lead">
+            Prova de lectura d'horaris i cobertura de sessions sense tocar la base de dades.
+          </p>
+        </div>
+        <label class="upload">
+          <span>Carrega XML</span>
+          <input id="xml-file" type="file" accept=".xml,text/xml,application/xml,*/*" />
+        </label>
+      </header>
+
+      <section id="error-box" class="alert hidden" role="alert"></section>
+
+      <section id="empty-state" class="empty">
+        <h2>Cap horari carregat</h2>
+        <p>Carrega un XML amb l'estructura HORARI / SESSIO per començar.</p>
+      </section>
+
+      <section id="workspace" class="workspace hidden">
+        <section class="stats" aria-label="Resum del XML">
+          <article class="stat">
+            <span>Sessions</span>
+            <strong id="stat-sessions">0</strong>
+          </article>
+          <article class="stat">
+            <span>Professorat</span>
+            <strong id="stat-professors">0</strong>
+          </article>
+          <article class="stat">
+            <span>Grups</span>
+            <strong id="stat-grups">0</strong>
+          </article>
+          <article class="stat">
+            <span>Activitats</span>
+            <strong id="stat-activitats">0</strong>
+          </article>
+        </section>
+
+        <section class="layout">
+          <aside class="panel controls">
+            <div class="panel-header">
+              <p class="kicker">Franja</p>
+              <h2>Dia i sessio</h2>
+            </div>
+            <div class="field-grid">
+              <label>
+                Dia
+                <select id="dia-select"></select>
+              </label>
+              <label>
+                Hora
+                <select id="hora-select"></select>
+              </label>
+            </div>
+
+            <div class="block">
+              <div class="block-title">
+                <h3>Codis de guàrdia</h3>
+                <button id="clear-guard-codes" type="button" class="ghost">Neteja</button>
+              </div>
+              <p class="hint">Marca quines activitats del XML representen professorat de guàrdia.</p>
+              <div id="activity-list" class="activity-list"></div>
+            </div>
+
+            <div class="block">
+              <div class="block-title">
+                <h3>Absències</h3>
+                <button id="clear-absents" type="button" class="ghost">Neteja</button>
+              </div>
+              <div class="add-row">
+                <select id="absent-select"></select>
+                <button id="add-absent" type="button">Afegeix</button>
+              </div>
+              <div id="absent-list" class="chip-list"></div>
+            </div>
+
+            <label class="check-row">
+              <input id="include-free" type="checkbox" />
+              Incloure professorat lliure com a alternativa
+            </label>
+          </aside>
+
+          <section class="content">
+            <section class="panel">
+              <div class="panel-header row">
+                <div>
+                  <p class="kicker">Cobertura</p>
+                  <h2>Sessions descobertes</h2>
+                </div>
+                <span id="coverage-count" class="pill">0 pendents</span>
+              </div>
+              <div id="uncovered-list" class="uncovered-list"></div>
+            </section>
+
+            <section class="grid-two">
+              <article class="panel">
+                <div class="panel-header row">
+                  <div>
+                    <p class="kicker">Disponibles</p>
+                    <h2>Professorat de guàrdia</h2>
+                  </div>
+                  <span id="guard-count" class="pill">0</span>
+                </div>
+                <div id="guard-list" class="teacher-list"></div>
+              </article>
+
+              <article class="panel">
+                <div class="panel-header row">
+                  <div>
+                    <p class="kicker">Sense sessio</p>
+                    <h2>Professorat lliure</h2>
+                  </div>
+                  <span id="free-count" class="pill">0</span>
+                </div>
+                <div id="free-list" class="teacher-list compact"></div>
+              </article>
+            </section>
+          </section>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>
