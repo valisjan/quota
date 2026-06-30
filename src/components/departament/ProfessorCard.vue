@@ -29,8 +29,14 @@
         <span v-if="professor.jornada" class="app-chip px-1.5 py-0.5 text-xs font-normal">
           {{ textJornada(professor) }}
         </span>
-        <span v-if="professor.preferencia" class="app-chip px-1.5 py-0.5 text-xs font-normal">
+        <span v-if="professor.preferencia" class="app-chip app-chip-primary px-1.5 py-0.5 text-xs font-normal">
           {{ professor.preferencia === 'pronto' ? '↑ Prest' : '↓ Tard' }}
+        </span>
+        <span v-if="coordinacionsProfessor.length" class="app-chip app-chip-success px-1.5 py-0.5 text-xs font-normal">
+          {{ coordinacionsProfessor.length === 1 ? 'Comissió' : 'Comissions' }} {{ coordinacionsProfessor.length }}
+        </span>
+        <span v-if="teComentaris" class="app-chip app-chip-warning px-1.5 py-0.5 text-xs font-normal">
+          Comentari
         </span>
         <span v-if="guardesPrevistes !== null" class="app-chip px-1.5 py-0.5 text-xs font-normal"
           :class="guardesPrevistes === 0 ? 'bg-slate-100 text-slate-400' : ''">
@@ -40,9 +46,9 @@
     </div>
 
     <!-- Matèries -->
-    <div v-if="comentariFull" class="border-t border-border-soft bg-amber-50 px-4 py-2 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+    <div v-if="comentariVisible" class="border-t border-border-soft bg-amber-50 px-4 py-2 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
       <p class="text-xs font-semibold uppercase text-amber-800 dark:text-amber-200">Comentari</p>
-      <p class="mt-0.5 whitespace-pre-line font-medium">{{ comentariFull }}</p>
+      <p class="mt-0.5 whitespace-pre-line font-medium">{{ comentariVisible }}</p>
     </div>
 
     <div class="border-t border-border-soft px-3 py-2">
@@ -236,9 +242,15 @@
         <button
           type="button"
           class="flex w-full items-center justify-between px-4 py-2 text-[0.95rem] font-medium text-text-muted hover:bg-surface-hover"
+          :class="coordinacionsProfessor.length ? 'bg-emerald-50/80 text-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300' : ''"
           @click="mostrarComissions = !mostrarComissions"
         >
-          <span>Comissions{{ coordinacionsProfessor.length ? ` (${coordinacionsProfessor.length})` : '' }}</span>
+          <span class="flex items-center gap-2">
+            <span>Comissions</span>
+            <span v-if="coordinacionsProfessor.length" class="app-chip app-chip-success px-1.5 py-0 text-[11px]">
+              {{ coordinacionsProfessor.length }}
+            </span>
+          </span>
           <span class="text-text-muted">{{ mostrarComissions ? '▲' : '▼' }}</span>
         </button>
         <div v-if="mostrarComissions" class="px-3 pb-3">
@@ -284,9 +296,18 @@
       <button
         type="button"
           class="flex w-full items-center justify-between px-4 py-2 text-[0.95rem] font-medium text-text-muted hover:bg-surface-hover"
+        :class="tePreferenciesOComentaris ? 'bg-blue-50/80 text-blue-800 dark:bg-blue-950/20 dark:text-blue-300' : ''"
         @click="mostrarPreferencies = !mostrarPreferencies"
       >
-        <span>Preferències</span>
+        <span class="flex items-center gap-2">
+          <span>Preferències</span>
+          <span v-if="professor.preferencia" class="app-chip app-chip-primary px-1.5 py-0 text-[11px]">
+            Activa
+          </span>
+          <span v-if="teComentaris" class="app-chip app-chip-warning px-1.5 py-0 text-[11px]">
+            Comentari
+          </span>
+        </span>
         <span class="text-text-muted">{{ mostrarPreferencies ? '▲' : '▼' }}</span>
       </button>
       <div v-if="mostrarPreferencies" class="space-y-3 px-4 pb-4">
@@ -397,6 +418,14 @@ const ddDatalistId = computed(() =>
 const totalHoresProfessor = computed(() => props.horesLectives + props.horesPalic + props.horesSd + props.horesDd);
 const limits = computed(() => limitsHoresProfessor(props.professor));
 const comentariFull = computed(() => (props.professor.comentariFull || '').toString().trim());
+const comentarisProfessor = computed(() => (props.professor.comentaris || '').toString().trim());
+const comentariVisible = computed(() =>
+  [comentariFull.value, comentarisProfessor.value].filter(Boolean).join('\n')
+);
+const teComentaris = computed(() => Boolean(comentariVisible.value));
+const tePreferenciesOComentaris = computed(() =>
+  Boolean(props.professor.preferencia || teComentaris.value)
+);
 
 const isPerfectHours = computed(() => totalHoresProfessor.value === limits.value.ideal);
 const isOverRecommended = computed(() =>

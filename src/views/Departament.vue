@@ -285,7 +285,7 @@
       <div v-show="activeTab === 'distribucio'" id="panel-distribucio" role="tabpanel" aria-labelledby="tab-distribucio">
         <!-- Resum GP, PALIC, SD i hores del departament -->
         <div class="grid grid-cols-1 gap-4 md:grid-cols-[minmax(17rem,19rem)_minmax(0,1fr)] xl:grid-cols-[21rem_minmax(0,1fr)] xl:gap-5 items-start">
-          <div class="space-y-3 lg:sticky lg:top-4">
+          <div class="space-y-3">
             <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-1" data-validation-summary tabindex="-1">
           <div class="card-stat-primary">
             <div class="flex items-center justify-between">
