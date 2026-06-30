@@ -3,7 +3,9 @@
     <aside class="admin-sidebar">
       <div class="admin-sidebar-body">
         <div class="admin-brand">
-          <div class="admin-brand-mark">Q</div>
+          <div class="admin-brand-mark">
+            <img src="/logo_IESJSB_nav.png" alt="" class="h-8 w-auto object-contain" />
+          </div>
           <div class="hidden lg:block">
             <p class="admin-kicker">IES Sureda</p>
             <h1 class="admin-title">Quota</h1>
@@ -47,7 +49,7 @@
 
         <!-- Compact user area visible only on mobile -->
         <div class="flex shrink-0 items-center gap-2 lg:hidden">
-          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white/20 text-sm font-semibold text-white">
+          <div class="admin-user-avatar h-8 w-8 text-sm">
             {{ inicialUsuari }}
           </div>
           <button type="button" class="admin-logout" @click="tancarSessio">Sortir</button>
@@ -60,10 +62,10 @@
           {{ inicialUsuari }}
         </div>
         <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-bold text-white">
+          <p class="truncate text-sm font-bold">
             {{ authStore.usuari || authStore.email || 'Usuari' }}
           </p>
-          <p class="truncate text-xs font-semibold text-white/70">{{ etiquetaRol }}</p>
+          <p class="truncate text-xs font-semibold">{{ etiquetaRol }}</p>
         </div>
         <button
           type="button"
