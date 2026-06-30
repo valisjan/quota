@@ -27,9 +27,10 @@ Els dos XML queden guardats a la memòria local del navegador. Quan tornes a obr
 - Traducció de plaça, grup, matèria, activitat i aula a noms llegibles.
 - Detecció automàtica de l'activitat de guàrdia general.
 - Selecció d'una data i conversió al dia setmanal del XML.
-- Selecció del professorat absent.
-- Visualització de l'horari d'aquest professor en aquella data.
+- Cerca interactiva del professorat absent.
+- Visualització vertical de l'horari del professor seleccionat.
 - Marcatge de les sessions concretes que falten.
+- Llistat diari amb les hores apilades per anar afegint absències.
 - Cerca del professorat que té guàrdia a la mateixa franja.
 - Assignació provisional de cobertura en memòria.
 

@@ -20,7 +20,7 @@
     professor: '',
     date: localDateString(new Date()),
     guardiaCodes: new Set(loadJson(STORAGE.guardCodes, [])),
-    missing: new Set(),
+    absencies: new Map(),
     assignacions: new Map(),
   };
 
@@ -38,12 +38,18 @@
     statActivitats: document.getElementById('stat-activitats'),
     statReference: document.getElementById('stat-reference'),
     professorSelect: document.getElementById('professor-select'),
+    professorSearch: document.getElementById('professor-search'),
+    professorResults: document.getElementById('professor-results'),
+    selectedProfessorLabel: document.getElementById('selected-professor-label'),
     dateInput: document.getElementById('date-input'),
     dateLabel: document.getElementById('date-label'),
     activityList: document.getElementById('activity-list'),
     clearGuardCodes: document.getElementById('clear-guard-codes'),
     scheduleTitle: document.getElementById('schedule-title'),
     clearMissing: document.getElementById('clear-missing'),
+    printCoverage: document.getElementById('print-coverage'),
+    clearDayList: document.getElementById('clear-day-list'),
+    printDateLabel: document.getElementById('print-date-label'),
     scheduleGrid: document.getElementById('schedule-grid'),
     coverageCount: document.getElementById('coverage-count'),
     coverageList: document.getElementById('coverage-list'),
@@ -55,14 +61,17 @@
   el.file.addEventListener('change', onScheduleFileChange);
   el.clearCache.addEventListener('click', clearLocalData);
   el.professorSelect.addEventListener('change', () => {
-    state.professor = el.professorSelect.value;
-    state.missing.clear();
-    state.assignacions.clear();
-    render();
+    selectProfessor(el.professorSelect.value);
+  });
+  el.professorSearch.addEventListener('input', () => {
+    renderProfessorResults(el.professorSearch.value);
+  });
+  el.professorSearch.addEventListener('focus', () => {
+    renderProfessorResults(el.professorSearch.value);
   });
   el.dateInput.addEventListener('change', () => {
     state.date = el.dateInput.value;
-    state.missing.clear();
+    state.absencies.clear();
     state.assignacions.clear();
     render();
   });
@@ -72,7 +81,14 @@
     render();
   });
   el.clearMissing.addEventListener('click', () => {
-    state.missing.clear();
+    clearCurrentProfessorAbsences();
+    render();
+  });
+  el.printCoverage.addEventListener('click', () => {
+    window.print();
+  });
+  el.clearDayList.addEventListener('click', () => {
+    state.absencies.clear();
     state.assignacions.clear();
     render();
   });
@@ -203,7 +219,7 @@
         applyDefaultGuardiaCodes(result.defaultGuardiaCodes);
         if (resetSelection) {
           state.professor = '';
-          state.missing.clear();
+          state.absencies.clear();
           state.assignacions.clear();
         }
         renderInitialData();
@@ -217,7 +233,7 @@
       state.sessions = [];
       state.resum = null;
       state.professor = '';
-      state.missing.clear();
+      state.absencies.clear();
       state.assignacions.clear();
       showError(error.message || String(error));
     }
@@ -252,7 +268,7 @@
     state.resum = null;
     state.professor = '';
     state.guardiaCodes.clear();
-    state.missing.clear();
+    state.absencies.clear();
     state.assignacions.clear();
     showError('');
     render();
@@ -272,6 +288,8 @@
   function renderProfessorSelect() {
     if (!state.sessions.length) {
       el.professorSelect.innerHTML = '';
+      el.professorResults.innerHTML = '';
+      el.selectedProfessorLabel.textContent = 'Cap professor';
       return;
     }
 
@@ -285,6 +303,67 @@
         ${escapeHtml(professor.label)}
       </option>
     `).join('');
+
+    const selectedLabel = labelProfessor(state.professor);
+    el.selectedProfessorLabel.textContent = selectedLabel;
+    if (!el.professorSearch.value) el.professorSearch.value = selectedLabel;
+    renderProfessorResults(el.professorSearch.value);
+  }
+
+  function renderProfessorResults(query = '') {
+    if (!state.sessions.length) {
+      el.professorResults.innerHTML = '';
+      return;
+    }
+
+    const normalizedQuery = normalizeSearch(query);
+    const professors = professorsOrdenatsAmbLabel()
+      .filter((professor) => {
+        if (!normalizedQuery) return true;
+        const haystack = normalizeSearch(`${professor.label} ${professor.short} ${professor.placa}`);
+        return haystack.includes(normalizedQuery);
+      })
+      .slice(0, 12);
+
+    if (!professors.length) {
+      el.professorResults.innerHTML = '<div class="search-empty">Sense resultats</div>';
+      return;
+    }
+
+    el.professorResults.innerHTML = professors.map((professor) => `
+      <button
+        type="button"
+        class="search-result ${professor.placa === state.professor ? 'active' : ''}"
+        data-professor="${escapeHtml(professor.placa)}"
+      >
+        <strong>${escapeHtml(professor.short)}</strong>
+        <span>${escapeHtml(professor.placa)}</span>
+      </button>
+    `).join('');
+
+    el.professorResults.querySelectorAll('[data-professor]').forEach((button) => {
+      button.addEventListener('click', () => {
+        selectProfessor(button.dataset.professor);
+      });
+    });
+  }
+
+  function selectProfessor(placa) {
+    if (!placa || placa === state.professor) {
+      if (placa) {
+        const label = labelProfessor(placa);
+        el.professorSearch.value = label;
+        el.selectedProfessorLabel.textContent = label;
+        renderProfessorResults(label);
+      }
+      return;
+    }
+
+    state.professor = placa;
+    const label = labelProfessor(placa);
+    el.professorSearch.value = label;
+    el.selectedProfessorLabel.textContent = label;
+    render();
   }
 
   function professorsOrdenatsAmbLabel() {
@@ -368,7 +447,7 @@
     const items = parser.agruparSessionsCobertura(sessions)
       .sort((a, b) => (a.hora || '').localeCompare(b.hora || '', 'ca', { numeric: true }));
 
-    trimMissing(items);
+    trimCurrentProfessorAbsences(items);
     el.scheduleTitle.textContent = `${professorLabel} · ${parser.diaLabel(dia)}`;
 
     if (!items.length) {
@@ -377,13 +456,13 @@
     }
 
     el.scheduleGrid.innerHTML = items.map((item) => {
-      const selectable = item.sessions.some((sessio) => sessio.teClasse);
-      const checked = state.missing.has(item.id) ? 'checked' : '';
+      const selectable = isAbsenceSelectable(item);
+      const checked = state.absencies.has(item.id) ? 'checked' : '';
       const disabled = selectable ? '' : 'disabled';
       const tipus = tipusItem(item);
       return `
         <label class="schedule-item ${selectable ? '' : 'schedule-item-muted'}">
-          <input type="checkbox" data-missing="${escapeHtml(item.id)}" ${checked} ${disabled} />
+          <input type="checkbox" data-absence="${escapeHtml(item.id)}" ${checked} ${disabled} />
           <span class="schedule-time">${escapeHtml(item.hora)}</span>
           <span class="schedule-main">
             <strong>${escapeHtml(formatMateria(item))}</strong>
@@ -394,58 +473,49 @@
       `;
     }).join('');
 
-    el.scheduleGrid.querySelectorAll('[data-missing]').forEach((input) => {
+    el.scheduleGrid.querySelectorAll('[data-absence]').forEach((input) => {
       input.addEventListener('change', () => {
-        if (input.checked) state.missing.add(input.dataset.missing);
-        else state.missing.delete(input.dataset.missing);
-        state.assignacions.delete(input.dataset.missing);
+        const item = items.find((candidate) => candidate.id === input.dataset.absence);
+        if (input.checked && item) state.absencies.set(item.id, item);
+        else state.absencies.delete(input.dataset.absence);
+        state.assignacions.delete(input.dataset.absence);
         renderCoverage();
       });
     });
   }
 
   function renderCoverage() {
-    const dia = diaXmlSeleccionat();
-    const selected = selectedMissingItems(dia);
+    const selected = selectedAbsenceItems();
     const pendents = selected.filter((item) => !state.assignacions.get(item.id)).length;
-    el.coverageCount.textContent = `${selected.length} sessions · ${pendents} pendents`;
+    const franges = new Set(selected.map((item) => item.hora)).size;
+    el.coverageCount.textContent = [
+      plural(selected.length, 'sessió', 'sessions'),
+      plural(franges, 'franja', 'franges'),
+      plural(pendents, 'pendent', 'pendents'),
+    ].join(' · ');
+    el.printDateLabel.textContent = formatData(state.date);
+    el.printCoverage.disabled = !selected.length;
+    el.clearDayList.disabled = !selected.length;
 
-    if (!state.guardiaCodes.size) {
-      el.coverageList.innerHTML = `<div class="empty-small">Marca l'activitat de guàrdia per trobar professorat disponible.</div>`;
-      return;
-    }
+    const warning = state.guardiaCodes.size
+      ? ''
+      : `<div class="empty-small no-print">Marca l'activitat de guàrdia per trobar professorat disponible.</div>`;
+    const selectedByHour = new Map(groupBySession(selected).map((group) => [group.hora, group.items]));
 
-    if (!selected.length) {
-      el.coverageList.innerHTML = '<div class="empty-small">Marca les sessions que falten al seu horari.</div>';
-      return;
-    }
-
-    el.coverageList.innerHTML = selected.map((item) => {
-      const candidates = guardiesPerFranja(item.dia, item.hora, item.placa);
-      const assignat = state.assignacions.get(item.id) || '';
-      const hasCandidates = candidates.length > 0;
+    const dayHours = hoursForSelectedDay();
+    el.coverageList.innerHTML = warning + dayHours.map((hora) => {
+      const items = selectedByHour.get(hora) || [];
       return `
-        <article class="coverage-item ${assignat ? 'covered' : ''}">
-          <div class="coverage-head">
-            <div>
-              <div class="session-title">${escapeHtml(item.hora)} · ${escapeHtml(formatMateria(item))}</div>
-              <div class="session-meta">${escapeHtml(formatBlocCurt(item))}</div>
-            </div>
-            <span class="pill">${assignat ? 'Assignada' : hasCandidates ? `${candidates.length} guardies` : 'Sense guàrdies'}</span>
-          </div>
-          <div class="assignment">
-            <select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates ? '' : 'disabled'}>
-              <option value="">Tria professorat de guàrdia</option>
-              ${candidates.map((candidate) => `
-                <option value="${escapeHtml(candidate.placa)}" ${candidate.placa === assignat ? 'selected' : ''}>
-                  ${escapeHtml(labelProfessor(candidate.placa))} · ${escapeHtml(formatSessionsActivitat(candidate.guardies))}
-                </option>
-              `).join('')}
-            </select>
-            <button type="button" class="ghost" data-clear-assignacio="${escapeHtml(item.id)}">Neteja</button>
-          </div>
-        </article>
-      `;
+      <section class="coverage-session">
+        <div class="coverage-session-head">
+          <h3>${escapeHtml(horaLabel(hora))}</h3>
+          <span>${items.length ? `${items.length} ${items.length === 1 ? 'absència' : 'absències'}` : 'Sense absències'}</span>
+        </div>
+        <div class="coverage-session-list">
+          ${items.length ? items.map(renderCoverageItem).join('') : '<div class="coverage-empty">Cap professor afegit.</div>'}
+        </div>
+      </section>
+    `;
     }).join('');
 
     el.coverageList.querySelectorAll('[data-assignacio]').forEach((select) => {
@@ -462,17 +532,26 @@
         renderCoverage();
       });
     });
+
+    el.coverageList.querySelectorAll('[data-remove-absence]').forEach((button) => {
+      button.addEventListener('click', () => {
+        state.absencies.delete(button.dataset.removeAbsence);
+        state.assignacions.delete(button.dataset.removeAbsence);
+        renderSchedule();
+        renderCoverage();
+      });
+    });
   }
 
   function sessionsProfessorDia(placa, dia) {
     return state.sessions.filter((sessio) => sessio.placa === placa && sessio.dia === dia);
   }
 
-  function selectedMissingItems(dia) {
-    const items = parser.agruparSessionsCobertura(sessionsProfessorDia(state.professor, dia));
-    return items
-      .filter((item) => state.missing.has(item.id))
-      .sort((a, b) => (a.hora || '').localeCompare(b.hora || '', 'ca', { numeric: true }));
+  function selectedAbsenceItems() {
+    const dia = diaXmlSeleccionat();
+    return Array.from(state.absencies.values())
+      .filter((item) => item.dia === dia)
+      .sort(sortCoverageItems);
   }
 
   function guardiesPerFranja(dia, hora, professorAbsent) {
@@ -481,14 +560,96 @@
       .sort((a, b) => (professorShort(a.placa) || a.placa).localeCompare(professorShort(b.placa) || b.placa, 'ca', { numeric: true }));
   }
 
-  function trimMissing(items) {
+  function trimCurrentProfessorAbsences(items) {
     const valid = new Set(items.map((item) => item.id));
-    Array.from(state.missing).forEach((id) => {
-      if (!valid.has(id)) {
-        state.missing.delete(id);
+    Array.from(state.absencies.entries()).forEach(([id, item]) => {
+      if (item.placa === state.professor && item.dia === diaXmlSeleccionat() && !valid.has(id)) {
+        state.absencies.delete(id);
         state.assignacions.delete(id);
       }
     });
+  }
+
+  function clearCurrentProfessorAbsences() {
+    const dia = diaXmlSeleccionat();
+    Array.from(state.absencies.entries()).forEach(([id, item]) => {
+      if (item.placa === state.professor && item.dia === dia) {
+        state.absencies.delete(id);
+        state.assignacions.delete(id);
+      }
+    });
+  }
+
+  function sortCoverageItems(a, b) {
+    const hora = (a.hora || '').localeCompare(b.hora || '', 'ca', { numeric: true });
+    if (hora) return hora;
+    const professor = labelProfessor(a.placa).localeCompare(labelProfessor(b.placa), 'ca', { numeric: true });
+    if (professor) return professor;
+    return formatMateria(a).localeCompare(formatMateria(b), 'ca', { numeric: true });
+  }
+
+  function groupBySession(items) {
+    const groups = new Map();
+    items.forEach((item) => {
+      if (!groups.has(item.hora)) groups.set(item.hora, []);
+      groups.get(item.hora).push(item);
+    });
+    return Array.from(groups.entries()).map(([hora, groupItems]) => ({
+      hora,
+      items: groupItems.sort(sortCoverageItems),
+    }));
+  }
+
+  function hoursForSelectedDay() {
+    const dia = diaXmlSeleccionat();
+    const hores = (state.resum?.franges || [])
+      .filter((franja) => franja.dia === dia)
+      .map((franja) => franja.hora);
+    const unique = Array.from(new Set(hores));
+    if (unique.length) {
+      return unique.sort((a, b) => a.localeCompare(b, 'ca', { numeric: true }));
+    }
+    return (state.resum?.hores || []).slice().sort((a, b) => a.localeCompare(b, 'ca', { numeric: true }));
+  }
+
+  function renderCoverageItem(item) {
+    const candidates = guardiesPerFranja(item.dia, item.hora, item.placa);
+    const assignat = state.assignacions.get(item.id) || '';
+    const hasCandidates = candidates.length > 0;
+    const assignatLabel = assignat ? labelProfessor(assignat) : 'Pendent';
+
+    return `
+      <article class="coverage-item ${assignat ? 'covered' : ''}">
+        <div class="coverage-head">
+          <div>
+            <div class="session-title">
+              <span class="absent-name">${escapeHtml(labelProfessor(item.placa))}</span>
+              <span class="screen-only"> · ${escapeHtml(formatMateria(item))}</span>
+            </div>
+            <div class="session-meta">${escapeHtml(formatMateria(item))} · ${escapeHtml(formatBlocCurt(item))}</div>
+          </div>
+          <span class="pill">${assignat ? 'Assignada' : hasCandidates ? `${candidates.length} guardies` : 'Sense guàrdies'}</span>
+        </div>
+        <div class="assignment">
+          <select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates ? '' : 'disabled'}>
+            <option value="">Tria professorat de guàrdia</option>
+            ${candidates.map((candidate) => `
+              <option value="${escapeHtml(candidate.placa)}" ${candidate.placa === assignat ? 'selected' : ''}>
+                ${escapeHtml(labelProfessor(candidate.placa))} · ${escapeHtml(formatSessionsActivitat(candidate.guardies))}
+              </option>
+            `).join('')}
+          </select>
+          <button type="button" class="ghost" data-clear-assignacio="${escapeHtml(item.id)}">Neteja</button>
+          <button type="button" class="ghost" data-remove-absence="${escapeHtml(item.id)}">Treu</button>
+          <span class="print-only print-assignment">Guàrdia: ${escapeHtml(assignatLabel)}</span>
+        </div>
+      </article>
+    `;
+  }
+
+  function horaLabel(hora) {
+    const index = hoursForSelectedDay().indexOf(hora);
+    return index >= 0 ? `${index + 1}a hora · ${hora}` : hora;
   }
 
   function professorInfo(placa) {
@@ -522,6 +683,11 @@
     return 'Classe';
   }
 
+  function isAbsenceSelectable(item) {
+    return item.sessions.some((sessio) => sessio.teClasse) ||
+      Boolean(item.activitat && state.guardiaCodes.has(item.activitat));
+  }
+
   function formatSessionsActivitat(sessions) {
     const labels = Array.from(new Set(sessions.map((sessio) => (
       sessio.activitatCurta || sessio.activitatNom || sessio.activitat
@@ -543,6 +709,18 @@
     else if (item.cursos.length) parts.push(`Curs ${item.cursos.join(' + ')}`);
     if (item.aulaNom || item.aula) parts.push(item.aulaNom || `Aula ${item.aula}`);
     return parts.join(' · ') || 'Sense grup';
+  }
+
+  function normalizeSearch(value) {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  function plural(count, singular, pluralText) {
+    return `${count} ${count === 1 ? singular : pluralText}`;
   }
 
   function diaXmlSeleccionat() {

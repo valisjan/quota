@@ -42,7 +42,7 @@
       </section>
 
       <section id="workspace" class="workspace hidden">
-        <section class="stats" aria-label="Resum del XML">
+        <section class="stats hidden" aria-label="Resum del XML">
           <article class="stat">
             <span>Sessions</span>
             <strong id="stat-sessions">0</strong>
@@ -65,56 +65,66 @@
           </article>
         </section>
 
-        <section class="layout">
-          <aside class="panel controls">
-            <div class="panel-header">
-              <p class="kicker">Professorat</p>
-              <h2>Qui falta?</h2>
-            </div>
-
+        <section class="panel selector-panel no-print">
+          <div class="selector-grid">
             <label>
-              Professor absent
-              <select id="professor-select"></select>
-            </label>
-
-            <label class="mt-field">
-              Data de l'absència
+              Data
               <input id="date-input" type="date" />
             </label>
-            <p id="date-label" class="date-label">Selecciona una data.</p>
 
-            <div class="block">
+            <div class="teacher-search">
+              <label for="professor-search">Professor absent</label>
+              <input id="professor-search" type="search" autocomplete="off" placeholder="Cerca per codi o plaça..." />
+              <select id="professor-select" class="hidden"></select>
+              <div id="professor-results" class="search-results" aria-label="Resultats de professorat"></div>
+            </div>
+
+            <div class="selected-box">
+              <span>Seleccionat</span>
+              <strong id="selected-professor-label">Cap professor</strong>
+              <p id="date-label" class="date-label">Selecciona una data.</p>
+            </div>
+
+            <details class="guard-details">
+              <summary>Activitat Guà</summary>
               <div class="block-title">
-                <h3>Activitat Guà</h3>
+                <p class="hint">Si el XML de GestIB està carregat, Guà es marca automàticament.</p>
                 <button id="clear-guard-codes" type="button" class="ghost">Neteja</button>
               </div>
-              <p class="hint">Si el XML de GestIB està carregat, Guà es marca automàticament.</p>
               <div id="activity-list" class="activity-list"></div>
+            </details>
+          </div>
+        </section>
+
+        <section class="guard-workbench">
+          <section class="panel schedule-panel">
+            <div class="panel-header row">
+              <div>
+                <p class="kicker">Horari</p>
+                <h2 id="schedule-title">Sessions del professor</h2>
+              </div>
+              <button id="clear-missing" type="button" class="ghost">Neteja professor</button>
             </div>
-          </aside>
+            <div id="schedule-grid" class="schedule-grid"></div>
+          </section>
 
-          <section class="content">
-            <section class="panel">
-              <div class="panel-header row">
-                <div>
-                  <p class="kicker">Horari</p>
-                  <h2 id="schedule-title">Sessions del professor</h2>
-                </div>
-                <button id="clear-missing" type="button" class="ghost">Neteja selecció</button>
+          <section class="panel day-panel">
+            <div class="print-header">
+              <h1>Guàrdies del dia</h1>
+              <p id="print-date-label"></p>
+            </div>
+            <div class="panel-header row">
+              <div>
+                <p class="kicker">Dia</p>
+                <h2>Absències per hora</h2>
               </div>
-              <div id="schedule-grid" class="schedule-grid"></div>
-            </section>
-
-            <section class="panel">
-              <div class="panel-header row">
-                <div>
-                  <p class="kicker">Cobertura</p>
-                  <h2>Guàrdies disponibles</h2>
-                </div>
+              <div class="coverage-actions">
                 <span id="coverage-count" class="pill">0 sessions</span>
+                <button id="print-coverage" type="button" class="ghost">Imprimeix</button>
+                <button id="clear-day-list" type="button" class="ghost">Neteja llistat</button>
               </div>
-              <div id="coverage-list" class="coverage-list"></div>
-            </section>
+            </div>
+            <div id="coverage-list" class="coverage-list"></div>
           </section>
         </section>
       </section>
