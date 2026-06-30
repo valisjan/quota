@@ -1,22 +1,34 @@
 (function initGuardiesLab() {
   const parser = window.HorariXmlParser;
-  const STORAGE_GUARD_CODES = 'quota_guardies_lab_codes';
-  const STORAGE_ABBR_MAP = 'quota_guardies_lab_abbr_map';
+
+  const STORAGE = {
+    referenceXml: 'quota_guardies_lab_reference_xml',
+    referenceName: 'quota_guardies_lab_reference_name',
+    scheduleXml: 'quota_guardies_lab_schedule_xml',
+    scheduleName: 'quota_guardies_lab_schedule_name',
+    guardCodes: 'quota_guardies_lab_codes',
+  };
 
   const state = {
+    referenceText: storageGet(STORAGE.referenceXml, ''),
+    referenceName: storageGet(STORAGE.referenceName, ''),
+    scheduleText: storageGet(STORAGE.scheduleXml, ''),
+    scheduleName: storageGet(STORAGE.scheduleName, ''),
+    referencia: null,
     sessions: [],
     resum: null,
     professor: '',
     date: localDateString(new Date()),
-    guardiaCodes: new Set(loadJson(STORAGE_GUARD_CODES, [])),
-    abbrText: localStorage.getItem(STORAGE_ABBR_MAP) || '',
-    abbrMap: new Map(),
+    guardiaCodes: new Set(loadJson(STORAGE.guardCodes, [])),
     missing: new Set(),
     assignacions: new Map(),
   };
 
   const el = {
+    referenceFile: document.getElementById('reference-file'),
     file: document.getElementById('xml-file'),
+    clearCache: document.getElementById('clear-cache'),
+    cacheInfo: document.getElementById('cache-info'),
     error: document.getElementById('error-box'),
     empty: document.getElementById('empty-state'),
     workspace: document.getElementById('workspace'),
@@ -24,12 +36,10 @@
     statProfessors: document.getElementById('stat-professors'),
     statGrups: document.getElementById('stat-grups'),
     statActivitats: document.getElementById('stat-activitats'),
+    statReference: document.getElementById('stat-reference'),
     professorSelect: document.getElementById('professor-select'),
     dateInput: document.getElementById('date-input'),
     dateLabel: document.getElementById('date-label'),
-    abbrMapInput: document.getElementById('abbr-map-input'),
-    abbrMapCount: document.getElementById('abbr-map-count'),
-    applyAbbrMap: document.getElementById('apply-abbr-map'),
     activityList: document.getElementById('activity-list'),
     clearGuardCodes: document.getElementById('clear-guard-codes'),
     scheduleTitle: document.getElementById('schedule-title'),
@@ -39,12 +49,11 @@
     coverageList: document.getElementById('coverage-list'),
   };
 
-  state.abbrMap = parseAbbrMap(state.abbrText);
-  el.abbrMapInput.value = state.abbrText;
   el.dateInput.value = state.date;
-  updateAbbrCount();
 
-  el.file.addEventListener('change', onFileChange);
+  el.referenceFile.addEventListener('change', onReferenceFileChange);
+  el.file.addEventListener('change', onScheduleFileChange);
+  el.clearCache.addEventListener('click', clearLocalData);
   el.professorSelect.addEventListener('change', () => {
     state.professor = el.professorSelect.value;
     state.missing.clear();
@@ -55,14 +64,6 @@
     state.date = el.dateInput.value;
     state.missing.clear();
     state.assignacions.clear();
-    render();
-  });
-  el.applyAbbrMap.addEventListener('click', () => {
-    state.abbrText = el.abbrMapInput.value || '';
-    state.abbrMap = parseAbbrMap(state.abbrText);
-    localStorage.setItem(STORAGE_ABBR_MAP, state.abbrText);
-    updateAbbrCount();
-    renderProfessorSelect();
     render();
   });
   el.clearGuardCodes.addEventListener('click', () => {
@@ -76,6 +77,8 @@
     render();
   });
 
+  parseStoredData({ resetSelection: true });
+
   function loadJson(key, fallback) {
     try {
       return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
@@ -84,8 +87,36 @@
     }
   }
 
+  function storageGet(key, fallback) {
+    try {
+      return localStorage.getItem(key) || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function storageSet(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      showError(`No s'ha pogut guardar el fitxer al navegador. ${error.message || error}`);
+      return false;
+    }
+  }
+
+  function storageRemove(keys) {
+    keys.forEach((key) => {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        // Ignorem errors de neteja local: la pantalla es torna a renderitzar igualment.
+      }
+    });
+  }
+
   function saveGuardCodes() {
-    localStorage.setItem(STORAGE_GUARD_CODES, JSON.stringify(Array.from(state.guardiaCodes)));
+    storageSet(STORAGE.guardCodes, JSON.stringify(Array.from(state.guardiaCodes)));
   }
 
   function showError(message) {
@@ -93,36 +124,138 @@
     el.error.classList.toggle('hidden', !message);
   }
 
-  function readFileText(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result || '');
-      reader.onerror = () => reject(new Error("No s'ha pogut llegir el fitxer."));
-      reader.readAsText(file, 'ISO-8859-1');
-    });
+  async function readXmlFileText(file) {
+    const buffer = await file.arrayBuffer();
+    const header = new TextDecoder('windows-1252').decode(buffer.slice(0, 300));
+    const declared = (header.match(/encoding=["']([^"']+)/i)?.[1] || '').toLowerCase();
+    const encoding = declared.includes('iso-8859-1') || declared.includes('windows-1252')
+      ? 'windows-1252'
+      : 'utf-8';
+
+    try {
+      return new TextDecoder(encoding).decode(buffer);
+    } catch {
+      return new TextDecoder('utf-8').decode(buffer);
+    }
   }
 
-  async function onFileChange(event) {
+  async function onReferenceFileChange(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
 
     try {
       showError('');
-      const text = await readFileText(file);
-      const result = parser.parseHorariXml(text);
-      state.sessions = result.sessions;
-      state.resum = result.resum;
-      state.professor = '';
-      state.missing.clear();
-      state.assignacions.clear();
-      renderInitialData();
+      const text = await readXmlFileText(file);
+      state.referenceText = text;
+      state.referenceName = file.name;
+      storageSet(STORAGE.referenceXml, text);
+      storageSet(STORAGE.referenceName, file.name);
+      if (state.scheduleText) {
+        reloadFromCache();
+      } else {
+        parseStoredData({ resetSelection: false });
+      }
+    } catch (error) {
+      showError(error.message || String(error));
       render();
+    } finally {
+      event.target.value = '';
+    }
+  }
+
+  async function onScheduleFileChange(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    try {
+      showError('');
+      const text = await readXmlFileText(file);
+      state.scheduleText = text;
+      state.scheduleName = file.name;
+      storageSet(STORAGE.scheduleXml, text);
+      storageSet(STORAGE.scheduleName, file.name);
+      reloadFromCache();
+    } catch (error) {
+      showError(error.message || String(error));
+      render();
+    } finally {
+      event.target.value = '';
+    }
+  }
+
+  function parseStoredData({ resetSelection }) {
+    let referenceError = '';
+    state.referencia = null;
+
+    if (state.referenceText) {
+      try {
+        state.referencia = parser.parseGestibReference(state.referenceText);
+      } catch (error) {
+        referenceError = error.message || String(error);
+      }
+    }
+
+    try {
+      if (state.scheduleText) {
+        const result = parser.parseHorariXml(state.scheduleText, state.referencia);
+        state.sessions = result.sessions;
+        state.resum = result.resum;
+        applyDefaultGuardiaCodes(result.defaultGuardiaCodes);
+        if (resetSelection) {
+          state.professor = '';
+          state.missing.clear();
+          state.assignacions.clear();
+        }
+        renderInitialData();
+      } else {
+        state.sessions = [];
+        state.resum = null;
+      }
+
+      showError(referenceError ? `El XML de GestIB no s'ha pogut llegir: ${referenceError}` : '');
     } catch (error) {
       state.sessions = [];
       state.resum = null;
+      state.professor = '';
+      state.missing.clear();
+      state.assignacions.clear();
       showError(error.message || String(error));
-      render();
     }
+
+    render();
+  }
+
+  function reloadFromCache() {
+    window.setTimeout(() => window.location.reload(), 50);
+  }
+
+  function applyDefaultGuardiaCodes(defaultCodes) {
+    const candidates = (defaultCodes || []).filter(Boolean);
+    if (!candidates.length) return;
+
+    const activityValues = new Set((state.resum?.activitats || []).map((activitat) => activitat.valor));
+    const hasValidSelection = Array.from(state.guardiaCodes).some((code) => activityValues.has(code));
+    if (hasValidSelection) return;
+
+    state.guardiaCodes = new Set(candidates);
+    saveGuardCodes();
+  }
+
+  function clearLocalData() {
+    storageRemove(Object.values(STORAGE));
+    state.referenceText = '';
+    state.referenceName = '';
+    state.scheduleText = '';
+    state.scheduleName = '';
+    state.referencia = null;
+    state.sessions = [];
+    state.resum = null;
+    state.professor = '';
+    state.guardiaCodes.clear();
+    state.missing.clear();
+    state.assignacions.clear();
+    showError('');
+    render();
   }
 
   function renderInitialData() {
@@ -131,12 +264,17 @@
     el.statProfessors.textContent = state.resum.professors;
     el.statGrups.textContent = state.resum.grups;
     el.statActivitats.textContent = state.resum.activitats.length;
+    el.statReference.textContent = state.referencia ? 'Sí' : state.referenceText ? 'Error' : 'No';
     renderProfessorSelect();
     renderActivityList();
   }
 
   function renderProfessorSelect() {
-    if (!state.sessions.length) return;
+    if (!state.sessions.length) {
+      el.professorSelect.innerHTML = '';
+      return;
+    }
+
     const professors = professorsOrdenatsAmbLabel();
     if (!state.professor || !professors.some((prof) => prof.placa === state.professor)) {
       state.professor = professors[0]?.placa || '';
@@ -153,10 +291,14 @@
     return parser.professorsOrdenats(state.sessions)
       .map((professor) => ({
         ...professor,
-        abbr: abbrProfessor(professor.placa),
+        short: professorShort(professor.placa),
+        hasShort: Boolean(professorInfo(professor.placa).short),
         label: labelProfessor(professor.placa),
       }))
-      .sort((a, b) => (a.abbr || a.placa).localeCompare(b.abbr || b.placa, 'ca', { numeric: true }));
+      .sort((a, b) => {
+        if (a.hasShort !== b.hasShort) return a.hasShort ? -1 : 1;
+        return (a.short || a.placa).localeCompare(b.short || b.placa, 'ca', { numeric: true });
+      });
   }
 
   function renderActivityList() {
@@ -168,10 +310,11 @@
 
     el.activityList.innerHTML = activitats.map((activitat) => {
       const checked = state.guardiaCodes.has(activitat.valor) ? 'checked' : '';
+      const info = activityInfo(activitat.valor);
       return `
         <label class="activity-item">
           <input type="checkbox" value="${escapeHtml(activitat.valor)}" ${checked} />
-          <span class="activity-code">Activitat ${escapeHtml(activitat.valor)}</span>
+          <span class="activity-code">${escapeHtml(info.label)}</span>
           <span class="activity-count">${activitat.count}</span>
         </label>
       `;
@@ -188,15 +331,25 @@
   }
 
   function render() {
+    renderCacheInfo();
     const teDades = Boolean(state.sessions.length);
     el.workspace.classList.toggle('hidden', !teDades);
     el.empty.classList.toggle('hidden', teDades);
     if (!teDades) return;
 
+    renderInitialData();
     renderDateLabel();
-    renderActivityList();
     renderSchedule();
     renderCoverage();
+  }
+
+  function renderCacheInfo() {
+    const parts = [];
+    if (state.referenceText) parts.push(`GestIB: ${state.referenceName || 'carregat'}`);
+    if (state.scheduleText) parts.push(`Horari: ${state.scheduleName || 'carregat'}`);
+    el.cacheInfo.textContent = parts.length
+      ? `Memòria local: ${parts.join(' · ')}`
+      : 'Els fitxers quedaran guardats en aquest navegador.';
   }
 
   function renderDateLabel() {
@@ -258,7 +411,7 @@
     el.coverageCount.textContent = `${selected.length} sessions · ${pendents} pendents`;
 
     if (!state.guardiaCodes.size) {
-      el.coverageList.innerHTML = '<div class="empty-small">Marca el codi de Guà per trobar professorat de guàrdia.</div>';
+      el.coverageList.innerHTML = `<div class="empty-small">Marca l'activitat de guàrdia per trobar professorat disponible.</div>`;
       return;
     }
 
@@ -278,11 +431,11 @@
               <div class="session-title">${escapeHtml(item.hora)} · ${escapeHtml(formatMateria(item))}</div>
               <div class="session-meta">${escapeHtml(formatBlocCurt(item))}</div>
             </div>
-            <span class="pill">${assignat ? 'Assignada' : hasCandidates ? `${candidates.length} Guà` : 'Sense Guà'}</span>
+            <span class="pill">${assignat ? 'Assignada' : hasCandidates ? `${candidates.length} guardies` : 'Sense guàrdies'}</span>
           </div>
           <div class="assignment">
             <select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates ? '' : 'disabled'}>
-              <option value="">Tria professor de Guà</option>
+              <option value="">Tria professorat de guàrdia</option>
               ${candidates.map((candidate) => `
                 <option value="${escapeHtml(candidate.placa)}" ${candidate.placa === assignat ? 'selected' : ''}>
                   ${escapeHtml(labelProfessor(candidate.placa))} · ${escapeHtml(formatSessionsActivitat(candidate.guardies))}
@@ -325,7 +478,7 @@
   function guardiesPerFranja(dia, hora, professorAbsent) {
     return parser.ocupacioFranja(state.sessions, dia, hora, state.guardiaCodes)
       .filter((professor) => professor.placa !== professorAbsent && professor.guardies.length)
-      .sort((a, b) => (abbrProfessor(a.placa) || a.placa).localeCompare(abbrProfessor(b.placa) || b.placa, 'ca', { numeric: true }));
+      .sort((a, b) => (professorShort(a.placa) || a.placa).localeCompare(professorShort(b.placa) || b.placa, 'ca', { numeric: true }));
   }
 
   function trimMissing(items) {
@@ -336,6 +489,60 @@
         state.assignacions.delete(id);
       }
     });
+  }
+
+  function professorInfo(placa) {
+    const sessio = state.sessions.find((item) => item.placa === placa && (item.professorCurta || item.professorNom));
+    return {
+      short: sessio?.professorCurta || '',
+      name: sessio?.professorNom || '',
+    };
+  }
+
+  function professorShort(placa) {
+    return professorInfo(placa).short || placa;
+  }
+
+  function labelProfessor(placa) {
+    const info = professorInfo(placa);
+    return info.short ? `${info.short} · plaça ${placa}` : `Plaça ${placa}`;
+  }
+
+  function activityInfo(code) {
+    const info = state.referencia?.activitats?.get(code);
+    const label = info
+      ? `${info.label || info.descripcio || 'Activitat'} · ${code}`
+      : `Activitat ${code}`;
+    return { label, info };
+  }
+
+  function tipusItem(item) {
+    if (item.activitat && state.guardiaCodes.has(item.activitat)) return 'Guàrdia';
+    if (item.activitat) return item.activitatCurta || item.activitatNom || `Activitat ${item.activitat}`;
+    return 'Classe';
+  }
+
+  function formatSessionsActivitat(sessions) {
+    const labels = Array.from(new Set(sessions.map((sessio) => (
+      sessio.activitatCurta || sessio.activitatNom || sessio.activitat
+    )).filter(Boolean)));
+    return labels.length ? labels.join(', ') : 'Guàrdia';
+  }
+
+  function formatMateria(item) {
+    if (item.materia) return item.materiaCurta || item.materiaNom || `Matèria ${item.materia}`;
+    if (item.activitat) return item.activitatCurta || item.activitatNom || `Activitat ${item.activitat}`;
+    return 'Sessió';
+  }
+
+  function formatBlocCurt(item) {
+    const parts = [];
+    if (item.grupsVisibles?.length) parts.push(item.grupsVisibles.join(' + '));
+    else if (item.grups.length) parts.push(`Grup ${item.grups.join(' + ')}`);
+    else if (item.cursosVisibles?.length) parts.push(item.cursosVisibles.join(' + '));
+    else if (item.cursos.length) parts.push(`Curs ${item.cursos.join(' + ')}`);
+    if (item.aulaNom || item.aula) parts.push(item.aulaNom || `Aula ${item.aula}`);
+    return parts.join(' · ') || 'Sense grup';
   }
 
   function diaXmlSeleccionat() {
@@ -363,57 +570,6 @@
       month: '2-digit',
       year: 'numeric',
     }).format(date);
-  }
-
-  function parseAbbrMap(text) {
-    const map = new Map();
-    String(text || '').split(/\r?\n/).forEach((line) => {
-      const clean = line.trim();
-      if (!clean || clean.startsWith('#')) return;
-      const parts = clean.split(/[;,]/).map((part) => part.trim()).filter(Boolean);
-      if (parts.length < 2) return;
-      map.set(parts[0], parts[1].toUpperCase());
-    });
-    return map;
-  }
-
-  function updateAbbrCount() {
-    const count = state.abbrMap.size;
-    el.abbrMapCount.textContent = `${count} ${count === 1 ? 'equivalència carregada' : 'equivalències carregades'}.`;
-  }
-
-  function abbrProfessor(placa) {
-    return state.abbrMap.get(placa) || '';
-  }
-
-  function labelProfessor(placa) {
-    const abbr = abbrProfessor(placa);
-    return abbr ? `${abbr} · ${placa}` : `Placa ${placa}`;
-  }
-
-  function tipusItem(item) {
-    if (item.activitat && state.guardiaCodes.has(item.activitat)) return 'Guà';
-    if (item.activitat) return `Act. ${item.activitat}`;
-    return 'Classe';
-  }
-
-  function formatSessionsActivitat(sessions) {
-    const codis = Array.from(new Set(sessions.map((s) => s.activitat).filter(Boolean)));
-    return codis.length ? `Guà ${codis.join(', ')}` : 'Guà';
-  }
-
-  function formatMateria(item) {
-    if (item.materia) return `Matèria ${item.materia}`;
-    if (item.activitat) return `Activitat ${item.activitat}`;
-    return 'Sessió';
-  }
-
-  function formatBlocCurt(item) {
-    const parts = [];
-    if (item.cursos.length) parts.push(`Curs ${item.cursos.join('+')}`);
-    if (item.grups.length) parts.push(`Grup ${item.grups.join('+')}`);
-    if (item.aula) parts.push(`Aula ${item.aula}`);
-    return parts.join(' · ') || 'Sense grup';
   }
 
   function escapeHtml(value) {

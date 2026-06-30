@@ -15,20 +15,30 @@
           <p class="kicker">Laboratori local</p>
           <h1>Gestió de guàrdies</h1>
           <p class="lead">
-            Selecciona el professorat absent, marca les sessions que falten i comprova qui té guàrdia a la mateixa franja.
+            Carrega el XML de GestIB i el XML d'horari retornat per trobar qui té Guà a cada franja.
           </p>
         </div>
-        <label class="upload">
-          <span>Carrega XML</span>
-          <input id="xml-file" type="file" accept=".xml,text/xml,application/xml,*/*" />
-        </label>
+        <div class="upload-group">
+          <div class="upload-row">
+            <label class="upload upload-secondary">
+              <span>XML GestIB</span>
+              <input id="reference-file" type="file" accept=".xml,text/xml,application/xml,*/*" />
+            </label>
+            <label class="upload">
+              <span>XML horari</span>
+              <input id="xml-file" type="file" accept=".xml,text/xml,application/xml,*/*" />
+            </label>
+            <button id="clear-cache" type="button" class="ghost upload-clear">Neteja memòria</button>
+          </div>
+          <p id="cache-info" class="cache-info">Els fitxers quedaran guardats en aquest navegador.</p>
+        </div>
       </header>
 
       <section id="error-box" class="alert hidden" role="alert"></section>
 
       <section id="empty-state" class="empty">
         <h2>Cap horari carregat</h2>
-        <p>Carrega un XML amb l'estructura HORARI / SESSIO per començar.</p>
+        <p>Carrega primer el XML de GestIB i després el XML d'horari retornat. La propera vegada s'obriran sols en aquest navegador.</p>
       </section>
 
       <section id="workspace" class="workspace hidden">
@@ -48,6 +58,10 @@
           <article class="stat">
             <span>Activitats</span>
             <strong id="stat-activitats">0</strong>
+          </article>
+          <article class="stat">
+            <span>Referència</span>
+            <strong id="stat-reference">No</strong>
           </article>
         </section>
 
@@ -71,28 +85,10 @@
 
             <div class="block">
               <div class="block-title">
-                <h3>Equivalències</h3>
-                <button id="apply-abbr-map" type="button" class="ghost">Aplica</button>
-              </div>
-              <p class="hint">
-                Temporal per al laboratori. Una línia per professor: <code>placa, ABRV</code>.
-              </p>
-              <textarea
-                id="abbr-map-input"
-                class="map-input"
-                rows="7"
-                spellcheck="false"
-                placeholder="213036, VILA&#10;9392, GILI"
-              ></textarea>
-              <p id="abbr-map-count" class="hint tight">0 equivalències carregades.</p>
-            </div>
-
-            <div class="block">
-              <div class="block-title">
                 <h3>Activitat Guà</h3>
                 <button id="clear-guard-codes" type="button" class="ghost">Neteja</button>
               </div>
-              <p class="hint">Marca quines activitats del XML són hores de guàrdia.</p>
+              <p class="hint">Si el XML de GestIB està carregat, Guà es marca automàticament.</p>
               <div id="activity-list" class="activity-list"></div>
             </div>
           </aside>

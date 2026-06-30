@@ -156,6 +156,19 @@ h3 {
   font-size: 1rem;
 }
 
+.upload-group {
+  display: grid;
+  gap: 8px;
+  min-width: min(100%, 520px);
+}
+
+.upload-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .upload {
   display: inline-flex;
   min-height: 46px;
@@ -169,8 +182,31 @@ h3 {
   cursor: pointer;
 }
 
+.upload-secondary {
+  border: 1px solid #bac6e9;
+  background: #eef3ff;
+  color: #3344a0;
+}
+
+.upload-secondary:hover {
+  background: #e1e9ff;
+}
+
+.upload-clear {
+  min-height: 46px;
+}
+
 .upload input {
   display: none;
+}
+
+.cache-info {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: right;
 }
 
 .empty,
@@ -197,7 +233,7 @@ h3 {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }

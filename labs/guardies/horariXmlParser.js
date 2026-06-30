@@ -98,6 +98,137 @@
     return sessio;
   }
 
+  function codiCursVisible(descripcio) {
+    const text = (descripcio || '').toString().trim();
+    const eso = text.match(/^([1-4])r?\s*ESO$/i) || text.match(/^([1-4])n\s*ESO$/i);
+    if (eso) return `${eso[1]}ESO`;
+    const batx = text.match(/^([12])(?:r|n)?\s*Batx/i);
+    if (batx) return `${batx[1]}BAT`;
+    return text.replace(/\s+/g, '');
+  }
+
+  function netejarAsterisc(text) {
+    return (text || '').toString().replace(/^\s*\*/, '').trim();
+  }
+
+  function parseGestibReference(text) {
+    const xml = parseXmlRobust(text);
+    const root = xml.documentElement;
+    const rootName = (root && (root.localName || root.nodeName) || '').toUpperCase();
+    if (rootName !== 'CENTRE') {
+      throw new Error(`El XML de referència ha de tenir arrel CENTRE. Arrel detectada: ${rootName || 'desconeguda'}.`);
+    }
+
+    const cursos = new Map();
+    const grups = new Map();
+    nodesPerTag(xml, 'CURS').forEach((node) => {
+      const codi = atribut(node, 'codi');
+      const descripcio = atribut(node, 'descripcio');
+      const visible = codiCursVisible(descripcio);
+      if (codi) cursos.set(codi, { codi, descripcio, visible });
+      nodesPerTag(node, 'GRUP').forEach((grupNode) => {
+        const grupCodi = atribut(grupNode, 'codi');
+        const nom = atribut(grupNode, 'nom');
+        if (grupCodi) {
+          grups.set(grupCodi, {
+            codi: grupCodi,
+            nom,
+            curs: codi,
+            cursVisible: visible,
+            visible: visible && nom ? `${visible}-${nom}` : nom || grupCodi,
+          });
+        }
+      });
+    });
+
+    const places = new Map();
+    nodesPerTag(xml, 'PLACA').forEach((node) => {
+      const codi = atribut(node, 'codi');
+      if (!codi) return;
+      places.set(codi, {
+        codi,
+        curta: atribut(node, 'curta'),
+        descripcio: atribut(node, 'descripcio'),
+      });
+    });
+
+    const materies = new Map();
+    nodesPerTag(xml, 'MATERIA').forEach((node) => {
+      const codi = atribut(node, 'codi');
+      if (!codi) return;
+      materies.set(codi, {
+        codi,
+        curs: atribut(node, 'curs'),
+        descripcio: atribut(node, 'descripcio'),
+        curta: atribut(node, 'curta'),
+      });
+    });
+
+    const activitats = new Map();
+    nodesPerTag(xml, 'ACTIVITAT').forEach((node) => {
+      const codi = atribut(node, 'codi');
+      if (!codi) return;
+      const descripcio = atribut(node, 'descripcio');
+      const curta = atribut(node, 'curta');
+      const text = `${netejarAsterisc(descripcio)} ${netejarAsterisc(curta)}`.toLowerCase();
+      activitats.set(codi, {
+        codi,
+        descripcio,
+        curta,
+        label: curta || descripcio || codi,
+        esGuardia: text.includes('guàrdia') || text.includes('guardia'),
+        esGuardiaGeneral:
+          (text.includes('guàrdia') || text.includes('guardia')) &&
+          !text.includes('pati') &&
+          !text.includes('biblioteca'),
+      });
+    });
+
+    const aules = new Map();
+    nodesPerTag(xml, 'AULA').forEach((node) => {
+      const codi = atribut(node, 'codi');
+      if (!codi) return;
+      aules.set(codi, {
+        codi,
+        descripcio: atribut(node, 'descripcio'),
+      });
+    });
+
+    return {
+      centre: atribut(root, 'codi'),
+      any: atribut(root, 'any'),
+      cursos,
+      grups,
+      places,
+      materies,
+      activitats,
+      aules,
+    };
+  }
+
+  function enriquirSessio(sessio, referencia) {
+    if (!referencia) return sessio;
+    const placa = referencia.places?.get(sessio.placa);
+    const grup = referencia.grups?.get(sessio.grup);
+    const materia = referencia.materies?.get(sessio.materia);
+    const activitat = referencia.activitats?.get(sessio.activitat);
+    const aula = referencia.aules?.get(sessio.aula);
+    return {
+      ...sessio,
+      professorCurta: placa?.curta || sessio.professorCurta || '',
+      professorNom: placa?.descripcio || '',
+      grupVisible: grup?.visible || sessio.grupVisible || '',
+      cursVisible: grup?.cursVisible || referencia.cursos?.get(sessio.curs)?.visible || '',
+      materiaCurta: materia?.curta || sessio.materiaCurta || '',
+      materiaNom: materia?.descripcio || '',
+      activitatCurta: activitat?.curta || sessio.activitatCurta || '',
+      activitatNom: activitat?.descripcio || '',
+      activitatEsGuardia: Boolean(activitat?.esGuardia),
+      activitatEsGuardiaGeneral: Boolean(activitat?.esGuardiaGeneral),
+      aulaNom: aula?.descripcio || '',
+    };
+  }
+
   function uniq(values) {
     return Array.from(new Set(values.filter(Boolean)));
   }
@@ -147,7 +278,7 @@
     };
   }
 
-  function parseHorariXml(text) {
+  function parseHorariXml(text, referencia = null) {
     const xml = parseXmlRobust(text);
     const root = xml.documentElement;
     const rootName = (root && (root.localName || root.nodeName) || '').toUpperCase();
@@ -157,6 +288,7 @@
 
     const sessions = nodesPerTag(xml, 'SESSIO')
       .map(normalitzarSessio)
+      .map((sessio) => enriquirSessio(sessio, referencia))
       .sort(ordenarSessions);
 
     if (!sessions.length) {
@@ -164,8 +296,12 @@
     }
 
     return {
+      format: 'xml',
       sessions,
       resum: resumSessions(sessions),
+      defaultGuardiaCodes: sessions.some((s) => s.activitatEsGuardiaGeneral)
+        ? [...new Set(sessions.filter((s) => s.activitatEsGuardiaGeneral).map((s) => s.activitat))]
+        : [],
     };
   }
 
@@ -199,24 +335,35 @@
           diaLabel: sessio.diaLabel,
           hora: sessio.hora,
           materia: sessio.materia,
+          materiaCurta: sessio.materiaCurta || '',
+          materiaNom: sessio.materiaNom || '',
           aula: sessio.aula,
+          aulaNom: sessio.aulaNom || '',
           activitat: sessio.activitat,
+          activitatCurta: sessio.activitatCurta || '',
+          activitatNom: sessio.activitatNom || '',
           cursos: new Set(),
+          cursosVisibles: new Set(),
           grups: new Set(),
+          grupsVisibles: new Set(),
           sessions: [],
         });
       }
 
       const grup = map.get(key);
       if (sessio.curs) grup.cursos.add(sessio.curs);
+      if (sessio.cursVisible) grup.cursosVisibles.add(sessio.cursVisible);
       if (sessio.grup) grup.grups.add(sessio.grup);
+      if (sessio.grupVisible) grup.grupsVisibles.add(sessio.grupVisible);
       grup.sessions.push(sessio);
     });
 
     return Array.from(map.values()).map((item) => ({
       ...item,
       cursos: Array.from(item.cursos).sort((a, b) => a.localeCompare(b, 'ca', { numeric: true })),
+      cursosVisibles: Array.from(item.cursosVisibles).sort((a, b) => a.localeCompare(b, 'ca', { numeric: true })),
       grups: Array.from(item.grups).sort((a, b) => a.localeCompare(b, 'ca', { numeric: true })),
+      grupsVisibles: Array.from(item.grupsVisibles).sort((a, b) => a.localeCompare(b, 'ca', { numeric: true })),
     }));
   }
 
@@ -253,6 +400,7 @@
     diaLabel,
     franjaKey,
     parseHorariXml,
+    parseGestibReference,
     sessionsDeFranja,
     professorsOrdenats,
     agruparSessionsCobertura,
