@@ -280,6 +280,13 @@ const tabs = [
     help: 'Validació',
     descripcio: 'Revisa estat global, validació final i informes interns de la distribució.',
   },
+  {
+    path: '/admin/consum',
+    nom: 'Consum',
+    icon: 'M3 13.5h2.25l2.25-7.5 4.5 15 3-10.5 1.5 3H21',
+    help: 'Quotes',
+    descripcio: 'Controla marge de Firebase, Firestore i Netlify per evitar sorpreses del pla gratuït.',
+  },
 ];
 
 const pestanyaActual = computed(() => tabs.find((tab) => isActive(tab)) || null);
@@ -415,6 +422,12 @@ const navegacioAdmin = computed(() => {
       estat: sense > 0 ? 'warning' : 'ready',
       badge: sense > 0 ? 'Pendent' : 'OK',
       badgeClass: sense > 0 ? 'admin-nav-badge-warning' : 'admin-nav-badge-ok',
+    }],
+    ['/admin/consum', {
+      workflowHelp: 'Vigila consum i crèdits del pla gratuït.',
+      estat: 'ready',
+      badge: 'Quotes',
+      badgeClass: 'admin-nav-badge-info',
     }],
   ]);
 

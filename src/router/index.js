@@ -12,6 +12,7 @@ const UsuarisAdmin = () => import('../components/UsuarisAdmin.vue');
 const GestioCursos = () => import('../components/GestioCursos.vue');
 const Configuracio = () => import('../components/Configuracio.vue');
 const AdminSeguiment = () => import('../components/AdminSeguiment.vue');
+const ConsumPla = () => import('../components/ConsumPla.vue');
 
 const routes = [
   { path: '/', component: Home },
@@ -30,6 +31,7 @@ const routes = [
       { path: 'parametres', component: Configuracio },
       { path: 'configuracio', redirect: '/admin/parametres' },
       { path: 'seguiment', component: AdminSeguiment },
+      { path: 'consum', component: ConsumPla },
       { path: 'estat', redirect: '/admin/seguiment' },
       { path: 'cursos', component: GestioCursos },
       { path: 'usuaris', component: UsuarisAdmin },
