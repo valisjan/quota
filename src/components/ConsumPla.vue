@@ -44,6 +44,9 @@
         </ul>
       </div>
 
+      <p v-if="avisPermisos" class="mt-4 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm font-semibold text-sky-800">
+        {{ avisPermisos }}
+      </p>
       <p v-if="error" class="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
         {{ error }}
       </p>
@@ -264,6 +267,11 @@ const links = [
 ];
 
 const filesConteig = computed(() => conteigs.value.filter((fila) => fila.count > 0));
+const falladesConteig = computed(() => conteigs.value.filter((fila) => fila.error));
+const avisPermisos = computed(() => {
+  if (!falladesConteig.value.length) return '';
+  return `${falladesConteig.value.length} comptadors protegits per permisos s'han omès. La resta de l'estimació continua sent vàlida.`;
+});
 const totalDocuments = computed(() => conteigs.value.reduce((sum, fila) => sum + fila.count, 0));
 const documentsCursActiu = computed(() =>
   conteigs.value
@@ -333,7 +341,7 @@ function collectionCount(pathSegments, label, scope = 'global') {
 }
 
 function objectiusConteig() {
-  const rootCollections = ['cursos', 'usuaris', 'preautoritzats', 'presence', 'config'];
+  const rootCollections = ['cursos', 'usuaris', 'preautoritzats', 'config'];
   const courseCollections = ['classes', 'professors', 'departaments', 'config', 'presence', 'sync_history'];
   const targets = rootCollections.map((name) => collectionCount([name], `/${name}`));
   const courseIds = new Set(cursStore.cursos.map((curs) => curs.id).filter(Boolean));
@@ -361,8 +369,8 @@ async function actualitzarEstimacio() {
       }
     }));
     conteigs.value = resultats;
-    const fallades = resultats.filter((fila) => fila.error).length;
-    error.value = fallades ? `${fallades} col·leccions no s'han pogut comptar per permisos o connexió.` : '';
+    const ok = resultats.some((fila) => !fila.error);
+    error.value = ok ? '' : "No s'ha pogut comptar cap col·lecció. Revisa connexió i permisos reals d'administració.";
     ultimaActualitzacio.value = new Date().toLocaleString('ca-ES', {
       day: '2-digit',
       month: '2-digit',
