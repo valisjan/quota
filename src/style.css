@@ -701,7 +701,7 @@
   }
 
   .admin-section-nav {
-    @apply sticky top-[4.75rem] z-30 rounded-lg border p-3;
+    @apply sticky top-[4.75rem] z-20 rounded-lg border p-3;
     background:
       linear-gradient(135deg, color-mix(in srgb, var(--surface) 90%, var(--pastel-blue-bg)), var(--surface) 62%),
       var(--surface);

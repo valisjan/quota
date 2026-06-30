@@ -1,7 +1,7 @@
 <template>
   <div class="app-shell min-h-screen">
     <a href="#main-content" class="skip-link">Saltar al contingut</a>
-    <nav class="app-nav sticky top-0 z-50 border-b shadow-sm backdrop-blur">
+    <nav class="app-nav sticky top-0 z-[100] border-b shadow-sm backdrop-blur">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between gap-4">
           <router-link to="/" class="flex shrink-0 items-center gap-3">

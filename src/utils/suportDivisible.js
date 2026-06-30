@@ -55,7 +55,7 @@ export function sdAssignacionsProfessor(professor = {}, departament = '') {
 }
 
 export function comptarSDAssignacions(professor = {}, departament = '') {
-  return sdAssignacionsProfessor(professor, departament).length;
+  return sdAssignacionsProfessor(professor, departament).filter(assignacioTeGrup).length;
 }
 
 export function crearSDAssignacio(grup = '', departament = '') {
@@ -123,7 +123,7 @@ export function ddAssignacionsProfessor(professor = {}, departament = '') {
 }
 
 export function comptarDDAssignacions(professor = {}, departament = '') {
-  return ddAssignacionsProfessor(professor, departament).length;
+  return ddAssignacionsProfessor(professor, departament).filter(assignacioTeGrup).length;
 }
 
 export function crearDDAssignacio(grup = '', departament = '') {
@@ -145,6 +145,10 @@ function senseAccents(valor) {
 
 function normalitzarClau(valor) {
   return senseAccents(valor).toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function assignacioTeGrup(assignacio = {}) {
+  return Boolean((assignacio.grup || '').toString().trim());
 }
 
 function variantsCurs(curs) {

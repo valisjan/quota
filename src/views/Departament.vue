@@ -46,7 +46,7 @@
       </div>
 
       <template v-else>
-      <div class="department-sticky-bar sticky top-[4.45rem] z-30 mb-3 backdrop-blur print-hide">
+      <div class="department-sticky-bar sticky top-[4.45rem] z-20 mb-3 backdrop-blur print-hide">
         <div class="flex min-h-16 items-center gap-3 px-3 py-2.5 sm:gap-4 sm:px-4">
             <button
               type="button"
@@ -1153,7 +1153,7 @@ function getSDAssignacions(nomProfessor) {
 }
 
 function getHoresSD(nomProfessor) {
-  return getSDAssignacions(nomProfessor).length;
+  return comptarSDAssignacions(getProfessor(nomProfessor), departamentSeleccionat.value);
 }
 
 function getDDAssignacions(nomProfessor) {
@@ -1162,7 +1162,7 @@ function getDDAssignacions(nomProfessor) {
 }
 
 function getHoresDD(nomProfessor) {
-  return getDDAssignacions(nomProfessor).length;
+  return comptarDDAssignacions(getProfessor(nomProfessor), departamentSeleccionat.value);
 }
 
 function getHoresGC(nomProfessor) {
@@ -1347,7 +1347,7 @@ async function guardarSDAssignacions(professor, assignacions) {
   try {
     await updateDoc(cursStore.docRef('professors', professor.id), {
       sdAssignacions: normalitzades,
-      sdAssignades: normalitzades.length,
+      sdAssignades: comptarSDAssignacions({ ...professor, sdAssignacions: normalitzades }, departamentSeleccionat.value),
       lastModified: serverTimestamp(),
     });
   } catch (e) {
@@ -1394,7 +1394,7 @@ async function guardarDDAssignacions(professor, assignacions) {
   try {
     await updateDoc(cursStore.docRef('professors', professor.id), {
       ddAssignacions: normalitzades,
-      ddAssignades: normalitzades.length,
+      ddAssignades: comptarDDAssignacions({ ...professor, ddAssignacions: normalitzades }, departamentSeleccionat.value),
       lastModified: serverTimestamp(),
     });
   } catch (e) {
