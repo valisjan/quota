@@ -48,7 +48,6 @@ function tipusTeGermanesBloc(tipus) {
     esOptativa(normal) ||
     (normal === TIPUS.DESDOBLAMENT || normal === TIPUS.DESDOBLAMENT_DIVISIBLE) ||
     esAutodesdoble(normal) ||
-    normal === TIPUS.SUPORT ||
     normal === TIPUS.FLEXIBLE
   );
 }
