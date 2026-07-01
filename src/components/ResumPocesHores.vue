@@ -22,7 +22,7 @@
  Professors per sota de les hores recomanades
  </h3>
  <p class="text-sm text-slate-600 mt-1">
- {{ professorsPocesHores.length }} professors
+ {{ professorsPocesHores.length }} professors · sense departaments exclosos
  </p>
  </div>
  </div>
@@ -82,14 +82,31 @@ import { computed } from 'vue';
 import { useColSnapshot } from '../composables/useColSnapshot';
 import { limitsHoresProfessor, calcularHoresLectives } from '../utils/horesProfessor';
 import { comptarDDAssignacions, comptarSDAssignacions } from '../utils/suportDivisible';
-import { formatDepartamentsProfessor } from '../utils/departaments';
+import { departamentsProfessor, formatDepartamentsProfessor, normalitzarDepartament } from '../utils/departaments';
 
 const { items: classes, isConnected: classesOk, lastUpdate } = useColSnapshot('classes');
 const { items: professors, isConnected: profsOk } = useColSnapshot('professors');
-const isConnected = computed(() => classesOk.value && profsOk.value);
+const { items: departaments, isConnected: departamentsOk } = useColSnapshot('departaments');
+const isConnected = computed(() => classesOk.value && profsOk.value && departamentsOk.value);
+
+const departamentsExclosos = computed(() =>
+ new Set(
+ departaments.value
+ .filter(departament => departament.exclos)
+ .map(departament => normalitzarDepartament(departament.nom))
+ .filter(Boolean)
+ )
+);
+
+function professorPertanyNomesADepartamentsExclosos(professor) {
+ const deps = departamentsProfessor(professor);
+ if (!deps.length || !departamentsExclosos.value.size) return false;
+ return deps.every(dep => departamentsExclosos.value.has(normalitzarDepartament(dep)));
+}
 
 const professorsPocesHores = computed(() => {
  return professors.value
+ .filter(p => !professorPertanyNomesADepartamentsExclosos(p))
  .map(p => {
  const objectiu = limitsHoresProfessor(p).ideal;
  const hores = calcularHoresLectives(classes.value, p.nom)
