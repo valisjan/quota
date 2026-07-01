@@ -1,4 +1,4 @@
-import { esDesdoblamentDivisible, esGP, esSuportDivisible, esOptativaCompartida } from './tipus';
+import { esOptativaCompartida, exclosaDelRepartiment } from './tipus';
 
 export function professorsClasse(classe) {
   if (Array.isArray(classe.professors) && classe.professors.length > 0)
@@ -19,7 +19,10 @@ export function horesComputablesClasse(classe) {
 
 export function calcularHoresLectives(classes, nomProfessor) {
   return classes
-    .filter(c => !esGP(c.tipus) && !esSuportDivisible(c.tipus) && !esDesdoblamentDivisible(c.tipus) && classeAssignadaA(c, nomProfessor))
+    .filter(c =>
+      classeAssignadaA(c, nomProfessor) &&
+      (!exclosaDelRepartiment(c.tipus) || esMajorDe55Classe(c))
+    )
     .reduce((sum, c) => sum + horesComputablesClasse(c), 0);
 }
 
