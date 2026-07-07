@@ -397,18 +397,6 @@ watch(
 );
 
 watch(
-  () => [authStore.rolActiu, authStore.departamentActiu, route.path],
-  () => {
-    if (!authStore.estaAutenticat) return;
-    if (route.path.startsWith('/admin') && !authStore.esAdmin()) {
-      router.push(authStore.esCapDepartament() ? '/departament' : '/resums');
-    } else if (route.path.startsWith('/departament') && !authStore.esCapDepartament()) {
-      router.push('/resums');
-    }
-  }
-);
-
-watch(
   [mostraDepartamentVista, departamentsVistaOrdenats],
   ([mostra, departaments]) => {
     if (!mostra || !departaments.length) return;

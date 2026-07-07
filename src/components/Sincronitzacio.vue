@@ -15,7 +15,6 @@
       </div>
 
       <div class="space-y-3 p-5">
-        <!-- Botones principals -->
         <div class="flex gap-3">
           <button
             @click="comprovar"
@@ -49,7 +48,6 @@
           Administració bloquejada en mode tancament. Desbloqueja-la a la pestanya Tancament per sincronitzar.
         </div>
 
-        <!-- Resultat comprovació -->
         <div
           v-if="estatComprova === 'ok' || estatComprova === 'error'"
           class="rounded-lg border px-4 py-3 text-base"
@@ -215,7 +213,6 @@
           </template>
         </div>
 
-        <!-- Resultat sincronització -->
         <div
           v-if="estatSync === 'ok' || estatSync === 'error'"
           class="rounded-lg border px-4 py-3 text-base"
@@ -400,7 +397,6 @@
               </p>
             </div>
             <div class="flex flex-col gap-1.5">
-              <!-- Classes -->
               <div class="flex flex-wrap gap-1.5 text-xs font-semibold">
                 <span class="rounded bg-slate-100 px-1.5 py-0.5 text-slate-500 dark:bg-slate-700 dark:text-slate-400">Classes</span>
                 <span class="rounded bg-green-100 px-1.5 py-0.5 text-green-800 dark:bg-green-900 dark:text-green-100">+{{ item.afegides || 0 }}</span>
@@ -410,7 +406,6 @@
                   {{ item.assignacionsConservades }} conservades
                 </span>
               </div>
-              <!-- Professors -->
               <div
                 v-if="(item.profsAfegits || 0) + (item.profsMigrats || 0) + (item.profsEliminats || 0) > 0"
                 class="flex flex-wrap gap-1.5 text-xs font-semibold"
@@ -420,7 +415,6 @@
                 <span v-if="item.profsMigrats" class="rounded bg-blue-100 px-1.5 py-0.5 text-blue-800 dark:bg-blue-900 dark:text-blue-100">~{{ item.profsMigrats }} migrats</span>
                 <span v-if="item.profsEliminats" class="rounded bg-rose-100 px-1.5 py-0.5 text-rose-800 dark:bg-rose-900 dark:text-rose-100">-{{ item.profsEliminats }}</span>
               </div>
-              <!-- Departaments -->
               <div
                 v-if="(item.depsAfegits || 0) + (item.depsEliminats || 0) > 0"
                 class="flex flex-wrap gap-1.5 text-xs font-semibold"

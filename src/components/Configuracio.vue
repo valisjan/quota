@@ -13,7 +13,6 @@
       </div>
 
       <div class="space-y-5 p-5">
-        <!-- Total -->
         <label class="block w-48 text-sm font-semibold text-slate-700">
           Total de guàrdies de pati
           <input
@@ -25,7 +24,6 @@
           />
         </label>
 
-        <!-- Departaments participants -->
         <div>
           <p class="mb-2 text-sm font-semibold text-slate-700">Departaments participants</p>
           <div class="grid gap-1.5 sm:grid-cols-2">
@@ -64,7 +62,6 @@
           </div>
         </div>
 
-        <!-- Distribució prevista -->
         <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <div class="mb-3 flex items-center justify-between gap-3">
             <p class="text-sm font-semibold text-slate-800">
@@ -105,7 +102,6 @@
       </div>
     </section>
 
-    <!-- Secció: Guàrdies -->
     <section v-show="activeSection === 'guardies-passadis'" id="guardies-passadis" class="admin-anchor-section card">
       <div class="border-b border-slate-200 p-5">
         <h3 class="text-xl font-bold text-slate-950">Guàrdies</h3>
@@ -176,7 +172,6 @@
       </div>
     </section>
 
-    <!-- Secció: Full de càlcul -->
     <section v-show="activeSection === 'google-sheets'" id="google-sheets" class="admin-anchor-section card">
       <div class="border-b border-slate-200 p-5">
         <h3 class="text-xl font-bold text-slate-950">Full de càlcul (Google Sheets)</h3>
@@ -187,7 +182,6 @@
 
       <div class="space-y-5 p-5">
 
-        <!-- ID actiu -->
         <div>
           <p class="text-sm font-semibold text-slate-700">ID actiu</p>
           <div class="mt-2 flex items-center gap-2">
@@ -221,7 +215,6 @@
           </button>
         </div>
 
-        <!-- Canviar ID -->
         <div>
           <p class="text-sm font-semibold text-slate-700">Canviar ID</p>
           <p class="mt-0.5 text-xs text-slate-600">Enganxa l'ID o la URL completa del full.</p>
@@ -243,7 +236,6 @@
             </button>
           </div>
 
-          <!-- Resultat verificació -->
           <div v-if="resultatVerificacio" class="mt-3 rounded-md px-4 py-3 text-sm"
             :class="resultatVerificacio.ok
               ? 'border border-green-200 bg-green-50 text-green-800'
@@ -256,7 +248,6 @@
           </div>
         </div>
 
-        <!-- Confirmació / Guardar -->
         <div v-if="resultatVerificacio?.ok" class="flex items-center justify-between gap-4 rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
           <div v-if="!confirmantSheets">
             <p class="text-sm text-slate-700">
@@ -387,7 +378,6 @@ async function toggleExempteGuardies(prof, valor) {
   }
 }
 
-// Sheets ID
 const nouSheetsIdRaw = ref('');
 const verificant = ref(false);
 const resultatVerificacio = ref(null);
@@ -455,7 +445,6 @@ const totalGuardiesPatiFormulari = computed(() =>
   Math.max(0, Math.round(Number(formulari.totalGuardiesPati ?? 30) || 0))
 );
 
-// Tots els departaments del professorat, ordenats
 const departamentsGP = computed(() => {
   const depts = [...new Set(professors.value.map((p) => p.departament).filter(Boolean))].sort((a, b) =>
     a.localeCompare(b)
@@ -473,7 +462,6 @@ const departamentsGP = computed(() => {
 
 function getExclosionsActuals() {
   if (Array.isArray(formulari.gpExclusions)) return [...formulari.gpExclusions];
-  // Primera vegada: inicialitzar des de l'estat visual actual (exclusions per defecte)
   return departamentsGP.value.filter((d) => d.excloit).map((d) => d.dept);
 }
 

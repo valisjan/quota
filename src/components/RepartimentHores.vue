@@ -232,7 +232,7 @@ import { useCursStore } from '../stores/curs';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
 import { classeCompletamentAssignada, professorPrincipalClasse, professorSecundariClasse } from '../utils/assignacions';
-import { esOptativaCompartida, exclosaDelRepartiment, getTipusLabel, getTipusBadgeClass } from '../utils/tipus';
+import { classeRequereixDosProfessors, exclosaDelRepartiment, getTipusLabel, getTipusBadgeClass } from '../utils/tipus';
 import { normalitzarGrup } from '../utils/grups';
 import { classePertanyDepartament, professorPertanyDepartament } from '../utils/departaments';
 import { comptarDDAssignacions, comptarSDAssignacions } from '../utils/suportDivisible';
@@ -412,7 +412,7 @@ function netejarGrupBuit(valor) {
 }
 
 function esOptativaCompartidaClasse(classe) {
-  return esOptativaCompartida(classe.tipus);
+  return classeRequereixDosProfessors(classe);
 }
 
 function esConflicteSuport(classe, nomProfessor) {
@@ -539,11 +539,12 @@ async function guardarActualitzacionsAssignacio(actualitzacions) {
 }
 
 async function assignarProfessor(classe, nomProfessor, index = 0) {
+  const indexAssignacio = indexAssignacioPerDepartament(classe, nomProfessor, index);
   const actualitzacions = crearActualitzacionsCanviProfessor({
     classe,
     classes: classes.value,
     nomProfessor,
-    index,
+    index: indexAssignacio,
   });
   const principal = actualitzacions.find((item) => item.classe.id === classe.id);
   if (principal) {
@@ -551,6 +552,22 @@ async function assignarProfessor(classe, nomProfessor, index = 0) {
     classe.professorAssignat = principal.professorAssignat;
   }
   await guardarActualitzacionsAssignacio(actualitzacions);
+}
+
+function indexAssignacioPerDepartament(classe, nomProfessor, index = 0) {
+  if (index !== 0 || !classeRequereixDosProfessors(classe)) return index;
+  const actuals = professorsClasse(classe);
+  if (!actuals.length) return 0;
+
+  const departament = props.departamentSeleccionat;
+  const professorNou = getProfessor(nomProfessor);
+  if (!professorPertanyDepartament(professorNou, departament)) return 0;
+
+  const indexMateixDepartament = actuals.findIndex((nomActual) =>
+    professorPertanyDepartament(getProfessor(nomActual), departament)
+  );
+  if (indexMateixDepartament >= 0) return indexMateixDepartament;
+  return Math.min(actuals.length, 1);
 }
 
 async function desassignarProfessors(classe) {

@@ -218,6 +218,14 @@ export function resoldreGrupSDAssignacio(assignacio = {}, classes = []) {
   if (parts.length >= 2) {
     const grup = parts.at(-1);
     const curs = parts.slice(0, -1).join(' ');
+    const cursVariants = variantsCurs(curs);
+    const grupNormalitzat = normalitzarClau(grup);
+    const opcioEquivalent = [...new Map(resoltes.values().map((opcio) => [opcio.label, opcio])).values()]
+      .find((opcio) =>
+        normalitzarClau(opcio.grup) === grupNormalitzat &&
+        variantsCurs(opcio.curs).some((variant) => cursVariants.includes(variant))
+      );
+    if (opcioEquivalent) return opcioEquivalent;
     return { curs, grup, label: `${curs} ${grup}` };
   }
 

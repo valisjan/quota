@@ -1,13 +1,11 @@
 <template>
  <div class="resum-grups sections space-y-5">
- <!-- Capçalera: filtre + botó -->
  <div class="print-hide flex justify-end">
  <button @click="imprimirGrups" class="btn-primary flex items-center gap-2 text-sm">
  Imprimir
  </button>
  </div>
 
- <!-- Filtres per nivell -->
  <div class="app-toolbar print-hide flex w-fit flex-wrap items-center gap-1">
  <button
  v-for="filtre in filtres"
@@ -22,7 +20,6 @@
  </button>
  </div>
 
- <!-- VISTA PANTALLA: quadrícula de targetes (oculta en impressió) -->
  <div class="print-hide space-y-5">
  <section
  v-for="(classesPorGrup, curs) in classesAgrupadesPerCursFiltrades"
@@ -145,7 +142,6 @@
  </div>
  </section>
 
- <!-- Activitats de coordinació sense grup -->
  <section v-if="coordinationActivities.length > 0" class="overflow-hidden card">
  <div class="border-b border-slate-200 bg-white px-5 py-3">
  <div class="flex flex-wrap items-center gap-2">
@@ -181,9 +177,8 @@
  </div>
  </div>
  </section>
- </div><!-- /print-hide -->
+ </div>
 
- <!-- VISTA IMPRESSIÓ: taula compacta (oculta en pantalla) -->
  <div class="print-only resum-grups-print">
  <table class="resum-grups-print-table">
  <colgroup>

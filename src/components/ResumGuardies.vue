@@ -1,6 +1,5 @@
 <template>
   <div class="space-y-4">
-    <!-- Resum global -->
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
       <div class="metric-card border-t-slate-300">
         <p class="metric-label">Total professors</p>
@@ -29,7 +28,6 @@
       </div>
     </div>
 
-    <!-- Llistats GP / GC -->
     <div class="grid gap-4 lg:grid-cols-2">
       <section class="card overflow-hidden">
         <div class="border-b border-slate-200 bg-slate-50 px-5 py-4">
@@ -114,7 +112,6 @@
       </section>
     </div>
 
-    <!-- Filtre -->
     <div class="card overflow-hidden">
       <div class="border-b border-slate-200 bg-slate-50 px-5 py-3">
         <div class="flex flex-wrap items-center justify-between gap-3">

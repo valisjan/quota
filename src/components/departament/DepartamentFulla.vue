@@ -84,7 +84,6 @@
       </div>
     </div>
 
-    <!-- Taula principal de professors -->
     <div class="print-table-wrapper overflow-x-auto rounded-lg border border-slate-200 dark:border-gray-700">
       <table class="w-full border-collapse text-sm">
         <thead>
@@ -309,7 +308,6 @@
       </table>
     </div>
 
-    <!-- Classes sense assignar -->
     <div class="classes-sense-assignar mt-6">
       <div class="mb-2 flex items-center gap-2">
         <h3 class="font-semibold text-slate-700 dark:text-gray-200">Sense assignar</h3>
@@ -519,7 +517,6 @@ function exportarExcel() {
   const data = new Date().toLocaleDateString('ca-ES');
   const nomFitxer = `distribucio_${props.departament}_${new Date().toISOString().slice(0, 10)}`;
 
-  // Full 1: Resum per professor
   const capDistribucio = ['Professor', 'H. Lectives', 'GP', 'PALIC', 'Suport divisible', 'Grups SD', 'Desdoblament divisible', 'Grups DD', 'Total', 'Estat'];
   const filesDistribucio = props.professors.map((p) => [
     p.nom,
@@ -543,7 +540,6 @@ function exportarExcel() {
     ...filesDistribucio,
   ];
 
-  // Full 2: Detall d'assignacions
   const capAssig = ['Professor', 'Matèria', 'Curs', 'Grup', 'Tipus', 'Hores'];
   const filesAssig = [];
   for (const p of props.professors) {
@@ -565,7 +561,6 @@ function exportarExcel() {
     }
   }
 
-  // Full 3: Classes sense assignar
   const capSense = ['Curs', 'Grup', 'Matèria', 'Tipus', 'Hores'];
   const filesSense = classesNoAssignades.value.length
     ? classesNoAssignades.value.map((c) => [c.curs || '', c.grup || '', c.materia, c.tipus || '', c.hores])

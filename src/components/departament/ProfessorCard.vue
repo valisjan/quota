@@ -5,7 +5,6 @@
     tabindex="-1"
   >
 
-    <!-- Capçalera: nom + hores -->
     <div class="app-card-header px-4 pb-2 pt-3">
       <div class="flex items-start justify-between gap-2">
         <h4 class="text-lg font-medium leading-tight text-text-main">{{ professor.nom }}</h4>
@@ -14,7 +13,6 @@
         </span>
       </div>
 
-      <!-- Barra de progrés -->
       <div class="app-progress-track mt-2 h-1.5 rounded-full">
         <div
           class="h-full rounded-full transition-all"
@@ -23,7 +21,6 @@
         />
       </div>
 
-      <!-- Estat + etiquetes -->
       <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
         <span class="text-[0.95rem] font-medium" :class="estatTextClass">{{ estatText }}</span>
         <span v-if="professor.jornada" class="app-chip px-1.5 py-0.5 text-xs font-normal">
@@ -45,7 +42,6 @@
       </div>
     </div>
 
-    <!-- Matèries -->
     <div v-if="comentariVisible" class="border-t border-border-soft bg-amber-50 px-4 py-2 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
       <p class="text-xs font-semibold uppercase text-amber-800 dark:text-amber-200">Comentari</p>
       <p class="mt-0.5 whitespace-pre-line font-medium">{{ comentariVisible }}</p>
@@ -77,7 +73,6 @@
       </div>
     </div>
 
-    <!-- Extres horaris -->
     <div
       v-if="mostraGp || totalPalicDepartament > 0 || totalSdDepartament > 0 || totalDdDepartament > 0 || mostraGc"
       class="space-y-2 border-t border-border-soft bg-surface-soft px-4 py-3"
@@ -234,10 +229,7 @@
       </div>
     </div>
 
-    <!-- Seccions col·lapsables -->
     <div class="border-t border-border-soft bg-surface-soft">
-
-      <!-- Comissions -->
       <div v-if="coordinacions.length > 0">
         <button
           type="button"
@@ -292,7 +284,6 @@
         </div>
       </div>
 
-      <!-- Preferències i comentaris -->
       <button
         type="button"
           class="flex w-full items-center justify-between px-4 py-2 text-[0.95rem] font-medium text-text-muted hover:bg-surface-hover"

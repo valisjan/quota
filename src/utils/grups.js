@@ -45,7 +45,6 @@ function tipusTeGermanesBloc(tipus) {
   if (!normal) return false;
   // CD (codocència) NO s'encadena: és co-docència dins la mateixa aula, cada grup és independent
   return (
-    esOptativa(normal) ||
     (normal === TIPUS.DESDOBLAMENT || normal === TIPUS.DESDOBLAMENT_DIVISIBLE) ||
     esAutodesdoble(normal) ||
     normal === TIPUS.FLEXIBLE

@@ -39,7 +39,7 @@ const routes = [
     ],
   },
   {
-    path: '/departament',
+    path: '/departament/:departament?',
     component: Departament,
     meta: { requiresCapDepartament: true },
   },
@@ -55,19 +55,16 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore();
   await authStore.waitForAuth();
 
   if (to.meta.requiresAdmin && !authStore.esAdmin()) {
-    next('/');
-  } else if (to.meta.requiresCapDepartament && !authStore.esCapDepartament()) {
-    next('/');
-  } else if (to.meta.requiresAuth && !authStore.estaAutenticat) {
-    next('/');
-  } else {
-    next();
+    return authStore.esCapDepartament() ? '/departament' : '/resums';
   }
+  if (to.meta.requiresCapDepartament && !authStore.esCapDepartament()) return '/resums';
+  if (to.meta.requiresAuth && !authStore.estaAutenticat) return '/';
+  return true;
 });
 
 export default router;

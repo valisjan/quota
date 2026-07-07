@@ -209,7 +209,7 @@ import {
   trobarAssignaturesParelladesTutoria,
   esDedicacioPrefacturaClasse,
 } from '../../utils/tutories';
-import { esDesdoblamentDivisible, esGP, esPALIC, esSuportDivisible, esOptativaCompartida, getTipusBadgeClass, getTipusLabel } from '../../utils/tipus';
+import { esDesdoblamentDivisible, esGP, esPALIC, esSuportDivisible, classeRequereixDosProfessors, getTipusBadgeClass, getTipusLabel } from '../../utils/tipus';
 import { trobarGermanesBloc } from '../../utils/grups';
 
 const props = defineProps({
@@ -496,7 +496,7 @@ function classeEsAssignable(classe) {
 
 function classeCompletamentAssignada(classe) {
   const assignats = professorsDeClasse(classe).length;
-  if (esOptativaCompartida(classe.tipus)) return assignats >= 2;
+  if (classeRequereixDosProfessors(classe)) return assignats >= 2;
   return assignats > 0;
 }
 
@@ -509,7 +509,7 @@ function professorEsElegible(nomProfessor) {
 
 function horesComputablesPerProfessor(classe, totalProfessorsAssignats) {
   const hores = Number(classe.hores) || 0;
-  if (esOptativaCompartida(classe.tipus) && totalProfessorsAssignats > 1) {
+  if (classeRequereixDosProfessors(classe) && totalProfessorsAssignats > 1) {
     return hores / totalProfessorsAssignats;
   }
   return hores;

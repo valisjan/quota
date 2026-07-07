@@ -6,10 +6,10 @@ import {
 } from '../utils/horesProfessor';
 import { classeCompletamentAssignada } from '../utils/assignacions';
 import {
+  classeRequereixDosProfessors,
   esCoordinacio,
   esDesdoblamentDivisible,
   esGP,
-  esOptativaCompartida,
   esPALIC,
   esSuportDivisible,
   esTipusConegut,
@@ -358,13 +358,13 @@ export function calcularValidacioFinal({ classes = [], professors = [], departam
     });
 
   const optativesCompartidesIncompletes = classes
-    .filter((classe) => esOptativaCompartida(classe.tipus) && !classeCompletamentAssignada(classe))
+    .filter((classe) => classeRequereixDosProfessors(classe) && !classeCompletamentAssignada(classe))
     .map((classe) =>
       itemClasse(
         'opt-t',
         classe,
         classe.materia || 'Optativa compartida',
-        'Les optatives de tipus T necessiten dos professors.',
+        'Necessita dos professors assignats.',
         detallClasse(classe)
       )
     );

@@ -1,5 +1,5 @@
 import { professorsClasse } from '../utils/horesProfessor';
-import { esOptativaCompartida } from '../utils/tipus';
+import { classeRequereixDosProfessors } from '../utils/tipus';
 import {
   esCapsEstudisClasse,
   esTutoriaAsterisc,
@@ -27,7 +27,7 @@ function normalitzarLlistaProfessors(professors = []) {
 }
 
 export function professorsAmbCanvi(classe, nomProfessor, index = 0) {
-  if (index === 0 && !esOptativaCompartida(classe?.tipus)) {
+  if (index === 0 && !classeRequereixDosProfessors(classe)) {
     return nomProfessor ? [nomProfessor] : [];
   }
 

@@ -12,8 +12,6 @@ const SHEET_CLASSES = 'Classes';
 const SHEET_PROFESSORAT = 'Professorat';
 const SYNC_STATE_DOC = 'sync_state';
 
-// Helpers
-
 const n = (s) => (s || '').toString().toLowerCase().trim();
 
 const DOMINI_CENTRE = 'iesjosepsuredaiblanes.com';
@@ -137,12 +135,10 @@ function signaturaDadesSheets(classes, professors) {
   return hashText(JSON.stringify({ classes: filesClasses, professors: filesProfessors }));
 }
 
-// Clau completa: per detectar coincidències exactes
 function clauUnica(c) {
   return `${n(c.curs)}|${n(normalitzarGrup(c.grup))}|${n(c.materia)}|${n(c.departament)}|${n(c.tipus)}`;
 }
 
-// Clau base: curs+grup+materia, per recuperar assignació quan canvia dept o tipus
 function clauBase(c) {
   return `${n(c.curs)}|${n(normalitzarGrup(c.grup))}|${n(c.materia)}`;
 }
@@ -230,13 +226,9 @@ async function guardarHistorialSincronitzacio(cursId, resultat, actor) {
   });
 }
 
-// Helpers per subcol.leccions de curs
-
 function cc(cursId, nom) { return collection(db, 'cursos', cursId, nom); }
 function dd(cursId, nom, id) { return id ? doc(db, 'cursos', cursId, nom, id) : doc(cc(cursId, nom)); }
 function syncStateRef(cursId) { return doc(db, 'cursos', cursId, 'config', SYNC_STATE_DOC); }
-
-// Lectura de Sheets
 
 function parseGvizResponse(text) {
   // The gviz response format: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
@@ -856,10 +848,6 @@ export async function provarConnexioSheets(sheetsId) {
   }
 }
 
-// Sincronitzacio principal
-
-// Comprovacio de discrepancies (sense escriure)
-
 export async function comprovarDiscrepancies(cursId, options = {}) {
   if (E2E_AUTH_BYPASS) {
     const classes = {
@@ -1136,9 +1124,8 @@ export async function sincronitzar(cursId, options = {}) {
     data: d.data(),
   }));
 
-  // Index per clauUnica (match exacte)
   const perClauUnica = new Map();
-  // Index per clauBase (curs+grup+materia), per conservar assignacions si canvia dept o tipus.
+  // perClauBase conserva assignacions si canvia departament o tipus
   const perClauBase = new Map();
 
   existents.forEach((item) => {
@@ -1153,7 +1140,6 @@ export async function sincronitzar(cursId, options = {}) {
   let afegides = 0, actualitzades = 0, eliminades = 0, assignacionsConservades = 0;
   const idsEmparellats = new Set();
 
-  // Primer emparellam i actualitzam. Les assignacions no es toquen.
   classesNoves.forEach((classe) => {
     const cu = clauUnica(classe);
     const cb = clauBase(classe);
@@ -1211,7 +1197,6 @@ export async function sincronitzar(cursId, options = {}) {
     }
   });
 
-  // Finalment eliminam només allò que no s'ha emparellat amb cap fila del full.
   existents.forEach((existent) => {
     if (!idsEmparellats.has(existent.id)) {
       batchClasses.delete(existent.ref);
@@ -1221,8 +1206,7 @@ export async function sincronitzar(cursId, options = {}) {
 
   await batchClasses.commit();
 
-  // 7. Sincronitzar usuaris pre-autoritzats (columnes EMAIL i ROL del full Professorat)
-  // Tots els professors amb email → preautoritzats. Rol per defecte: 'professor'.
+  // 7. Pre-autoritzar professors amb email (columnes EMAIL i ROL del full Professorat)
   const preautoritzats = professorsNous
     .filter((p) => p.email)
     .map((p) => ({ ...p, rol: ROLS_VALIDS.has(p.rol) ? p.rol : 'professor' }));

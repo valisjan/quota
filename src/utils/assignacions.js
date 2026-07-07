@@ -1,9 +1,9 @@
 import { professorsClasse } from './horesProfessor';
-import { esOptativaCompartida } from './tipus';
+import { classeRequereixDosProfessors } from './tipus';
 
 export function classeCompletamentAssignada(classe) {
   const assignats = professorsClasse(classe).length;
-  if (esOptativaCompartida(classe?.tipus)) return assignats >= 2;
+  if (classeRequereixDosProfessors(classe)) return assignats >= 2;
   return assignats > 0;
 }
 

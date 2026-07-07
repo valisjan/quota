@@ -1,4 +1,4 @@
-import { esOptativaCompartida, exclosaDelRepartiment } from './tipus';
+import { classeRequereixDosProfessors, exclosaDelRepartiment } from './tipus';
 
 export function professorsClasse(classe) {
   if (Array.isArray(classe.professors) && classe.professors.length > 0)
@@ -12,7 +12,7 @@ export function classeAssignadaA(classe, nomProfessor) {
 
 export function horesComputablesClasse(classe) {
   const profs = professorsClasse(classe);
-  if (esOptativaCompartida(classe?.tipus) && profs.length > 1)
+  if (classeRequereixDosProfessors(classe) && profs.length > 1)
     return (Number(classe.hores) || 0) / profs.length;
   return Number(classe.hores) || 0;
 }

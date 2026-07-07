@@ -2,12 +2,10 @@
   <div class="sections space-y-5">
     <AdminSectionNav v-model="activeSection" :items="sectionItems" mode="panels" />
 
-    <!-- Nota sobre pre-autorització -->
     <div v-show="activeSection === 'preautoritzacio-sheets'" id="preautoritzacio-sheets" class="admin-anchor-section rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
       Pots pre-autoritzar professorat des del full de Google Sheets. Afegeix les columnes <strong>EMAIL</strong> i <strong>ROL</strong> a la pestanya <em>Professorat</em> (columnes F i G). Els valors vàlids de ROL són <code class="rounded bg-slate-200 px-1">professor</code>, <code class="rounded bg-slate-200 px-1">cap_departament</code> i <code class="rounded bg-slate-200 px-1">admin</code>. La propera sincronització els activarà automàticament en fer login.
     </div>
 
-    <!-- Pendents d'aprovació -->
     <div
       v-if="pendents.length"
       v-show="activeSection === 'pendents-aprovacio'"
@@ -75,7 +73,6 @@
       </div>
     </div>
 
-    <!-- Pre-autoritzats (esperen el primer login) -->
     <div v-if="preautoritzatsLlista.length" v-show="activeSection === 'preautoritzats'" id="preautoritzats" class="admin-anchor-section rounded-lg border border-blue-200 bg-blue-50 shadow-sm">
       <div class="border-b border-blue-200 px-5 py-4">
         <h3 class="text-base font-bold text-slate-950">Pre-autoritzats ({{ preautoritzatsLlista.length }})</h3>
@@ -106,7 +103,6 @@
       </div>
     </div>
 
-    <!-- Usuaris actius -->
     <div v-show="activeSection === 'usuaris-actius'" id="usuaris-actius" class="admin-anchor-section card">
       <div class="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
         <h3 class="text-lg font-semibold text-slate-950">Usuaris actius</h3>
@@ -125,7 +121,6 @@
           :key="u.id"
           class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center"
         >
-          <!-- Avatar + nom -->
           <div class="flex flex-1 items-center gap-3">
             <img v-if="u.photoURL" :src="u.photoURL" class="h-9 w-9 rounded-md" referrerpolicy="no-referrer" />
             <div v-else class="flex h-9 w-9 items-center justify-center rounded-md bg-slate-100 text-sm font-semibold text-slate-700">
@@ -146,7 +141,6 @@
             </div>
           </div>
 
-          <!-- Controls de rol -->
           <div class="flex flex-wrap items-center gap-2">
             <select
               :value="u.rol"
@@ -280,10 +274,12 @@ const actius = computed(() =>
 );
 
 async function assignarRol(usuari, nouRol, dept = null) {
+  const departamentsUsuari = dept ? [dept] : [];
   try {
     await updateDoc(doc(db, 'usuaris', usuari.id), {
       rol: nouRol,
       departament: dept || null,
+      departaments: departamentsUsuari,
       updatedAt: new Date(),
     });
     toast.ok(`Rol assignat: ${etiquetaRol(nouRol)}${dept ? ` · ${dept}` : ''}.`);
@@ -302,10 +298,12 @@ function assignarRolDept(usuari) {
 }
 
 async function canviarRol(usuari, nouRol) {
+  const departament = nouRol === 'admin' ? null : (usuari.departament || null);
   try {
     await updateDoc(doc(db, 'usuaris', usuari.id), {
       rol: nouRol,
-      departament: nouRol === 'admin' ? null : (usuari.departament || null),
+      departament,
+      departaments: departament ? [departament] : [],
       updatedAt: new Date(),
     });
     toast.ok('Rol actualitzat.');
@@ -318,6 +316,7 @@ async function canviarDepartament(usuari, nouDept) {
   try {
     await updateDoc(doc(db, 'usuaris', usuari.id), {
       departament: nouDept || null,
+      departaments: nouDept ? [nouDept] : [],
       updatedAt: new Date(),
     });
     toast.ok('Departament actualitzat.');

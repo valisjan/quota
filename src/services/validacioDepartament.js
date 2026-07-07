@@ -1,6 +1,6 @@
 import { classeCompletamentAssignada } from '../utils/assignacions';
 import { classeAssignadaA, horesComputablesClasse, limitsHoresProfessor, professorsClasse, textJornada } from '../utils/horesProfessor';
-import { exclosaDelRepartiment, esDesdoblamentDivisible, esGP, esOptativaCompartida, esPALIC, esSuportDivisible } from '../utils/tipus';
+import { classeRequereixDosProfessors, exclosaDelRepartiment, esDesdoblamentDivisible, esGP, esPALIC, esSuportDivisible } from '../utils/tipus';
 import {
   comptarDDAssignacions,
   comptarSDAssignacions,
@@ -108,8 +108,8 @@ function validarClassesSenseAssignar(classesDepartament) {
         severitat: 'critica',
         categoria: 'Classes',
         titol: classe.materia || 'Classe sense nom',
-        detall: esOptativaCompartida(classe.tipus)
-          ? 'L’optativa compartida necessita dos professors.'
+        detall: classeRequereixDosProfessors(classe)
+          ? 'Necessita dos professors assignats.'
           : 'No té cap professor assignat.',
         context: labelClasse(classe),
         target: { type: 'classe', id: classe.id },

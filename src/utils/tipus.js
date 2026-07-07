@@ -76,6 +76,29 @@ export function esOptativaCompartida(tipus) {
   return normalitzarTipus(tipus).startsWith('T');
 }
 
+function normalitzarDepartament(valor) {
+  return (valor || '')
+    .toString()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase();
+}
+
+function departamentsClasse(classe = {}) {
+  return [
+    ...(Array.isArray(classe.departaments) ? classe.departaments : []),
+    classe.departament,
+  ]
+    .map(normalitzarDepartament)
+    .filter(Boolean);
+}
+
+export function classeRequereixDosProfessors(classe = {}) {
+  if (esOptativaCompartida(classe.tipus)) return true;
+  return new Set(departamentsClasse(classe)).size > 1;
+}
+
 export function esAutodesdoble(tipus) {
   return /^A\d*$/.test(normalitzarTipus(tipus));
 }

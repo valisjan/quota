@@ -15,10 +15,10 @@
         </div>
       </div>
 
-      <!-- Selector de departamento -->
       <DepartamentSelector
         v-else
         v-model="departamentSeleccionat"
+        @update:modelValue="obrirDepartament"
         :departaments="departamentsAmbResum"
       />
 
@@ -558,6 +558,7 @@
 
 <script setup>
 import { ref, computed, nextTick, onUnmounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { db } from '../firebase';
 import { query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore';
 import RepartimentHores from '../components/RepartimentHores.vue';
@@ -568,7 +569,7 @@ import ProfessorCard from '../components/departament/ProfessorCard.vue';
 import DepartamentPrintModal from '../components/departament/DepartamentPrintModal.vue';
 import { limitsHoresProfessor, professorsClasse, horesComputablesClasse, resumCapacitatProfessorat } from '../utils/horesProfessor';
 import { departamentIconText, departamentFlagClass, departamentIconPaths, departamentInicials } from '../utils/departamentIcon';
-import { esDesdoblamentDivisible, esGP, esPALIC, esSuportDivisible, esOptativaCompartida, esCoordinacioAmbMembres, exclosaDelRepartiment } from '../utils/tipus';
+import { esDesdoblamentDivisible, esGP, esPALIC, esSuportDivisible, classeRequereixDosProfessors, esCoordinacioAmbMembres, exclosaDelRepartiment } from '../utils/tipus';
 import { classePertanyDepartament, professorPertanyDepartament } from '../utils/departaments';
 import {
   comptarDDAssignacions,
@@ -595,6 +596,8 @@ import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { usePresenceDepartament } from '../composables/usePresenceDepartament';
 
 const departamentSeleccionat = ref('');
+const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
 const cursStore = useCursStore();
 const toast = useToastStore();
@@ -1059,9 +1062,27 @@ const validacioEstatClass = computed(() => {
 
 // Funcions
 
+function paramDepartament() {
+  const raw = route.params.departament;
+  return Array.isArray(raw) ? raw[0] || '' : raw || '';
+}
+
+function rutaDepartament(nom) {
+  return nom ? `/departament/${encodeURIComponent(nom)}` : '/departament';
+}
+
+function obrirDepartament(nom) {
+  if (!nom) {
+    router.push('/departament');
+    return;
+  }
+  const target = rutaDepartament(nom);
+  if (route.fullPath !== target) router.push(target);
+}
+
 function tornarADepartaments() {
   transicioPantallaDepartament.value = 'departament-slide-back';
-  mostrarSelectorDepartaments.value = true;
+  router.push('/departament');
 }
 
 function formatHores(value) {
@@ -1076,7 +1097,7 @@ function formatProfessorsNecessaris() {
 }
 
 function esOptativaCompartidaClasse(classe) {
-  return esOptativaCompartida(classe.tipus);
+  return classeRequereixDosProfessors(classe);
 }
 
 function comptaHoresDepartament(classe) {
@@ -1595,12 +1616,16 @@ function imprimirFulla() {
 watch(
   [departamentsLimitats, departamentsAmbResum],
   ([departaments]) => {
+    const deptRuta = paramDepartament();
     if (departaments.length) {
-      const departamentActualPermes = departaments.includes(departamentSeleccionat.value);
-      if (!departamentActualPermes) {
-        departamentSeleccionat.value = departaments[0];
+      if (deptRuta && !departaments.includes(deptRuta)) {
+        router.replace(rutaDepartament(departaments[0]));
+        return;
       }
-      mostrarSelectorDepartaments.value = departaments.length > 1;
+
+      if (!deptRuta && departaments.length === 1) {
+        router.replace(rutaDepartament(departaments[0]));
+      }
       return;
     }
 
@@ -1614,16 +1639,23 @@ watch(
   { immediate: true }
 );
 
-watch(departamentSeleccionat, (newDept) => {
-  if (newDept) {
-    transicioPantallaDepartament.value = 'departament-slide-forward';
-    mostrarSelectorDepartaments.value = false;
-    activeTab.value = 'distribucio';
-    mostrarValidacioDistribucio.value = false;
-  } else {
-    mostrarSelectorDepartaments.value = true;
-  }
-});
+watch(
+  () => route.params.departament,
+  () => {
+    const newDept = paramDepartament();
+    departamentSeleccionat.value = newDept;
+    if (newDept) {
+      transicioPantallaDepartament.value = 'departament-slide-forward';
+      mostrarSelectorDepartaments.value = false;
+      activeTab.value = 'distribucio';
+      mostrarValidacioDistribucio.value = false;
+    } else {
+      transicioPantallaDepartament.value = 'departament-slide-back';
+      mostrarSelectorDepartaments.value = true;
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
