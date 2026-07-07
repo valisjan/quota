@@ -55,6 +55,28 @@ const router = createRouter({
   routes,
 });
 
+function esErrorCarregaChunk(error) {
+  const missatge = [
+    error?.message,
+    error?.name,
+    error?.stack,
+  ].filter(Boolean).join('\n');
+
+  return /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk|ChunkLoadError|CSS_CHUNK_LOAD_FAILED/i.test(missatge);
+}
+
+router.onError((error, to) => {
+  if (!esErrorCarregaChunk(error) || typeof window === 'undefined') return;
+
+  const clauReload = 'quota_router_chunk_reload';
+  const ara = Date.now();
+  const ultimIntent = Number(sessionStorage.getItem(clauReload) || 0);
+  if (ara - ultimIntent < 10000) return;
+
+  sessionStorage.setItem(clauReload, String(ara));
+  window.location.assign(to.fullPath || '/');
+});
+
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
   await authStore.waitForAuth();

@@ -1616,6 +1616,8 @@ function imprimirFulla() {
 watch(
   [departamentsLimitats, departamentsAmbResum],
   ([departaments]) => {
+    if (!route.path.startsWith('/departament')) return;
+
     const deptRuta = paramDepartament();
     if (departaments.length) {
       if (deptRuta && !departaments.includes(deptRuta)) {
@@ -1642,6 +1644,8 @@ watch(
 watch(
   () => route.params.departament,
   () => {
+    if (!route.path.startsWith('/departament')) return;
+
     const newDept = paramDepartament();
     departamentSeleccionat.value = newDept;
     if (newDept) {
