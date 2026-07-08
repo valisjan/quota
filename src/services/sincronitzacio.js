@@ -23,6 +23,49 @@ function completarEmail(raw) {
 
 const ROLS_VALIDS = new Set(['admin', 'cap_departament', 'departament', 'professor']);
 
+function normalitzarCapcalera(valor) {
+  return (valor || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function indexColumnes(data, definicio) {
+  const index = {};
+  const candidats = new Map();
+  Object.entries(definicio).forEach(([camp, aliases]) => {
+    aliases.forEach((alias) => candidats.set(normalitzarCapcalera(alias), camp));
+  });
+
+  (data.table?.cols || []).forEach((col, pos) => {
+    const camp = candidats.get(normalitzarCapcalera(col.label || col.id));
+    if (camp && index[camp] === undefined) index[camp] = pos;
+  });
+
+  const primeraFila = data.table?.rows?.[0];
+  (primeraFila?.c || []).forEach((cell, pos) => {
+    const camp = candidats.get(normalitzarCapcalera(cell?.v));
+    if (camp && index[camp] === undefined) index[camp] = pos;
+  });
+
+  return index;
+}
+
+function valorCamp(row, index, camp, fallbackIndex) {
+  return valorCel(row, index[camp] ?? fallbackIndex);
+}
+
+function normalitzarCodiUntis(raw) {
+  const codi = (raw || '').toString().trim();
+  if (!codi) return '';
+  if (codi.includes('@')) return '';
+  if (ROLS_VALIDS.has(n(codi))) return '';
+  if (codi.length > 12) return '';
+  return codi;
+}
+
 function normalitzarGrup(grup) {
   if (!grup) return '';
   if (grup.includes('+') || grup.length <= 1) return grup;
@@ -73,21 +116,30 @@ function llegirClassesDeResposta(data) {
 
 function llegirProfessorsDeResposta(data) {
   assertSheetOk(data, SHEET_PROFESSORAT);
+  const columnes = indexColumnes(data, {
+    nom: ['nom', 'nombre', 'professor', 'professorat'],
+    departament: ['departament', 'departamento'],
+    jornada: ['jornada'],
+    codiUntis: ['codiuntis', 'codi untis', 'codigo untis', 'id gestib', 'id_gestib'],
+    email: ['email', 'correu', 'correu electronic', 'correu electrònic', 'mail'],
+    rol: ['rol', 'role'],
+    comentariFull: ['comentari', 'comentario', 'observacions', 'observaciones', 'comentari full'],
+  });
   return (data.table?.rows || [])
     .map((row) => {
-      const departaments = separarDepartaments(valorCel(row, 1));
+      const departaments = separarDepartaments(valorCamp(row, columnes, 'departament', 1));
       return {
-        nom:          valorCel(row, 0),
+        nom:          valorCamp(row, columnes, 'nom', 0),
         departament: departaments[0] || '',
         departaments,
-        jornada:      normalitzarJornada(valorCel(row, 2)),
-        codiUntis:    valorCel(row, 3),
-        email:        completarEmail(valorCel(row, 4)),
-        rol:          valorCel(row, 5),
-        comentariFull: valorCel(row, 6),
+        jornada:      normalitzarJornada(valorCamp(row, columnes, 'jornada', 2)),
+        codiUntis:    normalitzarCodiUntis(valorCamp(row, columnes, 'codiUntis', 3)),
+        email:        completarEmail(valorCamp(row, columnes, 'email', 4)),
+        rol:          valorCamp(row, columnes, 'rol', 5),
+        comentariFull: valorCamp(row, columnes, 'comentariFull', 6),
       };
     })
-    .filter((p) => p.nom && n(p.nom) !== 'nom' && p.departaments.length > 0);
+    .filter((p) => p.nom && n(p.nom) !== 'nom' && !ROLS_VALIDS.has(n(p.nom)) && p.departaments.length > 0);
 }
 
 function textSignatura(valor) {
