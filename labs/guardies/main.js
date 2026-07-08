@@ -7,13 +7,7 @@
     scheduleXml: 'quota_guardies_lab_schedule_xml',
     scheduleName: 'quota_guardies_lab_schedule_name',
     guardCodes: 'quota_guardies_lab_codes',
-    sheetsId: 'quota_guardies_lab_professors_sheets_id',
   };
-
-  const DEFAULT_PROFESSOR_SHEETS_IDS = [
-    '1e4LHlWujuODZei-FC2Vf9-nqVn5dLfVT7FdLxfLPbtU',
-    '1uKYDn_2-KyHVJrlfLAHWvZ-YvPIRpv2SlSDUhdQfnA0',
-  ];
 
   const state = {
     referenceText: storageGet(STORAGE.referenceXml, ''),
@@ -30,8 +24,6 @@
     assignacions: new Map(),
     comentaris: new Map(),
     grupsFora: new Set(),
-    sheetsId: storageGet(STORAGE.sheetsId, DEFAULT_PROFESSOR_SHEETS_IDS[0]),
-    professorsByCode: new Map(),
   };
 
   const el = {
@@ -70,13 +62,9 @@
     releasedCount: document.getElementById('released-count'),
     releasedList: document.getElementById('released-list'),
     clearGroups: document.getElementById('clear-groups'),
-    sheetsId: document.getElementById('sheets-id'),
-    loadProfessorNames: document.getElementById('load-professor-names'),
-    namesInfo: document.getElementById('names-info'),
   };
 
   el.dateInput.value = state.date;
-  el.sheetsId.value = state.sheetsId;
 
   el.referenceFile.addEventListener('change', onReferenceFileChange);
   el.file.addEventListener('change', onScheduleFileChange);
@@ -132,14 +120,8 @@
     renderCoverage();
     renderReleasedList();
   });
-  el.loadProfessorNames.addEventListener('click', () => {
-    state.sheetsId = extractSheetsId(el.sheetsId.value);
-    storageSet(STORAGE.sheetsId, state.sheetsId);
-    loadProfessorNamesFromSheets({ silent: false });
-  });
 
   parseStoredData({ resetSelection: true });
-  loadProfessorNamesFromSheets({ silent: true });
 
   function loadJson(key, fallback) {
     try {
@@ -181,150 +163,9 @@
     storageSet(STORAGE.guardCodes, JSON.stringify(Array.from(state.guardiaCodes)));
   }
 
-  function setNamesInfo(message) {
-    el.namesInfo.textContent = message;
-  }
-
   function showError(message) {
     el.error.textContent = message || '';
     el.error.classList.toggle('hidden', !message);
-  }
-
-  function extractSheetsId(value) {
-    const text = String(value || '').trim();
-    const match = text.match(/\/spreadsheets\/d\/([^/]+)/);
-    return match ? match[1] : text;
-  }
-
-  function loadGvizData(url) {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      const googleRoot = window.google || {};
-      const visualization = googleRoot.visualization || {};
-      const query = visualization.Query || {};
-      const previousCallback = query.setResponse;
-      let settled = false;
-
-      window.google = googleRoot;
-      window.google.visualization = visualization;
-      window.google.visualization.Query = query;
-
-      const finish = (callback) => {
-        if (settled) return;
-        settled = true;
-        window.clearTimeout(timeout);
-        script.remove();
-        if (previousCallback) window.google.visualization.Query.setResponse = previousCallback;
-        callback();
-      };
-
-      const timeout = window.setTimeout(() => {
-        finish(() => reject(new Error('Temps esgotat llegint el full.')));
-      }, 10000);
-
-      window.google.visualization.Query.setResponse = (data) => {
-        finish(() => resolve(data));
-      };
-
-      script.onerror = () => {
-        finish(() => reject(new Error('No s\'ha pogut carregar el full.')));
-      };
-      script.src = url;
-      document.head.appendChild(script);
-    });
-  }
-
-  function sheetCell(row, index) {
-    const cell = row?.c?.[index];
-    return (cell?.v ?? '').toString().trim();
-  }
-
-  function normalizeSheetHeader(value) {
-    return String(value || '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .toUpperCase();
-  }
-
-  function sheetHeaders(rows) {
-    return rows[0]?.c?.map((cell) => (cell?.v ?? '').toString().trim()) || [];
-  }
-
-  function sheetColumn(headers, aliases, fallback) {
-    const normalizedAliases = aliases.map(normalizeSheetHeader);
-    const index = headers.findIndex((header) => normalizedAliases.includes(normalizeSheetHeader(header)));
-    return index >= 0 ? index : fallback;
-  }
-
-  function hasProfessorHeader(headers) {
-    return headers.some((header) => ['NOM', 'NOMBRE', 'PROFESSOR', 'PROFESSORAT'].includes(normalizeSheetHeader(header)));
-  }
-
-  async function fetchProfessoratSheet(sheetsId) {
-    const id = extractSheetsId(sheetsId);
-    if (!id) throw new Error('Falta l\'ID del full.');
-    const cacheBust = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/gviz/tq?tqx=out:json&sheet=Professorat&_=${cacheBust}`;
-    const data = await loadGvizData(url);
-    const rows = data.table?.rows || [];
-    const headers = sheetHeaders(rows);
-    const col = {
-      nom: sheetColumn(headers, ['Nom', 'Nombre', 'Professor', 'Professorat'], 0),
-      codiUntis: sheetColumn(headers, ['Codi Untis', 'CODIUNTIS', 'Codi', 'Sigla'], 3),
-      idGestib: sheetColumn(headers, ['ID GestIB', 'ID_GESTIB', 'IDGESTIB', 'Codi GestIB', 'Sigla GestIB'], -1),
-    };
-
-    return (hasProfessorHeader(headers) ? rows.slice(1) : rows)
-      .map((row) => {
-        const codiUntis = normalitzarSiglaProfessor(sheetCell(row, col.codiUntis));
-        const idGestib = normalitzarSiglaProfessor(sheetCell(row, col.idGestib));
-        return {
-          nom: sheetCell(row, col.nom),
-          codiUntis,
-          idGestib: idGestib || codiUntis,
-        };
-      })
-      .filter((professor) => (
-        professor.nom &&
-        (professor.idGestib || professor.codiUntis) &&
-        !['nom', 'professor', 'professorat'].includes(normalizeSearch(professor.nom))
-      ));
-  }
-
-  async function loadProfessorNamesFromSheets({ silent }) {
-    const candidates = [
-      state.sheetsId,
-      ...DEFAULT_PROFESSOR_SHEETS_IDS,
-    ]
-      .map(extractSheetsId)
-      .filter(Boolean)
-      .filter((id, index, all) => all.indexOf(id) === index);
-
-    if (!candidates.length) return;
-    el.loadProfessorNames.disabled = true;
-    if (!silent) setNamesInfo('Carregant noms...');
-
-    for (const id of candidates) {
-      try {
-        const professors = await fetchProfessoratSheet(id);
-        if (!professors.length) continue;
-        state.sheetsId = id;
-        el.sheetsId.value = id;
-        storageSet(STORAGE.sheetsId, id);
-        state.professorsByCode = professorMapByGestibId(professors);
-        setNamesInfo(`${professors.length} noms carregats des de Professorat.`);
-        render();
-        el.loadProfessorNames.disabled = false;
-        return;
-      } catch (error) {
-        if (!silent && id === candidates[candidates.length - 1]) {
-          setNamesInfo(`No s'han pogut carregar els noms: ${error.message || error}`);
-        }
-      }
-    }
-
-    el.loadProfessorNames.disabled = false;
   }
 
   async function readXmlFileText(file) {
@@ -463,10 +304,6 @@
     state.assignacions.clear();
     state.comentaris.clear();
     state.grupsFora.clear();
-    state.sheetsId = DEFAULT_PROFESSOR_SHEETS_IDS[0];
-    state.professorsByCode.clear();
-    el.sheetsId.value = state.sheetsId;
-    setNamesInfo('S\'usa la sigla del professorat per mostrar el nom complet quan el full és accessible.');
     showError('');
     render();
   }
@@ -517,7 +354,7 @@
     const professors = professorsOrdenatsAmbLabel()
       .filter((professor) => {
         if (!normalizedQuery) return true;
-        const haystack = normalizeSearch(`${professor.label} ${professor.short} ${professor.name}`);
+        const haystack = normalizeSearch(`${professor.label} ${professor.short} ${professor.placa}`);
         return haystack.includes(normalizedQuery);
       })
       .slice(0, 12);
@@ -533,8 +370,8 @@
         class="search-result ${professor.placa === state.professor ? 'active' : ''}"
         data-professor="${escapeHtml(professor.placa)}"
       >
-        <strong>${escapeHtml(professor.label)}</strong>
-        ${professor.meta ? `<span>${escapeHtml(professor.meta)}</span>` : '<span></span>'}
+        <strong>${escapeHtml(professor.short)}</strong>
+        <span>${escapeHtml(professor.placa)}</span>
       </button>
     `).join('');
 
@@ -567,10 +404,9 @@
     return parser.professorsOrdenats(state.sessions)
       .map((professor) => ({
         ...professor,
-        ...professorInfo(professor.placa),
+        short: professorShort(professor.placa),
         hasShort: Boolean(professorInfo(professor.placa).short),
         label: labelProfessor(professor.placa),
-        meta: professorMeta(professor.placa),
       }))
       .sort((a, b) => {
         if (a.hasShort !== b.hasShort) return a.hasShort ? -1 : 1;
@@ -583,11 +419,11 @@
     state.sessions.forEach((sessio) => {
       if (!sessio.teClasse || !sessio.grup) return;
       if (grups.has(sessio.grup)) return;
-      const label = labelGrupSessio(sessio);
+      const label = sessio.grupVisible || [sessio.cursVisible, sessio.grup].filter(Boolean).join('-') || `Grup ${sessio.grup}`;
       grups.set(sessio.grup, {
         codi: sessio.grup,
         label,
-        curs: sessio.cursVisible || '',
+        curs: sessio.cursVisible || sessio.curs || '',
       });
     });
 
@@ -628,7 +464,7 @@
         data-group-out="${escapeHtml(grup.codi)}"
       >
         <strong>${escapeHtml(grup.label)}</strong>
-        <span></span>
+        <span>${escapeHtml(grup.codi)}</span>
       </button>
     `).join('');
 
@@ -898,7 +734,7 @@
       if (!candidates.has(item.placa)) {
         const base = ocupacioByPlaca.get(item.placa) || {
           placa: item.placa,
-          label: labelProfessor(item.placa),
+          label: `Placa ${item.placa}`,
           sessions: [],
           classes: [],
           guardies: [],
@@ -1103,51 +939,19 @@
 
   function professorInfo(placa) {
     const sessio = state.sessions.find((item) => item.placa === placa && (item.professorCurta || item.professorNom));
-    const short = normalitzarSiglaProfessor(sessio?.professorCurta || '');
-    const sheetProfessor = short ? state.professorsByCode.get(short.toUpperCase()) : null;
     return {
-      short,
-      name: normalitzarNomProfessor(sheetProfessor?.nom || sessio?.professorNom || ''),
+      short: sessio?.professorCurta || '',
+      name: sessio?.professorNom || '',
     };
   }
 
-  function professorMapByGestibId(professors) {
-    const map = new Map();
-    professors.forEach((professor) => {
-      const keys = [professor.idGestib, professor.codiUntis]
-        .map(normalitzarSiglaProfessor)
-        .filter(Boolean);
-      keys.forEach((key) => {
-        if (!map.has(key.toUpperCase())) map.set(key.toUpperCase(), professor);
-      });
-    });
-    return map;
-  }
-
   function professorShort(placa) {
-    return professorInfo(placa).short || '';
+    return professorInfo(placa).short || placa;
   }
 
   function labelProfessor(placa) {
     const info = professorInfo(placa);
-    const sameNameAndCode = info.name && info.short && normalizeSearch(info.name) === normalizeSearch(info.short);
-    if (sameNameAndCode) return info.short;
-    if (info.name && info.short) return `${info.name} (${info.short})`;
-    if (info.name) return info.name;
-    if (info.short) return info.short;
-    return 'Professor sense sigla';
-  }
-
-  function professorMeta(placa) {
-    return '';
-  }
-
-  function normalitzarNomProfessor(value) {
-    return String(value || '').replace(/\s+/g, ' ').trim();
-  }
-
-  function normalitzarSiglaProfessor(value) {
-    return String(value || '').replace(/\s+/g, '').trim();
+    return info.short ? `${info.short} · plaça ${placa}` : `Plaça ${placa}`;
   }
 
   function activityInfo(code) {
@@ -1184,7 +988,11 @@
   }
 
   function formatAlliberamentLabel(items) {
-    const grups = Array.from(new Set(items.map(formatGrupsItem).filter(Boolean)));
+    const grups = Array.from(new Set(items.flatMap((item) => (
+      item.grupsVisibles?.length
+        ? item.grupsVisibles
+        : item.grups.map((grup) => `Grup ${grup}`)
+    )).filter(Boolean)));
     return grups.length ? `Alliberat: ${grups.join(' + ')}` : 'Alliberat';
   }
 
@@ -1196,25 +1004,12 @@
 
   function formatBlocCurt(item) {
     const parts = [];
-    const grups = formatGrupsItem(item);
-    if (grups) parts.push(grups);
+    if (item.grupsVisibles?.length) parts.push(item.grupsVisibles.join(' + '));
+    else if (item.grups.length) parts.push(`Grup ${item.grups.join(' + ')}`);
     else if (item.cursosVisibles?.length) parts.push(item.cursosVisibles.join(' + '));
-    else if (item.cursos.length) parts.push(item.cursos.length === 1 ? 'Curs sense nom' : 'Cursos sense nom');
+    else if (item.cursos.length) parts.push(`Curs ${item.cursos.join(' + ')}`);
     if (item.aulaNom || item.aula) parts.push(item.aulaNom || `Aula ${item.aula}`);
     return parts.join(' · ') || 'Sense grup';
-  }
-
-  function formatGrupsItem(item) {
-    if (item.grupsVisibles?.length) return item.grupsVisibles.join(' + ');
-    if (item.grups?.length) return item.grups.length === 1 ? 'Grup sense nom' : 'Grups sense nom';
-    return '';
-  }
-
-  function labelGrupSessio(sessio) {
-    if (sessio.grupVisible) return sessio.grupVisible;
-    if (sessio.cursVisible && /^[A-Za-z]$/.test(sessio.grup || '')) return `${sessio.cursVisible}-${sessio.grup}`;
-    if (sessio.cursVisible) return `${sessio.cursVisible} · grup sense nom`;
-    return 'Grup sense nom';
   }
 
   function normalizeSearch(value) {

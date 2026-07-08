@@ -82,8 +82,6 @@
       aula: atribut(node, 'aula'),
       materia: atribut(node, 'materia'),
       activitat: atribut(node, 'activitat'),
-      professorCurta: atribut(node, 'professorCurta') || atribut(node, 'curta') || atribut(node, 'codiProfessor'),
-      professorNom: atribut(node, 'professorNom') || atribut(node, 'nomProfessor') || atribut(node, 'professor'),
     };
 
     sessio.key = sessioKey(sessio);
@@ -218,7 +216,7 @@
     return {
       ...sessio,
       professorCurta: placa?.curta || sessio.professorCurta || '',
-      professorNom: placa?.descripcio || sessio.professorNom || '',
+      professorNom: placa?.descripcio || '',
       grupVisible: grup?.visible || sessio.grupVisible || '',
       cursVisible: grup?.cursVisible || referencia.cursos?.get(sessio.curs)?.visible || '',
       materiaCurta: materia?.curta || sessio.materiaCurta || '',
@@ -314,7 +312,7 @@
   function professorsOrdenats(sessions) {
     return uniq(sessions.map((s) => s.placa))
       .sort((a, b) => String(a).localeCompare(String(b), 'ca', { numeric: true }))
-      .map((placa) => ({ placa, label: '' }));
+      .map((placa) => ({ placa, label: `Placa ${placa}` }));
   }
 
   function agruparSessionsCobertura(sessions) {

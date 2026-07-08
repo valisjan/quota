@@ -74,7 +74,7 @@
 
             <div class="teacher-search">
               <label for="professor-search">Professor absent</label>
-              <input id="professor-search" type="search" autocomplete="off" placeholder="Cerca per nom o sigla..." />
+              <input id="professor-search" type="search" autocomplete="off" placeholder="Cerca per codi o plaça..." />
               <select id="professor-select" class="hidden"></select>
               <div id="professor-results" class="search-results" aria-label="Resultats de professorat"></div>
             </div>
@@ -94,18 +94,6 @@
               <div id="activity-list" class="activity-list"></div>
             </details>
           </div>
-
-          <details class="guard-details sheets-details">
-            <summary>Noms del professorat</summary>
-            <div class="add-row">
-              <label>
-                Full Professorat
-                <input id="sheets-id" type="search" autocomplete="off" placeholder="ID o URL del full..." />
-              </label>
-              <button id="load-professor-names" type="button" class="ghost">Actualitza noms</button>
-            </div>
-            <p id="names-info" class="hint tight">S'usa la sigla del professorat per mostrar el nom complet quan el full és accessible.</p>
-          </details>
         </section>
 
         <section class="guard-workbench">
