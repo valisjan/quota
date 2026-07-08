@@ -196,6 +196,105 @@
       {{ error }}
     </div>
 
+    <!-- CCP caps departament -->
+    <section
+      v-if="exportacio?.ccp"
+      v-show="activeSection === 'ccp-caps'"
+      id="ccp-caps"
+      class="admin-anchor-section card overflow-hidden"
+    >
+      <div class="border-b border-slate-200 p-5 dark:border-slate-700">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h4 class="text-xl font-bold text-slate-950 dark:text-white">Assistència a CCP</h4>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              La CCP s'exporta com una lliçó lectiva sense grup ni matèria a GPU002. La mateixa hora es resta de la dedicació de cap de departament.
+            </p>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Entren a CCP els caps de departaments amb 2 membres o més, excepte Economia, quan tenen 2h de dedicació: 1h CCP i 1h cap.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span class="rounded-md bg-violet-100 px-2.5 py-1 text-sm font-bold text-violet-800 dark:bg-violet-900/30 dark:text-violet-200">
+              {{ exportacio.ccp.totalAssistents || 0 }} assistents
+            </span>
+            <span class="rounded-md bg-slate-100 px-2.5 py-1 text-sm font-semibold text-slate-700 dark:bg-gray-800 dark:text-slate-200">
+              {{ exportacio.ccp.descripcio }}
+            </span>
+            <span v-if="exportacio.ccp.codiActivitat" class="rounded-md bg-slate-100 px-2.5 py-1 font-mono text-sm font-semibold text-slate-700 dark:bg-gray-800 dark:text-slate-200">
+              {{ exportacio.ccp.codiActivitat }}
+            </span>
+          </div>
+        </div>
+
+        <div v-if="exportacio.ccp.simulacio" class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+          En mode simulació no es genera la CCP perquè els professors es substitueixen per places del XML. Genera sense simulació per veure el repartiment real.
+        </div>
+
+        <div v-else class="mt-5 grid gap-3 sm:grid-cols-3">
+          <div class="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Caps detectats</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ exportacio.ccp.totalCaps }}</p>
+          </div>
+          <div class="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Hores CCP</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ formatHoresUntis(exportacio.ccp.totalHoresCcp) }}</p>
+          </div>
+          <div class="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Hores cap exportades</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ formatHoresUntis(exportacio.ccp.totalHoresCapExport) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="!exportacio.ccp.simulacio" class="overflow-auto">
+        <table class="w-full min-w-[860px] text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 bg-slate-50 text-left dark:border-slate-700 dark:bg-gray-900">
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Departament</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Cap</th>
+              <th class="px-3 py-2 text-center font-semibold text-slate-700 dark:text-slate-300">Membres</th>
+              <th class="px-3 py-2 text-center font-semibold text-slate-700 dark:text-slate-300">Hores originals</th>
+              <th class="px-3 py-2 text-center font-semibold text-slate-700 dark:text-slate-300">CCP</th>
+              <th class="px-3 py-2 text-center font-semibold text-slate-700 dark:text-slate-300">Cap export</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Estat</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <tr
+              v-for="cap in ccpCapsOrdenats"
+              :key="`${cap.departament}-${cap.professor}`"
+              class="align-top hover:bg-slate-50 dark:hover:bg-gray-900/60"
+            >
+              <td class="px-3 py-3 font-semibold text-slate-900 dark:text-white">{{ cap.departament || '-' }}</td>
+              <td class="px-3 py-3 text-slate-800 dark:text-slate-200">{{ cap.professor || '-' }}</td>
+              <td class="px-3 py-3 text-center font-mono text-slate-900 dark:text-white">{{ cap.membres }}</td>
+              <td class="px-3 py-3 text-center font-mono text-slate-900 dark:text-white">{{ formatHoresUntis(cap.horesOriginals) }}</td>
+              <td class="px-3 py-3 text-center font-mono font-bold" :class="cap.horesCcp ? 'text-violet-800 dark:text-violet-200' : 'text-slate-400'">
+                {{ cap.horesCcp ? formatHoresUntis(cap.horesCcp) : '-' }}
+              </td>
+              <td class="px-3 py-3 text-center font-mono font-bold text-slate-900 dark:text-white">{{ formatHoresUntis(cap.horesCapExport) }}</td>
+              <td class="px-3 py-3">
+                <span
+                  class="rounded px-2 py-1 text-xs font-bold"
+                  :class="cap.elegible
+                    ? 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-200'
+                    : 'bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-slate-300'"
+                >
+                  {{ cap.elegible ? 'Va a la CCP' : cap.motiu || 'No CCP' }}
+                </span>
+              </td>
+            </tr>
+            <tr v-if="ccpCapsOrdenats.length === 0">
+              <td colspan="7" class="px-3 py-8 text-center text-slate-500 dark:text-slate-400">
+                No s'han detectat classes de cap de departament.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- Previsualitzacio Untis -->
     <div
       v-if="exportacio"
@@ -861,6 +960,15 @@ const sectionItems = computed(() => [
     description: 'Verificar sense guardar',
     tone: simular.value ? 'warning' : '',
   },
+  exportacio.value?.ccp
+    ? {
+        id: 'ccp-caps',
+        label: 'CCP',
+        description: 'Caps i hores lectives',
+        badge: exportacio.value.ccp.totalAssistents || '',
+        tone: exportacio.value.ccp.simulacio ? 'warning' : '',
+      }
+    : null,
   exportacio.value
     ? {
         id: 'previsualitzacio-untis',
@@ -1139,6 +1247,15 @@ const gpu002Fitxer = computed(() =>
   exportacio.value?.fitxers?.find((fitxer) => fitxer.nom === 'GPU002.TXT') || null
 );
 
+const ccpCapsOrdenats = computed(() =>
+  [...(exportacio.value?.ccp?.caps || [])].sort((a, b) => {
+    if (a.elegible !== b.elegible) return a.elegible ? -1 : 1;
+    const departament = (a.departament || '').localeCompare(b.departament || '');
+    if (departament) return departament;
+    return (a.professor || '').localeCompare(b.professor || '');
+  })
+);
+
 const vistaPreviaFiltrada = computed(() => {
   const llista = exportacio.value?.vistaPrevia || [];
   const filtre = normalitzarFiltre(filtreVistaPrevia.value);
@@ -1235,7 +1352,7 @@ async function generar() {
       simular: simular.value,
       overrides: Object.keys(mapeigManual.value).length ? mapeigManual.value : null,
     });
-    activeSection.value = 'previsualitzacio-untis';
+    activeSection.value = exportacio.value?.ccp ? 'ccp-caps' : 'previsualitzacio-untis';
   } catch (err) {
     console.error('Error generant exportació Untis:', err);
     error.value = `No s'han pogut generar els fitxers per a Untis: ${err.message || err}`;

@@ -246,6 +246,32 @@ function esCapDepartamentClasse(classe) {
   return materia.includes('cap') && materia.includes('departament');
 }
 
+function departamentClasseCap(classe, professorsPerNom) {
+  const professor = obtenirProfessorsClasse(classe)[0];
+  return (
+    classe.departament ||
+    classe.departaments?.[0] ||
+    professorsPerNom.get(professor)?.departament ||
+    ''
+  ).toString().trim();
+}
+
+function esDepartamentEconomia(departament) {
+  return normalitzar(departament).includes('economia');
+}
+
+function comptarProfessorsPerDepartament(professors) {
+  const perDepartament = new Map();
+  professors.forEach((professor) => {
+    const departament = (professor.departament || '').toString().trim();
+    if (!departament) return;
+    const clau = normalitzar(departament);
+    if (!clau) return;
+    perDepartament.set(clau, (perDepartament.get(clau) || 0) + 1);
+  });
+  return perDepartament;
+}
+
 function trobarActivitatCcp(referenciaGestib) {
   return referenciaGestib?.activitats?.find((activitat) => {
     const text = normalitzar([
@@ -257,31 +283,93 @@ function trobarActivitatCcp(referenciaGestib) {
   }) || null;
 }
 
-function crearClassesAssistenciaCcpCaps(rawClasses, referenciaGestib) {
-  const professors = [...new Set(
-    rawClasses
-      .filter(esCapDepartamentClasse)
-      .flatMap(obtenirProfessorsClasse)
-  )].filter(Boolean);
-  if (!professors.length) return [];
+function prepararCcpCapsDepartament(rawClasses, professors, referenciaGestib) {
+  const professorsPerNom = new Map(professors.map((professor) => [professor.nom, professor]));
+  const membresPerDepartament = comptarProfessorsPerDepartament(professors);
+  const caps = rawClasses
+    .filter(esCapDepartamentClasse)
+    .map((classe) => {
+      const professor = obtenirProfessorsClasse(classe)[0] || '';
+      const departament = departamentClasseCap(classe, professorsPerNom);
+      const membres = membresPerDepartament.get(normalitzar(departament)) || 0;
+      const horesOriginals = Number(classe.hores) || 0;
+      const elegible = Boolean(
+        professor &&
+        departament &&
+        membres >= 2 &&
+        !esDepartamentEconomia(departament) &&
+        horesOriginals >= 2
+      );
+      const horesCcp = elegible ? Math.min(1, horesOriginals) : 0;
+      return {
+        classeId: classe.id || '',
+        departament,
+        professor,
+        membres,
+        horesOriginals,
+        horesCcp,
+        horesCapExport: Math.max(0, horesOriginals - horesCcp),
+        elegible,
+        motiu: !professor
+          ? 'sense professor'
+          : !departament
+            ? 'sense departament'
+            : membres < 2
+              ? 'departament amb menys de 2 membres'
+              : esDepartamentEconomia(departament)
+                ? 'Economia exclòs'
+                : horesOriginals < 2
+                  ? '1h: tota a cap de departament'
+                  : '',
+      };
+    });
+
+  const capsAmbCcp = caps.filter((cap) => cap.elegible && cap.horesCcp > 0);
+  const horesCapPerClasse = new Map(caps.map((cap) => [cap.classeId, cap.horesCapExport]));
+  const classes = rawClasses.map((classe) => {
+    if (!esCapDepartamentClasse(classe) || !horesCapPerClasse.has(classe.id || '')) return classe;
+    return {
+      ...classe,
+      hores: horesCapPerClasse.get(classe.id || ''),
+      _horesCapDepartamentOriginals: Number(classe.hores) || 0,
+      _horesCcpDescomptades: (Number(classe.hores) || 0) - horesCapPerClasse.get(classe.id || ''),
+    };
+  });
 
   const activitat = trobarActivitatCcp(referenciaGestib);
   const descripcio = activitat?.curta || activitat?.etiqueta || activitat?.descripcio || '*Assistència a CCP';
-  return [{
-    id: 'ccp-caps-departament',
-    curs: '',
-    grup: '',
-    materia: descripcio,
-    hores: 1,
-    departament: '',
-    departaments: [],
-    tipus: '',
-    professorAssignat: professors[0],
-    professors,
-    _descripcioSenseMateria: true,
-    _descripcioUntis: descripcio,
-    _activitatGestib: activitat,
-  }];
+  const classeCcp = capsAmbCcp.length
+    ? {
+        id: 'ccp-caps-departament',
+        curs: '',
+        grup: '',
+        materia: descripcio,
+        hores: 1,
+        departament: '',
+        departaments: [],
+        tipus: '',
+        professorAssignat: capsAmbCcp[0].professor,
+        professors: capsAmbCcp.map((cap) => cap.professor),
+        _descripcioSenseMateria: true,
+        _descripcioUntis: descripcio,
+        _activitatGestib: activitat,
+        _ccpCapsDepartament: true,
+      }
+    : null;
+
+  return {
+    classes: classeCcp ? [...classes, classeCcp] : classes,
+    resum: {
+      descripcio,
+      codiActivitat: activitat?.codiUntis || '',
+      caps,
+      capsAmbCcp,
+      totalCaps: caps.length,
+      totalAssistents: capsAmbCcp.length,
+      totalHoresCcp: capsAmbCcp.reduce((total, cap) => total + cap.horesCcp, 0),
+      totalHoresCapExport: caps.reduce((total, cap) => total + cap.horesCapExport, 0),
+    },
+  };
 }
 
 function codisMateriaPossibles(materia) {
@@ -349,6 +437,7 @@ function scoreReferencia(classe, ref) {
     let score = 40;
     const materiaNorm = normalitzar(classe.materia);
     const refNorm = normalitzar(`${ref.materia} ${ref.text}`);
+    if (classe._ccpCapsDepartament && refNorm.includes('ccp')) score += 140;
     if (materiaNorm && refNorm.includes(materiaNorm)) score += 120;
     if (Number(ref.hores) === Number(classe.hores)) score += 15;
     return score;
@@ -566,6 +655,7 @@ function etiquetaBlocLlico(classe, components) {
 function notesVistaPrevia({ classe, components, referencia, filesAgrupades }) {
   const notes = [];
   if (components.length > 1) notes.push(`${components.length} linies GPU002`);
+  if (classe._ccpCapsDepartament) notes.push('CCP: descompta 1h de cap de departament');
   if (filesAgrupades.length > 1) notes.push(`${filesAgrupades.length} classes agrupades`);
   if (referencia) notes.push('Numero conservat del GPU002 de referencia');
   if (!classe.curs && !classe.grup) notes.push('Activitat sense grup');
@@ -901,13 +991,26 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
   const referenciaGestib = referenciaGestibXmlText ? parseGestibXml(referenciaGestibXmlText) : null;
   let professors = snapProfessors.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => !p.eliminatDelFull);
   const rawClasses = snapClasses.docs.map((d) => ({ id: d.id, ...d.data() }));
-  const rawClassesSenseDivisibles = rawClasses.filter((classe) => !esSuportDivisible(classe.tipus) && !esDesdoblamentDivisible(classe.tipus));
-  const classesSuportDivisible = crearClassesSuportDivisible(professors, rawClasses);
-  const classesDesdoblamentDivisible = crearClassesDesdoblamentDivisible(professors, rawClasses);
+  const ccp = simular
+    ? {
+        descripcio: '*Assistència a CCP',
+        codiActivitat: '',
+        caps: [],
+        capsAmbCcp: [],
+        totalCaps: 0,
+        totalAssistents: 0,
+        totalHoresCcp: 0,
+        totalHoresCapExport: 0,
+        simulacio: true,
+      }
+    : prepararCcpCapsDepartament(rawClasses, professors, referenciaGestib);
+  const rawClassesExport = simular ? rawClasses : ccp.classes;
+  const rawClassesSenseDivisibles = rawClassesExport.filter((classe) => !esSuportDivisible(classe.tipus) && !esDesdoblamentDivisible(classe.tipus));
+  const classesSuportDivisible = crearClassesSuportDivisible(professors, rawClassesExport);
+  const classesDesdoblamentDivisible = crearClassesDesdoblamentDivisible(professors, rawClassesExport);
   let classes = [
     ...afegirGuardiesPatiCalculades(rawClassesSenseDivisibles, professors),
     ...crearClassesGuardiesNormals(professors, rawClassesSenseDivisibles),
-    ...(simular ? [] : crearClassesAssistenciaCcpCaps(rawClasses, referenciaGestib)),
     ...classesSuportDivisible,
     ...classesDesdoblamentDivisible,
   ];
@@ -957,6 +1060,7 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
       : null,
     pendents: llicons.pendents,
     vistaPrevia: llicons.vistaPrevia,
+    ccp: simular ? ccp : ccp.resum,
     fitxersOriginals: [
       { nom: 'GPU003.TXT', descripcio: 'Classes / grups', contingut: classesText },
       { nom: 'GPU004.TXT', descripcio: 'Professors', contingut: professorsText },
