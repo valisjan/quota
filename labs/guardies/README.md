@@ -35,6 +35,9 @@ Els dos XML queden guardats a la memòria local del navegador. Quan tornes a obr
 - Comentari per cada absència.
 - Comptador de cobertures ja assignades a cada professor en la mateixa franja.
 - Cerca del professorat que té guàrdia a la mateixa franja.
+- Selecció dels grups que són fora del centre.
+- Detecció del professorat que queda alliberat perquè tenia classe amb aquests grups.
+- Ús del professorat alliberat com a candidat de cobertura a la mateixa franja.
 - Assignació provisional de cobertura en memòria.
 
 ## Què no fa encara

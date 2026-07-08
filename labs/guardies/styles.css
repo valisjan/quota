@@ -361,7 +361,7 @@ label {
 
 .guard-workbench {
   display: grid;
-  grid-template-columns: minmax(320px, 0.9fr) minmax(460px, 1.25fr);
+  grid-template-columns: minmax(260px, 0.85fr) minmax(360px, 1.1fr) minmax(300px, 0.95fr);
   gap: 18px;
   align-items: start;
 }
@@ -554,7 +554,8 @@ label {
 .uncovered-list,
 .teacher-list,
 .schedule-grid,
-.coverage-list {
+.coverage-list,
+.released-list {
   display: grid;
   gap: 10px;
 }
@@ -566,6 +567,27 @@ label {
 
 .schedule-grid {
   grid-template-columns: 1fr;
+}
+
+.group-picker {
+  display: grid;
+  gap: 10px;
+}
+
+.selected-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.selected-groups .empty-small {
+  width: 100%;
+  padding: 12px;
+}
+
+.group-chip {
+  background: #eef3ff;
+  color: #3344a0;
 }
 
 .schedule-actions {
@@ -695,6 +717,13 @@ label {
   overflow: hidden;
 }
 
+.released-session {
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
 .coverage-session-head {
   display: flex;
   align-items: center;
@@ -720,6 +749,50 @@ label {
   gap: 9px;
   padding: 10px;
   align-content: start;
+}
+
+.released-session-list {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.released-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-soft);
+  padding: 10px;
+}
+
+.released-item strong,
+.released-item span {
+  display: block;
+}
+
+.released-item strong {
+  font-size: 0.92rem;
+}
+
+.released-item span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.released-tag {
+  align-self: start;
+  border-radius: 999px;
+  background: #dff7ea;
+  color: #147148 !important;
+  padding: 4px 8px;
+  font-size: 0.72rem !important;
+  font-weight: 900 !important;
 }
 
 .coverage-empty {

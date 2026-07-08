@@ -23,6 +23,7 @@
     absencies: new Map(),
     assignacions: new Map(),
     comentaris: new Map(),
+    grupsFora: new Set(),
   };
 
   const el = {
@@ -55,6 +56,12 @@
     scheduleGrid: document.getElementById('schedule-grid'),
     coverageCount: document.getElementById('coverage-count'),
     coverageList: document.getElementById('coverage-list'),
+    groupSearch: document.getElementById('group-search'),
+    groupResults: document.getElementById('group-results'),
+    selectedGroups: document.getElementById('selected-groups'),
+    releasedCount: document.getElementById('released-count'),
+    releasedList: document.getElementById('released-list'),
+    clearGroups: document.getElementById('clear-groups'),
   };
 
   el.dateInput.value = state.date;
@@ -76,6 +83,7 @@
     state.absencies.clear();
     state.assignacions.clear();
     state.comentaris.clear();
+    state.grupsFora.clear();
     render();
   });
   el.clearGuardCodes.addEventListener('click', () => {
@@ -99,6 +107,18 @@
     state.assignacions.clear();
     state.comentaris.clear();
     render();
+  });
+  el.groupSearch.addEventListener('input', () => {
+    renderGroupResults(el.groupSearch.value);
+  });
+  el.groupSearch.addEventListener('focus', () => {
+    renderGroupResults(el.groupSearch.value);
+  });
+  el.clearGroups.addEventListener('click', () => {
+    state.grupsFora.clear();
+    renderGroupPicker();
+    renderCoverage();
+    renderReleasedList();
   });
 
   parseStoredData({ resetSelection: true });
@@ -230,6 +250,7 @@
           state.absencies.clear();
           state.assignacions.clear();
           state.comentaris.clear();
+          state.grupsFora.clear();
         }
         renderInitialData();
       } else {
@@ -245,6 +266,7 @@
       state.absencies.clear();
       state.assignacions.clear();
       state.comentaris.clear();
+      state.grupsFora.clear();
       showError(error.message || String(error));
     }
 
@@ -281,6 +303,7 @@
     state.absencies.clear();
     state.assignacions.clear();
     state.comentaris.clear();
+    state.grupsFora.clear();
     showError('');
     render();
   }
@@ -391,6 +414,102 @@
       });
   }
 
+  function grupsOrdenatsAmbLabel() {
+    const grups = new Map();
+    state.sessions.forEach((sessio) => {
+      if (!sessio.teClasse || !sessio.grup) return;
+      if (grups.has(sessio.grup)) return;
+      const label = sessio.grupVisible || [sessio.cursVisible, sessio.grup].filter(Boolean).join('-') || `Grup ${sessio.grup}`;
+      grups.set(sessio.grup, {
+        codi: sessio.grup,
+        label,
+        curs: sessio.cursVisible || sessio.curs || '',
+      });
+    });
+
+    return Array.from(grups.values())
+      .sort((a, b) => a.label.localeCompare(b.label, 'ca', { numeric: true }));
+  }
+
+  function renderGroupPicker() {
+    const grups = grupsOrdenatsAmbLabel();
+    const validGroups = new Set(grups.map((grup) => grup.codi));
+    Array.from(state.grupsFora).forEach((codi) => {
+      if (!validGroups.has(codi)) state.grupsFora.delete(codi);
+    });
+
+    renderSelectedGroups(grups);
+    renderGroupResults(el.groupSearch.value);
+    el.clearGroups.disabled = !state.grupsFora.size;
+  }
+
+  function renderGroupResults(query = '') {
+    const normalizedQuery = normalizeSearch(query);
+    const grups = grupsOrdenatsAmbLabel()
+      .filter((grup) => {
+        if (!normalizedQuery) return true;
+        return normalizeSearch(`${grup.label} ${grup.codi} ${grup.curs}`).includes(normalizedQuery);
+      })
+      .slice(0, 14);
+
+    if (!grups.length) {
+      el.groupResults.innerHTML = '<div class="search-empty">Sense resultats</div>';
+      return;
+    }
+
+    el.groupResults.innerHTML = grups.map((grup) => `
+      <button
+        type="button"
+        class="search-result ${state.grupsFora.has(grup.codi) ? 'active' : ''}"
+        data-group-out="${escapeHtml(grup.codi)}"
+      >
+        <strong>${escapeHtml(grup.label)}</strong>
+        <span>${escapeHtml(grup.codi)}</span>
+      </button>
+    `).join('');
+
+    el.groupResults.querySelectorAll('[data-group-out]').forEach((button) => {
+      button.addEventListener('click', () => {
+        toggleGroupOut(button.dataset.groupOut);
+      });
+    });
+  }
+
+  function renderSelectedGroups(grups = grupsOrdenatsAmbLabel()) {
+    const byCode = new Map(grups.map((grup) => [grup.codi, grup]));
+    const selected = Array.from(state.grupsFora)
+      .map((codi) => byCode.get(codi))
+      .filter(Boolean)
+      .sort((a, b) => a.label.localeCompare(b.label, 'ca', { numeric: true }));
+
+    if (!selected.length) {
+      el.selectedGroups.innerHTML = '<div class="empty-small">Cap grup seleccionat.</div>';
+      return;
+    }
+
+    el.selectedGroups.innerHTML = selected.map((grup) => `
+      <span class="chip group-chip">
+        ${escapeHtml(grup.label)}
+        <button type="button" aria-label="Treu ${escapeHtml(grup.label)}" data-remove-group="${escapeHtml(grup.codi)}">×</button>
+      </span>
+    `).join('');
+
+    el.selectedGroups.querySelectorAll('[data-remove-group]').forEach((button) => {
+      button.addEventListener('click', () => {
+        toggleGroupOut(button.dataset.removeGroup);
+      });
+    });
+  }
+
+  function toggleGroupOut(codi) {
+    if (!codi) return;
+    if (state.grupsFora.has(codi)) state.grupsFora.delete(codi);
+    else state.grupsFora.add(codi);
+    renderGroupPicker();
+    renderCoverage();
+    renderReleasedList();
+  }
+
   function renderActivityList() {
     const activitats = state.resum?.activitats || [];
     if (!activitats.length) {
@@ -429,8 +548,10 @@
 
     renderInitialData();
     renderDateLabel();
+    renderGroupPicker();
     renderSchedule();
     renderCoverage();
+    renderReleasedList();
   }
 
   function renderCacheInfo() {
@@ -590,9 +711,66 @@
   }
 
   function guardiesPerFranja(dia, hora, professorAbsent) {
-    return parser.ocupacioFranja(state.sessions, dia, hora, state.guardiaCodes)
-      .filter((professor) => professor.placa !== professorAbsent && professor.guardies.length)
+    const ocupacio = parser.ocupacioFranja(state.sessions, dia, hora, state.guardiaCodes);
+    const ocupacioByPlaca = new Map(ocupacio.map((professor) => [professor.placa, professor]));
+    const candidates = new Map();
+
+    ocupacio
+      .filter((professor) => (
+        professor.placa !== professorAbsent &&
+        professor.guardies.length &&
+        !isProfessorAbsentSameSlot(dia, hora, professor.placa)
+      ))
+      .forEach((professor) => {
+        candidates.set(professor.placa, {
+          ...professor,
+          alliberaments: [],
+        });
+      });
+
+    releasedItemsForSlot(dia, hora).forEach((item) => {
+      if (item.placa === professorAbsent || isProfessorAbsentSameSlot(dia, hora, item.placa)) return;
+
+      if (!candidates.has(item.placa)) {
+        const base = ocupacioByPlaca.get(item.placa) || {
+          placa: item.placa,
+          label: `Placa ${item.placa}`,
+          sessions: [],
+          classes: [],
+          guardies: [],
+          activitats: [],
+          lliure: false,
+        };
+        candidates.set(item.placa, {
+          ...base,
+          alliberaments: [],
+        });
+      }
+
+      candidates.get(item.placa).alliberaments.push(item);
+    });
+
+    return Array.from(candidates.values())
       .sort((a, b) => (professorShort(a.placa) || a.placa).localeCompare(professorShort(b.placa) || b.placa, 'ca', { numeric: true }));
+  }
+
+  function isProfessorAbsentSameSlot(dia, hora, placa) {
+    return Array.from(state.absencies.values())
+      .some((item) => item.dia === dia && item.hora === hora && item.placa === placa);
+  }
+
+  function releasedItemsForDay() {
+    const dia = diaXmlSeleccionat();
+    if (!state.grupsFora.size || !dia) return [];
+    const sessions = state.sessions.filter((sessio) => sessio.dia === dia && sessio.teClasse);
+
+    return parser.agruparSessionsCobertura(sessions)
+      .filter((item) => item.grups.length && item.grups.every((grup) => state.grupsFora.has(grup)))
+      .sort(sortCoverageItems);
+  }
+
+  function releasedItemsForSlot(dia, hora) {
+    return releasedItemsForDay().filter((item) => item.dia === dia && item.hora === hora);
   }
 
   function trimCurrentProfessorAbsences(items) {
@@ -645,6 +823,47 @@
     }));
   }
 
+  function renderReleasedList() {
+    const released = releasedItemsForDay();
+    const professors = new Set(released.map((item) => item.placa));
+    el.releasedCount.textContent = plural(professors.size, 'professor', 'professors');
+    el.clearGroups.disabled = !state.grupsFora.size;
+
+    if (!state.grupsFora.size) {
+      el.releasedList.innerHTML = '<div class="empty-small">Selecciona els grups que són fora del centre.</div>';
+      return;
+    }
+
+    const releasedByHour = new Map(groupBySession(released).map((group) => [group.hora, group.items]));
+    const dayHours = hoursForSelectedDay();
+    el.releasedList.innerHTML = dayHours.map((hora) => {
+      const items = releasedByHour.get(hora) || [];
+      return `
+        <section class="released-session">
+          <div class="coverage-session-head">
+            <h3>${escapeHtml(horaLabel(hora))}</h3>
+            <span>${items.length ? plural(new Set(items.map((item) => item.placa)).size, 'professor', 'professors') : 'Sense alliberats'}</span>
+          </div>
+          <div class="released-session-list">
+            ${items.length ? items.map(renderReleasedItem).join('') : '<div class="coverage-empty">Cap classe dels grups seleccionats.</div>'}
+          </div>
+        </section>
+      `;
+    }).join('');
+  }
+
+  function renderReleasedItem(item) {
+    return `
+      <article class="released-item">
+        <div>
+          <strong>${escapeHtml(labelProfessor(item.placa))}</strong>
+          <span>${escapeHtml(formatMateria(item))} · ${escapeHtml(formatBlocCurt(item))}</span>
+        </div>
+        <span class="released-tag">Candidat</span>
+      </article>
+    `;
+  }
+
   function hoursForSelectedDay() {
     const dia = diaXmlSeleccionat();
     const hores = (state.resum?.franges || [])
@@ -674,14 +893,14 @@
             </div>
             <div class="session-meta">${escapeHtml(formatMateria(item))} · ${escapeHtml(formatBlocCurt(item))}</div>
           </div>
-          <span class="pill">${assignat ? 'Assignada' : hasCandidates ? `${candidates.length} guardies` : 'Sense guàrdies'}</span>
+          <span class="pill">${assignat ? 'Assignada' : hasCandidates ? `${candidates.length} candidats` : 'Sense candidats'}</span>
         </div>
         <div class="assignment">
           <select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates ? '' : 'disabled'}>
-            <option value="">Tria professorat de guàrdia</option>
+            <option value="">Tria professorat disponible</option>
             ${candidates.map((candidate) => `
               <option value="${escapeHtml(candidate.placa)}" ${candidate.placa === assignat ? 'selected' : ''}>
-                ${escapeHtml(labelProfessor(candidate.placa))} · ${escapeHtml(assignmentLoadLabel(item, candidate.placa))} · ${escapeHtml(formatSessionsActivitat(candidate.guardies))}
+                ${escapeHtml(labelProfessor(candidate.placa))} · ${escapeHtml(assignmentLoadLabel(item, candidate.placa))} · ${escapeHtml(formatCandidateAvailability(candidate))}
               </option>
             `).join('')}
           </select>
@@ -759,6 +978,22 @@
       sessio.activitatCurta || sessio.activitatNom || sessio.activitat
     )).filter(Boolean)));
     return labels.length ? labels.join(', ') : 'Guàrdia';
+  }
+
+  function formatCandidateAvailability(candidate) {
+    const labels = [];
+    if (candidate.guardies?.length) labels.push(formatSessionsActivitat(candidate.guardies));
+    if (candidate.alliberaments?.length) labels.push(formatAlliberamentLabel(candidate.alliberaments));
+    return labels.length ? labels.join(' + ') : 'Disponible';
+  }
+
+  function formatAlliberamentLabel(items) {
+    const grups = Array.from(new Set(items.flatMap((item) => (
+      item.grupsVisibles?.length
+        ? item.grupsVisibles
+        : item.grups.map((grup) => `Grup ${grup}`)
+    )).filter(Boolean)));
+    return grups.length ? `Alliberat: ${grups.join(' + ')}` : 'Alliberat';
   }
 
   function formatMateria(item) {
