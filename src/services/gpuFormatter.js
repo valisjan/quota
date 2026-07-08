@@ -3,7 +3,7 @@ import { db } from '../firebase';
 import {
   TIPUS_NO_LECTIUS, netejarText, senseAccents, normalitzar,
   codiBase, codiUnic, codiProfessorBase,
-  codisClasse, grupsClasse, campsBuids, decimalUntis, liniaDif,
+  codisClasse, codisCurs, grupsClasse, campsBuids, decimalUntis, liniaDif,
   parseGpu002, parseCsvLine, limitsJornada, obtenirProfessorsClasse, descarregarText, expandirClassePerGrups,
 } from './untisUtils';
 import { parseGestibXml, trobarMateriaGestib, trobarMateriaGestibAmbOverride } from './gestibMapper';
@@ -372,6 +372,165 @@ function prepararCcpCapsDepartament(rawClasses, professors, referenciaGestib) {
   };
 }
 
+function trobarActivitatCoordinacioDocent(referenciaGestib) {
+  return referenciaGestib?.activitats?.find((activitat) => {
+    const text = normalitzar([
+      activitat.etiqueta,
+      activitat.curta,
+      activitat.descripcio,
+    ].filter(Boolean).join(' '));
+    return text.includes('reun') && text.includes('coordinacio') && text.includes('docent');
+  }) || null;
+}
+
+function numeroEsoExport(classe) {
+  const codi = codisCurs(classe?.curs || '')[0] || '';
+  const match = codi.match(/^([123])ESO$/);
+  return match ? Number(match[1]) : 0;
+}
+
+function esOptativaPerReunio(classe) {
+  const tipus = netejarText(classe?.tipus || '').toUpperCase();
+  return tipus.startsWith('O') || tipus.startsWith('T');
+}
+
+function esTallerLectura(classe) {
+  const materia = normalitzar(classe?.materia || '');
+  return materia.includes('taller') && materia.includes('lectura');
+}
+
+function motiuExclusioReunioCoordinacio(classe) {
+  if (!numeroEsoExport(classe)) return 'fora de 1r, 2n i 3r ESO';
+  if (!grupsClasse(classe).length) return 'sense grup';
+  if (esTallerLectura(classe)) return 'Taller de lectura';
+  if (esOptativaPerReunio(classe)) return 'optativa';
+  if (!obtenirProfessorsClasse(classe).length) return 'sense professor';
+  return '';
+}
+
+function crearEquipsDocentsBase(rawClasses) {
+  const grupsPerCurs = new Map();
+  rawClasses.forEach((classe) => {
+    const numero = numeroEsoExport(classe);
+    if (!numero) return;
+    if (!grupsPerCurs.has(numero)) grupsPerCurs.set(numero, new Set());
+    grupsClasse(classe).forEach((grup) => grupsPerCurs.get(numero).add(grup));
+  });
+
+  const definicions = [];
+  grupsPerCurs.forEach((grups, numero) => {
+    [
+      ['senars', ['A', 'C', 'E']],
+      ['parells', ['B', 'D', 'F']],
+    ].forEach(([tipus, possibles]) => {
+      const lletres = possibles.filter((grup) => grups.has(grup));
+      if (!lletres.length) return;
+      definicions.push({
+        clau: `${numero}-${tipus}`,
+        curs: `${numero}ESO`,
+        numero,
+        grups: lletres,
+        etiqueta: `${numero}${lletres.join('')}`,
+      });
+    });
+  });
+
+  return definicions.sort((a, b) => a.numero - b.numero || a.etiqueta.localeCompare(b.etiqueta));
+}
+
+function prepararReunionsCoordinacioDocent(rawClasses, referenciaGestib) {
+  const activitat = trobarActivitatCoordinacioDocent(referenciaGestib);
+  const descripcio = activitat?.curta || activitat?.etiqueta || activitat?.descripcio || 'Reunions coordinació docent';
+  const equips = crearEquipsDocentsBase(rawClasses).map((equip) => ({
+    ...equip,
+    professors: [],
+    professorsSet: new Set(),
+    classesIncloses: [],
+    excloses: [],
+  }));
+  const exclosos = [];
+
+  rawClasses.forEach((classe) => {
+    const numero = numeroEsoExport(classe);
+    if (!numero) return;
+    const grups = grupsClasse(classe);
+    const motiuExclusio = motiuExclusioReunioCoordinacio(classe);
+    if (motiuExclusio) {
+      const item = {
+        curs: classe.curs || `${numero}ESO`,
+        grup: grups.join('+') || classe.grup || '',
+        materia: classe.materia || '',
+        tipus: classe.tipus || '',
+        professorat: obtenirProfessorsClasse(classe),
+        motiu: motiuExclusio,
+      };
+      exclosos.push(item);
+      return;
+    }
+
+    const professors = obtenirProfessorsClasse(classe);
+    const equipsCurs = equips.filter((equip) => equip.numero === numero);
+    equipsCurs
+      .filter((equip) => grups.some((grup) => equip.grups.includes(grup)))
+      .forEach((equip) => {
+        professors.forEach((professor) => equip.professorsSet.add(professor));
+        equip.classesIncloses.push({
+          curs: classe.curs || `${numero}ESO`,
+          grup: grups.join('+') || classe.grup || '',
+          materia: classe.materia || '',
+          tipus: classe.tipus || '',
+          professorat: professors,
+        });
+      });
+  });
+
+  const equipsAmbProfessors = equips.map((equip) => {
+    const professors = [...equip.professorsSet].sort((a, b) => a.localeCompare(b));
+    return {
+      ...equip,
+      professors,
+      professorsSet: undefined,
+      classesIncloses: equip.classesIncloses.sort((a, b) =>
+        [a.curs, a.grup, a.materia].join('|').localeCompare([b.curs, b.grup, b.materia].join('|'))
+      ),
+    };
+  });
+
+  const classes = equipsAmbProfessors
+    .filter((equip) => equip.professors.length)
+    .map((equip) => ({
+      id: `reunio-coordinacio-docent-${equip.clau}`,
+      curs: '',
+      grup: '',
+      materia: `${descripcio} ${equip.etiqueta}`,
+      hores: 1,
+      departament: '',
+      departaments: [],
+      tipus: '',
+      professorAssignat: equip.professors[0],
+      professors: equip.professors,
+      _descripcioSenseMateria: true,
+      _descripcioUntis: descripcio,
+      _textLlicoUntis: `Equip docent ${equip.etiqueta}`,
+      _activitatGestib: activitat,
+      _reunioCoordinacioDocent: true,
+      _equipDocent: equip,
+    }));
+
+  return {
+    classes,
+    resum: {
+      descripcio,
+      codiActivitat: activitat?.codiUntis || '',
+      equips: equipsAmbProfessors,
+      exclosos,
+      totalEquips: equipsAmbProfessors.length,
+      totalReunions: classes.length,
+      totalLinies: classes.reduce((total, classe) => total + classe.professors.length, 0),
+    },
+  };
+}
+
 function codisMateriaPossibles(materia) {
   const text = senseAccents(materia).toUpperCase();
   const codis = new Set();
@@ -438,6 +597,11 @@ function scoreReferencia(classe, ref) {
     const materiaNorm = normalitzar(classe.materia);
     const refNorm = normalitzar(`${ref.materia} ${ref.text}`);
     if (classe._ccpCapsDepartament && refNorm.includes('ccp')) score += 140;
+    if (classe._reunioCoordinacioDocent) {
+      const equipNorm = normalitzar(classe._textLlicoUntis || '');
+      if (equipNorm && refNorm.includes(equipNorm)) score += 180;
+      if (refNorm.includes('equipdocent')) score += 60;
+    }
     if (materiaNorm && refNorm.includes(materiaNorm)) score += 120;
     if (Number(ref.hores) === Number(classe.hores)) score += 15;
     return score;
@@ -656,6 +820,7 @@ function notesVistaPrevia({ classe, components, referencia, filesAgrupades }) {
   const notes = [];
   if (components.length > 1) notes.push(`${components.length} linies GPU002`);
   if (classe._ccpCapsDepartament) notes.push('CCP: descompta 1h de cap de departament');
+  if (classe._reunioCoordinacioDocent) notes.push(classe._textLlicoUntis || 'Reunio equip docent');
   if (filesAgrupades.length > 1) notes.push(`${filesAgrupades.length} classes agrupades`);
   if (referencia) notes.push('Numero conservat del GPU002 de referencia');
   if (!classe.curs && !classe.grup) notes.push('Activitat sense grup');
@@ -686,6 +851,9 @@ function prepararCampsLlico({ referencia, numLlico, classe, component, hores, ti
   camps[6] = classe?._descripcioSenseMateria ? '' : codiUntisSegur(component.codiMateria, 'MAT');
   camps[7] = textUntisSegur(component.aula || camps[7] || '');
   camps[12] = netejarText(tipus);
+  if (classe?._textLlicoUntis) {
+    camps[17] = textUntisSegur(classe._textLlicoUntis);
+  }
   camps[20] = classe?._descripcioSenseMateria
     ? textUntisSegur(classe._descripcioUntis || classe.materia)
     : [
@@ -991,6 +1159,7 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
   const referenciaGestib = referenciaGestibXmlText ? parseGestibXml(referenciaGestibXmlText) : null;
   let professors = snapProfessors.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => !p.eliminatDelFull);
   const rawClasses = snapClasses.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const reunionsCoordinacio = prepararReunionsCoordinacioDocent(rawClasses, referenciaGestib);
   const ccp = simular
     ? {
         descripcio: '*Assistència a CCP',
@@ -1011,6 +1180,7 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
   let classes = [
     ...afegirGuardiesPatiCalculades(rawClassesSenseDivisibles, professors),
     ...crearClassesGuardiesNormals(professors, rawClassesSenseDivisibles),
+    ...(simular ? [] : reunionsCoordinacio.classes),
     ...classesSuportDivisible,
     ...classesDesdoblamentDivisible,
   ];
@@ -1061,6 +1231,9 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
     pendents: llicons.pendents,
     vistaPrevia: llicons.vistaPrevia,
     ccp: simular ? ccp : ccp.resum,
+    reunionsCoordinacio: simular
+      ? { ...reunionsCoordinacio.resum, simulacio: true }
+      : reunionsCoordinacio.resum,
     fitxersOriginals: [
       { nom: 'GPU003.TXT', descripcio: 'Classes / grups', contingut: classesText },
       { nom: 'GPU004.TXT', descripcio: 'Professors', contingut: professorsText },

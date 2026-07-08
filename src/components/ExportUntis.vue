@@ -295,6 +295,146 @@
       </div>
     </section>
 
+    <!-- Reunions coordinacio docent -->
+    <section
+      v-if="exportacio?.reunionsCoordinacio"
+      v-show="activeSection === 'reunions-docents'"
+      id="reunions-docents"
+      class="admin-anchor-section card overflow-hidden"
+    >
+      <div class="border-b border-slate-200 p-5 dark:border-slate-700">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h4 class="text-xl font-bold text-slate-950 dark:text-white">Reunions de coordinació docent</h4>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Es creen a GPU002 com a activitat sense grup ni matèria, amb la descripció de coordinació docent del XML. Només 1r, 2n i 3r ESO.
+            </p>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Els equips es formen per ACE/BDF o AC/BD; s'exclouen Taller de lectura i optatives.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span class="rounded-md bg-blue-100 px-2.5 py-1 text-sm font-bold text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
+              {{ exportacio.reunionsCoordinacio.totalReunions || 0 }} reunions
+            </span>
+            <span class="rounded-md bg-slate-100 px-2.5 py-1 text-sm font-semibold text-slate-700 dark:bg-gray-800 dark:text-slate-200">
+              {{ exportacio.reunionsCoordinacio.descripcio }}
+            </span>
+            <span v-if="exportacio.reunionsCoordinacio.codiActivitat" class="rounded-md bg-slate-100 px-2.5 py-1 font-mono text-sm font-semibold text-slate-700 dark:bg-gray-800 dark:text-slate-200">
+              {{ exportacio.reunionsCoordinacio.codiActivitat }}
+            </span>
+          </div>
+        </div>
+
+        <div v-if="exportacio.reunionsCoordinacio.simulacio" class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+          En mode simulació es mostra el càlcul dels equips, però les reunions no s'afegeixen al GPU002 perquè els professors se substitueixen per places del XML.
+        </div>
+
+        <div class="mt-5 grid gap-3 sm:grid-cols-3">
+          <div class="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Equips detectats</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ exportacio.reunionsCoordinacio.totalEquips }}</p>
+          </div>
+          <div class="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Línies GPU002</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ exportacio.reunionsCoordinacio.totalLinies }}</p>
+          </div>
+          <div class="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Exclusions</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ reunionsCoordinacioExclosos.length }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="overflow-auto">
+        <table class="w-full min-w-[1040px] text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 bg-slate-50 text-left dark:border-slate-700 dark:bg-gray-900">
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Equip</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Grups</th>
+              <th class="px-3 py-2 text-center font-semibold text-slate-700 dark:text-slate-300">Prof.</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Professorat inclòs</th>
+              <th class="px-3 py-2 text-center font-semibold text-slate-700 dark:text-slate-300">Classes</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Mostra de classes</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <tr
+              v-for="equip in reunionsCoordinacioOrdenades"
+              :key="equip.clau"
+              class="align-top hover:bg-slate-50 dark:hover:bg-gray-900/60"
+            >
+              <td class="px-3 py-3">
+                <div class="font-mono text-base font-bold text-slate-950 dark:text-white">{{ equip.etiqueta }}</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">{{ equip.curs }}</div>
+              </td>
+              <td class="px-3 py-3 font-mono font-semibold text-slate-800 dark:text-slate-200">{{ equip.grups.join(' + ') }}</td>
+              <td class="px-3 py-3 text-center font-mono font-bold text-slate-950 dark:text-white">{{ equip.professors.length }}</td>
+              <td class="px-3 py-3">
+                <div class="flex max-w-xl flex-wrap gap-1.5">
+                  <span
+                    v-for="professor in equip.professors"
+                    :key="`${equip.clau}-${professor}`"
+                    class="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-700 dark:bg-gray-800 dark:text-slate-200"
+                  >
+                    {{ professor }}
+                  </span>
+                </div>
+              </td>
+              <td class="px-3 py-3 text-center font-mono font-bold text-slate-950 dark:text-white">{{ equip.classesIncloses.length }}</td>
+              <td class="px-3 py-3">
+                <div class="max-h-24 space-y-1 overflow-auto pr-1">
+                  <div
+                    v-for="classe in equip.classesIncloses.slice(0, 12)"
+                    :key="`${equip.clau}-${classe.curs}-${classe.grup}-${classe.materia}`"
+                    class="rounded bg-white px-2 py-1 text-xs text-slate-700 ring-1 ring-slate-100 dark:bg-gray-950 dark:text-slate-300 dark:ring-slate-800"
+                  >
+                    <span class="font-mono font-semibold">{{ classe.curs }} {{ classe.grup }}</span>
+                    · {{ classe.materia }}
+                    <span v-if="classe.tipus">· {{ classe.tipus }}</span>
+                  </div>
+                  <div v-if="equip.classesIncloses.length > 12" class="text-xs font-semibold text-slate-500">
+                    + {{ equip.classesIncloses.length - 12 }} més
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="reunionsCoordinacioOrdenades.length === 0">
+              <td colspan="6" class="px-3 py-8 text-center text-slate-500 dark:text-slate-400">
+                No s'han detectat equips docents exportables.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="reunionsCoordinacioExclosos.length" class="border-t border-slate-200 p-5 dark:border-slate-700">
+        <h5 class="text-sm font-bold text-slate-950 dark:text-white">Classes excloses del càlcul</h5>
+        <div class="mt-3 max-h-56 overflow-auto rounded-md border border-slate-200 dark:border-slate-700">
+          <table class="w-full min-w-[720px] text-xs">
+            <thead>
+              <tr class="bg-slate-50 text-left dark:bg-gray-900">
+                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Classe</th>
+                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Matèria</th>
+                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Professorat</th>
+                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Motiu</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+              <tr v-for="(classe, index) in reunionsCoordinacioExclosos" :key="index">
+                <td class="px-3 py-2 font-mono text-slate-700 dark:text-slate-300">{{ classe.curs }} {{ classe.grup }}</td>
+                <td class="px-3 py-2 text-slate-700 dark:text-slate-300">{{ classe.materia }}</td>
+                <td class="px-3 py-2 text-slate-600 dark:text-slate-400">{{ classe.professorat.join(', ') || '-' }}</td>
+                <td class="px-3 py-2">
+                  <span class="rounded bg-slate-100 px-1.5 py-0.5 font-semibold text-slate-700 dark:bg-gray-800 dark:text-slate-200">{{ classe.motiu }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- Previsualitzacio Untis -->
     <div
       v-if="exportacio"
@@ -969,6 +1109,15 @@ const sectionItems = computed(() => [
         tone: exportacio.value.ccp.simulacio ? 'warning' : '',
       }
     : null,
+  exportacio.value?.reunionsCoordinacio
+    ? {
+        id: 'reunions-docents',
+        label: 'Equips docents',
+        description: 'Reunions coordinació',
+        badge: exportacio.value.reunionsCoordinacio.totalReunions || '',
+        tone: exportacio.value.reunionsCoordinacio.simulacio ? 'warning' : '',
+      }
+    : null,
   exportacio.value
     ? {
         id: 'previsualitzacio-untis',
@@ -1256,6 +1405,19 @@ const ccpCapsOrdenats = computed(() =>
   })
 );
 
+const reunionsCoordinacioOrdenades = computed(() =>
+  [...(exportacio.value?.reunionsCoordinacio?.equips || [])].sort((a, b) =>
+    Number(a.numero || 0) - Number(b.numero || 0) ||
+    (a.etiqueta || '').localeCompare(b.etiqueta || '')
+  )
+);
+
+const reunionsCoordinacioExclosos = computed(() =>
+  [...(exportacio.value?.reunionsCoordinacio?.exclosos || [])].sort((a, b) =>
+    [a.curs, a.grup, a.materia, a.motiu].join('|').localeCompare([b.curs, b.grup, b.materia, b.motiu].join('|'))
+  )
+);
+
 const vistaPreviaFiltrada = computed(() => {
   const llista = exportacio.value?.vistaPrevia || [];
   const filtre = normalitzarFiltre(filtreVistaPrevia.value);
@@ -1352,7 +1514,11 @@ async function generar() {
       simular: simular.value,
       overrides: Object.keys(mapeigManual.value).length ? mapeigManual.value : null,
     });
-    activeSection.value = exportacio.value?.ccp ? 'ccp-caps' : 'previsualitzacio-untis';
+    activeSection.value = exportacio.value?.reunionsCoordinacio
+      ? 'reunions-docents'
+      : exportacio.value?.ccp
+        ? 'ccp-caps'
+        : 'previsualitzacio-untis';
   } catch (err) {
     console.error('Error generant exportació Untis:', err);
     error.value = `No s'han pogut generar els fitxers per a Untis: ${err.message || err}`;
