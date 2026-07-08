@@ -34,6 +34,29 @@ function valorCel(row, index) {
   return row.c?.[index]?.v?.toString().trim() || '';
 }
 
+function normalitzarCapcalera(valor) {
+  return (valor || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase();
+}
+
+function indexCapcalera(capcaleres, aliases, fallback) {
+  const aliasos = aliases.map(normalitzarCapcalera);
+  const index = capcaleres.findIndex((capcalera) => aliasos.includes(normalitzarCapcalera(capcalera)));
+  return index >= 0 ? index : fallback;
+}
+
+function capcaleresDeFiles(rows) {
+  return rows[0]?.c?.map((cell) => (cell?.v ?? '').toString().trim()) || [];
+}
+
+function teCapcaleraProfessorat(capcaleres) {
+  return capcaleres.some((capcalera) => ['NOM', 'NOMBRE', 'PROFESSOR', 'PROFESSORAT'].includes(normalitzarCapcalera(capcalera)));
+}
+
 function hashText(text) {
   let h1 = 0xdeadbeef ^ text.length;
   let h2 = 0x41c6ce57 ^ text.length;
@@ -73,21 +96,38 @@ function llegirClassesDeResposta(data) {
 
 function llegirProfessorsDeResposta(data) {
   assertSheetOk(data, SHEET_PROFESSORAT);
-  return (data.table?.rows || [])
+  const rows = data.table?.rows || [];
+  const capcaleres = capcaleresDeFiles(rows);
+  const teCapcalera = teCapcaleraProfessorat(capcaleres);
+  const col = {
+    nom: indexCapcalera(capcaleres, ['Nom', 'Nombre', 'Professor', 'Professorat'], 0),
+    departament: indexCapcalera(capcaleres, ['Departament', 'Departaments'], 1),
+    jornada: indexCapcalera(capcaleres, ['Jornada'], 2),
+    codiUntis: indexCapcalera(capcaleres, ['Codi Untis', 'CODIUNTIS', 'Codi', 'Sigla'], 3),
+    email: indexCapcalera(capcaleres, ['Email', 'Correu', 'Mail'], 4),
+    rol: indexCapcalera(capcaleres, ['Rol'], 5),
+    comentariFull: indexCapcalera(capcaleres, ['Comentari', 'Comentari Full', 'Observacions'], 6),
+    idGestib: indexCapcalera(capcaleres, ['ID GestIB', 'ID_GESTIB', 'IDGESTIB', 'Codi GestIB', 'Sigla GestIB'], -1),
+  };
+
+  return (teCapcalera ? rows.slice(1) : rows)
     .map((row) => {
-      const departaments = separarDepartaments(valorCel(row, 1));
+      const codiUntis = valorCel(row, col.codiUntis).replace(/\s+/g, '').toUpperCase();
+      const idGestib = valorCel(row, col.idGestib).replace(/\s+/g, '').toUpperCase();
+      const departaments = separarDepartaments(valorCel(row, col.departament));
       return {
-        nom:          valorCel(row, 0),
+        nom:          valorCel(row, col.nom),
         departament: departaments[0] || '',
         departaments,
-        jornada:      normalitzarJornada(valorCel(row, 2)),
-        codiUntis:    valorCel(row, 3),
-        email:        completarEmail(valorCel(row, 4)),
-        rol:          valorCel(row, 5),
-        comentariFull: valorCel(row, 6),
+        jornada:      normalitzarJornada(valorCel(row, col.jornada)),
+        codiUntis,
+        email:        completarEmail(valorCel(row, col.email)),
+        rol:          valorCel(row, col.rol),
+        comentariFull: valorCel(row, col.comentariFull),
+        idGestib:     idGestib || codiUntis,
       };
     })
-    .filter((p) => p.nom && n(p.nom) !== 'nom' && p.departaments.length > 0);
+    .filter((p) => p.nom && !['nom', 'professor', 'professorat'].includes(n(p.nom)) && p.departaments.length > 0);
 }
 
 function textSignatura(valor) {
@@ -117,6 +157,7 @@ function filesSignaturaProfessors(professors) {
       textSignatura(p.email),
       textSignatura(p.rol),
       textSignatura(p.comentariFull),
+      textSignatura(p.idGestib),
     ].join('\u001f'))
     .sort();
 }
@@ -455,6 +496,7 @@ function resumProfessorCanvi(professor = {}) {
     formatDepartamentsProfessor(professor),
     professor.jornada,
     professor.codiUntis ? `Untis ${professor.codiUntis}` : '',
+    professor.idGestib ? `GestIB ${professor.idGestib}` : '',
     professor.email,
     professor.comentariFull,
   ]
@@ -495,6 +537,7 @@ function detallCanvisProfessor(existent = {}, nou = {}) {
   afegir('Departaments', formatDepartamentsProfessor(existent), formatDepartamentsProfessor(nou));
   afegir('Jornada', existent.jornada, nou.jornada);
   afegir('Codi Untis', existent.codiUntis, nou.codiUntis);
+  afegir('ID GestIB', existent.idGestib, nou.idGestib);
   afegir('Email', existent.email, nou.email);
   afegir('Rol', existent.rol, nou.rol);
   afegir('Comentari', existent.comentariFull, nou.comentariFull);
@@ -1055,6 +1098,7 @@ export async function sincronitzar(cursId, options = {}) {
       departaments,
       jornada: prof.jornada,
       codiUntis: prof.codiUntis,
+      idGestib: prof.idGestib || '',
       comentariFull: prof.comentariFull || '',
       eliminatDelFull: false,
       updatedAt: new Date(),
