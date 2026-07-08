@@ -112,7 +112,6 @@
  <span v-if="classe.tipus" :class="getTipusChipClass(classe.tipus)">{{ getTipusLabel(classe.tipus) }}</span>
  <span v-else class="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-600">🎓 Titular</span>
  <span v-if="classe.hores !== item.hores" class="text-[11px] font-semibold text-slate-500">{{ classe.hores }}h</span>
- <span v-if="!comptaPerGrup(classe)" class="text-[11px] font-medium text-slate-500">no computa</span>
  </div>
  <p class="mt-1 text-xs leading-snug" :class="classeAssignada(classe) ? 'text-slate-600' : 'font-semibold text-rose-600'">
  {{ professoratClasseText(classe) || '⚠ Sense professor' }}
@@ -127,7 +126,6 @@
  <div class="flex min-w-0 flex-wrap items-center gap-1.5">
  <strong class="text-sm font-bold leading-snug text-slate-950">{{ formatMateriaVista(item.classe.materia) }}</strong>
  <span v-if="item.classe.tipus" :class="getTipusChipClass(item.classe.tipus)">{{ getTipusLabel(item.classe.tipus) }}</span>
- <span v-if="!comptaPerGrup(item.classe)" class="text-[11px] font-medium text-slate-500">no computa</span>
  </div>
  <p class="mt-1 text-xs leading-snug" :class="classeAssignada(item.classe) ? 'text-slate-600' : 'font-semibold text-rose-600'">
  {{ professoratClasseText(item.classe) || '⚠ Sense professor' }}

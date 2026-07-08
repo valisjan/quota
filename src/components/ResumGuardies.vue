@@ -74,8 +74,8 @@
         <div class="border-b border-slate-200 bg-slate-50 px-5 py-4">
           <div class="flex items-center justify-between gap-3">
             <div>
-              <h3 class="text-base font-bold text-slate-950">Llistat GC</h3>
-              <p class="mt-1 text-sm text-slate-600">Professorat amb guàrdies de convivència assignades.</p>
+              <h3 class="text-base font-bold text-slate-950">Convivència (G)</h3>
+              <p class="mt-1 text-sm text-slate-600">Professorat amb guàrdies normals assignades a convivència.</p>
             </div>
             <span class="rounded-md bg-violet-100 px-2.5 py-1 text-sm font-bold text-violet-800">
               {{ stats.totalGC }}
@@ -84,7 +84,7 @@
         </div>
 
         <div v-if="!assignacionsGC.length" class="p-6 text-center text-sm text-slate-500">
-          Encara no hi ha GC assignades.
+          Encara no hi ha guàrdies de convivència assignades.
         </div>
 
         <div v-else class="divide-y divide-slate-100">
@@ -185,7 +185,7 @@
     </div>
 
     <p class="text-xs text-slate-400 px-1">
-      T = Tutor (base 2) · C = Membre de comissió (−1 màxim; coordinar la pròpia comissió no descompta) · GP = Guàrdia de pati · GC = Guàrdia de convivència · Passadís = guàrdies de passadís pendents
+      T = Tutor (base 2) · C = Membre de comissió (−1 màxim; coordinar la pròpia comissió no descompta) · GP = Guàrdia de pati · GC = guàrdia normal assignada a convivència · Passadís = guàrdies de passadís pendents
     </p>
   </div>
 </template>

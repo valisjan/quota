@@ -107,7 +107,7 @@
         <h3 class="text-xl font-bold text-slate-950">Guàrdies</h3>
         <p class="mt-1 text-sm text-slate-600">
           Cada professor fa 4 guàrdies (2 si és tutor). Exempts: departaments d'Agrària i Indústries Alimentàries (automàtic) i professors amb dedicació a equip directiu o orientació (manual).
-          El llistat mostra les guàrdies de passadís pendents, les guàrdies de pati i les de convivència. Reduccions: membre d'una comissió −1 com a màxim, cada GP −1, cada GC −1. S'exportaran a Untis com a activitat <code class="rounded bg-slate-100 px-1">*Guà</code>.
+          El llistat mostra les guàrdies de passadís pendents, les guàrdies de pati i les de convivència. Reduccions: membre d'una comissió −1 com a màxim, cada GP −1, cada GC −1. A Untis, passadís i convivència s'exporten com a descripció <code class="rounded bg-slate-100 px-1">G</code>; pati s'exporta com a <code class="rounded bg-slate-100 px-1">GP</code>.
         </p>
       </div>
 

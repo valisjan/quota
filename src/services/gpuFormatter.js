@@ -123,16 +123,21 @@ function classeTeGrupExportable(classe) {
 }
 
 function codiMateriaClasse(classe, materiaGestib, codisMateries) {
-  const codi = materiaGestib?.codiUntis ||
-    (esGuardiaPati(classe)
-      ? 'GP'
-      : (classe.materia || '').toString().trim().startsWith('*')
-        ? codiActivitatProvisional(classe.materia)
-        : codisMateries.get(classe.materia));
+  const codi =
+    classe?._generadaGuardia
+      ? 'G'
+      : esGuardiaPati(classe)
+        ? 'GP'
+        : materiaGestib?.codiUntis ||
+          ((classe.materia || '').toString().trim().startsWith('*')
+            ? codiActivitatProvisional(classe.materia)
+            : codisMateries.get(classe.materia));
   return codiUntisSegur(codi || classe.materia, 'MAT');
 }
 
 function nomMateriaClasse(classe, materiaGestib) {
+  if (classe?._generadaGuardia) return 'Professor de guàrdia';
+  if (esGuardiaPati(classe)) return 'Guàrdia de pati';
   if (materiaGestib) {
     return textUntisSegur(
       materiaGestib.cursDescripcio
@@ -210,7 +215,7 @@ function afegirGuardiesPatiCalculades(classes, professors) {
   ];
 }
 
-function crearClassesGuardiesPassadisIConvivencia(professors, rawClasses) {
+function crearClassesGuardiesNormals(professors, rawClasses) {
   return professors
     .map((professor) => {
       const passadis = guardesQueTocaFer(professor, rawClasses);
@@ -221,7 +226,7 @@ function crearClassesGuardiesPassadisIConvivencia(professors, rawClasses) {
         id: `guard-${professor.id || professor.nom}`,
         curs: '',
         grup: '',
-        materia: '*Guà',
+        materia: 'Professor de guàrdia',
         hores: total,
         departament: professor.departament || '',
         departaments: professor.departament ? [professor.departament] : [],
@@ -382,6 +387,13 @@ function generarProfessors(professors, codisProfessors) {
 function generarMateries(classes, codisMateries, referenciaGestib, overrides) {
   const materies = new Map();
 
+  function afegirMateria(codi, nom) {
+    const codiNet = codiUntisSegur(codi, 'MAT');
+    if (codiNet && !materies.has(codiNet)) {
+      materies.set(codiNet, { codi: codiNet, nom: textUntisSegur(nom) });
+    }
+  }
+
   classes
     .filter((classe) => classe.materia)
     .flatMap(expandirClassePerGrups)
@@ -389,10 +401,22 @@ function generarMateries(classes, codisMateries, referenciaGestib, overrides) {
       const materiaGestib = trobarMateriaGestibAmbOverride(classe, referenciaGestib, overrides);
       const codi = codiMateriaClasse(classe, materiaGestib, codisMateries);
       const nom = nomMateriaClasse(classe, materiaGestib);
-      if (codi && !materies.has(codi)) {
-        materies.set(codi, { codi, nom });
-      }
+      afegirMateria(codi, nom);
     });
+
+  if (classes.some((classe) => classe._generadaGuardia)) {
+    afegirMateria('G', 'Professor de guàrdia');
+  }
+  if (classes.some((classe) => esGuardiaPati(classe))) {
+    afegirMateria('GP', 'Guàrdia de pati');
+  }
+
+  referenciaGestib?.activitats?.forEach((activitat) => {
+    afegirMateria(
+      activitat.codiUntis,
+      activitat.etiqueta || activitat.descripcio || activitat.curta || 'Activitat'
+    );
+  });
 
   return [...materies.values()]
     .sort((a, b) => a.codi.localeCompare(b.codi))
@@ -834,7 +858,7 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
   const classesDesdoblamentDivisible = crearClassesDesdoblamentDivisible(professors, rawClasses);
   let classes = [
     ...afegirGuardiesPatiCalculades(rawClassesSenseDivisibles, professors),
-    ...crearClassesGuardiesPassadisIConvivencia(professors, rawClassesSenseDivisibles),
+    ...crearClassesGuardiesNormals(professors, rawClassesSenseDivisibles),
     ...classesSuportDivisible,
     ...classesDesdoblamentDivisible,
   ];
