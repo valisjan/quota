@@ -123,6 +123,7 @@ function classeTeGrupExportable(classe) {
 }
 
 function codiMateriaClasse(classe, materiaGestib, codisMateries) {
+  if (classe?._descripcioSenseMateria) return '';
   const codi =
     classe?._generadaGuardia
       ? 'G'
@@ -136,6 +137,7 @@ function codiMateriaClasse(classe, materiaGestib, codisMateries) {
 }
 
 function nomMateriaClasse(classe, materiaGestib) {
+  if (classe?._descripcioSenseMateria) return classe._descripcioUntis || classe.materia || 'Activitat';
   if (classe?._generadaGuardia) return 'Professor de guàrdia';
   if (esGuardiaPati(classe)) return 'Guàrdia de pati';
   if (materiaGestib) {
@@ -237,6 +239,49 @@ function crearClassesGuardiesNormals(professors, rawClasses) {
       };
     })
     .filter(Boolean);
+}
+
+function esCapDepartamentClasse(classe) {
+  const materia = normalitzar(classe?.materia || '');
+  return materia.includes('cap') && materia.includes('departament');
+}
+
+function trobarActivitatCcp(referenciaGestib) {
+  return referenciaGestib?.activitats?.find((activitat) => {
+    const text = normalitzar([
+      activitat.etiqueta,
+      activitat.curta,
+      activitat.descripcio,
+    ].filter(Boolean).join(' '));
+    return text.includes('ccp') && text.includes('assistencia');
+  }) || null;
+}
+
+function crearClassesAssistenciaCcpCaps(rawClasses, referenciaGestib) {
+  const professors = [...new Set(
+    rawClasses
+      .filter(esCapDepartamentClasse)
+      .flatMap(obtenirProfessorsClasse)
+  )].filter(Boolean);
+  if (!professors.length) return [];
+
+  const activitat = trobarActivitatCcp(referenciaGestib);
+  const descripcio = activitat?.curta || activitat?.etiqueta || activitat?.descripcio || '*Assistència a CCP';
+  return [{
+    id: 'ccp-caps-departament',
+    curs: '',
+    grup: '',
+    materia: descripcio,
+    hores: 1,
+    departament: '',
+    departaments: [],
+    tipus: '',
+    professorAssignat: professors[0],
+    professors,
+    _descripcioSenseMateria: true,
+    _descripcioUntis: descripcio,
+    _activitatGestib: activitat,
+  }];
 }
 
 function codisMateriaPossibles(materia) {
@@ -388,6 +433,7 @@ function generarMateries(classes, codisMateries, referenciaGestib, overrides) {
   const materies = new Map();
 
   function afegirMateria(codi, nom) {
+    if (!codi?.toString().trim()) return;
     const codiNet = codiUntisSegur(codi, 'MAT');
     if (codiNet && !materies.has(codiNet)) {
       materies.set(codiNet, { codi: codiNet, nom: textUntisSegur(nom) });
@@ -547,15 +593,17 @@ function prepararCampsLlico({ referencia, numLlico, classe, component, hores, ti
   camps[3] = flags.comptaProfessor ? horesNum : 0;
   camps[4] = component.codiGrups || '';
   camps[5] = component.codiProfessor;
-  camps[6] = codiUntisSegur(component.codiMateria, 'MAT');
+  camps[6] = classe?._descripcioSenseMateria ? '' : codiUntisSegur(component.codiMateria, 'MAT');
   camps[7] = textUntisSegur(component.aula || camps[7] || '');
   camps[12] = netejarText(tipus);
-  camps[20] = [
-    netejarText(classe.curs),
-    netejarText(component.grup || classe.grup),
-    nomMateriaClasse({ ...classe, materia: component.materia || classe.materia }, null),
-  ].filter(Boolean).join(' ');
-  camps[41] = codiUntisSegur(`${camps[6]}_${component.codiGrups || 'ACT'}_${component.codiProfessor}_${numLlico}`, 'ID');
+  camps[20] = classe?._descripcioSenseMateria
+    ? textUntisSegur(classe._descripcioUntis || classe.materia)
+    : [
+        netejarText(classe.curs),
+        netejarText(component.grup || classe.grup),
+        nomMateriaClasse({ ...classe, materia: component.materia || classe.materia }, null),
+      ].filter(Boolean).join(' ');
+  camps[41] = codiUntisSegur(`${camps[6] || 'DESC'}_${component.codiGrups || 'ACT'}_${component.codiProfessor}_${numLlico}`, 'ID');
   camps.forEach((valor, index) => {
     if (typeof valor === 'string' && ![4, 5, 6, 41].includes(index)) {
       camps[index] = textUntisSegur(valor);
@@ -606,7 +654,7 @@ function componentsLlico(classe, professors, codisProfessors, codisMateries, ref
 
     obtenirProfessorsClasse(fila).forEach((nomProfessor) => {
       const codiProf = codiProfessor(nomProfessor, professors, codisProfessors);
-      if (!codiProf || !codiMateria || (teGrupDefinit && !codiGrups)) return;
+      if (!codiProf || (!fila._descripcioSenseMateria && !codiMateria) || (teGrupDefinit && !codiGrups)) return;
       components.push({
         professor: nomProfessor,
         codiProfessor: codiProf,
@@ -859,6 +907,7 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
   let classes = [
     ...afegirGuardiesPatiCalculades(rawClassesSenseDivisibles, professors),
     ...crearClassesGuardiesNormals(professors, rawClassesSenseDivisibles),
+    ...(simular ? [] : crearClassesAssistenciaCcpCaps(rawClasses, referenciaGestib)),
     ...classesSuportDivisible,
     ...classesDesdoblamentDivisible,
   ];
