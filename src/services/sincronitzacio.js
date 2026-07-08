@@ -1157,8 +1157,6 @@ export async function sincronitzar(cursId, options = {}) {
       const materiaCanviat = n(existent.data.materia) !== n(classe.materia);
       const departamentCanviat = n(existent.data.departament) !== n(classe.departament);
       const faltaDepartaments = !existent.data.departaments;
-      const assignacionsNetejades = netejarAssignacionsProfessorsEliminats(existent.data, nomsSheets);
-
       if (
         horesCanviat ||
         tipusCanviat ||
@@ -1166,8 +1164,7 @@ export async function sincronitzar(cursId, options = {}) {
         grupCanviat ||
         materiaCanviat ||
         departamentCanviat ||
-        faltaDepartaments ||
-        assignacionsNetejades
+        faltaDepartaments
       ) {
         batchClasses.update(dd(cursId, 'classes', existent.id), {
           curs: classe.curs,
@@ -1177,7 +1174,6 @@ export async function sincronitzar(cursId, options = {}) {
           tipus: classe.tipus,
           departament: classe.departament,
           departaments: [classe.departament],
-          ...(assignacionsNetejades || {}),
           updatedAt: new Date(),
         });
         actualitzades++;
