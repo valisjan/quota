@@ -1538,9 +1538,13 @@ html:not(.dark) .bg-gray-100 {
 
   html, body, #app,
   .app-shell,
+  .min-h-screen,
   main,
   .form-container,
+  .departament-screen,
+  #panel-fulla,
   .resums-page,
+  .fulla-distribucio,
   .resum-grups {
     height: auto !important;
     min-height: 0 !important;
@@ -1666,11 +1670,17 @@ html:not(.dark) .bg-gray-100 {
   /* ── Salts de pàgina ── */
   h2, h3 { page-break-after: avoid; }
   .page-break { page-break-before: always; }
+
   .card,
   .app-card,
-  .metric-card,
   article,
   table {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .metric-card,
+  .department-print-pending-item {
     break-inside: avoid;
     page-break-inside: avoid;
   }

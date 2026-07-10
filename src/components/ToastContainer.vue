@@ -1,6 +1,6 @@
 <template>
   <div
-    class="pointer-events-none fixed bottom-4 right-4 z-[9999] flex flex-col-reverse gap-2"
+    class="print-hide pointer-events-none fixed bottom-4 right-4 z-[9999] flex flex-col-reverse gap-2"
     aria-live="polite"
     aria-atomic="false"
   >
