@@ -104,9 +104,8 @@
               v-for="professor in professorsDepartamentOrdenats"
               :key="professor.nom"
               :value="professor.nom"
-              :disabled="esConflicteSuport(classe, professor.nom)"
             >
-              {{ opcioProfessorText(classe, professor.nom) }}{{ esConflicteSuport(classe, professor.nom) ? ' (ja té el grup)' : '' }}
+              {{ opcioProfessorText(classe, professor.nom) }}
             </option>
           </select>
           <p v-if="classe.professors?.length" class="mt-1 text-xs font-medium text-text-muted">
@@ -195,9 +194,8 @@
                 v-for="professor in professorsDepartamentOrdenats"
                 :key="professor.nom"
                 :value="professor.nom"
-                :disabled="esConflicteSuport(classe, professor.nom)"
               >
-                {{ opcioProfessorText(classe, professor.nom) }}{{ esConflicteSuport(classe, professor.nom) ? ' (ja té el grup)' : '' }}
+                {{ opcioProfessorText(classe, professor.nom) }}
               </option>
             </select>
             <button
@@ -233,7 +231,6 @@ import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { limitsHoresProfessor, professorsClasse, horesComputablesClasse } from '../utils/horesProfessor';
 import { classeCompletamentAssignada, professorPrincipalClasse, professorSecundariClasse } from '../utils/assignacions';
 import { classeRequereixDosProfessors, exclosaDelRepartiment, getTipusLabel, getTipusBadgeClass } from '../utils/tipus';
-import { normalitzarGrup } from '../utils/grups';
 import { classePertanyDepartament, professorPertanyDepartament } from '../utils/departaments';
 import { comptarDDAssignacions, comptarSDAssignacions } from '../utils/suportDivisible';
 import {
@@ -413,20 +410,6 @@ function netejarGrupBuit(valor) {
 
 function esOptativaCompartidaClasse(classe) {
   return classeRequereixDosProfessors(classe);
-}
-
-function esConflicteSuport(classe, nomProfessor) {
-  if ((classe?.tipus || '').toString().toUpperCase().trim() !== 'S') return false;
-  const curs = (classe?.curs || '').toString().trim().toUpperCase();
-  const grup = (classe?.grup || '').toString().trim().toUpperCase();
-  if (!curs || !grup) return false;
-  return classes.value.some((c) => {
-    if (c.id === classe.id) return false;
-    if (!(c.professors || []).includes(nomProfessor)) return false;
-    if ((c.curs || '').toString().trim().toUpperCase() !== curs) return false;
-    const grups = normalitzarGrup(c.grup).split('+').map((g) => g.trim().toUpperCase()).filter(Boolean);
-    return grups.includes(grup);
-  });
 }
 
 function calcularHoresProfessor(nomProfessor) {

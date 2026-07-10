@@ -51,12 +51,22 @@ function tipusTeGermanesBloc(tipus) {
   );
 }
 
+function esSegonBatxillerat(cursNormalitzat) {
+  return /^2(?:N)?B(?:AT|ATX|ACH|TX)?/.test(cursNormalitzat);
+}
+
 export function trobarGermanesBloc(classe, classes = []) {
   const tipus = normalitzarTipus(classe?.tipus);
   if (!tipusTeGermanesBloc(tipus)) return [];
   if (esTutoria(classe)) return [];
   const cursNorm = normalitzarCodiTutoria(classe?.curs);
   const grupNorm = normalitzarCodiTutoria(classe?.grup);
+  if (
+    esSegonBatxillerat(cursNorm) &&
+    (tipus === TIPUS.DESDOBLAMENT || tipus === TIPUS.DESDOBLAMENT_DIVISIBLE)
+  ) {
+    return [];
+  }
   if (!cursNorm || grupNorm.length !== 1 || !/^[A-Z]$/.test(grupNorm)) return [];
   const materiaNorm = normalitzarCodiTutoria(classe?.materia);
   if (!materiaNorm) return [];
