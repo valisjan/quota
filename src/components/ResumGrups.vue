@@ -254,7 +254,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import {
  getTipusLabel,
  clauFranjaOptativa,
@@ -657,7 +657,8 @@ const classesAgrupadesPerCursFiltrades = computed(() => {
  );
 });
 
-function imprimirGrups() {
- window.print();
+async function imprimirGrups() {
+ await nextTick();
+ setTimeout(() => window.print(), 150);
 }
 </script>

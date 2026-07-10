@@ -1536,6 +1536,23 @@ html:not(.dark) .bg-gray-100 {
   .form-container, .resums-page,
   .fulla-distribucio { padding: 0 !important; margin: 0 !important; }
 
+  html, body, #app,
+  .app-shell,
+  main,
+  .form-container,
+  .resums-page,
+  .resum-grups {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .resums-page,
+  .resums-page > :not(.print-hide) {
+    display: block !important;
+    width: 100% !important;
+  }
+
   /* ── Capçalera del document ── */
   .print-doc-header {
     display: block !important;

@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent, ref } from 'vue';
+import { computed, defineAsyncComponent, nextTick, ref } from 'vue';
 
 const activeTab = ref('grups');
 
@@ -67,7 +67,8 @@ const dataAvui = new Date().toLocaleDateString('ca-ES', {
   day: 'numeric', month: 'long', year: 'numeric',
 });
 
-function imprimir() {
-  window.print();
+async function imprimir() {
+  await nextTick();
+  setTimeout(() => window.print(), 150);
 }
 </script>
