@@ -366,7 +366,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, nextTick, onUnmounted } from 'vue';
 import { limitsHoresProfessor, resumCapacitatProfessorat } from '../../utils/horesProfessor';
 import { descarregarExcel } from '../../utils/exportExcel';
 import { classeCompletamentAssignada } from '../../utils/assignacions';
@@ -509,8 +509,19 @@ function totalColorClass(professor) {
   return 'text-slate-900 dark:text-white';
 }
 
-function imprimir() {
-  window.print();
+const PRINT_BODY_CLASS = 'printing-fulla-distribucio';
+
+function netejarModeImpressio() {
+  document.body.classList.remove(PRINT_BODY_CLASS);
+}
+
+onUnmounted(netejarModeImpressio);
+
+async function imprimir() {
+  document.body.classList.add(PRINT_BODY_CLASS);
+  await nextTick();
+  window.addEventListener('afterprint', netejarModeImpressio, { once: true });
+  setTimeout(() => window.print(), 150);
 }
 
 function exportarExcel() {
@@ -576,14 +587,14 @@ function exportarExcel() {
 
 <style>
 @media print {
-  body > * {
+  body.printing-fulla-distribucio > * {
     visibility: hidden;
   }
-  .fulla-distribucio,
-  .fulla-distribucio * {
+  body.printing-fulla-distribucio .fulla-distribucio,
+  body.printing-fulla-distribucio .fulla-distribucio * {
     visibility: visible;
   }
-  .fulla-distribucio {
+  body.printing-fulla-distribucio .fulla-distribucio {
     position: absolute;
     inset: 0;
     padding: 1.5rem;
