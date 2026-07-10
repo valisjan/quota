@@ -3,7 +3,6 @@ import {
   grupsClasse, clauGrups, esSubconjuntGrups, obtenirProfessorsClasse,
   expandirClassePerGrups,
 } from './untisUtils';
-import { comptaPerGrupPerTipus } from '../utils/tipus';
 
 function clauLlicoAgrupada(classe) {
   return [
@@ -35,17 +34,9 @@ function getAutodesdobleN(classe) {
   return match ? parseInt(match[1], 10) : 0;
 }
 
-function comptaPerGrupExport(classe) {
-  if (!classe.curs || !classe.grup) return false;
-  if ((classe.materia || '').toString().trim().startsWith('*')) return false;
-  return comptaPerGrupPerTipus(classe.tipus);
-}
-
-function horesPerGrupExport(classe, totalGrups) {
+function horesPerGrupExport(classe) {
   const hores = Number(classe.hores) || 0;
-  const horesBase = comptaPerGrupExport(classe) && totalGrups > 1 && !esOptativaClasse(classe)
-    ? Math.round(hores / totalGrups)
-    : hores;
+  const horesBase = hores;
   return esAutodesdobleClasse(classe)
     ? Math.max(0, horesBase - getAutodesdobleN(classe))
     : horesBase;
@@ -163,6 +154,7 @@ function crearLliconsPerTramsDeGrup(classes, grup) {
       tipus,
       _filesAgrupades: actives,
       _preservaGrupsOriginals: false,
+      _comptaGrupUnic: actives.some((classe) => classe._exportGrupCompartit),
     });
 
     inici = fi;
@@ -231,6 +223,7 @@ function crearLlicoOptativa(classes, indexBloc, totalBlocs) {
     _materiesAgrupades: filesBloc,
     _filesAgrupades: filesBloc,
     _preservaGrupsOriginals: true,
+    _comptaGrupUnic: true,
   };
 }
 
@@ -286,7 +279,8 @@ export function agruparClassesPerLlico(classes) {
       return;
     }
 
-    expandirClassePerGrups(classe).forEach((c) => {
+    const classesPerTram = classe._exportGrupCompartit ? [classe] : expandirClassePerGrups(classe);
+    classesPerTram.forEach((c) => {
       const clau = clauLlicoAgrupada(c);
       if (!trams.has(clau)) trams.set(clau, []);
       trams.get(clau).push(c);
@@ -301,14 +295,15 @@ export function agruparClassesPerLlico(classes) {
 }
 
 export function agruparClassesPerLlicoExport(classes) {
-  const preparades = classes.flatMap((classe) => {
+  const preparades = classes.map((classe) => {
     const totalGrups = Math.max(1, grupsClasse(classe).length);
-    const horesExport = horesPerGrupExport(classe, totalGrups);
-    return expandirClassePerGrups(classe).map((expandida) => ({
-        ...expandida,
-        hores: horesExport,
-        _horesOriginals: Number(classe.hores) || 0,
-      }));
+    const horesExport = horesPerGrupExport(classe);
+    return {
+      ...classe,
+      hores: horesExport,
+      _horesOriginals: Number(classe.hores) || 0,
+      _exportGrupCompartit: totalGrups > 1,
+    };
   });
 
   return agruparClassesPerLlico(preparades);

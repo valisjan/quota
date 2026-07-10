@@ -1129,12 +1129,20 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
 
       const primerGrup = new Set();
       const primerProfessor = new Set();
+      let grupCompartitComptat = false;
       const liniesComponents = componentsUnics.map((component) => {
         const clauProfessor = `${component.codiProfessor}|${component.codiMateria}`;
+        const potComptarGrup = Boolean(component.codiGrups) && component.comptaGrup;
+        const comptaGrup = potComptarGrup && (
+          classe._comptaGrupUnic
+            ? !grupCompartitComptat
+            : !primerGrup.has(component.codiGrups)
+        );
         const flags = {
-          comptaGrup: Boolean(component.codiGrups) && component.comptaGrup && !primerGrup.has(component.codiGrups),
+          comptaGrup,
           comptaProfessor: !primerProfessor.has(clauProfessor),
         };
+        if (flags.comptaGrup && classe._comptaGrupUnic) grupCompartitComptat = true;
         if (component.codiGrups) primerGrup.add(component.codiGrups);
         primerProfessor.add(clauProfessor);
 
@@ -1192,9 +1200,10 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
       return liniesComponents.map((item) => item.text);
     });
 
+  const text = linies.join('\r\n');
   return {
-    text: linies.join('\r\n'),
-    pendents,
+    text,
+    pendents: [...pendents, ...validarLimitsHoresGrupGpu002(text)],
     vistaPrevia: ordenarVistaPrevia(vistaPrevia),
   };
 }
@@ -1207,6 +1216,39 @@ function ordenarVistaPrevia(llista) {
     if (materia) return materia;
     return Number(a.numero) - Number(b.numero);
   });
+}
+
+function limitHoresGrupUntis(codiGrup) {
+  const codi = (codiGrup || '').toString().trim().toUpperCase();
+  if (/^[1-4]ESO-/.test(codi)) return 30;
+  if (/^(1B|2B)-/.test(codi)) return 33;
+  return null;
+}
+
+function validarLimitsHoresGrupGpu002(text) {
+  const totals = new Map();
+  (text || '').split(/\r?\n/).forEach((linia) => {
+    if (!linia.trim()) return;
+    const camps = parseCsvLine(linia);
+    const codiGrup = camps[4] || '';
+    const horesGrup = Number(camps[2] || 0);
+    if (!codiGrup || !horesGrup) return;
+    totals.set(codiGrup, (totals.get(codiGrup) || 0) + horesGrup);
+  });
+
+  return [...totals.entries()]
+    .map(([codiGrup, hores]) => ({ codiGrup, hores, limit: limitHoresGrupUntis(codiGrup) }))
+    .filter((item) => item.limit !== null && item.hores > item.limit)
+    .map((item) => ({
+      motiu: `Hores de grup superen el limit Untis (${item.hores}/${item.limit})`,
+      classe: {
+        curs: item.codiGrup,
+        grup: '',
+        materia: 'Revisa duplicacions de grups compostos o optatives',
+        hores: item.hores,
+        professorAssignat: '',
+      },
+    }));
 }
 
 function generarRevisio(pendents, totals) {
