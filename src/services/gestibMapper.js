@@ -96,13 +96,14 @@ function grupMateria(materia = {}) {
 }
 
 function baseMateriaGestib(materia = {}) {
-  return (materia.descripcio || materia.curta || '').replace(/-[A-Za-z0-9]+$/, '');
+  return (materia.descripcio || materia.curta || '')
+    .replace(/-(?:[1-4]E|[12]B)$/i, '')
+    .replace(/-[A-Za-z0-9]+$/, '');
 }
 
-function codiMateriaGestib(materia, curs) {
-  const sufix = sufixMateriaCurs(curs);
-  if (sufix) return `${materia.curta}-${sufix}`;
-  return `${materia.curta}${curs.descripcio}`;
+function codiMateriaGestib(materia) {
+  const curta = (materia.curta || '').trim();
+  return curta;
 }
 
 function esActivitatGuardiaPati(text) {
