@@ -295,6 +295,164 @@
       </div>
     </section>
 
+    <!-- Atencio families -->
+    <section
+      v-if="exportacio?.atencioFamilies"
+      v-show="activeSection === 'atencio-families'"
+      id="atencio-families"
+      class="admin-anchor-section card overflow-hidden"
+    >
+      <div class="border-b border-slate-200 p-5 dark:border-slate-700">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h4 class="text-xl font-bold text-slate-950 dark:text-white">Atenció a famílies</h4>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Es crea una lliçó complementària independent a GPU002 per a cada professor, sense grup ni matèria, amb la descripció del XML.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span class="rounded-md bg-emerald-100 px-2.5 py-1 text-sm font-bold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">
+              {{ exportacio.atencioFamilies.totalProfessors || 0 }} professors
+            </span>
+            <span class="rounded-md bg-slate-100 px-2.5 py-1 text-sm font-semibold text-slate-700 dark:bg-gray-800 dark:text-slate-200">
+              {{ exportacio.atencioFamilies.descripcio }}
+            </span>
+            <span v-if="exportacio.atencioFamilies.codiActivitat" class="rounded-md bg-slate-100 px-2.5 py-1 font-mono text-sm font-semibold text-slate-700 dark:bg-gray-800 dark:text-slate-200">
+              {{ exportacio.atencioFamilies.codiActivitat }}
+            </span>
+          </div>
+        </div>
+
+        <div v-if="exportacio.atencioFamilies.simulacio" class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+          En mode simulació no es genera aquesta activitat perquè els professors se substitueixen per places del XML.
+        </div>
+
+        <div v-else class="mt-5 grid gap-3 sm:grid-cols-3">
+          <div class="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Hores per professor</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ formatHoresUntis(exportacio.atencioFamilies.horesPerProfessor || 1) }}</p>
+          </div>
+          <div class="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Línies GPU002</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ exportacio.atencioFamilies.totalLinies || 0 }}</p>
+          </div>
+          <div class="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Tipus</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">COM</p>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="!exportacio.atencioFamilies.simulacio" class="max-h-[360px] overflow-auto">
+        <table class="w-full min-w-[720px] text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 bg-slate-50 text-left dark:border-slate-700 dark:bg-gray-900">
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Professor</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Departament</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Codi</th>
+              <th class="px-3 py-2 text-center font-semibold text-slate-700 dark:text-slate-300">Hores</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <tr
+              v-for="professor in atencioFamiliesProfessorsOrdenats"
+              :key="professor.nom"
+              class="align-top hover:bg-slate-50 dark:hover:bg-gray-900/60"
+            >
+              <td class="px-3 py-3 font-semibold text-slate-900 dark:text-white">{{ professor.nom }}</td>
+              <td class="px-3 py-3 text-slate-800 dark:text-slate-200">{{ professor.departament || '-' }}</td>
+              <td class="px-3 py-3 font-mono text-slate-700 dark:text-slate-300">{{ professor.codiUntis || '-' }}</td>
+              <td class="px-3 py-3 text-center font-mono font-bold text-slate-900 dark:text-white">{{ formatHoresUntis(exportacio.atencioFamilies.horesPerProfessor || 1) }}</td>
+            </tr>
+            <tr v-if="atencioFamiliesProfessorsOrdenats.length === 0">
+              <td colspan="4" class="px-3 py-8 text-center text-slate-500 dark:text-slate-400">
+                No s'han detectat professors exportables.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Reunions departament -->
+    <section
+      v-if="exportacio?.reunionsDepartament"
+      v-show="activeSection === 'reunions-departament'"
+      id="reunions-departament"
+      class="admin-anchor-section card overflow-hidden"
+    >
+      <div class="border-b border-slate-200 p-5 dark:border-slate-700">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h4 class="text-xl font-bold text-slate-950 dark:text-white">Reunions de departament</h4>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Es crea una lliçó complementària per departament a GPU002, sense grup ni matèria, amb tot el professorat del departament dins la mateixa reunió.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span class="rounded-md bg-cyan-100 px-2.5 py-1 text-sm font-bold text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-200">
+              {{ exportacio.reunionsDepartament.totalDepartaments || 0 }} departaments
+            </span>
+            <span class="rounded-md bg-slate-100 px-2.5 py-1 text-sm font-semibold text-slate-700 dark:bg-gray-800 dark:text-slate-200">
+              {{ exportacio.reunionsDepartament.descripcio }}
+            </span>
+            <span v-if="exportacio.reunionsDepartament.codiActivitat" class="rounded-md bg-slate-100 px-2.5 py-1 font-mono text-sm font-semibold text-slate-700 dark:bg-gray-800 dark:text-slate-200">
+              {{ exportacio.reunionsDepartament.codiActivitat }}
+            </span>
+          </div>
+        </div>
+
+        <div v-if="exportacio.reunionsDepartament.simulacio" class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+          En mode simulació no es generen les reunions de departament perquè els professors se substitueixen per places del XML.
+        </div>
+
+        <div v-else class="mt-5 grid gap-3 sm:grid-cols-3">
+          <div class="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Hores per departament</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ formatHoresUntis(exportacio.reunionsDepartament.horesPerDepartament || 1) }}</p>
+          </div>
+          <div class="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Línies GPU002</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{{ exportacio.reunionsDepartament.totalLinies || 0 }}</p>
+          </div>
+          <div class="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-gray-900">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Tipus</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950 dark:text-white">COM</p>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="!exportacio.reunionsDepartament.simulacio" class="overflow-auto">
+        <table class="w-full min-w-[900px] text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 bg-slate-50 text-left dark:border-slate-700 dark:bg-gray-900">
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Departament</th>
+              <th class="px-3 py-2 text-center font-semibold text-slate-700 dark:text-slate-300">Prof.</th>
+              <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Professorat inclòs</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <tr
+              v-for="reunio in reunionsDepartamentOrdenades"
+              :key="reunio.departament"
+              class="align-top hover:bg-slate-50 dark:hover:bg-gray-900/60"
+            >
+              <td class="px-3 py-3 font-semibold text-slate-900 dark:text-white">{{ reunio.departament }}</td>
+              <td class="px-3 py-3 text-center font-mono font-bold text-slate-900 dark:text-white">{{ reunio.professors.length }}</td>
+              <td class="px-3 py-3 text-slate-700 dark:text-slate-300">
+                {{ reunio.professors.map((professor) => professor.nom).join(', ') }}
+              </td>
+            </tr>
+            <tr v-if="reunionsDepartamentOrdenades.length === 0">
+              <td colspan="3" class="px-3 py-8 text-center text-slate-500 dark:text-slate-400">
+                No s'han detectat departaments exportables.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- Reunions coordinacio docent -->
     <section
       v-if="exportacio?.reunionsCoordinacio"
@@ -1109,6 +1267,24 @@ const sectionItems = computed(() => [
         tone: exportacio.value.ccp.simulacio ? 'warning' : '',
       }
     : null,
+  exportacio.value?.atencioFamilies
+    ? {
+        id: 'atencio-families',
+        label: 'Atenció famílies',
+        description: 'Hora complementària',
+        badge: exportacio.value.atencioFamilies.totalProfessors || '',
+        tone: exportacio.value.atencioFamilies.simulacio ? 'warning' : '',
+      }
+    : null,
+  exportacio.value?.reunionsDepartament
+    ? {
+        id: 'reunions-departament',
+        label: 'Departaments',
+        description: 'Reunions departament',
+        badge: exportacio.value.reunionsDepartament.totalDepartaments || '',
+        tone: exportacio.value.reunionsDepartament.simulacio ? 'warning' : '',
+      }
+    : null,
   exportacio.value?.reunionsCoordinacio
     ? {
         id: 'reunions-docents',
@@ -1405,6 +1581,20 @@ const ccpCapsOrdenats = computed(() =>
   })
 );
 
+const atencioFamiliesProfessorsOrdenats = computed(() =>
+  [...(exportacio.value?.atencioFamilies?.professors || [])].sort((a, b) => {
+    const departament = (a.departament || '').localeCompare(b.departament || '');
+    if (departament) return departament;
+    return (a.nom || '').localeCompare(b.nom || '');
+  })
+);
+
+const reunionsDepartamentOrdenades = computed(() =>
+  [...(exportacio.value?.reunionsDepartament?.reunions || [])].sort((a, b) =>
+    (a.departament || '').localeCompare(b.departament || '')
+  )
+);
+
 const reunionsCoordinacioOrdenades = computed(() =>
   [...(exportacio.value?.reunionsCoordinacio?.equips || [])].sort((a, b) =>
     Number(a.numero || 0) - Number(b.numero || 0) ||
@@ -1514,11 +1704,15 @@ async function generar() {
       simular: simular.value,
       overrides: Object.keys(mapeigManual.value).length ? mapeigManual.value : null,
     });
-    activeSection.value = exportacio.value?.reunionsCoordinacio
-      ? 'reunions-docents'
-      : exportacio.value?.ccp
-        ? 'ccp-caps'
-        : 'previsualitzacio-untis';
+    activeSection.value = exportacio.value?.reunionsDepartament
+      ? 'reunions-departament'
+      : exportacio.value?.atencioFamilies
+        ? 'atencio-families'
+        : exportacio.value?.reunionsCoordinacio
+          ? 'reunions-docents'
+          : exportacio.value?.ccp
+            ? 'ccp-caps'
+            : 'previsualitzacio-untis';
   } catch (err) {
     console.error('Error generant exportació Untis:', err);
     error.value = `No s'han pogut generar els fitxers per a Untis: ${err.message || err}`;

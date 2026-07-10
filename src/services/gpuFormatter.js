@@ -383,6 +383,37 @@ function trobarActivitatCoordinacioDocent(referenciaGestib) {
   }) || null;
 }
 
+function trobarActivitatAtencioFamilies(referenciaGestib) {
+  return referenciaGestib?.activitats?.find((activitat) => {
+    const text = normalitzar([
+      activitat.etiqueta,
+      activitat.curta,
+      activitat.descripcio,
+    ].filter(Boolean).join(' '));
+    return (
+      text.includes('atencio') &&
+      (
+        text.includes('responsablesalumnes') ||
+        text.includes('pares') ||
+        text.includes('mares') ||
+        text.includes('tutorslegals') ||
+        text.includes('famil')
+      )
+    );
+  }) || null;
+}
+
+function trobarActivitatReunioDepartament(referenciaGestib) {
+  return referenciaGestib?.activitats?.find((activitat) => {
+    const text = normalitzar([
+      activitat.etiqueta,
+      activitat.curta,
+      activitat.descripcio,
+    ].filter(Boolean).join(' '));
+    return text.includes('reunio') && text.includes('departament');
+  }) || null;
+}
+
 function numeroEsoExport(classe) {
   const codi = codisCurs(classe?.curs || '')[0] || '';
   const match = codi.match(/^([123])ESO$/);
@@ -531,6 +562,111 @@ function prepararReunionsCoordinacioDocent(rawClasses, referenciaGestib) {
   };
 }
 
+function prepararAtencioFamilies(professors, referenciaGestib) {
+  const activitat = trobarActivitatAtencioFamilies(referenciaGestib);
+  const descripcio = activitat?.curta || activitat?.etiqueta || activitat?.descripcio || 'Atenció a pares, mares i tutors legals';
+  const professorsExportables = professors
+    .filter((professor) => professor.nom)
+    .sort((a, b) => a.nom.localeCompare(b.nom));
+  const classes = professorsExportables.map((professor) => ({
+    id: `atencio-families-${professor.id || professor.codiUntis || professor.codiGestib || professor.codi || professor.nom}`,
+    curs: '',
+    grup: '',
+    materia: descripcio,
+    hores: 1,
+    departament: professor.departament || '',
+    departaments: professor.departament ? [professor.departament] : [],
+    tipus: 'COM',
+    professorAssignat: professor.nom,
+    professors: [professor.nom],
+    _descripcioSenseMateria: true,
+    _descripcioUntis: descripcio,
+    _activitatGestib: activitat,
+    _atencioFamilies: true,
+  }));
+
+  return {
+    classes,
+    resum: {
+      descripcio,
+      codiActivitat: activitat?.codiUntis || '',
+      totalProfessors: professorsExportables.length,
+      totalLinies: classes.length,
+      horesPerProfessor: 1,
+      professors: professorsExportables.map((professor) => ({
+        nom: professor.nom,
+        departament: professor.departament || '',
+        codiUntis: professor.codiUntis || professor.codiGestib || professor.codi || '',
+      })),
+    },
+  };
+}
+
+function prepararReunionsDepartament(professors, referenciaGestib) {
+  const activitat = trobarActivitatReunioDepartament(referenciaGestib);
+  const descripcio = activitat?.curta || activitat?.etiqueta || activitat?.descripcio || 'Reunió de departament';
+  const departaments = new Map();
+
+  professors
+    .filter((professor) => professor.nom)
+    .forEach((professor) => {
+      const departament = (professor.departament || 'Sense departament').toString().trim() || 'Sense departament';
+      const clau = normalitzar(departament) || 'sensedepartament';
+      if (!departaments.has(clau)) {
+        departaments.set(clau, {
+          clau,
+          departament,
+          professors: [],
+        });
+      }
+      departaments.get(clau).professors.push(professor);
+    });
+
+  const reunions = [...departaments.values()]
+    .map((reunio) => ({
+      ...reunio,
+      professors: reunio.professors.sort((a, b) => a.nom.localeCompare(b.nom)),
+    }))
+    .sort((a, b) => a.departament.localeCompare(b.departament));
+
+  const classes = reunions.map((reunio) => ({
+    id: `reunio-departament-${reunio.clau}`,
+    curs: '',
+    grup: '',
+    materia: `${descripcio} ${reunio.departament}`,
+    hores: 1,
+    departament: reunio.departament,
+    departaments: [reunio.departament],
+    tipus: 'COM',
+    professorAssignat: reunio.professors[0]?.nom || '',
+    professors: reunio.professors.map((professor) => professor.nom),
+    _descripcioSenseMateria: true,
+    _descripcioUntis: descripcio,
+    _textLlicoUntis: reunio.departament,
+    _activitatGestib: activitat,
+    _reunioDepartament: true,
+    _departamentReunio: reunio.departament,
+  }));
+
+  return {
+    classes,
+    resum: {
+      descripcio,
+      codiActivitat: activitat?.codiUntis || '',
+      reunions: reunions.map((reunio) => ({
+        departament: reunio.departament,
+        professors: reunio.professors.map((professor) => ({
+          nom: professor.nom,
+          codiUntis: professor.codiUntis || professor.codiGestib || professor.codi || '',
+        })),
+      })),
+      totalDepartaments: reunions.length,
+      totalLinies: reunions.reduce((total, reunio) => total + reunio.professors.length, 0),
+      horesPerDepartament: 1,
+    },
+  };
+}
+
 function codisMateriaPossibles(materia) {
   const text = senseAccents(materia).toUpperCase();
   const codis = new Set();
@@ -597,6 +733,8 @@ function scoreReferencia(classe, ref) {
     const materiaNorm = normalitzar(classe.materia);
     const refNorm = normalitzar(`${ref.materia} ${ref.text}`);
     if (classe._ccpCapsDepartament && refNorm.includes('ccp')) score += 140;
+    if (classe._atencioFamilies && refNorm.includes('atencio')) score += 140;
+    if (classe._reunioDepartament && refNorm.includes('departament')) score += 140;
     if (classe._reunioCoordinacioDocent) {
       const equipNorm = normalitzar(classe._textLlicoUntis || '');
       if (equipNorm && refNorm.includes(equipNorm)) score += 180;
@@ -820,6 +958,8 @@ function notesVistaPrevia({ classe, components, referencia, filesAgrupades }) {
   const notes = [];
   if (components.length > 1) notes.push(`${components.length} linies GPU002`);
   if (classe._ccpCapsDepartament) notes.push('CCP: descompta 1h de cap de departament');
+  if (classe._atencioFamilies) notes.push('1h complementaria d atencio a families');
+  if (classe._reunioDepartament) notes.push(`Reunio departament ${classe._departamentReunio || ''}`.trim());
   if (classe._reunioCoordinacioDocent) notes.push(classe._textLlicoUntis || 'Reunio equip docent');
   if (filesAgrupades.length > 1) notes.push(`${filesAgrupades.length} classes agrupades`);
   if (referencia) notes.push('Numero conservat del GPU002 de referencia');
@@ -1173,6 +1313,28 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
         simulacio: true,
       }
     : prepararCcpCapsDepartament(rawClasses, professors, referenciaGestib);
+  const atencioFamilies = simular
+    ? {
+        descripcio: 'Atenció a pares, mares i tutors legals',
+        codiActivitat: '',
+        totalProfessors: 0,
+        totalLinies: 0,
+        horesPerProfessor: 1,
+        professors: [],
+        simulacio: true,
+      }
+    : prepararAtencioFamilies(professors, referenciaGestib);
+  const reunionsDepartament = simular
+    ? {
+        descripcio: 'Reunió de departament',
+        codiActivitat: '',
+        reunions: [],
+        totalDepartaments: 0,
+        totalLinies: 0,
+        horesPerDepartament: 1,
+        simulacio: true,
+      }
+    : prepararReunionsDepartament(professors, referenciaGestib);
   const rawClassesExport = simular ? rawClasses : ccp.classes;
   const rawClassesSenseDivisibles = rawClassesExport.filter((classe) => !esSuportDivisible(classe.tipus) && !esDesdoblamentDivisible(classe.tipus));
   const classesSuportDivisible = crearClassesSuportDivisible(professors, rawClassesExport);
@@ -1180,6 +1342,8 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
   let classes = [
     ...afegirGuardiesPatiCalculades(rawClassesSenseDivisibles, professors),
     ...crearClassesGuardiesNormals(professors, rawClassesSenseDivisibles),
+    ...(simular ? [] : atencioFamilies.classes),
+    ...(simular ? [] : reunionsDepartament.classes),
     ...(simular ? [] : reunionsCoordinacio.classes),
     ...classesSuportDivisible,
     ...classesDesdoblamentDivisible,
@@ -1231,6 +1395,12 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
     pendents: llicons.pendents,
     vistaPrevia: llicons.vistaPrevia,
     ccp: simular ? ccp : ccp.resum,
+    atencioFamilies: simular
+      ? atencioFamilies
+      : atencioFamilies.resum,
+    reunionsDepartament: simular
+      ? reunionsDepartament
+      : reunionsDepartament.resum,
     reunionsCoordinacio: simular
       ? { ...reunionsCoordinacio.resum, simulacio: true }
       : reunionsCoordinacio.resum,
