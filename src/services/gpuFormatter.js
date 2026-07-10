@@ -41,6 +41,7 @@ function crearMapes(classes, professors) {
     });
 
   classes
+    .flatMap(filesExportClasse)
     .map((c) => c.materia)
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b))
@@ -51,6 +52,26 @@ function crearMapes(classes, professors) {
     });
 
   return { codisProfessors, codisMateries };
+}
+
+function filesExportClasse(classe = {}) {
+  const files = classe._filesAgrupades || [classe];
+  return files.flatMap((fila) => {
+    if (!Array.isArray(fila.subclasses) || !fila.subclasses.length) return [fila];
+    return fila.subclasses.map((subclasse) => ({
+      ...fila,
+      ...subclasse,
+      hores: Number(subclasse.hores) || Number(fila.hores) || 0,
+      tipus: subclasse.tipus ?? fila.tipus,
+      departament: subclasse.departament ?? fila.departament,
+      departaments: subclasse.departaments ?? fila.departaments,
+      professors: fila.professors || [],
+      professorAssignat: fila.professorAssignat || '',
+      participants: fila.participants || [],
+      _subclasseMulticurs: true,
+      _classePareMulticurs: fila,
+    }));
+  });
 }
 
 function esGuardiaPati(classe) {
@@ -833,6 +854,7 @@ function generarMateries(classes, codisMateries, referenciaGestib, overrides) {
 
   classes
     .filter((classe) => classe.materia)
+    .flatMap(filesExportClasse)
     .flatMap(expandirClassePerGrups)
     .forEach((classe) => {
       const materiaGestib = trobarMateriaGestibAmbOverride(classe, referenciaGestib, overrides);
@@ -960,6 +982,7 @@ function notesVistaPrevia({ classe, components, referencia, filesAgrupades }) {
   if (classe._ccpCapsDepartament) notes.push('CCP: descompta 1h de cap de departament');
   if (classe._atencioFamilies) notes.push('1h complementaria d atencio a families');
   if (classe._reunioDepartament) notes.push(`Reunio departament ${classe._departamentReunio || ''}`.trim());
+  if (classe.multicurs || classe._comptaProfessorUnic) notes.push('Materia simultania en diversos cursos');
   if (classe._reunioCoordinacioDocent) notes.push(classe._textLlicoUntis || 'Reunio equip docent');
   if (filesAgrupades.length > 1) notes.push(`${filesAgrupades.length} classes agrupades`);
   if (referencia) notes.push('Numero conservat del GPU002 de referencia');
@@ -1032,7 +1055,7 @@ function codisMateriaLlico(classe, codisMateries, referenciaGestib, referencia, 
 }
 
 function componentsLlico(classe, professors, codisProfessors, codisMateries, referenciaGestib, pendents, overrides) {
-  const files = classe._filesAgrupades || [classe];
+  const files = filesExportClasse(classe);
   const components = [];
 
   files.forEach((fila) => {
@@ -1118,7 +1141,7 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
       const NUMERICS_LLICO = new Set([0, 1, 2, 3, 9, 10, 13, 16, 18, 27, 28, 29, 30, 33, 34, 39, 40, 43, 45]);
       const hores = Number(classe.hores) || 0;
 
-      const filesAgrupades = (classe._filesAgrupades || [classe]).map((fila) => ({
+      const filesAgrupades = filesExportClasse(classe).map((fila) => ({
         curs: fila.curs || '',
         grup: fila.grup || '',
         materia: fila.materia || '',
@@ -1131,7 +1154,9 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
       const primerProfessor = new Set();
       let grupCompartitComptat = false;
       const liniesComponents = componentsUnics.map((component) => {
-        const clauProfessor = `${component.codiProfessor}|${component.codiMateria}`;
+        const clauProfessor = classe._comptaProfessorUnic
+          ? component.codiProfessor
+          : `${component.codiProfessor}|${component.codiMateria}`;
         const potComptarGrup = Boolean(component.codiGrups) && component.comptaGrup;
         const comptaGrup = potComptarGrup && (
           classe._comptaGrupUnic

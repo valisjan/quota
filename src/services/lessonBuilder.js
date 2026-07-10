@@ -155,6 +155,7 @@ function crearLliconsPerTramsDeGrup(classes, grup) {
       _filesAgrupades: actives,
       _preservaGrupsOriginals: false,
       _comptaGrupUnic: actives.some((classe) => classe._exportGrupCompartit),
+      _comptaProfessorUnic: actives.some((classe) => classe.multicurs || classe._exportMulticurs),
     });
 
     inici = fi;
@@ -303,6 +304,7 @@ export function agruparClassesPerLlicoExport(classes) {
       hores: horesExport,
       _horesOriginals: Number(classe.hores) || 0,
       _exportGrupCompartit: totalGrups > 1,
+      _exportMulticurs: Boolean(classe.multicurs || classe.subclasses?.length),
     };
   });
 

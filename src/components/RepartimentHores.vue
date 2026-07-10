@@ -91,6 +91,15 @@
             <div v-if="classe.tipus" class="mt-1">
               <span :class="getTipusBadgeClass(classe.tipus)">{{ getTipusLabel(classe.tipus) }}</span>
             </div>
+            <div v-if="classe.subclasses?.length" class="mt-1 flex flex-wrap gap-1">
+              <span
+                v-for="subclasse in classe.subclasses"
+                :key="`${subclasse.curs}-${subclasse.grup}-${subclasse.materia}`"
+                class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-600"
+              >
+                {{ subclasse.curs }} {{ subclasse.grup }}
+              </span>
+            </div>
           </div>
           <select
             :value="professorPrincipalClasse(classe)"
@@ -161,6 +170,15 @@
             </div>
             <div v-if="classe.tipus" class="mt-1">
               <span :class="getTipusBadgeClass(classe.tipus)">{{ getTipusLabel(classe.tipus) }}</span>
+            </div>
+            <div v-if="classe.subclasses?.length" class="mt-1 flex flex-wrap gap-1">
+              <span
+                v-for="subclasse in classe.subclasses"
+                :key="`${subclasse.curs}-${subclasse.grup}-${subclasse.materia}`"
+                class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-600"
+              >
+                {{ subclasse.curs }} {{ subclasse.grup }}
+              </span>
             </div>
           </div>
           <select
@@ -390,6 +408,11 @@ function formatClasseCerca(classe) {
     classe.departament,
     classe.tipus,
     getTipusLabel(classe.tipus),
+    ...(classe.subclasses || []).flatMap((subclasse) => [
+      subclasse.curs,
+      subclasse.grup,
+      subclasse.materia,
+    ]),
     ...(classe.professors || []),
   ].filter(Boolean).join(' ');
 }

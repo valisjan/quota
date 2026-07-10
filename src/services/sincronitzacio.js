@@ -14,6 +14,65 @@ const SYNC_STATE_DOC = 'sync_state';
 
 const n = (s) => (s || '').toString().toLowerCase().trim();
 
+function normalitzarText(valor) {
+  return (valor || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+const ANGLES_PROFESSIONAL_TARGETS = [
+  { curs: 'AGA22', grup: 'B', materia: 'Anglès professional-BAGA22' },
+  { curs: 'AGA23', grup: 'B', materia: 'Anglès professional-BAGA23' },
+  { curs: 'AGA25', grup: 'B', materia: 'Anglès professional-BAGA25' },
+];
+
+const ANGLES_PROFESSIONAL_CURSOS = new Set(ANGLES_PROFESSIONAL_TARGETS.map((item) => normalitzarText(item.curs)));
+
+function esAnglesProfessional(classe = {}) {
+  return normalitzarText(classe.materia).includes('anglesprofessional');
+}
+
+function esFilaAnglesProfessionalMulticurs(classe = {}) {
+  if (!esAnglesProfessional(classe)) return false;
+  const curs = normalitzarText(classe.curs);
+  const grups = normalitzarGrup(classe.grup || '')
+    .split('+')
+    .map(normalitzarText)
+    .filter(Boolean);
+  return (!curs || ANGLES_PROFESSIONAL_CURSOS.has(curs)) && (!grups.length || grups.includes('b'));
+}
+
+function crearClasseAnglesProfessionalMulticurs(files) {
+  const base = files[0] || {};
+  return {
+    ...base,
+    curs: ANGLES_PROFESSIONAL_TARGETS.map((item) => item.curs).join('+'),
+    grup: 'B',
+    materia: 'Anglès professional',
+    hores: Math.max(...files.map((classe) => Number(classe.hores) || 0), 0),
+    subclasses: ANGLES_PROFESSIONAL_TARGETS.map((item) => ({
+      curs: item.curs,
+      grup: item.grup,
+      materia: item.materia,
+      hores: Math.max(...files.map((classe) => Number(classe.hores) || 0), 0),
+    })),
+    multicurs: true,
+    multicursTipus: 'angles-professional-aga-b',
+  };
+}
+
+function aplicarClassesMulticurs(classes) {
+  const anglesProfessional = classes.filter(esFilaAnglesProfessionalMulticurs);
+  if (!anglesProfessional.length) return classes;
+  return [
+    ...classes.filter((classe) => !esFilaAnglesProfessionalMulticurs(classe)),
+    crearClasseAnglesProfessionalMulticurs(anglesProfessional),
+  ];
+}
+
 const DOMINI_CENTRE = 'iesjosepsuredaiblanes.com';
 function completarEmail(raw) {
   const s = (raw || '').trim().toLowerCase();
@@ -155,6 +214,7 @@ function filesSignaturaClasses(classes) {
       Number(c.hores) || 0,
       textSignatura(c.departament),
       textSignatura(c.tipus),
+      JSON.stringify(c.subclasses || []),
     ].join('\u001f'))
     .sort();
 }
@@ -193,6 +253,17 @@ function clauUnica(c) {
 
 function clauBase(c) {
   return `${n(c.curs)}|${n(normalitzarGrup(c.grup))}|${n(c.materia)}`;
+}
+
+function subclassesNormalitzades(data = {}) {
+  return JSON.stringify(
+    (data.subclasses || []).map((item) => ({
+      curs: item.curs || '',
+      grup: normalitzarGrup(item.grup || ''),
+      materia: item.materia || '',
+      hores: Number(item.hores) || 0,
+    }))
+  );
 }
 
 function campsAssignacio(data = {}) {
@@ -269,6 +340,19 @@ function trobarNoEmparellat(index, clau, idsEmparellats) {
   return (index.get(clau) || []).find((item) => !idsEmparellats.has(item.id));
 }
 
+function trobarEquivalentMulticurs(classe, existents, idsEmparellats) {
+  if (!classe.multicursTipus) return null;
+  const targets = new Set((classe.subclasses || []).map((item) => `${normalitzarText(item.curs)}|${normalitzarText(item.grup)}`));
+  return existents
+    .filter((item) => {
+      if (idsEmparellats.has(item.id)) return false;
+      if (!esAnglesProfessional(item.data)) return false;
+      const clau = `${normalitzarText(item.data.curs)}|${normalitzarText(item.data.grup)}`;
+      return targets.has(clau);
+    })
+    .sort((a, b) => Number(teAssignacio(b.data)) - Number(teAssignacio(a.data)))[0] || null;
+}
+
 
 async function guardarHistorialSincronitzacio(cursId, resultat, actor) {
   await addDoc(collection(db, 'cursos', cursId, 'sync_history'), {
@@ -308,7 +392,7 @@ export async function llegirEstatFontSheets(sheetsId = DEFAULT_SHEETS_ID) {
     llegirSheets(SHEET_CLASSES, sheetsId),
     llegirSheets(SHEET_PROFESSORAT, sheetsId),
   ]);
-  const classes = llegirClassesDeResposta(jsonClasses);
+  const classes = aplicarClassesMulticurs(llegirClassesDeResposta(jsonClasses));
   const professors = llegirProfessorsDeResposta(jsonProfs);
   return {
     sheetsId,
@@ -1197,7 +1281,8 @@ export async function sincronitzar(cursId, options = {}) {
     const cb = clauBase(classe);
     const exacte = trobarNoEmparellat(perClauUnica, cu, idsEmparellats);
     const equivalent = trobarNoEmparellat(perClauBase, cb, idsEmparellats);
-    const existent = exacte || equivalent || null;
+    const equivalentMulticurs = trobarEquivalentMulticurs(classe, existents, idsEmparellats);
+    const existent = exacte || equivalent || equivalentMulticurs || null;
 
     if (existent) {
       idsEmparellats.add(existent.id);
@@ -1208,6 +1293,7 @@ export async function sincronitzar(cursId, options = {}) {
       const grupCanviat = n(normalitzarGrup(existent.data.grup)) !== n(classe.grup);
       const materiaCanviat = n(existent.data.materia) !== n(classe.materia);
       const departamentCanviat = n(existent.data.departament) !== n(classe.departament);
+      const subclassesCanviades = subclassesNormalitzades(existent.data) !== subclassesNormalitzades(classe);
       const faltaDepartaments = !existent.data.departaments;
       if (
         horesCanviat ||
@@ -1216,6 +1302,7 @@ export async function sincronitzar(cursId, options = {}) {
         grupCanviat ||
         materiaCanviat ||
         departamentCanviat ||
+        subclassesCanviades ||
         faltaDepartaments
       ) {
         batchClasses.update(dd(cursId, 'classes', existent.id), {
@@ -1226,16 +1313,22 @@ export async function sincronitzar(cursId, options = {}) {
           tipus: classe.tipus,
           departament: classe.departament,
           departaments: [classe.departament],
+          subclasses: classe.subclasses || [],
+          multicurs: Boolean(classe.multicurs),
+          multicursTipus: classe.multicursTipus || '',
           updatedAt: new Date(),
         });
         actualitzades++;
       }
 
-      if (!exacte && equivalent) assignacionsConservades++;
+      if (!exacte && (equivalent || equivalentMulticurs)) assignacionsConservades++;
     } else {
       batchClasses.set(dd(cursId, 'classes'), {
         ...classe,
         departaments: [classe.departament],
+        subclasses: classe.subclasses || [],
+        multicurs: Boolean(classe.multicurs),
+        multicursTipus: classe.multicursTipus || '',
         professors: [],
         professorAssignat: '',
         participants: [],
