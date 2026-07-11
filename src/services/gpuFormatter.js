@@ -1076,20 +1076,34 @@ function componentsLlico(classe, professors, codisProfessors, codisMateries, ref
   return components;
 }
 
+function codiOrdreGrupLlico(classe) {
+  return codisClasse(classe)[0] || (classe.curs || classe.grup ? `${classe.curs || ''}-${classe.grup || ''}` : 'ZZZ');
+}
+
+function ordenarLliconsExport(llicons) {
+  return [...llicons].sort((a, b) =>
+    compararAbreviaturaUntis(codiOrdreGrupLlico(a), codiOrdreGrupLlico(b)) ||
+    (a.materia || '').localeCompare(b.materia || '', 'ca') ||
+    (netejarText(a.tipus) || '').localeCompare(netejarText(b.tipus), 'ca') ||
+    Number(b.hores || 0) - Number(a.hores || 0)
+  );
+}
+
 function generarLlicons(classes, professors, codisProfessors, codisMateries, referenciesGpu002 = [], referenciaGestib = null, overrides = null) {
   const pendents = [];
   const usades = new Set();
   const vistaPrevia = [];
   let numero = Math.max(0, ...referenciesGpu002.map((ref) => Number(ref.num) || 0)) + 1;
 
-  const linies = agruparClassesPerLlicoExport(
+  const lliconsExport = ordenarLliconsExport(agruparClassesPerLlicoExport(
     classes.filter((classe) =>
       Number(classe.hores) > 0 &&
       classe.materia &&
       !TIPUS_NO_LECTIUS.has(netejarText(classe.tipus).toUpperCase())
     )
-  )
-    .flatMap((classe) => {
+  ));
+
+  const linies = lliconsExport.flatMap((classe) => {
       const tipus = netejarText(classe.tipus).toUpperCase();
       const professorsClasse = obtenirProfessorsClasse(classe);
 

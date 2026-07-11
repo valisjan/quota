@@ -306,22 +306,16 @@ export function agruparClassesPerLlico(classes) {
 }
 
 export function agruparClassesPerLlicoExport(classes) {
-  const preparades = classes.map((classe) => {
+  const preparades = classes.flatMap((classe) => {
     const totalGrups = Math.max(1, grupsClasse(classe).length);
     const horesExport = horesPerGrupExport(classe, totalGrups);
-    const exportGrupCompartit =
-      totalGrups > 1 &&
-      comptaPerGrupExport(classe) &&
-      !esOptativaClasse(classe);
 
-    return {
+    return expandirClassePerGrups({
       ...classe,
-      grup: normalitzarGrup(classe.grup),
       hores: horesExport,
       _horesOriginals: Number(classe.hores) || 0,
       _exportMulticurs: Boolean(classe.multicurs || classe.subclasses?.length),
-      _exportGrupCompartit: exportGrupCompartit,
-    };
+    });
   });
 
   return agruparClassesPerLlico(preparades);

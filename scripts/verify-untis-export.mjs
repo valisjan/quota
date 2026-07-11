@@ -139,14 +139,14 @@ function verifyGroupedLessonHours() {
     },
   ]);
 
-  assert(lessons.length === 1, 'A+C+E must stay in one Untis lesson when professor and subject are shared');
+  assert(lessons.length === 3, 'A+C+E ordinary lessons must export as one Untis lesson per group');
   assert(
-    Number(lessons[0].hores) === 3,
+    lessons.every((lesson) => Number(lesson.hores) === 3),
     '9 aggregate hours across A+C+E must export as 3 hours per group'
   );
   assert(
-    lessons[0].grup === 'A+C+E',
-    'Grouped ordinary lessons must preserve the compound target group'
+    lessons.map((lesson) => lesson.grup).sort().join(',') === 'A,C,E',
+    'Grouped ordinary lessons must split into the target groups'
   );
 }
 
@@ -172,11 +172,48 @@ function verifyCodocenciaGroupedHours() {
     },
   ]);
 
-  assert(lessons.length === 1, 'Codocencia over A+C+E must be one shared Untis lesson');
-  assert(Number(lessons[0].hores) === 3, 'Codocencia aggregate hours must be divided per group');
+  assert(lessons.length === 3, 'Codocencia over A+C+E must export one shared lesson per group');
   assert(
-    lessons[0].professors.includes('ANG1') && lessons[0].professors.includes('COLO'),
-    'Codocencia lesson must keep both teachers'
+    lessons.every((lesson) => Number(lesson.hores) === 3),
+    'Codocencia aggregate hours must be divided per group'
+  );
+  assert(
+    lessons.every((lesson) => lesson.professors.includes('ANG1') && lesson.professors.includes('COLO')),
+    'Each codocencia group lesson must keep both teachers'
+  );
+}
+
+function verifyDesdobleAttachedToTitular() {
+  const lessons = agruparClassesPerLlicoExport([
+    {
+      id: 'fq-2eso-ace',
+      curs: '2ESO',
+      grup: 'A+C+E',
+      materia: 'Fisica i quimica',
+      hores: 9,
+      tipus: '',
+      professorAssignat: 'FQ1',
+    },
+    {
+      id: 'fq-2eso-a-desdoble',
+      curs: '2ESO',
+      grup: 'A',
+      materia: 'Fisica i quimica',
+      hores: 1,
+      tipus: 'D',
+      professorAssignat: 'LLOR',
+    },
+  ]);
+
+  const groupA = lessons.filter((lesson) => lesson.grup === 'A');
+  assert(groupA.length === 2, 'A one-hour split must create one attached lesson and one remaining titular lesson');
+  assert(
+    groupA.some((lesson) => Number(lesson.hores) === 1 && lesson.professors.includes('FQ1') && lesson.professors.includes('LLOR')),
+    'The split hour must be attached to the titular FQ teacher'
+  );
+  assert(
+    groupA.some((lesson) => Number(lesson.hores) === 2 && lesson.professors.length === 1 && lesson.professors[0] === 'FQ1'),
+    'The remaining titular FQ hours must stay separate'
   );
 }
 
@@ -238,6 +275,7 @@ verifyActivities();
 verifyGpuFiles();
 verifyGroupedLessonHours();
 verifyCodocenciaGroupedHours();
+verifyDesdobleAttachedToTitular();
 verifyGpu002ComponentRows();
 verifyUntisAbbreviationSort();
 verifyTeacherCodes();
