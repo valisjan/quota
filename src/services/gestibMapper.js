@@ -247,6 +247,8 @@ function scorarCandidatsGestib(classe, gestib) {
   const cursNorm = normalitzar(cursRaw);
   const grupsNorm = grupsClasse(classe).map((grup) => compactarGrup(grup));
   const grupNorm = compactarGrup(classe.grup) || grupsNorm[0] || '';
+  const grupsCompacte = grupsNorm.join('');
+  const esGrupCompost = grupsNorm.length > 1;
   const materiaNorm = normalitzar(classe.materia);
   const tenimCurs = !!cursNorm;
 
@@ -264,8 +266,10 @@ function scorarCandidatsGestib(classe, gestib) {
     if (tenimCurs) {
       if (grupMat && grupNorm) {
         // La classe TÉ grup: puntua per coincidència o penalitza si no coincideix
-        if (grupMat === grupNorm) score += 90;
+        if (esGrupCompost && grupMat === grupsCompacte) score += 140;
+        else if (grupMat === grupNorm) score += 90;
         else if (grupsNorm.includes(grupMat)) score += 80;
+        else if (esGrupCompost && (grupMat.includes(grupsCompacte) || grupsCompacte.includes(grupMat))) score += 65;
         else if (grupMat.includes(grupNorm)) score += 45;
         else score -= 70;
       }
