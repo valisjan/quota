@@ -236,6 +236,28 @@ function verifyGuardiesStayPerTeacher() {
   );
 }
 
+function verifyDepartmentMeetingStaysTogether() {
+  const lessons = agruparClassesPerLlicoExport([
+    {
+      id: 'reunio-departament-tots',
+      curs: '',
+      grup: '',
+      materia: 'Reunio departament',
+      hores: 1,
+      tipus: 'COM',
+      professors: ['ADEL', 'POL', 'NAVA'],
+      professorAssignat: 'ADEL',
+      _reunioDepartament: true,
+    },
+  ]);
+
+  assert(lessons.length === 1, 'Department meeting must export as one shared lesson');
+  assert(
+    lessons[0].professors.join('|') === 'ADEL|POL|NAVA',
+    'Department meeting must keep all teachers in the same lesson'
+  );
+}
+
 function verifyOptativesGroupedByOriginalGroupBlock() {
   const lessons = agruparClassesPerLlicoExport([
     {
@@ -468,6 +490,7 @@ verifyGroupedLessonHours();
 verifyCodocenciaGroupedHours();
 verifyFlexibleCompoundGroupStaysSimultaneous();
 verifyGuardiesStayPerTeacher();
+verifyDepartmentMeetingStaysTogether();
 verifyOptativesGroupedByOriginalGroupBlock();
 verifyNumberedOptativesShareFranja();
 verifyDesdoblePrefersMainSubjectOverAE();

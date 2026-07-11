@@ -628,64 +628,51 @@ function prepararAtencioFamilies(professors, referenciaGestib) {
 function prepararReunionsDepartament(professors, referenciaGestib) {
   const activitat = trobarActivitatReunioDepartament(referenciaGestib);
   const descripcio = activitat?.curta || activitat?.etiqueta || activitat?.descripcio || 'Reunió de departament';
-  const departaments = new Map();
-
-  professors
+  const professorsExportables = professors
     .filter((professor) => professor.nom)
-    .forEach((professor) => {
-      const departament = (professor.departament || 'Sense departament').toString().trim() || 'Sense departament';
-      const clau = normalitzar(departament) || 'sensedepartament';
-      if (!departaments.has(clau)) {
-        departaments.set(clau, {
-          clau,
-          departament,
-          professors: [],
-        });
-      }
-      departaments.get(clau).professors.push(professor);
-    });
+    .sort((a, b) => a.nom.localeCompare(b.nom));
 
-  const reunions = [...departaments.values()]
-    .map((reunio) => ({
-      ...reunio,
-      professors: reunio.professors.sort((a, b) => a.nom.localeCompare(b.nom)),
-    }))
-    .sort((a, b) => a.departament.localeCompare(b.departament));
+  const departaments = [...new Set(professorsExportables
+    .map((professor) => (professor.departament || 'Sense departament').toString().trim() || 'Sense departament'))]
+    .sort((a, b) => a.localeCompare(b));
 
-  const classes = reunions.map((reunio) => ({
-    id: `reunio-departament-${reunio.clau}`,
-    curs: '',
-    grup: '',
-    materia: `${descripcio} ${reunio.departament}`,
-    hores: 1,
-    departament: reunio.departament,
-    departaments: [reunio.departament],
-    tipus: 'COM',
-    professorAssignat: reunio.professors[0]?.nom || '',
-    professors: reunio.professors.map((professor) => professor.nom),
-    _descripcioSenseMateria: true,
-    _descripcioUntis: descripcio,
-    _textLlicoUntis: reunio.departament,
-    _activitatGestib: activitat,
-    _reunioDepartament: true,
-    _departamentReunio: reunio.departament,
-  }));
+  const classes = professorsExportables.length
+    ? [{
+        id: 'reunio-departament-tots',
+        curs: '',
+        grup: '',
+        materia: descripcio,
+        hores: 1,
+        departament: '',
+        departaments,
+        tipus: 'COM',
+        professorAssignat: professorsExportables[0]?.nom || '',
+        professors: professorsExportables.map((professor) => professor.nom),
+        _descripcioSenseMateria: true,
+        _descripcioUntis: descripcio,
+        _textLlicoUntis: descripcio,
+        _activitatGestib: activitat,
+        _reunioDepartament: true,
+        _departamentReunio: 'Tots',
+      }]
+    : [];
 
   return {
     classes,
     resum: {
       descripcio,
       codiActivitat: activitat?.codiUntis || '',
-      reunions: reunions.map((reunio) => ({
-        departament: reunio.departament,
-        professors: reunio.professors.map((professor) => ({
+      reunions: [{
+        departament: 'Tots',
+        professors: professorsExportables.map((professor) => ({
           nom: professor.nom,
           codiUntis: codiProfessorExport(professor),
         })),
-      })),
-      totalDepartaments: reunions.length,
-      totalLinies: reunions.reduce((total, reunio) => total + reunio.professors.length, 0),
-      horesPerDepartament: 1,
+      }],
+      totalDepartaments: departaments.length,
+      totalReunions: classes.length,
+      totalLinies: professorsExportables.length,
+      horesPerReunio: 1,
     },
   };
 }
