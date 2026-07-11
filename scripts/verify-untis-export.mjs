@@ -8,6 +8,7 @@ import {
   prepararComponentsGpu002,
   incidenciesCodisProfessorGestib,
 } from '../src/services/untisUtils.js';
+import { crearClassesDesdoblamentDivisible } from '../src/utils/suportDivisible.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const assetsDir = join(root, 'src', 'assets');
@@ -225,6 +226,102 @@ function verifyOptativesGroupedByOriginalGroupBlock() {
   assert(bdf?._filesAgrupades?.length === 3, 'BDF optative lesson must keep its own internal rows only');
 }
 
+function verifyNumberedOptativesShareFranja() {
+  const lessons = agruparClassesPerLlicoExport([
+    {
+      id: '1bat-ab-matg',
+      curs: '1BAT',
+      grup: 'A+B',
+      materia: 'Matematiques generals',
+      hores: 4,
+      tipus: 'O1',
+      professorAssignat: 'MAT1',
+    },
+    {
+      id: '1bat-a-mat1',
+      curs: '1BAT',
+      grup: 'A',
+      materia: 'Matematiques I',
+      hores: 4,
+      tipus: 'O1',
+      professorAssignat: 'RODR',
+    },
+    {
+      id: '1bat-b-llati',
+      curs: '1BAT',
+      grup: 'B',
+      materia: 'Llati I',
+      hores: 4,
+      tipus: 'O1',
+      professorAssignat: 'MEDI',
+    },
+    {
+      id: '1bat-b-matap',
+      curs: '1BAT',
+      grup: 'B',
+      materia: 'Matematiques aplicades',
+      hores: 4,
+      tipus: 'O1',
+      professorAssignat: 'MILL',
+    },
+  ]);
+
+  assert(lessons.length === 1, 'Numbered optatives in the same franja must share one Untis lesson');
+  assert(lessons[0].grup === 'A+B', 'Numbered optatives must include all groups in the franja');
+  assert(
+    lessons[0]._filesAgrupades?.length === 5,
+    'Shared A+B optatives must keep one internal row per subject and target group'
+  );
+}
+
+function verifyDesdoblePrefersMainSubjectOverAE() {
+  const classes = [
+    {
+      id: '1bat-a-ae',
+      curs: '1BAT',
+      grup: 'A',
+      materia: 'AE',
+      hores: 1,
+      tipus: '',
+      departament: 'Angles',
+      professorAssignat: 'NAVA',
+    },
+    {
+      id: '1bat-a-angles',
+      curs: '1BAT',
+      grup: 'A',
+      materia: 'Angles I',
+      hores: 3,
+      tipus: '',
+      departament: 'Angles',
+      professorAssignat: 'NAVA',
+    },
+    {
+      id: '1bat-a-dd',
+      curs: '1BAT',
+      grup: 'A',
+      materia: 'DD',
+      hores: 1,
+      tipus: 'DD',
+      departament: 'Angles',
+    },
+  ];
+  const desdobles = crearClassesDesdoblamentDivisible(
+    [
+      {
+        id: 'pol',
+        nom: 'POL FONT, MARTA',
+        departament: 'Angles',
+        ddAssignacions: [{ id: 'dd-a', grup: '1BAT A', departament: 'Angles' }],
+      },
+    ],
+    classes
+  );
+
+  assert(desdobles.length === 1, 'The DD assignment must create one virtual split class');
+  assert(desdobles[0].materia === 'Angles I', 'DD without explicit subject must attach to Angles I, not AE');
+}
+
 function verifyDesdobleAttachedToTitular() {
   const lessons = agruparClassesPerLlicoExport([
     {
@@ -318,6 +415,8 @@ verifyGpuFiles();
 verifyGroupedLessonHours();
 verifyCodocenciaGroupedHours();
 verifyOptativesGroupedByOriginalGroupBlock();
+verifyNumberedOptativesShareFranja();
+verifyDesdoblePrefersMainSubjectOverAE();
 verifyDesdobleAttachedToTitular();
 verifyGpu002ComponentRows();
 verifyUntisAbbreviationSort();

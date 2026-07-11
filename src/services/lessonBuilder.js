@@ -190,7 +190,10 @@ function crearLliconsPerTramsExactes(classes) {
 }
 
 function clauOptativa(classe) {
-  const grups = classe._grupsLlicoExport || clauGrups(grupsClasse(classe));
+  const tipus = netejarText(classe.tipus).toUpperCase();
+  const grups = /^O\d+$/.test(tipus) || tipus.startsWith('T')
+    ? ''
+    : classe._grupsLlicoExport || clauGrups(grupsClasse(classe));
   return [
     normalitzar(classe.curs),
     normalitzar(franjaOptativa(classe.tipus)),

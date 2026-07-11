@@ -1,4 +1,4 @@
-import { departamentPrincipalProfessor, departamentsProfessor } from './departaments';
+import { departamentPrincipalProfessor, departamentsProfessor } from './departaments.js';
 
 export function normalitzarSDAssignacions(assignacions = [], legacyCount = 0) {
   const llista = Array.isArray(assignacions) ? assignacions : [];
@@ -265,6 +265,26 @@ function materiaGenericaDD(materia) {
   return !normal || normal === 'DD' || normal.includes('DESDOBLAMENTDIVISIBLE');
 }
 
+function esAtencioEducativa(materia) {
+  const normal = normalitzarClau(materia);
+  return normal === 'AE' || normal.includes('ATENCIOEDUCATIVA');
+}
+
+function compararMateriaObjectiu(a, b) {
+  const aStar = (a.materia || '').toString().trim().startsWith('*') ? 1 : 0;
+  const bStar = (b.materia || '').toString().trim().startsWith('*') ? 1 : 0;
+  if (aStar !== bStar) return aStar - bStar;
+
+  const aAE = esAtencioEducativa(a.materia) ? 1 : 0;
+  const bAE = esAtencioEducativa(b.materia) ? 1 : 0;
+  if (aAE !== bAE) return aAE - bAE;
+
+  const hores = (Number(b.hores) || 0) - (Number(a.hores) || 0);
+  if (hores !== 0) return hores;
+
+  return (a.materia || '').localeCompare(b.materia || '', 'ca');
+}
+
 function materiaPerSuport({ assignacio, professor, grupResol, classes, poolMateria }) {
   if (assignacio.materia) return assignacio.materia;
   const departamentAssignacio = assignacio.departament || departamentPrincipalProfessor(professor);
@@ -278,12 +298,7 @@ function materiaPerSuport({ assignacio, professor, grupResol, classes, poolMater
       normalitzarClau(classe.curs) === normalitzarClau(grupResol.curs) &&
       grupsClasse(classe).some((grup) => normalitzarClau(grup) === normalitzarClau(grupResol.grup))
     )
-    .sort((a, b) => {
-      const aStar = (a.materia || '').toString().trim().startsWith('*') ? 1 : 0;
-      const bStar = (b.materia || '').toString().trim().startsWith('*') ? 1 : 0;
-      if (aStar !== bStar) return aStar - bStar;
-      return (a.materia || '').localeCompare(b.materia || '', 'ca');
-    })[0];
+    .sort(compararMateriaObjectiu)[0];
 
   if (mateixaMateria?.materia) return mateixaMateria.materia;
   if (!materiaGenericaSD(poolMateria)) return poolMateria;
@@ -303,12 +318,7 @@ function materiaPerDesdoblament({ assignacio, professor, grupResol, classes, poo
       normalitzarClau(classe.curs) === normalitzarClau(grupResol.curs) &&
       grupsClasse(classe).some((grup) => normalitzarClau(grup) === normalitzarClau(grupResol.grup))
     )
-    .sort((a, b) => {
-      const aStar = (a.materia || '').toString().trim().startsWith('*') ? 1 : 0;
-      const bStar = (b.materia || '').toString().trim().startsWith('*') ? 1 : 0;
-      if (aStar !== bStar) return aStar - bStar;
-      return (a.materia || '').localeCompare(b.materia || '', 'ca');
-    })[0];
+    .sort(compararMateriaObjectiu)[0];
 
   if (mateixaMateria?.materia) return mateixaMateria.materia;
   if (!materiaGenericaDD(poolMateria)) return poolMateria;
