@@ -190,9 +190,11 @@ function crearLliconsPerTramsExactes(classes) {
 }
 
 function clauOptativa(classe) {
+  const grups = classe._grupsLlicoExport || clauGrups(grupsClasse(classe));
   return [
     normalitzar(classe.curs),
     normalitzar(franjaOptativa(classe.tipus)),
+    normalitzar(grups),
   ].join('|');
 }
 
@@ -307,14 +309,17 @@ export function agruparClassesPerLlico(classes) {
 
 export function agruparClassesPerLlicoExport(classes) {
   const preparades = classes.flatMap((classe) => {
-    const totalGrups = Math.max(1, grupsClasse(classe).length);
+    const grupsOriginals = grupsClasse(classe);
+    const totalGrups = Math.max(1, grupsOriginals.length);
     const horesExport = horesPerGrupExport(classe, totalGrups);
+    const grupsLlicoExport = clauGrups(grupsOriginals);
 
     return expandirClassePerGrups({
       ...classe,
       hores: horesExport,
       _horesOriginals: Number(classe.hores) || 0,
       _exportMulticurs: Boolean(classe.multicurs || classe.subclasses?.length),
+      _grupsLlicoExport: grupsLlicoExport,
     });
   });
 

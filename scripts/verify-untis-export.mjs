@@ -183,6 +183,48 @@ function verifyCodocenciaGroupedHours() {
   );
 }
 
+function verifyOptativesGroupedByOriginalGroupBlock() {
+  const lessons = agruparClassesPerLlicoExport([
+    {
+      id: '2eso-ace-sc',
+      curs: '2ESO',
+      grup: 'A+C+E',
+      materia: 'Cooperacio i serveis',
+      hores: 2,
+      tipus: 'O',
+      professorAssignat: 'CANC',
+    },
+    {
+      id: '2eso-ace-rdi',
+      curs: '2ESO',
+      grup: 'A+C+E',
+      materia: 'Recursos digitals I',
+      hores: 2,
+      tipus: 'O',
+      professorAssignat: 'GARA',
+    },
+    {
+      id: '2eso-bdf-sal',
+      curs: '2ESO',
+      grup: 'B+D+F',
+      materia: 'Segona llengua estrangera',
+      hores: 2,
+      tipus: 'O',
+      professorAssignat: 'SANZ',
+    },
+  ]);
+
+  assert(lessons.length === 2, 'Optatives in ACE and BDF must not share the same Untis lesson');
+  assert(
+    lessons.map((lesson) => lesson.grup).sort().join('|') === 'A+C+E|B+D+F',
+    'Optatives must stay grouped by their original group block'
+  );
+  const ace = lessons.find((lesson) => lesson.grup === 'A+C+E');
+  const bdf = lessons.find((lesson) => lesson.grup === 'B+D+F');
+  assert(ace?._filesAgrupades?.length === 6, 'ACE optative lesson must keep one internal row per subject and group');
+  assert(bdf?._filesAgrupades?.length === 3, 'BDF optative lesson must keep its own internal rows only');
+}
+
 function verifyDesdobleAttachedToTitular() {
   const lessons = agruparClassesPerLlicoExport([
     {
@@ -275,6 +317,7 @@ verifyActivities();
 verifyGpuFiles();
 verifyGroupedLessonHours();
 verifyCodocenciaGroupedHours();
+verifyOptativesGroupedByOriginalGroupBlock();
 verifyDesdobleAttachedToTitular();
 verifyGpu002ComponentRows();
 verifyUntisAbbreviationSort();
