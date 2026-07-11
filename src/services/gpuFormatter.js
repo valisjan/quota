@@ -5,6 +5,7 @@ import {
   codiBase, codiUnic, codiProfessorBase, codiProfessorExport, incidenciesCodisProfessorGestib,
   codisClasse, codisCurs, grupsClasse, campsBuids, decimalUntis, liniaDif,
   parseGpu002, parseCsvLine, limitsJornada, obtenirProfessorsClasse, descarregarText, expandirClassePerGrups,
+  dividirCodisGrupUntis, compactarComponentsGpu002,
 } from './untisUtils';
 import { parseGestibXml, trobarMateriaGestib, trobarMateriaGestibAmbOverride } from './gestibMapper';
 import { agruparClassesPerLlicoExport } from './lessonBuilder';
@@ -134,7 +135,8 @@ function nomActivitatProvisional(materia) {
 function classeComptaPerGrupUntis(classe) {
   if (!classe?.curs || !classe?.grup) return false;
   if ((classe.materia || '').toString().trim().startsWith('*')) return false;
-  return comptaPerGrupPerTipus(classe.tipus);
+  const tipus = netejarText(classe.tipus).toUpperCase();
+  return tipus === 'CD' || comptaPerGrupPerTipus(tipus);
 }
 
 function classeTeGrupExportable(classe) {
@@ -936,29 +938,7 @@ function crearFilaGpu002({ numero, hores, grups, codiProfessors, codiMateria, ti
 }
 
 function componentsExportables(components) {
-  const vistos = new Set();
-  return components
-    .flatMap((component) => {
-      const grups = (component.codiGrups || '')
-        .split(',')
-        .map((grup) => grup.trim())
-        .filter(Boolean);
-      return (grups.length ? grups : ['']).map((grup) => ({
-        ...component,
-        codiGrups: grup,
-      }));
-    })
-    .filter((component) => {
-      const clau = [
-        component.codiGrups || '',
-        component.codiProfessor || '',
-        component.codiMateria || '',
-        component.aula || '',
-      ].join('|');
-      if (vistos.has(clau)) return false;
-      vistos.add(clau);
-      return true;
-    });
+  return compactarComponentsGpu002(components);
 }
 
 function etiquetaBlocLlico(classe, components) {
@@ -1136,7 +1116,7 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
       }
 
       const componentsUnics = componentsExportables(components);
-      const grups = [...new Set(componentsUnics.map((c) => c.codiGrups))];
+      const grups = [...new Set(componentsUnics.flatMap((c) => dividirCodisGrupUntis(c.codiGrups)))];
       const numLlico = referencia?.num || numero++;
       const NUMERICS_LLICO = new Set([0, 1, 2, 3, 9, 10, 13, 16, 18, 27, 28, 29, 30, 33, 34, 39, 40, 43, 45]);
       const hores = Number(classe.hores) || 0;
@@ -1157,18 +1137,19 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
         const clauProfessor = classe._comptaProfessorUnic
           ? component.codiProfessor
           : `${component.codiProfessor}|${component.codiMateria}`;
-        const potComptarGrup = Boolean(component.codiGrups) && component.comptaGrup;
+        const grupsComponent = dividirCodisGrupUntis(component.codiGrups);
+        const potComptarGrup = Boolean(grupsComponent.length) && component.comptaGrup;
         const comptaGrup = potComptarGrup && (
           classe._comptaGrupUnic
             ? !grupCompartitComptat
-            : !primerGrup.has(component.codiGrups)
+            : grupsComponent.some((grup) => !primerGrup.has(grup))
         );
         const flags = {
           comptaGrup,
           comptaProfessor: !primerProfessor.has(clauProfessor),
         };
         if (flags.comptaGrup && classe._comptaGrupUnic) grupCompartitComptat = true;
-        if (component.codiGrups) primerGrup.add(component.codiGrups);
+        grupsComponent.forEach((grup) => primerGrup.add(grup));
         primerProfessor.add(clauProfessor);
 
         const camps = prepararCampsLlico({
@@ -1201,7 +1182,7 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
         professors: [...new Set(componentsUnics.map((c) => c.professor))],
         codisProfessors: [...new Set(componentsUnics.map((c) => c.codiProfessor))],
         codiMateria: [...new Set(componentsUnics.map((c) => c.codiMateria))].join(', '),
-        codiGrups: grups.join('+'),
+        codiGrups: grups.join(','),
         font: referencia ? 'referencia' : 'generat',
         esActivitat: !classe.curs && !classe.grup,
         filesAgrupades,

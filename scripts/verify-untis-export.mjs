@@ -2,7 +2,11 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { agruparClassesPerLlicoExport } from '../src/services/lessonBuilder.js';
-import { codiProfessorExport, incidenciesCodisProfessorGestib } from '../src/services/untisUtils.js';
+import {
+  codiProfessorExport,
+  compactarComponentsGpu002,
+  incidenciesCodisProfessorGestib,
+} from '../src/services/untisUtils.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const assetsDir = join(root, 'src', 'assets');
@@ -134,14 +138,65 @@ function verifyGroupedLessonHours() {
     },
   ]);
 
-  assert(lessons.length === 3, 'A+C+E must produce one ordinary lesson per group');
+  assert(lessons.length === 1, 'A+C+E must stay in one Untis lesson when professor and subject are shared');
   assert(
-    lessons.every((lesson) => Number(lesson.hores) === 3),
+    Number(lessons[0].hores) === 3,
     '9 aggregate hours across A+C+E must export as 3 hours per group'
   );
   assert(
-    lessons.map((lesson) => lesson.grup).sort().join(',') === 'A,C,E',
-    'Grouped ordinary lessons must preserve every target group'
+    lessons[0].grup === 'A+C+E',
+    'Grouped ordinary lessons must preserve the compound target group'
+  );
+}
+
+function verifyCodocenciaGroupedHours() {
+  const lessons = agruparClassesPerLlicoExport([
+    {
+      id: 'ang-1eso-ace-1',
+      curs: '1ESO',
+      grup: 'A+C+E',
+      materia: 'Angles',
+      hores: 9,
+      tipus: 'CD',
+      professorAssignat: 'ANG1',
+    },
+    {
+      id: 'ang-1eso-ace-2',
+      curs: '1ESO',
+      grup: 'A+C+E',
+      materia: 'Angles',
+      hores: 9,
+      tipus: 'CD',
+      professorAssignat: 'COLO',
+    },
+  ]);
+
+  assert(lessons.length === 1, 'Codocencia over A+C+E must be one shared Untis lesson');
+  assert(Number(lessons[0].hores) === 3, 'Codocencia aggregate hours must be divided per group');
+  assert(
+    lessons[0].professors.includes('ANG1') && lessons[0].professors.includes('COLO'),
+    'Codocencia lesson must keep both teachers'
+  );
+}
+
+function verifyGpu002ComponentCompaction() {
+  const compacted = compactarComponentsGpu002([
+    { codiGrups: '1ESO-A', codiProfessor: 'RODR', codiMateria: 'SF-ACE-1E', aula: '', comptaGrup: true },
+    { codiGrups: '1ESO-C', codiProfessor: 'RODR', codiMateria: 'SF-ACE-1E', aula: '', comptaGrup: true },
+    { codiGrups: '1ESO-E', codiProfessor: 'RODR', codiMateria: 'SF-ACE-1E', aula: '', comptaGrup: true },
+    { codiGrups: '1ESO-B', codiProfessor: 'FORT', codiMateria: 'EDM-BDF-1E', aula: '', comptaGrup: true },
+    { codiGrups: '1ESO-D', codiProfessor: 'FORT', codiMateria: 'EDM-BDF-1E', aula: '', comptaGrup: true },
+    { codiGrups: '1ESO-F', codiProfessor: 'FORT', codiMateria: 'EDM-BDF-1E', aula: '', comptaGrup: true },
+  ]);
+
+  assert(compacted.length === 2, 'Repeated professor/subject rows must compact by group list');
+  assert(
+    compacted.some((item) => item.codiGrups === '1ESO-A,1ESO-C,1ESO-E' && item.codiProfessor === 'RODR'),
+    'ACE rows must export as one comma-separated Untis group field'
+  );
+  assert(
+    compacted.some((item) => item.codiGrups === '1ESO-B,1ESO-D,1ESO-F' && item.codiProfessor === 'FORT'),
+    'BDF rows must export as one comma-separated Untis group field'
   );
 }
 
@@ -172,6 +227,8 @@ function verifyTeacherCodes() {
 verifyActivities();
 verifyGpuFiles();
 verifyGroupedLessonHours();
+verifyCodocenciaGroupedHours();
+verifyGpu002ComponentCompaction();
 verifyTeacherCodes();
 
 console.log('Untis verification OK');

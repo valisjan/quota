@@ -1290,7 +1290,7 @@ const confirmarSubstitucioXml = ref(false);
 const xmlGestibPendent = ref(null);
 let tokenCarregaXmlRemot = 0;
 const gpu002ReferenciaNom = ref('');
-const simular = ref(true);
+const simular = ref(false);
 const activeSection = ref('flux-untis');
 
 const sectionItems = computed(() => [

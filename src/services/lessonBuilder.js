@@ -38,7 +38,8 @@ function getAutodesdobleN(classe) {
 function comptaPerGrupExport(classe) {
   if (!classe.curs || !classe.grup) return false;
   if ((classe.materia || '').toString().trim().startsWith('*')) return false;
-  return comptaPerGrupPerTipus(classe.tipus);
+  const tipus = netejarText(classe.tipus).toUpperCase();
+  return tipus === 'CD' || comptaPerGrupPerTipus(tipus);
 }
 
 function horesPerGrupExport(classe, totalGrups) {
@@ -305,15 +306,22 @@ export function agruparClassesPerLlico(classes) {
 }
 
 export function agruparClassesPerLlicoExport(classes) {
-  const preparades = classes.flatMap((classe) => {
+  const preparades = classes.map((classe) => {
     const totalGrups = Math.max(1, grupsClasse(classe).length);
     const horesExport = horesPerGrupExport(classe, totalGrups);
-    return expandirClassePerGrups(classe).map((expandida) => ({
-      ...expandida,
+    const exportGrupCompartit =
+      totalGrups > 1 &&
+      comptaPerGrupExport(classe) &&
+      !esOptativaClasse(classe);
+
+    return {
+      ...classe,
+      grup: normalitzarGrup(classe.grup),
       hores: horesExport,
       _horesOriginals: Number(classe.hores) || 0,
       _exportMulticurs: Boolean(classe.multicurs || classe.subclasses?.length),
-    }));
+      _exportGrupCompartit: exportGrupCompartit,
+    };
   });
 
   return agruparClassesPerLlico(preparades);

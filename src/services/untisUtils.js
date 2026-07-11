@@ -171,6 +171,62 @@ export function clauGrups(grups) {
   return [...new Set(grups)].sort((a, b) => a.localeCompare(b)).join('+');
 }
 
+export function dividirCodisGrupUntis(valor) {
+  return (valor || '')
+    .toString()
+    .split(',')
+    .map((grup) => netejarText(grup))
+    .filter(Boolean);
+}
+
+function ordenarCodisGrupUntis(grups) {
+  return [...new Set(grups)].sort((a, b) => a.localeCompare(b, 'ca', { numeric: true }));
+}
+
+function grupCurtUntis(codiGrup) {
+  const text = netejarText(codiGrup);
+  return text.includes('-') ? text.slice(text.lastIndexOf('-') + 1) : text;
+}
+
+export function compactarComponentsGpu002(components = []) {
+  const agrupats = new Map();
+
+  components.forEach((component) => {
+    const grups = dividirCodisGrupUntis(component.codiGrups);
+    const clau = [
+      component.codiProfessor || '',
+      component.codiMateria || '',
+      component.aula || '',
+      component.comptaGrup ? '1' : '0',
+    ].join('|');
+
+    if (!agrupats.has(clau)) {
+      agrupats.set(clau, {
+        component,
+        grups: [],
+      });
+    }
+
+    const item = agrupats.get(clau);
+    if (grups.length) {
+      item.grups.push(...grups);
+    } else if (!item.grups.length && component.codiGrups === '') {
+      item.grups.push('');
+    }
+  });
+
+  return [...agrupats.values()].map(({ component, grups }) => {
+    const grupsOrdenats = ordenarCodisGrupUntis(grups.filter(Boolean));
+    if (!grupsOrdenats.length) return { ...component, codiGrups: '' };
+
+    return {
+      ...component,
+      codiGrups: grupsOrdenats.join(','),
+      grup: grupsOrdenats.map(grupCurtUntis).join(','),
+    };
+  });
+}
+
 export function esSubconjuntGrups(grups, grupsContenidor) {
   const contenidor = new Set(grupsContenidor);
   return grups.length > 0 && grups.every((grup) => contenidor.has(grup));
