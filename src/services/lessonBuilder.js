@@ -6,10 +6,14 @@ import {
 import { comptaPerGrupPerTipus } from '../utils/tipus.js';
 
 function clauLlicoAgrupada(classe) {
+  const professors = classe._generadaGuardia || classe._generadaGuardiaPati
+    ? obtenirProfessorsClasse(classe).join('+')
+    : '';
   return [
     normalitzar(classe.curs),
     normalitzar(normalitzarGrup(classe.grup)),
     normalitzar(classe.materia),
+    normalitzar(professors),
   ].join('|');
 }
 

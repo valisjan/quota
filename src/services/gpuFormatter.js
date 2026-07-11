@@ -176,6 +176,10 @@ function nomMateriaClasse(classe, materiaGestib) {
   return textUntisSegur(classe.materia);
 }
 
+function codiActivitatClasse(classe) {
+  return codiUntisSegur(classe?._activitatGestib?.codiUntis || '', 'ACT');
+}
+
 const CAMPS_ABREVIATURA_UNTIS = {
   'GPU002.TXT': [4, 5, 6, 41],
   'GPU003.TXT': [0],
@@ -233,14 +237,41 @@ function crearClassesGuardiesPati(professors) {
     }));
 }
 
-function afegirGuardiesPatiCalculades(classes, professors) {
+function trobarActivitatGuardiaPati(referenciaGestib) {
+  return referenciaGestib?.activitats?.find((activitat) => {
+    const text = normalitzar([
+      activitat.etiqueta,
+      activitat.curta,
+      activitat.descripcio,
+    ].filter(Boolean).join(' '));
+    return text.includes('guardia') && text.includes('pati');
+  }) || null;
+}
+
+function trobarActivitatGuardia(referenciaGestib) {
+  return referenciaGestib?.activitats?.find((activitat) => {
+    const text = normalitzar([
+      activitat.etiqueta,
+      activitat.curta,
+      activitat.descripcio,
+    ].filter(Boolean).join(' '));
+    return text.includes('guardia') && !text.includes('pati') && !text.includes('biblioteca');
+  }) || null;
+}
+
+function afegirGuardiesPatiCalculades(classes, professors, referenciaGestib) {
+  const activitat = trobarActivitatGuardiaPati(referenciaGestib);
   return [
     ...classes.filter((classe) => !esGuardiaPati(classe)),
-    ...crearClassesGuardiesPati(professors),
+    ...crearClassesGuardiesPati(professors).map((classe) => ({
+      ...classe,
+      _activitatGestib: activitat,
+    })),
   ];
 }
 
-function crearClassesGuardiesNormals(professors, rawClasses) {
+function crearClassesGuardiesNormals(professors, rawClasses, referenciaGestib) {
+  const activitat = trobarActivitatGuardia(referenciaGestib);
   return professors
     .map((professor) => {
       const passadis = guardesQueTocaFer(professor, rawClasses);
@@ -259,6 +290,7 @@ function crearClassesGuardiesNormals(professors, rawClasses) {
         professorAssignat: professor.nom,
         professors: [professor.nom],
         _generadaGuardia: true,
+        _activitatGestib: activitat,
       };
     })
     .filter(Boolean);
@@ -868,20 +900,6 @@ function generarMateries(classes, codisMateries, referenciaGestib, overrides) {
       afegirMateria(codi, nom);
     });
 
-  if (classes.some((classe) => classe._generadaGuardia)) {
-    afegirMateria('G', 'Professor de guàrdia');
-  }
-  if (classes.some((classe) => esGuardiaPati(classe))) {
-    afegirMateria('GP', 'Guàrdia de pati');
-  }
-
-  referenciaGestib?.activitats?.forEach((activitat) => {
-    afegirMateria(
-      activitat.codiUntis,
-      activitat.etiqueta || activitat.descripcio || activitat.curta || 'Activitat'
-    );
-  });
-
   return [...materies.values()]
     .sort((a, b) => a.codi.localeCompare(b.codi))
     .map(({ nom, codi }) => {
@@ -919,7 +937,7 @@ function crearFilaGpu002({ numero, hores, grups, codiProfessors, codiMateria, ti
   camps[14] = calendari.inici;
   camps[15] = calendari.fi;
   camps[16] = decimalUntis(horesNum * 0.0053);
-  camps[20] = [
+  camps[20] = codiActivitatClasse(classe) || [
     netejarText(classe.curs),
     netejarText(classe.grup),
     nomMateriaClasse(classe, null),
@@ -1000,13 +1018,13 @@ function prepararCampsLlico({ referencia, numLlico, classe, component, hores, ti
   if (classe?._textLlicoUntis) {
     camps[17] = textUntisSegur(classe._textLlicoUntis);
   }
-  camps[20] = classe?._descripcioSenseMateria
+  camps[20] = codiActivitatClasse(classe) || (classe?._descripcioSenseMateria
     ? textUntisSegur(classe._descripcioUntis || classe.materia)
     : [
         netejarText(classe.curs),
         netejarText(component.grup || classe.grup),
         nomMateriaClasse({ ...classe, materia: component.materia || classe.materia }, null),
-      ].filter(Boolean).join(' ');
+      ].filter(Boolean).join(' '));
   camps[41] = codiUntisSegur(`${camps[6] || 'DESC'}_${component.codiGrups || 'ACT'}_${component.codiProfessor}_${numLlico}`, 'ID');
   camps.forEach((valor, index) => {
     if (typeof valor === 'string' && ![4, 5, 6, 41].includes(index)) {
@@ -1399,8 +1417,8 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
   const classesSuportDivisible = crearClassesSuportDivisible(professors, rawClassesExport);
   const classesDesdoblamentDivisible = crearClassesDesdoblamentDivisible(professors, rawClassesExport);
   let classes = [
-    ...afegirGuardiesPatiCalculades(rawClassesSenseDivisibles, professors),
-    ...crearClassesGuardiesNormals(professors, rawClassesSenseDivisibles),
+    ...afegirGuardiesPatiCalculades(rawClassesSenseDivisibles, professors, referenciaGestib),
+    ...crearClassesGuardiesNormals(professors, rawClassesSenseDivisibles, referenciaGestib),
     ...(simular ? [] : atencioFamilies.classes),
     ...(simular ? [] : reunionsDepartament.classes),
     ...(simular ? [] : reunionsCoordinacio.classes),

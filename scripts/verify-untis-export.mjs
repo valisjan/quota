@@ -205,6 +205,37 @@ function verifyFlexibleCompoundGroupStaysSimultaneous() {
   );
 }
 
+function verifyGuardiesStayPerTeacher() {
+  const lessons = agruparClassesPerLlicoExport([
+    {
+      id: 'guard-adel',
+      curs: '',
+      grup: '',
+      materia: 'Professor de guardia',
+      hores: 1,
+      tipus: '',
+      professorAssignat: 'ADEL',
+      _generadaGuardia: true,
+    },
+    {
+      id: 'guard-pol',
+      curs: '',
+      grup: '',
+      materia: 'Professor de guardia',
+      hores: 1,
+      tipus: '',
+      professorAssignat: 'POL',
+      _generadaGuardia: true,
+    },
+  ]);
+
+  assert(lessons.length === 2, 'Guard duties must export as one lesson per teacher');
+  assert(
+    lessons.every((lesson) => lesson.professors.length === 1),
+    'Guard duty lessons must not merge teachers together'
+  );
+}
+
 function verifyOptativesGroupedByOriginalGroupBlock() {
   const lessons = agruparClassesPerLlicoExport([
     {
@@ -436,6 +467,7 @@ verifyGpuFiles();
 verifyGroupedLessonHours();
 verifyCodocenciaGroupedHours();
 verifyFlexibleCompoundGroupStaysSimultaneous();
+verifyGuardiesStayPerTeacher();
 verifyOptativesGroupedByOriginalGroupBlock();
 verifyNumberedOptativesShareFranja();
 verifyDesdoblePrefersMainSubjectOverAE();
