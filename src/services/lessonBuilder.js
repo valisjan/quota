@@ -317,13 +317,15 @@ export function agruparClassesPerLlicoExport(classes) {
     const horesExport = horesPerGrupExport(classe, totalGrups);
     const grupsLlicoExport = clauGrups(grupsOriginals);
 
-    return expandirClassePerGrups({
+    const preparada = {
       ...classe,
       hores: horesExport,
       _horesOriginals: Number(classe.hores) || 0,
       _exportMulticurs: Boolean(classe.multicurs || classe.subclasses?.length),
       _grupsLlicoExport: grupsLlicoExport,
-    });
+    };
+
+    return esFlexible(classe) ? [preparada] : expandirClassePerGrups(preparada);
   });
 
   return agruparClassesPerLlico(preparades);

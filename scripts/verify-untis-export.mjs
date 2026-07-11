@@ -184,6 +184,27 @@ function verifyCodocenciaGroupedHours() {
   );
 }
 
+function verifyFlexibleCompoundGroupStaysSimultaneous() {
+  const lessons = agruparClassesPerLlicoExport([
+    {
+      id: 'mat-flex-1eso-ab',
+      curs: '1ESO',
+      grup: 'A+B',
+      materia: 'Matematiques',
+      hores: 1,
+      tipus: 'F',
+      professorAssignat: 'FLEX',
+    },
+  ]);
+
+  assert(lessons.length === 1, 'Flexible A+B must export as one simultaneous Untis lesson');
+  assert(lessons[0].grup === 'A+B', 'Flexible A+B must keep the compound group block');
+  assert(
+    lessons[0].professors.length === 1 && lessons[0].professors[0] === 'FLEX',
+    'Flexible A+B must keep the flexible teacher on the shared lesson'
+  );
+}
+
 function verifyOptativesGroupedByOriginalGroupBlock() {
   const lessons = agruparClassesPerLlicoExport([
     {
@@ -414,6 +435,7 @@ verifyActivities();
 verifyGpuFiles();
 verifyGroupedLessonHours();
 verifyCodocenciaGroupedHours();
+verifyFlexibleCompoundGroupStaysSimultaneous();
 verifyOptativesGroupedByOriginalGroupBlock();
 verifyNumberedOptativesShareFranja();
 verifyDesdoblePrefersMainSubjectOverAE();
