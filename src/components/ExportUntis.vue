@@ -55,12 +55,22 @@
             <input
               type="file"
               accept=".xml,text/xml,application/xml"
+              :disabled="carregantXmlRemot || pujantXmlRemot"
               class="mt-2 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-primary file:bg-primary file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-primary-dark dark:text-slate-300 dark:file:bg-primary-dark"
               @change="carregarGestibXml"
             />
             <p class="mt-2 text-xs text-slate-600 dark:text-slate-400">
-              <span v-if="gestibXmlNom">{{ gestibXmlNom }}</span>
+              <span v-if="carregantXmlRemot">Carregant l'XML desat...</span>
+              <span v-else-if="pujantXmlRemot">Desant l'XML...</span>
+              <span v-else-if="gestibXmlNom">{{ gestibXmlNom }}</span>
               <span v-else>exportacioDadesHoraris de GestIB</span>
+            </p>
+            <p
+              v-if="gestibXmlRemot"
+              data-testid="gestib-remote-status"
+              class="mt-1 text-xs font-medium text-green-700 dark:text-green-400"
+            >
+              Desat remotament<span v-if="gestibXmlRemot.actualitzat"> · {{ formatDataXmlRemot(gestibXmlRemot.actualitzat) }}</span>
             </p>
           </div>
           <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-gray-900">
@@ -1178,6 +1188,40 @@
     </div>
   </div>
 
+  <!-- Modal confirmació substitució XML -->
+  <div
+    v-if="confirmarSubstitucioXml"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+    @click.self="cancelarSubstitucioXml"
+  >
+    <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900">
+      <h4 class="text-lg font-bold text-slate-950 dark:text-white">Substituir l'XML de GestIB?</h4>
+      <p class="mt-2 text-sm text-slate-700 dark:text-slate-300">
+        L'XML desat per a aquest curs se sobreescriurà a Firestore. No es modificaran classes, professors ni assignacions, i el canvi no es pot desfer des de l'aplicació.
+      </p>
+      <div class="mt-4 rounded-md bg-slate-50 px-3 py-2 text-sm dark:bg-gray-800">
+        <p class="text-slate-600 dark:text-slate-400">Actual: <strong class="text-slate-900 dark:text-white">{{ gestibXmlRemot?.nom }}</strong></p>
+        <p class="mt-1 text-slate-600 dark:text-slate-400">Nou: <strong class="text-slate-900 dark:text-white">{{ xmlGestibPendent?.nom }}</strong></p>
+      </div>
+      <div class="mt-5 flex justify-end gap-3">
+        <button
+          @click="cancelarSubstitucioXml"
+          :disabled="pujantXmlRemot"
+          class="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-gray-800"
+        >
+          Cancel·lar
+        </button>
+        <button
+          @click="substituirXmlGestib"
+          :disabled="pujantXmlRemot"
+          class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+        >
+          {{ pujantXmlRemot ? 'Desant...' : 'Substitueix' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal confirmació esborra mapeig -->
   <div
     v-if="confirmarEsborra"
@@ -1223,6 +1267,12 @@ import {
 } from '../services/untisExport';
 import { useCursStore } from '../stores/curs';
 import { useToastStore } from '../stores/toast';
+import {
+  carregarXmlGestibRemot,
+  desarXmlGestibRemot,
+  obtenirInfoXmlGestibRemot,
+  validarXmlGestibPerDesar,
+} from '../services/gestibXmlStorage';
 
 const cursStore = useCursStore();
 const toast = useToastStore();
@@ -1233,6 +1283,12 @@ const exportacio = ref(null);
 const referenciaGpu002Text = ref('');
 const referenciaGestibXmlText = ref('');
 const gestibXmlNom = ref('');
+const gestibXmlRemot = ref(null);
+const carregantXmlRemot = ref(false);
+const pujantXmlRemot = ref(false);
+const confirmarSubstitucioXml = ref(false);
+const xmlGestibPendent = ref(null);
+let tokenCarregaXmlRemot = 0;
 const gpu002ReferenciaNom = ref('');
 const simular = ref(true);
 const activeSection = ref('flux-untis');
@@ -1478,22 +1534,26 @@ const MAPEIG_DOC = 'untis_mapeig';
 const mapeigRef = (cursId) => doc(db, 'cursos', cursId, 'config', MAPEIG_DOC);
 
 watch(() => cursStore.cursActiuId, async (cursId) => {
-  if (!cursId) { mapeigManual.value = {}; return; }
+  if (!cursId) {
+    mapeigManual.value = {};
+    return;
+  }
   try {
     const snap = await getDoc(mapeigRef(cursId));
     if (snap.exists()) {
       mapeigManual.value = snap.data().overrides || {};
-      return;
-    }
-    const legacySnap = await getDoc(doc(db, 'config', MAPEIG_DOC));
-    const legacyMapeig = legacySnap.exists() ? (legacySnap.data()[cursId] || {}) : {};
-    mapeigManual.value = legacyMapeig;
-    if (Object.keys(legacyMapeig).length) {
-      await setDoc(mapeigRef(cursId), { overrides: legacyMapeig }, { merge: true });
+    } else {
+      const legacySnap = await getDoc(doc(db, 'config', MAPEIG_DOC));
+      const legacyMapeig = legacySnap.exists() ? (legacySnap.data()[cursId] || {}) : {};
+      mapeigManual.value = legacyMapeig;
+      if (Object.keys(legacyMapeig).length) {
+        await setDoc(mapeigRef(cursId), { overrides: legacyMapeig }, { merge: true });
+      }
     }
   } catch {
     mapeigManual.value = {};
   }
+  await carregarXmlGestibDesat(cursId);
 }, { immediate: true });
 
 const confirmarEsborra = ref(false);
@@ -1721,25 +1781,106 @@ async function generar() {
   }
 }
 
-async function carregarGestibXml(event) {
-  const fitxer = event.target.files?.[0];
-  referenciaGestibXmlText.value = '';
-  gestibXmlNom.value = '';
+function reiniciarResultatsXml() {
   exportacio.value = null;
   filtreVistaPrevia.value = '';
   filtreVistaPreviaMode.value = 'totes';
   mostrarVistaPrevia.value = false;
   totes.value = [];
-  error.value = '';
-  if (!fitxer) return;
+  gestibActual.value = null;
+}
+
+function aplicarXmlGestib({ text, nom, info }) {
+  referenciaGestibXmlText.value = text;
+  gestibXmlNom.value = nom;
+  gestibXmlRemot.value = info;
+  reiniciarResultatsXml();
+}
+
+async function carregarXmlGestibDesat(cursId) {
+  const token = ++tokenCarregaXmlRemot;
+  carregantXmlRemot.value = true;
+  referenciaGestibXmlText.value = '';
+  gestibXmlNom.value = '';
+  gestibXmlRemot.value = null;
+  xmlGestibPendent.value = null;
+  confirmarSubstitucioXml.value = false;
+  reiniciarResultatsXml();
   try {
-    referenciaGestibXmlText.value = await fitxer.text();
-    gestibXmlNom.value = fitxer.name;
+    const resultat = await carregarXmlGestibRemot(cursId);
+    if (token !== tokenCarregaXmlRemot || cursId !== cursStore.cursActiuId) return;
+    if (!resultat) return;
+    aplicarXmlGestib({ text: resultat.text, nom: resultat.nom, info: resultat });
     await analitzarMapeig();
   } catch (err) {
-    console.error('Error llegint XML de GestIB:', err);
-    error.value = 'No s\'ha pogut llegir l\'XML de GestIB.';
+    if (token !== tokenCarregaXmlRemot) return;
+    console.error('Error carregant XML remot de GestIB:', err);
+    error.value = `No s'ha pogut carregar l'XML de GestIB desat: ${err.message || err}`;
+  } finally {
+    if (token === tokenCarregaXmlRemot) carregantXmlRemot.value = false;
   }
+}
+
+async function desarXmlSeleccionat(item) {
+  if (!item || pujantXmlRemot.value) return;
+  pujantXmlRemot.value = true;
+  error.value = '';
+  try {
+    const info = await desarXmlGestibRemot(item.cursId, { text: item.text, nom: item.nom });
+    if (item.cursId !== cursStore.cursActiuId) return;
+    aplicarXmlGestib({ text: item.text, nom: item.nom, info });
+    await analitzarMapeig();
+    toast.ok('XML de GestIB desat remotament.');
+  } catch (err) {
+    console.error('Error desant XML remot de GestIB:', err);
+    error.value = `No s'ha pogut desar l'XML de GestIB: ${err.message || err}`;
+  } finally {
+    pujantXmlRemot.value = false;
+  }
+}
+
+async function carregarGestibXml(event) {
+  const input = event.target;
+  const fitxer = input.files?.[0];
+  input.value = '';
+  if (!fitxer || pujantXmlRemot.value) return;
+  const cursId = cursStore.cursActiuId;
+  error.value = '';
+  try {
+    const text = await fitxer.text();
+    validarXmlGestibPerDesar(text);
+    const existent = await obtenirInfoXmlGestibRemot(cursId);
+    const item = { cursId, text, nom: fitxer.name };
+    if (existent) {
+      gestibXmlRemot.value = existent;
+      xmlGestibPendent.value = item;
+      confirmarSubstitucioXml.value = true;
+      return;
+    }
+    await desarXmlSeleccionat(item);
+  } catch (err) {
+    console.error('Error preparant XML de GestIB:', err);
+    error.value = `No s'ha pogut preparar l'XML de GestIB: ${err.message || err}`;
+  }
+}
+
+function cancelarSubstitucioXml() {
+  if (pujantXmlRemot.value) return;
+  confirmarSubstitucioXml.value = false;
+  xmlGestibPendent.value = null;
+}
+
+async function substituirXmlGestib() {
+  const item = xmlGestibPendent.value;
+  confirmarSubstitucioXml.value = false;
+  xmlGestibPendent.value = null;
+  await desarXmlSeleccionat(item);
+}
+
+function formatDataXmlRemot(valor) {
+  if (!valor) return '';
+  const data = new Date(valor);
+  return Number.isNaN(data.getTime()) ? '' : data.toLocaleString('ca-ES');
 }
 
 async function carregarGpu002Referencia(event) {

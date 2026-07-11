@@ -205,6 +205,32 @@ service cloud.firestore {
         allow write: if esAdmin();
       }
 
+      match /untis/{id} {
+        allow read: if esAdmin();
+        allow create, update: if esAdmin()
+          && id == 'gestib_xml'
+          && request.resource.data.keys().hasOnly([
+            'xml',
+            'nom',
+            'mida',
+            'anyGestib',
+            'centreGestib',
+            'updatedAt'
+          ])
+          && request.resource.data.xml is string
+          && request.resource.data.xml.size() <= 750 * 1024
+          && request.resource.data.nom is string
+          && request.resource.data.nom.size() <= 180
+          && request.resource.data.mida is int
+          && request.resource.data.mida <= 750 * 1024
+          && request.resource.data.anyGestib is string
+          && request.resource.data.anyGestib.size() <= 20
+          && request.resource.data.centreGestib is string
+          && request.resource.data.centreGestib.size() <= 40
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+
       match /sync_history/{id} {
         allow read, write: if esAdmin();
       }

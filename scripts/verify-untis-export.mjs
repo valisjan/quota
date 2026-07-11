@@ -1,6 +1,8 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { agruparClassesPerLlicoExport } from '../src/services/lessonBuilder.js';
+import { codiProfessorExport, incidenciesCodisProfessorGestib } from '../src/services/untisUtils.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const assetsDir = join(root, 'src', 'assets');
@@ -119,7 +121,57 @@ function verifyGpuFiles() {
   }
 }
 
+function verifyGroupedLessonHours() {
+  const lessons = agruparClassesPerLlicoExport([
+    {
+      id: 'fq-2eso-ace',
+      curs: '2ESO',
+      grup: 'A+C+E',
+      materia: 'Fisica i quimica',
+      hores: 9,
+      tipus: '',
+      professorAssignat: 'GILI',
+    },
+  ]);
+
+  assert(lessons.length === 3, 'A+C+E must produce one ordinary lesson per group');
+  assert(
+    lessons.every((lesson) => Number(lesson.hores) === 3),
+    '9 aggregate hours across A+C+E must export as 3 hours per group'
+  );
+  assert(
+    lessons.map((lesson) => lesson.grup).sort().join(',') === 'A,C,E',
+    'Grouped ordinary lessons must preserve every target group'
+  );
+}
+
+function verifyTeacherCodes() {
+  const places = [{ curta: 'MASS' }, { curta: 'CAÑE' }, { curta: 'GONX' }, { curta: 'GONA' }];
+  assert(
+    codiProfessorExport({ id: 'internal-id', codiUntis: 'MASS', nom: 'Professor de matematiques' }, places) === 'MASS',
+    'The spreadsheet codiUntis value must take precedence over the Firestore document ID'
+  );
+  assert(
+    codiProfessorExport({ codiUntis: 'cañe', nom: 'Professor' }, places) === 'CAÑE',
+    'The exported professor code must preserve the exact PLACA curta value from GestIB'
+  );
+  const incidencies = incidenciesCodisProfessorGestib(
+    [
+      { nom: 'Professor correcte', codiUntis: 'GONX' },
+      { nom: 'Professor incorrecte', codiUntis: 'GONZ' },
+      { nom: 'Professor sense codi', codiUntis: '' },
+    ],
+    places
+  );
+  assert(
+    incidencies.length === 2 && incidencies.some((item) => item.codi === 'GONZ'),
+    'Teacher codes missing from PLACA curta must block the GestIB export'
+  );
+}
+
 verifyActivities();
 verifyGpuFiles();
+verifyGroupedLessonHours();
+verifyTeacherCodes();
 
 console.log('Untis verification OK');

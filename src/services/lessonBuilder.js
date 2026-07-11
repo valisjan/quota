@@ -2,7 +2,8 @@ import {
   netejarText, normalitzar, normalitzarGrup,
   grupsClasse, clauGrups, esSubconjuntGrups, obtenirProfessorsClasse,
   expandirClassePerGrups,
-} from './untisUtils';
+} from './untisUtils.js';
+import { comptaPerGrupPerTipus } from '../utils/tipus.js';
 
 function clauLlicoAgrupada(classe) {
   return [
@@ -34,9 +35,17 @@ function getAutodesdobleN(classe) {
   return match ? parseInt(match[1], 10) : 0;
 }
 
-function horesPerGrupExport(classe) {
+function comptaPerGrupExport(classe) {
+  if (!classe.curs || !classe.grup) return false;
+  if ((classe.materia || '').toString().trim().startsWith('*')) return false;
+  return comptaPerGrupPerTipus(classe.tipus);
+}
+
+function horesPerGrupExport(classe, totalGrups) {
   const hores = Number(classe.hores) || 0;
-  const horesBase = hores;
+  const horesBase = comptaPerGrupExport(classe) && totalGrups > 1 && !esOptativaClasse(classe)
+    ? Math.round(hores / totalGrups)
+    : hores;
   return esAutodesdobleClasse(classe)
     ? Math.max(0, horesBase - getAutodesdobleN(classe))
     : horesBase;
@@ -296,16 +305,15 @@ export function agruparClassesPerLlico(classes) {
 }
 
 export function agruparClassesPerLlicoExport(classes) {
-  const preparades = classes.map((classe) => {
+  const preparades = classes.flatMap((classe) => {
     const totalGrups = Math.max(1, grupsClasse(classe).length);
-    const horesExport = horesPerGrupExport(classe);
-    return {
-      ...classe,
+    const horesExport = horesPerGrupExport(classe, totalGrups);
+    return expandirClassePerGrups(classe).map((expandida) => ({
+      ...expandida,
       hores: horesExport,
       _horesOriginals: Number(classe.hores) || 0,
-      _exportGrupCompartit: totalGrups > 1,
       _exportMulticurs: Boolean(classe.multicurs || classe.subclasses?.length),
-    };
+    }));
   });
 
   return agruparClassesPerLlico(preparades);

@@ -40,6 +40,56 @@ export function codiProfessorBase(valor, fallback = 'PROF') {
   return (net || fallback).slice(0, 4);
 }
 
+function codiProfessorConfigurat(professor = {}) {
+  return (professor.codiUntis || '').toString().trim();
+}
+
+export function codiProfessorExport(professor = {}, places = [], fallback = 'PROF') {
+  const configurat = codiProfessorConfigurat(professor);
+  if (configurat && places.length) {
+    const placa = places.find(
+      (item) => (item.curta || '').toString().trim().toLocaleUpperCase() === configurat.toLocaleUpperCase()
+    );
+    if (placa) return (placa.curta || '').toString().trim();
+  }
+  if (configurat) return configurat;
+  return codiProfessorBase(
+    professor.codiGestib || professor.codi || professor.nom,
+    fallback
+  );
+}
+
+export function incidenciesCodisProfessorGestib(professors = [], places = []) {
+  if (!places.length) return [];
+  const codisPlaces = new Set(
+    places
+      .map((placa) => (placa.curta || '').toString().trim().toLocaleUpperCase())
+      .filter(Boolean)
+  );
+  const usos = new Map();
+
+  const incidencies = professors.flatMap((professor) => {
+    const codi = codiProfessorConfigurat(professor);
+    if (!codi) return [{ professor, codi: '', motiu: 'sense codiUntis' }];
+    const clau = codi.toLocaleUpperCase();
+    if (!codisPlaces.has(clau)) {
+      return [{ professor, codi, motiu: 'no existeix com a PLACA curta al XML GestIB' }];
+    }
+    if (!usos.has(clau)) usos.set(clau, []);
+    usos.get(clau).push(professor);
+    return [];
+  });
+
+  usos.forEach((llista, codi) => {
+    if (llista.length < 2) return;
+    llista.forEach((professor) => {
+      incidencies.push({ professor, codi, motiu: 'codiUntis duplicat' });
+    });
+  });
+
+  return incidencies;
+}
+
 export function grupSenseCurs(valor) {
   const text = senseAccents(netejarText(valor)).toUpperCase().replace(/\s+/g, '');
   const compacte = text.replace(/[-_./]/g, '');

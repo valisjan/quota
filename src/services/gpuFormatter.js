@@ -2,7 +2,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import {
   TIPUS_NO_LECTIUS, netejarText, senseAccents, normalitzar,
-  codiBase, codiUnic, codiProfessorBase,
+  codiBase, codiUnic, codiProfessorBase, codiProfessorExport, incidenciesCodisProfessorGestib,
   codisClasse, codisCurs, grupsClasse, campsBuids, decimalUntis, liniaDif,
   parseGpu002, parseCsvLine, limitsJornada, obtenirProfessorsClasse, descarregarText, expandirClassePerGrups,
 } from './untisUtils';
@@ -18,11 +18,11 @@ function codiProfessor(professorNom, professors, codisProfessors) {
   const professor = professors.find((p) => p.nom === professorNom);
   return (
     codisProfessors.get(professorNom) ||
-    codiProfessorBase(professor?.codiUntis || professor?.codiGestib || professor?.codi || professorNom)
+    codiProfessorExport(professor || { nom: professorNom })
   );
 }
 
-function crearMapes(classes, professors) {
+function crearMapes(classes, professors, referenciaGestib = null) {
   const codisProfessors = new Map();
   const codisMateries = new Map();
   const codisProfUsats = new Set();
@@ -36,7 +36,7 @@ function crearMapes(classes, professors) {
       const professor = professors.find((p) => p.nom === nom);
       codisProfessors.set(
         nom,
-        codiUnic(codiProfessorBase(professor?.codiUntis || professor?.codiGestib || professor?.codi || nom), codisProfUsats, 4)
+        codiUnic(codiProfessorExport(professor || { nom }, referenciaGestib?.places || []), codisProfUsats, 4)
       );
     });
 
@@ -617,7 +617,7 @@ function prepararAtencioFamilies(professors, referenciaGestib) {
       professors: professorsExportables.map((professor) => ({
         nom: professor.nom,
         departament: professor.departament || '',
-        codiUntis: professor.codiUntis || professor.codiGestib || professor.codi || '',
+        codiUntis: codiProfessorExport(professor),
       })),
     },
   };
@@ -678,7 +678,7 @@ function prepararReunionsDepartament(professors, referenciaGestib) {
         departament: reunio.departament,
         professors: reunio.professors.map((professor) => ({
           nom: professor.nom,
-          codiUntis: professor.codiUntis || professor.codiGestib || professor.codi || '',
+          codiUntis: codiProfessorExport(professor),
         })),
       })),
       totalDepartaments: reunions.length,
@@ -830,7 +830,7 @@ function generarProfessors(professors, codisProfessors) {
     .sort((a, b) => a.nom.localeCompare(b.nom))
     .map((professor) => {
       const camps = campsBuids(43);
-      camps[0] = codiUntisSegur(codisProfessors.get(professor.nom), 'PROF');
+      camps[0] = codisProfessors.get(professor.nom) || '';
       camps[1] = textUntisSegur(professor.nom);
       camps[14] = limitsJornada(professor);
       camps[16] = textUntisSegur(professor.departament || '');
@@ -1314,14 +1314,14 @@ function professorsPerSimulacio(professors, referenciaGestib) {
     return referenciaGestib.places
       .map((placa) => placa.curta)
       .filter(Boolean)
-      .map((codi) => ({ nom: codi, codiUntis: codiProfessorBase(codi) }));
+      .map((codi) => ({ nom: codi, codiUntis: codi }));
   }
 
   return professors
     .filter((p) => p.nom)
     .map((p) => ({
       nom: p.nom,
-      codiUntis: codiProfessorBase(p.codiUntis || p.codiGestib || p.codi || p.nom),
+      codiUntis: codiProfessorExport(p),
     }));
 }
 
@@ -1420,7 +1420,21 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
     professors = professorsSimulacio;
     classes = simularAssignacions(classes, professorsSimulacio);
   }
-  const { codisProfessors, codisMateries } = crearMapes(classes, professors);
+  if (!simular && referenciaGestib?.places?.length) {
+    const incidenciesProfessors = incidenciesCodisProfessorGestib(professors, referenciaGestib.places);
+    if (incidenciesProfessors.length) {
+      const detall = incidenciesProfessors
+        .slice(0, 10)
+        .map(({ professor, codi, motiu }) => `${professor.nom || 'Professor'} (${codi || 'sense codi'}: ${motiu})`)
+        .join('; ');
+      const mes = incidenciesProfessors.length > 10 ? `; i ${incidenciesProfessors.length - 10} mes` : '';
+      throw new Error(
+        `Revisa la columna codiUntis del full Professorat i torna a sincronitzar. ` +
+        `Cada codi ha de coincidir amb PLACA curta del XML GestIB: ${detall}${mes}.`
+      );
+    }
+  }
+  const { codisProfessors, codisMateries } = crearMapes(classes, professors, referenciaGestib);
   const classesText = generarClasses(classes);
   const professorsText = generarProfessors(professors, codisProfessors);
   const materiesText = generarMateries(classes, codisMateries, referenciaGestib, overrides);
