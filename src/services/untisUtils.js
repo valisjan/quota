@@ -171,6 +171,13 @@ export function clauGrups(grups) {
   return [...new Set(grups)].sort((a, b) => a.localeCompare(b)).join('+');
 }
 
+export function compararAbreviaturaUntis(a, b) {
+  return (a || '').toString().localeCompare((b || '').toString(), 'ca', {
+    numeric: true,
+    sensitivity: 'base',
+  });
+}
+
 export function dividirCodisGrupUntis(valor) {
   return (valor || '')
     .toString()
@@ -180,7 +187,7 @@ export function dividirCodisGrupUntis(valor) {
 }
 
 function ordenarCodisGrupUntis(grups) {
-  return [...new Set(grups)].sort((a, b) => a.localeCompare(b, 'ca', { numeric: true }));
+  return [...new Set(grups)].sort(compararAbreviaturaUntis);
 }
 
 function grupCurtUntis(codiGrup) {
@@ -188,43 +195,32 @@ function grupCurtUntis(codiGrup) {
   return text.includes('-') ? text.slice(text.lastIndexOf('-') + 1) : text;
 }
 
-export function compactarComponentsGpu002(components = []) {
-  const agrupats = new Map();
+export function prepararComponentsGpu002(components = []) {
+  const vistos = new Set();
 
-  components.forEach((component) => {
-    const grups = dividirCodisGrupUntis(component.codiGrups);
-    const clau = [
-      component.codiProfessor || '',
-      component.codiMateria || '',
-      component.aula || '',
-      component.comptaGrup ? '1' : '0',
-    ].join('|');
+  return components
+    .flatMap((component) => {
+      const grups = ordenarCodisGrupUntis(dividirCodisGrupUntis(component.codiGrups));
+      const grupsExport = grups.length ? grups : [''];
 
-    if (!agrupats.has(clau)) {
-      agrupats.set(clau, {
-        component,
-        grups: [],
-      });
-    }
-
-    const item = agrupats.get(clau);
-    if (grups.length) {
-      item.grups.push(...grups);
-    } else if (!item.grups.length && component.codiGrups === '') {
-      item.grups.push('');
-    }
-  });
-
-  return [...agrupats.values()].map(({ component, grups }) => {
-    const grupsOrdenats = ordenarCodisGrupUntis(grups.filter(Boolean));
-    if (!grupsOrdenats.length) return { ...component, codiGrups: '' };
-
-    return {
-      ...component,
-      codiGrups: grupsOrdenats.join(','),
-      grup: grupsOrdenats.map(grupCurtUntis).join(','),
-    };
-  });
+      return grupsExport.map((grup) => ({
+        ...component,
+        codiGrups: grup,
+        grup: grup ? grupCurtUntis(grup) : component.grup,
+      }));
+    })
+    .filter((component) => {
+      const clau = [
+        component.codiGrups || '',
+        component.codiProfessor || '',
+        component.codiMateria || '',
+        component.aula || '',
+        component.comptaGrup ? '1' : '0',
+      ].join('|');
+      if (vistos.has(clau)) return false;
+      vistos.add(clau);
+      return true;
+    });
 }
 
 export function esSubconjuntGrups(grups, grupsContenidor) {

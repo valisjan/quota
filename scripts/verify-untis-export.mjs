@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { agruparClassesPerLlicoExport } from '../src/services/lessonBuilder.js';
 import {
   codiProfessorExport,
-  compactarComponentsGpu002,
+  compararAbreviaturaUntis,
+  prepararComponentsGpu002,
   incidenciesCodisProfessorGestib,
 } from '../src/services/untisUtils.js';
 
@@ -179,8 +180,8 @@ function verifyCodocenciaGroupedHours() {
   );
 }
 
-function verifyGpu002ComponentCompaction() {
-  const compacted = compactarComponentsGpu002([
+function verifyGpu002ComponentRows() {
+  const rows = prepararComponentsGpu002([
     { codiGrups: '1ESO-A', codiProfessor: 'RODR', codiMateria: 'SF-ACE-1E', aula: '', comptaGrup: true },
     { codiGrups: '1ESO-C', codiProfessor: 'RODR', codiMateria: 'SF-ACE-1E', aula: '', comptaGrup: true },
     { codiGrups: '1ESO-E', codiProfessor: 'RODR', codiMateria: 'SF-ACE-1E', aula: '', comptaGrup: true },
@@ -189,14 +190,23 @@ function verifyGpu002ComponentCompaction() {
     { codiGrups: '1ESO-F', codiProfessor: 'FORT', codiMateria: 'EDM-BDF-1E', aula: '', comptaGrup: true },
   ]);
 
-  assert(compacted.length === 2, 'Repeated professor/subject rows must compact by group list');
+  assert(rows.length === 6, 'Grouped lessons must keep one GPU002 row per Untis group abbreviation');
   assert(
-    compacted.some((item) => item.codiGrups === '1ESO-A,1ESO-C,1ESO-E' && item.codiProfessor === 'RODR'),
-    'ACE rows must export as one comma-separated Untis group field'
+    rows.every((item) => !item.codiGrups.includes(',')),
+    'Untis group abbreviations must not contain comma-separated lists'
   );
   assert(
-    compacted.some((item) => item.codiGrups === '1ESO-B,1ESO-D,1ESO-F' && item.codiProfessor === 'FORT'),
-    'BDF rows must export as one comma-separated Untis group field'
+    rows.map((item) => item.codiGrups).join('|') === '1ESO-A|1ESO-C|1ESO-E|1ESO-B|1ESO-D|1ESO-F',
+    'Grouped rows must preserve every target group as a separate abbreviation'
+  );
+}
+
+function verifyUntisAbbreviationSort() {
+  const values = ['2ESO-A', '1ESO-C', '1ESO-A', '1ESO-B', 'ANG2', 'ANG1'];
+  const sorted = [...values].sort(compararAbreviaturaUntis);
+  assert(
+    sorted.join('|') === '1ESO-A|1ESO-B|1ESO-C|2ESO-A|ANG1|ANG2',
+    'Untis abbreviations must sort alphabetically with numeric awareness'
   );
 }
 
@@ -228,7 +238,8 @@ verifyActivities();
 verifyGpuFiles();
 verifyGroupedLessonHours();
 verifyCodocenciaGroupedHours();
-verifyGpu002ComponentCompaction();
+verifyGpu002ComponentRows();
+verifyUntisAbbreviationSort();
 verifyTeacherCodes();
 
 console.log('Untis verification OK');

@@ -5,7 +5,7 @@ import {
   codiBase, codiUnic, codiProfessorBase, codiProfessorExport, incidenciesCodisProfessorGestib,
   codisClasse, codisCurs, grupsClasse, campsBuids, decimalUntis, liniaDif,
   parseGpu002, parseCsvLine, limitsJornada, obtenirProfessorsClasse, descarregarText, expandirClassePerGrups,
-  dividirCodisGrupUntis, compactarComponentsGpu002,
+  compararAbreviaturaUntis, dividirCodisGrupUntis, prepararComponentsGpu002,
 } from './untisUtils';
 import { parseGestibXml, trobarMateriaGestib, trobarMateriaGestibAmbOverride } from './gestibMapper';
 import { agruparClassesPerLlicoExport } from './lessonBuilder';
@@ -185,7 +185,7 @@ const CAMPS_ABREVIATURA_UNTIS = {
 
 function abreviaturaUntisInvalida(valor) {
   const text = (valor || '').toString();
-  return Boolean(text && (text !== text.trim() || /[;~*|\s]/.test(text)));
+  return Boolean(text && (text !== text.trim() || /[;,~*|\s]/.test(text)));
 }
 
 function validarAbreviaturesFitxer(fitxer) {
@@ -816,7 +816,7 @@ function generarClasses(classes) {
   });
 
   return [...classesMap.values()]
-    .sort((a, b) => a.codi.localeCompare(b.codi))
+    .sort((a, b) => compararAbreviaturaUntis(a.codi, b.codi))
     .map((item) => {
       const camps = campsBuids(31);
       camps[0] = codiClasseUntisSegur(item.codi);
@@ -829,7 +829,10 @@ function generarClasses(classes) {
 function generarProfessors(professors, codisProfessors) {
   return professors
     .filter((p) => p.nom)
-    .sort((a, b) => a.nom.localeCompare(b.nom))
+    .sort((a, b) =>
+      compararAbreviaturaUntis(codisProfessors.get(a.nom), codisProfessors.get(b.nom)) ||
+      a.nom.localeCompare(b.nom, 'ca')
+    )
     .map((professor) => {
       const camps = campsBuids(43);
       camps[0] = codisProfessors.get(professor.nom) || '';
@@ -938,7 +941,7 @@ function crearFilaGpu002({ numero, hores, grups, codiProfessors, codiMateria, ti
 }
 
 function componentsExportables(components) {
-  return compactarComponentsGpu002(components);
+  return prepararComponentsGpu002(components);
 }
 
 function etiquetaBlocLlico(classe, components) {
@@ -1132,23 +1135,17 @@ function generarLlicons(classes, professors, codisProfessors, codisMateries, ref
 
       const primerGrup = new Set();
       const primerProfessor = new Set();
-      let grupCompartitComptat = false;
       const liniesComponents = componentsUnics.map((component) => {
         const clauProfessor = classe._comptaProfessorUnic
           ? component.codiProfessor
           : `${component.codiProfessor}|${component.codiMateria}`;
         const grupsComponent = dividirCodisGrupUntis(component.codiGrups);
         const potComptarGrup = Boolean(grupsComponent.length) && component.comptaGrup;
-        const comptaGrup = potComptarGrup && (
-          classe._comptaGrupUnic
-            ? !grupCompartitComptat
-            : grupsComponent.some((grup) => !primerGrup.has(grup))
-        );
+        const comptaGrup = potComptarGrup && grupsComponent.some((grup) => !primerGrup.has(grup));
         const flags = {
           comptaGrup,
           comptaProfessor: !primerProfessor.has(clauProfessor),
         };
-        if (flags.comptaGrup && classe._comptaGrupUnic) grupCompartitComptat = true;
         grupsComponent.forEach((grup) => primerGrup.add(grup));
         primerProfessor.add(clauProfessor);
 
