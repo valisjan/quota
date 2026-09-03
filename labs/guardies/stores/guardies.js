@@ -1,0 +1,92 @@
+import { defineStore } from 'pinia';
+
+export const GUARD_CODES_STORAGE = 'quota_guardies_lab_codes';
+
+function localDateString(date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function loadGuardCodes() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(GUARD_CODES_STORAGE) || '[]');
+    return new Set(Array.isArray(stored) ? stored.filter(Boolean) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export const useGuardiesStore = defineStore('guardies', {
+  state: () => ({
+    referenceText: '',
+    referenceName: '',
+    untisText: '',
+    untisName: '',
+    dutiesText: '',
+    dutiesName: '',
+    scheduleText: '',
+    scheduleName: '',
+    referencia: null,
+    professoratUntis: null,
+    sessions: [],
+    resum: null,
+    professor: '',
+    date: localDateString(new Date()),
+    guardiaCodes: loadGuardCodes(),
+    convivencia: new Map(),
+    absencies: new Map(),
+    assignacions: new Map(),
+    comentaris: new Map(),
+    grupsFora: new Set(),
+    grupProfessorsFora: new Map(),
+    partialGroups: new Set(),
+    outingAbsenceIds: new Set(),
+    outingWholeGroup: true,
+    courseId: '',
+    courseName: '',
+    canWrite: false,
+    persistenceStatus: 'loading',
+    dayRevision: 0,
+    dayLoaded: false,
+    dayPersistenceStatus: 'idle',
+    dayStatus: 'draft',
+    publishedAt: '',
+    updatedAt: '',
+    closedAt: '',
+    cancelledAssignments: new Set(),
+    guardCounts: new Map(),
+    countedAssignments: [],
+  }),
+  actions: {
+    clearAbsencePlan() {
+      this.absencies.clear();
+      this.assignacions.clear();
+      this.comentaris.clear();
+      this.cancelledAssignments.clear();
+      this.outingAbsenceIds.clear();
+    },
+    clearGroupsOut() {
+      this.grupsFora.clear();
+      this.grupProfessorsFora.clear();
+      this.partialGroups.clear();
+      this.outingAbsenceIds.clear();
+    },
+    clearDayContext() {
+      this.clearAbsencePlan();
+      this.clearGroupsOut();
+      this.dayStatus = 'draft';
+      this.publishedAt = '';
+      this.updatedAt = '';
+      this.closedAt = '';
+      this.cancelledAssignments.clear();
+      this.countedAssignments = [];
+    },
+    changeDate(date) {
+      if (!date || date === this.date) return;
+      this.date = date;
+      this.clearDayContext();
+    },
+  },
+});

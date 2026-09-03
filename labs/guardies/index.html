@@ -3,156 +3,30 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Laboratori de guàrdies</title>
+    <title>Quota | Guàrdies</title>
+    <script>
+      try {
+        document.documentElement.classList.toggle(
+          'dark',
+          localStorage.getItem('quota_theme') === 'dark' || localStorage.getItem('darkMode') === 'true'
+        );
+      } catch (_) {}
+    </script>
     <link rel="stylesheet" href="./styles.css" />
-    <script src="./horariXmlParser.js" defer></script>
-    <script src="./main.js" defer></script>
+    <script type="module" src="./entry.js"></script>
   </head>
-  <body>
+  <body class="guardies-app">
+    <div id="guardies-chrome-root"></div>
+
     <main class="page">
-      <header class="hero">
-        <div>
-          <p class="kicker">Laboratori local</p>
-          <h1>Gestió de guàrdies</h1>
-          <p class="lead">
-            Carrega el XML de GestIB i el XML d'horari retornat per trobar qui té Guà a cada franja.
-          </p>
-        </div>
-        <div class="upload-group">
-          <div class="upload-row">
-            <label class="upload upload-secondary">
-              <span>XML GestIB</span>
-              <input id="reference-file" type="file" accept=".xml,text/xml,application/xml,*/*" />
-            </label>
-            <label class="upload">
-              <span>XML horari</span>
-              <input id="xml-file" type="file" accept=".xml,text/xml,application/xml,*/*" />
-            </label>
-            <button id="clear-cache" type="button" class="ghost upload-clear">Neteja memòria</button>
-          </div>
-          <p id="cache-info" class="cache-info">Els fitxers quedaran guardats en aquest navegador.</p>
-        </div>
-      </header>
+      <div id="guardies-work-header-root"></div>
 
       <section id="error-box" class="alert hidden" role="alert"></section>
 
-      <section id="empty-state" class="empty">
-        <h2>Cap horari carregat</h2>
-        <p>Carrega primer el XML de GestIB i després el XML d'horari retornat. La propera vegada s'obriran sols en aquest navegador.</p>
-      </section>
+      <div id="guardies-setup-root"></div>
+      <div id="guardies-convivencia-root"></div>
 
-      <section id="workspace" class="workspace hidden">
-        <section class="stats hidden" aria-label="Resum del XML">
-          <article class="stat">
-            <span>Sessions</span>
-            <strong id="stat-sessions">0</strong>
-          </article>
-          <article class="stat">
-            <span>Professorat</span>
-            <strong id="stat-professors">0</strong>
-          </article>
-          <article class="stat">
-            <span>Grups</span>
-            <strong id="stat-grups">0</strong>
-          </article>
-          <article class="stat">
-            <span>Activitats</span>
-            <strong id="stat-activitats">0</strong>
-          </article>
-          <article class="stat">
-            <span>Referència</span>
-            <strong id="stat-reference">No</strong>
-          </article>
-        </section>
-
-        <section class="panel selector-panel no-print">
-          <div class="selector-grid">
-            <label>
-              Data
-              <input id="date-input" type="date" />
-            </label>
-
-            <div class="teacher-search">
-              <label for="professor-search">Professor absent</label>
-              <input id="professor-search" type="search" autocomplete="off" placeholder="Cerca per codi o plaça..." />
-              <select id="professor-select" class="hidden"></select>
-              <div id="professor-results" class="search-results" aria-label="Resultats de professorat"></div>
-            </div>
-
-            <div class="selected-box">
-              <span>Seleccionat</span>
-              <strong id="selected-professor-label">Cap professor</strong>
-              <p id="date-label" class="date-label">Selecciona una data.</p>
-            </div>
-
-            <details class="guard-details">
-              <summary>Activitat Guà</summary>
-              <div class="block-title">
-                <p class="hint">Si el XML de GestIB està carregat, Guà es marca automàticament.</p>
-                <button id="clear-guard-codes" type="button" class="ghost">Neteja</button>
-              </div>
-              <div id="activity-list" class="activity-list"></div>
-            </details>
-          </div>
-        </section>
-
-        <section class="guard-workbench">
-          <section class="panel schedule-panel">
-            <div class="panel-header row">
-              <div>
-                <p class="kicker">Horari</p>
-                <h2 id="schedule-title">Sessions del professor</h2>
-              </div>
-              <div class="schedule-actions">
-                <button id="add-all-hours" type="button" class="ghost">Afegeix totes</button>
-                <button id="clear-missing" type="button" class="ghost">Neteja professor</button>
-              </div>
-            </div>
-            <div id="schedule-grid" class="schedule-grid"></div>
-          </section>
-
-          <section class="panel day-panel">
-            <div class="print-header">
-              <h1>Guàrdies del dia</h1>
-              <p id="print-date-label"></p>
-            </div>
-            <div class="panel-header row">
-              <div>
-                <p class="kicker">Dia</p>
-                <h2>Absències per hora</h2>
-              </div>
-              <div class="coverage-actions">
-                <span id="coverage-count" class="pill">0 sessions</span>
-                <button id="print-coverage" type="button" class="ghost">Imprimeix</button>
-                <button id="clear-day-list" type="button" class="ghost">Neteja llistat</button>
-              </div>
-            </div>
-            <div id="coverage-list" class="coverage-list"></div>
-          </section>
-
-          <section class="panel released-panel no-print">
-            <div class="panel-header row">
-              <div>
-                <p class="kicker">Grups fora</p>
-                <h2>Professorat alliberat</h2>
-              </div>
-              <div class="coverage-actions">
-                <span id="released-count" class="pill">0 professors</span>
-                <button id="clear-groups" type="button" class="ghost">Neteja grups</button>
-              </div>
-            </div>
-
-            <div class="group-picker">
-              <label for="group-search">Grups que surten</label>
-              <input id="group-search" type="search" autocomplete="off" placeholder="Cerca grup..." />
-              <div id="group-results" class="search-results" aria-label="Resultats de grups"></div>
-              <div id="selected-groups" class="selected-groups" aria-label="Grups seleccionats"></div>
-            </div>
-
-            <div id="released-list" class="released-list"></div>
-          </section>
-        </section>
-      </section>
+      <div id="guardies-workspace-root"></div>
     </main>
   </body>
 </html>

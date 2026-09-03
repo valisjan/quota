@@ -1,15 +1,15 @@
-# Laboratori de guàrdies
+# Gestió de guàrdies
 
-Prototip local per validar la gestió diària de guàrdies a partir dels XML d'horaris.
+Aplicació integrada amb Quota per preparar les absències diàries, les cobertures i les guàrdies de convivència.
 
-Aquest laboratori no toca Firebase, no modifica la base de dades i no forma part de la navegació de producció.
+## Fitxers
 
-## Com provar-lo
+A l'apartat **Arxius de configuració** es carreguen, en aquest ordre:
 
-Obre `index.html` al navegador i carrega aquests dos fitxers:
-
-1. **XML GestIB**: fitxer de referència amb places, grups, matèries, activitats i aules.
-2. **XML horari**: fitxer retornat amb estructura:
+1. **XML GestIB**: places, grups, matèries, activitats i aules.
+2. **GPU004.TXT**: codis i noms del professorat d'Untis.
+3. **GPU001.TXT**: sessions de guàrdia del professorat.
+4. **Export d'horari Untis**:
 
 ```xml
 <HORARI>
@@ -19,7 +19,7 @@ Obre `index.html` al navegador i carrega aquests dos fitxers:
 </HORARI>
 ```
 
-Els dos XML queden guardats a la memòria local del navegador. Quan tornes a obrir el laboratori al mateix navegador, es carreguen automàticament. El botó **Neteja memòria** elimina aquesta còpia local.
+Els fitxers i la configuració setmanal queden guardats a Firestore dins el curs acadèmic actiu. Es carreguen automàticament des de qualsevol navegador amb una sessió vàlida de Quota. Un usuari administrador pot substituir o eliminar cada fitxer des del mateix assistent.
 
 ## Què valida
 
@@ -30,18 +30,21 @@ Els dos XML queden guardats a la memòria local del navegador. Quan tornes a obr
 - Cerca interactiva del professorat absent.
 - Visualització vertical de l'horari del professor seleccionat.
 - Marcatge de les sessions concretes que falten.
-- Acció ràpida per afegir totes les hores marcables d'un professor.
+- Acció ràpida per afegir tot el dia i replicació en un interval de dies lectius.
 - Llistat diari amb les hores apilades per anar afegint absències.
 - Comentari per cada absència.
-- Comptador de cobertures ja assignades a cada professor en la mateixa franja.
+- Candidats jerarquitzats per origen i menor nombre de cobertures anuals.
 - Cerca del professorat que té guàrdia a la mateixa franja.
-- Selecció dels grups que són fora del centre.
+- Sortides completes o parcials, amb selecció dels acompanyants.
 - Detecció del professorat que queda alliberat perquè tenia classe amb aquests grups.
 - Ús del professorat alliberat com a candidat de cobertura a la mateixa franja.
-- Assignació provisional de cobertura en memòria.
+- Autoguardat, publicació, actualització i tancament de la jornada.
+- Implicació automàtica dels acompanyants en totes les seves classes i guàrdies.
+- Impressió A4 amb set sessions i pati.
+- Còmput anual de cobertures efectivament realitzades.
 
-## Què no fa encara
+## Fases posteriors
 
-- No guarda absències ni assignacions definitives.
-- No aplica regles de prioritat.
-- No genera historial.
+- Correu automàtic a les 08:00.
+- Rotació de zones i gestió avançada de guàrdies de pati.
+- Altres tasques especials configurables.

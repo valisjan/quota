@@ -18,17 +18,25 @@
 
           <div class="hidden flex-1 items-center justify-between gap-4 lg:flex">
             <div class="app-nav-tabs flex items-center gap-1 rounded-md p-1" aria-label="Navegació principal">
-              <router-link
-                v-for="link in links"
-                :key="link.to"
-                :to="link.to"
-                class="app-nav-link shrink-0 rounded px-3 py-1.5 text-sm font-semibold transition"
-                :class="isActive(link.to)
-                  ? 'app-nav-link-active shadow-sm'
-                  : 'app-nav-link-idle'"
-              >
-                {{ link.label }}
-              </router-link>
+              <template v-for="link in links" :key="link.to || link.href">
+                <a
+                  v-if="link.href"
+                  :href="link.href"
+                  class="app-nav-link app-nav-link-idle shrink-0 rounded px-3 py-1.5 text-sm font-semibold transition"
+                >
+                  {{ link.label }}
+                </a>
+                <router-link
+                  v-else
+                  :to="link.to"
+                  class="app-nav-link shrink-0 rounded px-3 py-1.5 text-sm font-semibold transition"
+                  :class="isActive(link.to)
+                    ? 'app-nav-link-active shadow-sm'
+                    : 'app-nav-link-idle'"
+                >
+                  {{ link.label }}
+                </router-link>
+              </template>
             </div>
 
             <div class="flex shrink-0 items-center gap-2">
@@ -142,19 +150,29 @@
 
         <div v-if="mobileMenuOpen" class="app-mobile-menu border-t pb-4 pt-2 lg:hidden">
           <div class="space-y-0.5" role="menu" aria-label="Navegació principal">
-            <router-link
-              v-for="link in links"
-              :key="link.to"
-              :to="link.to"
-              role="menuitem"
-              class="app-nav-link flex items-center rounded-md px-3 py-3 text-sm font-semibold transition"
-              :class="isActive(link.to)
-                ? 'app-nav-link-active'
-                : 'app-nav-link-idle'"
-              @click="mobileMenuOpen = false"
-            >
-              {{ link.label }}
-            </router-link>
+            <template v-for="link in links" :key="link.to || link.href">
+              <a
+                v-if="link.href"
+                :href="link.href"
+                role="menuitem"
+                class="app-nav-link app-nav-link-idle flex items-center rounded-md px-3 py-3 text-sm font-semibold transition"
+                @click="mobileMenuOpen = false"
+              >
+                {{ link.label }}
+              </a>
+              <router-link
+                v-else
+                :to="link.to"
+                role="menuitem"
+                class="app-nav-link flex items-center rounded-md px-3 py-3 text-sm font-semibold transition"
+                :class="isActive(link.to)
+                  ? 'app-nav-link-active'
+                  : 'app-nav-link-idle'"
+                @click="mobileMenuOpen = false"
+              >
+                {{ link.label }}
+              </router-link>
+            </template>
           </div>
 
           <div class="app-mobile-user mt-3 border-t px-1 pt-3">
@@ -302,7 +320,13 @@ const departamentsVistaOrdenats = computed(() =>
 );
 
 const links = computed(() => {
-  const visibles = [{ to: '/', label: 'Inici' }];
+  const visibles = [
+    { to: '/', label: 'Inici' },
+    {
+      href: `/labs/guardies/${cursStore.cursActiuId ? `?curs=${encodeURIComponent(cursStore.cursActiuId)}` : ''}`,
+      label: 'Guàrdies',
+    },
+  ];
   if (authStore.esAdmin()) visibles.push({ to: '/admin', label: 'Administració' });
   if (authStore.esCapDepartament()) visibles.push({ to: '/departament', label: 'Departaments' });
   if (authStore.estaAutenticat) visibles.push({ to: '/resums', label: 'Resums' });

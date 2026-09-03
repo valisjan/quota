@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:guardies": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview",
+    "test:domain": "node --test tests/domain/*.test.js",
     "test:visual": "playwright test",
     "verify:untis": "node scripts/verify-untis-export.mjs"
   },

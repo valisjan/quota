@@ -1,4 +1,5 @@
-(function exposeHorariXmlParser(global) {
+// Parser de domini sense dependències de Vue, Firebase ni de l'estat de la interfície.
+// DOMParser s'avalua només en invocar els parsers XML, per facilitar-ne la reutilització.
   const DIA_LABELS = {
     '1': 'Dilluns',
     '2': 'Dimarts',
@@ -15,6 +16,259 @@
 
   function textNet(text) {
     return (text || '').toString().replace(/^\uFEFF/, '').trim();
+  }
+
+  function normalitzarClau(valor) {
+    return textNet(valor)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '');
+  }
+
+  function addIndex(index, clau, item) {
+    const normal = normalitzarClau(clau);
+    if (!normal) return;
+    if (!index.has(normal)) index.set(normal, []);
+    if (!index.get(normal).includes(item)) index.get(normal).push(item);
+  }
+
+  function primerIndex(index, clau) {
+    return index?.get(normalitzarClau(clau))?.[0] || null;
+  }
+
+  function parseCsvLine(line) {
+    const values = [];
+    let current = '';
+    let quoted = false;
+
+    for (let i = 0; i < line.length; i += 1) {
+      const char = line[i];
+      if (char === '"') {
+        if (quoted && line[i + 1] === '"') {
+          current += '"';
+          i += 1;
+        } else {
+          quoted = !quoted;
+        }
+      } else if (char === ',' && !quoted) {
+        values.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    values.push(current);
+    return values.map((value) => value.trim());
+  }
+
+  function nomProfessor(cognoms, nom, codi) {
+    const parts = [];
+    if (cognoms) parts.push(cognoms);
+    if (nom) parts.push(nom);
+    return parts.length ? parts.join(', ') : codi;
+  }
+
+  function semblaNom(valor) {
+    const text = textNet(valor);
+    return /[a-zA-ZÀ-ÿ]/.test(text);
+  }
+
+  function addProfessorUntis(professorat, professor) {
+    if (!professor?.codi) return;
+    professorat.professors.set(professor.codi, professor);
+    [
+      professor.codi,
+      professor.cognoms,
+      professor.nom,
+      professor.label,
+      `${professor.cognoms || ''} ${professor.nom || ''}`,
+    ].forEach((alias) => addIndex(professorat.professorsIndex, alias, professor));
+  }
+
+  function parseProfessoratUntisTxt(text) {
+    const professorat = {
+      professors: new Map(),
+      professorsIndex: new Map(),
+      source: 'txt',
+    };
+
+    textNet(text)
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .forEach((line) => {
+        const fields = parseCsvLine(line);
+        const codi = fields[0] || '';
+        if (!codi) return;
+        const cognoms = fields[1] || '';
+        const nom = semblaNom(fields[28]) ? fields[28] : '';
+        addProfessorUntis(professorat, {
+          codi,
+          cognoms,
+          nom,
+          label: nomProfessor(cognoms, nom, codi),
+        });
+      });
+
+    return professorat;
+  }
+
+  function attrFirst(node, names) {
+    return names.map((name) => atribut(node, name)).find(Boolean) || '';
+  }
+
+  function parseProfessoratUntisXml(text) {
+    const xml = parseXmlRobust(text);
+    const professorat = {
+      professors: new Map(),
+      professorsIndex: new Map(),
+      source: 'xml',
+    };
+
+    Array.from(xml.getElementsByTagName('*')).forEach((node) => {
+      const tag = (node.localName || node.nodeName || '').toUpperCase();
+      if (!/(PROF|TEACH|PLACA|PERSON|PERSONA)/.test(tag)) return;
+
+      const codi = attrFirst(node, [
+        'curta',
+        'codi',
+        'code',
+        'id',
+        'short',
+        'abbr',
+        'abbrev',
+        'abbreviation',
+        'abreviatura',
+      ]);
+      if (!codi) return;
+
+      const cognoms = attrFirst(node, [
+        'cognoms',
+        'llinatges',
+        'apellidos',
+        'surname',
+        'lastName',
+        'lastname',
+      ]);
+      const nom = attrFirst(node, [
+        'nom',
+        'nombre',
+        'name',
+        'firstName',
+        'firstname',
+        'forename',
+      ]);
+      const descripcio = attrFirst(node, [
+        'descripcio',
+        'descripcion',
+        'description',
+        'fullName',
+        'fullname',
+      ]);
+      const label = descripcio || nomProfessor(cognoms, nom, codi);
+
+      if (label === codi && !cognoms && !nom && !descripcio) return;
+      addProfessorUntis(professorat, { codi, cognoms: cognoms || descripcio, nom, label });
+    });
+
+    return professorat;
+  }
+
+  function parseUntisProfessorat(text) {
+    const net = textNet(text);
+    if (!net) {
+      return { professors: new Map(), professorsIndex: new Map(), source: '' };
+    }
+
+    if (net.startsWith('<')) return parseProfessoratUntisXml(net);
+    return parseProfessoratUntisTxt(net);
+  }
+
+  function codisGuardiaUntis(gpu002Text) {
+    const codis = new Set(['G', 'GP', 'GC', 'GCONV']);
+    textNet(gpu002Text)
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .forEach((line) => {
+        const fields = parseCsvLine(line);
+        const codi = fields[6] || '';
+        const label = normalitzarClau(fields[20] || '');
+        if (codi && label.startsWith('gua')) codis.add(codi);
+      });
+    return codis;
+  }
+
+  function placaPerCodiProfessor(referencia, codiProfessor) {
+    if (!referencia?.places || !codiProfessor) return codiProfessor;
+    const normal = normalitzarClau(codiProfessor);
+    for (const [placa, info] of referencia.places.entries()) {
+      if (normalitzarClau(info.curta) === normal) return placa;
+    }
+    return codiProfessor;
+  }
+
+  function parseUntisGuardies(gpu001Text, { gpu002Text = '', referencia = null, professoratUntis = null, hores = [] } = {}) {
+    const guardCodes = codisGuardiaUntis(gpu002Text);
+    const sessions = [];
+
+    textNet(gpu001Text)
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .forEach((line, index) => {
+        const fields = parseCsvLine(line);
+        const codiProfessor = fields[2] || '';
+        const activitat = fields[3] || '';
+        const dia = fields[5] || '';
+        const horaIndex = Number(fields[6]) || 0;
+        if (!codiProfessor || codiProfessor === '?' || !guardCodes.has(activitat) || !dia || !horaIndex) return;
+
+        const placa = placaPerCodiProfessor(referencia, codiProfessor);
+        const professor = resoldreProfessorUntis(professoratUntis, codiProfessor);
+        const hora = hores[horaIndex - 1] || String(horaIndex);
+        const esConvivencia = activitat === 'GC' || activitat === 'GCONV';
+        const sessio = {
+          index: `gpu001-${index}`,
+          origenGuardia: 'GPU001',
+          placa,
+          curs: '',
+          grup: '',
+          dia,
+          hora,
+          durada: 0,
+          aula: fields[4] || '',
+          materia: '',
+          activitat,
+          key: '',
+          franja: franjaKey(dia, hora),
+          diaLabel: diaLabel(dia),
+          teClasse: false,
+          teActivitat: true,
+          tipus: 'activitat',
+          professorCurta: professor?.codi || codiProfessor,
+          professorNom: professor?.label || '',
+          grupVisible: '',
+          cursVisible: '',
+          materiaCurta: '',
+          materiaNom: '',
+          activitatCurta: activitat === 'GP'
+            ? 'Guàrdia pati'
+            : esConvivencia
+              ? 'Guàrdia de convivència'
+              : 'Guàrdia',
+          activitatNom: activitat,
+          activitatEsGuardia: true,
+          activitatEsGuardiaGeneral: activitat !== 'GP' && !esConvivencia,
+          aulaNom: '',
+        };
+        sessio.key = sessioKey(sessio);
+        sessions.push(sessio);
+      });
+
+    return sessions.sort(ordenarSessions);
   }
 
   function parseXmlRobust(text) {
@@ -100,15 +354,48 @@
 
   function codiCursVisible(descripcio) {
     const text = (descripcio || '').toString().trim();
+    const compacte = text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
     const eso = text.match(/^([1-4])r?\s*ESO$/i) || text.match(/^([1-4])n\s*ESO$/i);
     if (eso) return `${eso[1]}ESO`;
     const batx = text.match(/^([12])(?:r|n)?\s*Batx/i);
     if (batx) return `${batx[1]}BAT`;
+    const batxCurt = compacte.match(/^([12])B$/);
+    if (batxCurt) return `${batxCurt[1]}BAT`;
+    const esoCurt = compacte.match(/^([1-4])E$/);
+    if (esoCurt) return `${esoCurt[1]}ESO`;
     return text.replace(/\s+/g, '');
+  }
+
+  function codiCursUntis(visible) {
+    const text = (visible || '').toString().toUpperCase();
+    const batx = text.match(/^([12])BAT$/);
+    if (batx) return batx[1] === '2' ? '2b' : `${batx[1]}B`;
+    return text;
   }
 
   function netejarAsterisc(text) {
     return (text || '').toString().replace(/^\s*\*/, '').trim();
+  }
+
+  function codiActivitatUntis(curta, descripcio, usats) {
+    const base = normalitzarClau(netejarAsterisc(curta) || netejarAsterisc(descripcio) || 'ACT')
+      .toUpperCase()
+      .slice(0, 14) || 'ACT';
+    const prefix = /^\s*\*/.test(curta || '') || /^\s*\*/.test(descripcio || '') ? 'A' : '';
+    const baseFinal = `${prefix}${base}`.slice(0, 14) || 'ACT';
+    let codi = baseFinal;
+    let index = 2;
+    while (usats.has(codi)) {
+      const sufix = String(index);
+      codi = `${baseFinal.slice(0, Math.max(1, 14 - sufix.length))}${sufix}`;
+      index += 1;
+    }
+    usats.add(codi);
+    return codi;
   }
 
   function parseGestibReference(text) {
@@ -120,59 +407,82 @@
     }
 
     const cursos = new Map();
+    const cursosIndex = new Map();
     const grups = new Map();
+    const grupsIndex = new Map();
     nodesPerTag(xml, 'CURS').forEach((node) => {
       const codi = atribut(node, 'codi');
       const descripcio = atribut(node, 'descripcio');
       const visible = codiCursVisible(descripcio);
-      if (codi) cursos.set(codi, { codi, descripcio, visible });
+      const curs = { codi, descripcio, visible, untis: codiCursUntis(visible) };
+      if (codi) cursos.set(codi, curs);
+      [codi, descripcio, visible, curs.untis].forEach((alias) => addIndex(cursosIndex, alias, curs));
       nodesPerTag(node, 'GRUP').forEach((grupNode) => {
         const grupCodi = atribut(grupNode, 'codi');
         const nom = atribut(grupNode, 'nom');
         if (grupCodi) {
-          grups.set(grupCodi, {
+          const grup = {
             codi: grupCodi,
             nom,
             curs: codi,
             cursVisible: visible,
             visible: visible && nom ? `${visible}-${nom}` : nom || grupCodi,
-          });
+          };
+          grups.set(grupCodi, grup);
+          [
+            grupCodi,
+            nom,
+            grup.visible,
+            visible && nom ? `${visible}${nom}` : '',
+            curs.untis && nom ? `${curs.untis}-${nom}` : '',
+            curs.untis && nom ? `${curs.untis}${nom}` : '',
+          ].forEach((alias) => addIndex(grupsIndex, alias, grup));
         }
       });
     });
 
     const places = new Map();
+    const placesIndex = new Map();
     nodesPerTag(xml, 'PLACA').forEach((node) => {
       const codi = atribut(node, 'codi');
       if (!codi) return;
-      places.set(codi, {
+      const placa = {
         codi,
         curta: atribut(node, 'curta'),
         descripcio: atribut(node, 'descripcio'),
-      });
+      };
+      places.set(codi, placa);
+      [placa.codi, placa.curta, placa.descripcio].forEach((alias) => addIndex(placesIndex, alias, placa));
     });
 
     const materies = new Map();
+    const materiesIndex = new Map();
     nodesPerTag(xml, 'MATERIA').forEach((node) => {
       const codi = atribut(node, 'codi');
       if (!codi) return;
-      materies.set(codi, {
+      const materia = {
         codi,
         curs: atribut(node, 'curs'),
         descripcio: atribut(node, 'descripcio'),
         curta: atribut(node, 'curta'),
-      });
+      };
+      materies.set(codi, materia);
+      [materia.codi, materia.curta, materia.descripcio].forEach((alias) => addIndex(materiesIndex, alias, materia));
     });
 
     const activitats = new Map();
+    const activitatsIndex = new Map();
+    const codisActivitatUsats = new Set();
     nodesPerTag(xml, 'ACTIVITAT').forEach((node) => {
       const codi = atribut(node, 'codi');
       if (!codi) return;
       const descripcio = atribut(node, 'descripcio');
       const curta = atribut(node, 'curta');
       const text = `${netejarAsterisc(descripcio)} ${netejarAsterisc(curta)}`.toLowerCase();
-      activitats.set(codi, {
+      const codiUntis = codiActivitatUntis(curta, descripcio, codisActivitatUsats);
+      const activitat = {
         codi,
+        codiUntis,
         descripcio,
         curta,
         label: curta || descripcio || codi,
@@ -181,44 +491,109 @@
           (text.includes('guàrdia') || text.includes('guardia')) &&
           !text.includes('pati') &&
           !text.includes('biblioteca'),
-      });
+      };
+      activitats.set(codi, activitat);
+      [
+        activitat.codi,
+        activitat.codiUntis,
+        activitat.curta,
+        activitat.descripcio,
+        netejarAsterisc(activitat.curta),
+        netejarAsterisc(activitat.descripcio),
+      ].forEach((alias) => addIndex(activitatsIndex, alias, activitat));
     });
 
     const aules = new Map();
+    const aulesIndex = new Map();
     nodesPerTag(xml, 'AULA').forEach((node) => {
       const codi = atribut(node, 'codi');
       if (!codi) return;
-      aules.set(codi, {
+      const aula = {
         codi,
         descripcio: atribut(node, 'descripcio'),
-      });
+      };
+      aules.set(codi, aula);
+      [aula.codi, aula.descripcio].forEach((alias) => addIndex(aulesIndex, alias, aula));
     });
 
     return {
       centre: atribut(root, 'codi'),
       any: atribut(root, 'any'),
       cursos,
+      cursosIndex,
       grups,
+      grupsIndex,
       places,
+      placesIndex,
       materies,
+      materiesIndex,
       activitats,
+      activitatsIndex,
       aules,
+      aulesIndex,
     };
   }
 
-  function enriquirSessio(sessio, referencia) {
-    if (!referencia) return sessio;
-    const placa = referencia.places?.get(sessio.placa);
-    const grup = referencia.grups?.get(sessio.grup);
-    const materia = referencia.materies?.get(sessio.materia);
-    const activitat = referencia.activitats?.get(sessio.activitat);
-    const aula = referencia.aules?.get(sessio.aula);
+  function resoldreCurs(referencia, codi) {
+    if (!referencia || !codi) return null;
+    return referencia.cursos?.get(codi) || primerIndex(referencia.cursosIndex, codi);
+  }
+
+  function resoldreGrup(referencia, codi, cursCodi) {
+    if (!referencia || !codi) return null;
+    const directe = referencia.grups?.get(codi);
+    if (directe) return directe;
+
+    const candidats = referencia.grupsIndex?.get(normalitzarClau(codi)) || [];
+    if (candidats.length <= 1) return candidats[0] || null;
+
+    const curs = resoldreCurs(referencia, cursCodi);
+    if (!curs) return candidats[0];
+    return candidats.find((grup) => grup.curs === curs.codi) || candidats[0];
+  }
+
+  function resoldreMateria(referencia, codi) {
+    if (!referencia || !codi) return null;
+    return referencia.materies?.get(codi) || primerIndex(referencia.materiesIndex, codi);
+  }
+
+  function resoldreActivitat(referencia, codi) {
+    if (!referencia || !codi) return null;
+    return referencia.activitats?.get(codi) || primerIndex(referencia.activitatsIndex, codi);
+  }
+
+  function resoldreAula(referencia, codi) {
+    if (!referencia || !codi) return null;
+    return referencia.aules?.get(codi) || primerIndex(referencia.aulesIndex, codi);
+  }
+
+  function resoldrePlaca(referencia, codi) {
+    if (!referencia || !codi) return null;
+    return referencia.places?.get(codi) || primerIndex(referencia.placesIndex, codi);
+  }
+
+  function resoldreProfessorUntis(professoratUntis, codi) {
+    if (!professoratUntis || !codi) return null;
+    return professoratUntis.professors?.get(codi) || primerIndex(professoratUntis.professorsIndex, codi);
+  }
+
+  function enriquirSessio(sessio, referencia, professoratUntis = null) {
+    const placa = resoldrePlaca(referencia, sessio.placa);
+    const professor = resoldreProfessorUntis(
+      professoratUntis,
+      placa?.curta || placa?.descripcio || sessio.placa
+    ) || resoldreProfessorUntis(professoratUntis, sessio.placa);
+    const curs = resoldreCurs(referencia, sessio.curs);
+    const grup = resoldreGrup(referencia, sessio.grup, sessio.curs);
+    const materia = resoldreMateria(referencia, sessio.materia);
+    const activitat = resoldreActivitat(referencia, sessio.activitat);
+    const aula = resoldreAula(referencia, sessio.aula);
     return {
       ...sessio,
-      professorCurta: placa?.curta || sessio.professorCurta || '',
-      professorNom: placa?.descripcio || '',
+      professorCurta: professor?.codi || placa?.curta || sessio.professorCurta || '',
+      professorNom: professor?.label || placa?.descripcio || '',
       grupVisible: grup?.visible || sessio.grupVisible || '',
-      cursVisible: grup?.cursVisible || referencia.cursos?.get(sessio.curs)?.visible || '',
+      cursVisible: grup?.cursVisible || curs?.visible || '',
       materiaCurta: materia?.curta || sessio.materiaCurta || '',
       materiaNom: materia?.descripcio || '',
       activitatCurta: activitat?.curta || sessio.activitatCurta || '',
@@ -278,7 +653,7 @@
     };
   }
 
-  function parseHorariXml(text, referencia = null) {
+  function parseHorariXml(text, referencia = null, professoratUntis = null) {
     const xml = parseXmlRobust(text);
     const root = xml.documentElement;
     const rootName = (root && (root.localName || root.nodeName) || '').toUpperCase();
@@ -288,7 +663,7 @@
 
     const sessions = nodesPerTag(xml, 'SESSIO')
       .map(normalitzarSessio)
-      .map((sessio) => enriquirSessio(sessio, referencia))
+      .map((sessio) => enriquirSessio(sessio, referencia, professoratUntis))
       .sort(ordenarSessions);
 
     if (!sessions.length) {
@@ -383,27 +758,44 @@
     });
 
     sessionsDeFranja(sessions, dia, hora).forEach((sessio) => {
+      if (!sessio.teClasse && !sessio.teActivitat) return;
       if (!perProfessor.has(sessio.placa)) return;
       const item = perProfessor.get(sessio.placa);
       item.sessions.push(sessio);
       item.lliure = false;
       if (sessio.teClasse) item.classes.push(sessio);
-      if (sessio.activitat && guardies.has(sessio.activitat)) item.guardies.push(sessio);
+      if (sessio.activitatEsGuardiaGeneral || (sessio.activitat && guardies.has(sessio.activitat))) item.guardies.push(sessio);
       else if (sessio.teActivitat) item.activitats.push(sessio);
     });
 
     return Array.from(perProfessor.values());
   }
 
-  global.HorariXmlParser = {
+  const HorariXmlParser = {
     DIA_LABELS,
     diaLabel,
     franjaKey,
     parseHorariXml,
     parseGestibReference,
+    parseUntisProfessorat,
+    parseUntisGuardies,
     sessionsDeFranja,
     professorsOrdenats,
     agruparSessionsCobertura,
     ocupacioFranja,
   };
-})(window);
+
+export {
+  DIA_LABELS,
+  HorariXmlParser,
+  agruparSessionsCobertura,
+  diaLabel,
+  franjaKey,
+  ocupacioFranja,
+  parseGestibReference,
+  parseHorariXml,
+  parseUntisGuardies,
+  parseUntisProfessorat,
+  professorsOrdenats,
+  sessionsDeFranja,
+};

@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function authenticated() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return firestore.get(/databases/(default)/documents/usuaris/$(request.auth.uid)).data.rol;
+    }
+
+    match /guardies/{courseId}/imports/{kind}/{fileName} {
+      allow read: if authenticated() && role() in ['admin', 'cap_departament', 'departament', 'professor'];
+      allow create, update: if authenticated()
+        && role() == 'admin'
+        && kind in ['reference', 'untis', 'duties', 'schedule']
+        && request.resource.size <= 850 * 1024;
+      allow delete: if authenticated() && role() == 'admin';
+    }
+  }
+}

@@ -231,6 +231,79 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      match /guardies/{id} {
+        allow read: if esAdmin() || esCap() || rolUsuari() == 'professor';
+        allow create, update: if esAdmin()
+          && (
+            (
+              id in ['reference', 'untis', 'duties', 'schedule']
+              && request.resource.data.keys().hasOnly([
+                'kind',
+                'name',
+                'size',
+                'storagePath',
+                'encoding',
+                'updatedAt'
+              ])
+              && request.resource.data.kind == id
+              && request.resource.data.name is string
+              && request.resource.data.name.size() <= 180
+              && request.resource.data.size is int
+              && request.resource.data.size <= 850 * 1024
+              && request.resource.data.storagePath is string
+              && request.resource.data.storagePath.size() <= 500
+              && request.resource.data.encoding == 'utf-8'
+              && request.resource.data.updatedAt == request.time
+            )
+            || (
+              id == 'convivencia'
+              && request.resource.data.keys().hasOnly([
+                'assignacions',
+                'updatedAt'
+              ])
+              && request.resource.data.assignacions is map
+              && request.resource.data.updatedAt == request.time
+            )
+            || (
+              id == 'stats'
+              && request.resource.data.keys().hasOnly(['counts', 'updatedAt'])
+              && request.resource.data.counts is map
+              && request.resource.data.updatedAt == request.time
+            )
+          );
+        allow delete: if esAdmin();
+      }
+
+      match /guardiesDays/{date} {
+        allow read: if esAdmin()
+          || ((esCap() || rolUsuari() == 'professor') && resource.data.status in ['published', 'closed']);
+        allow create, update: if esAdmin()
+          && request.resource.data.keys().hasOnly([
+            'schemaVersion', 'date', 'status', 'absenceIds', 'assignments',
+            'comments', 'groupsOut', 'groupTeachers', 'partialGroups', 'outingAbsenceIds', 'cancelledAssignments',
+            'publishedAt', 'closedAt', 'countedAssignments', 'clientUpdatedAt',
+            'revision', 'updatedAt'
+          ])
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.date == date
+          && request.resource.data.status in ['draft', 'published', 'closed']
+          && request.resource.data.absenceIds is list
+          && request.resource.data.assignments is map
+          && request.resource.data.comments is map
+          && request.resource.data.groupsOut is list
+          && request.resource.data.groupTeachers is map
+          && request.resource.data.partialGroups is list
+          && request.resource.data.outingAbsenceIds is list
+          && request.resource.data.cancelledAssignments is list
+          && request.resource.data.publishedAt is string
+          && request.resource.data.closedAt is string
+          && request.resource.data.countedAssignments is list
+          && request.resource.data.clientUpdatedAt is string
+          && request.resource.data.revision is int
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+
       match /sync_history/{id} {
         allow read, write: if esAdmin();
       }

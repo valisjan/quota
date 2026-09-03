@@ -1,36 +1,41 @@
-(function initGuardiesLab() {
-  const parser = window.HorariXmlParser;
+import * as parser from './horariXmlParser.js';
+import { GUARD_CODES_STORAGE, useGuardiesStore } from './stores/guardies.js';
+import {
+  dateForXmlDayInSameWeek,
+  groupTeachingBlocks,
+  isTeacherAbsentAtSlot,
+  releasedTeachingBlocks,
+  xmlDayForDate,
+} from '../../src/modules/guardies/domain/day.js';
+import { teachingDatesBetween } from '../../src/modules/guardies/domain/workflow.js';
+import {
+  deleteGuardiesFile,
+  getGuardiesContext,
+  loadGuardiesData,
+  loadGuardiesDay,
+  loadGuardiesStats,
+  mergeGuardiesDayPlan,
+  saveGuardiesDay,
+  saveGuardiesConvivencia,
+  saveGuardiesFile,
+  transitionGuardiesDay,
+} from '../../src/services/guardiesStorage';
 
-  const STORAGE = {
+(function initGuardiesLab() {
+  const LEGACY_STORAGE = {
     referenceXml: 'quota_guardies_lab_reference_xml',
     referenceName: 'quota_guardies_lab_reference_name',
+    untisText: 'quota_guardies_lab_untis_professorat_text',
+    untisName: 'quota_guardies_lab_untis_professorat_name',
     scheduleXml: 'quota_guardies_lab_schedule_xml',
     scheduleName: 'quota_guardies_lab_schedule_name',
-    guardCodes: 'quota_guardies_lab_codes',
+    convivencia: 'quota_guardies_lab_convivencia',
   };
-
-  const state = {
-    referenceText: storageGet(STORAGE.referenceXml, ''),
-    referenceName: storageGet(STORAGE.referenceName, ''),
-    scheduleText: storageGet(STORAGE.scheduleXml, ''),
-    scheduleName: storageGet(STORAGE.scheduleName, ''),
-    referencia: null,
-    sessions: [],
-    resum: null,
-    professor: '',
-    date: localDateString(new Date()),
-    guardiaCodes: new Set(loadJson(STORAGE.guardCodes, [])),
-    absencies: new Map(),
-    assignacions: new Map(),
-    comentaris: new Map(),
-    grupsFora: new Set(),
-  };
+  const state = useGuardiesStore();
+  let daySaveTimer = null;
+  let lastDaySignature = '';
 
   const el = {
-    referenceFile: document.getElementById('reference-file'),
-    file: document.getElementById('xml-file'),
-    clearCache: document.getElementById('clear-cache'),
-    cacheInfo: document.getElementById('cache-info'),
     error: document.getElementById('error-box'),
     empty: document.getElementById('empty-state'),
     workspace: document.getElementById('workspace'),
@@ -43,32 +48,33 @@
     professorSearch: document.getElementById('professor-search'),
     professorResults: document.getElementById('professor-results'),
     selectedProfessorLabel: document.getElementById('selected-professor-label'),
-    dateInput: document.getElementById('date-input'),
-    dateLabel: document.getElementById('date-label'),
-    activityList: document.getElementById('activity-list'),
-    clearGuardCodes: document.getElementById('clear-guard-codes'),
     scheduleTitle: document.getElementById('schedule-title'),
     addAllHours: document.getElementById('add-all-hours'),
     clearMissing: document.getElementById('clear-missing'),
-    printCoverage: document.getElementById('print-coverage'),
-    clearDayList: document.getElementById('clear-day-list'),
     printDateLabel: document.getElementById('print-date-label'),
     scheduleGrid: document.getElementById('schedule-grid'),
-    coverageCount: document.getElementById('coverage-count'),
     coverageList: document.getElementById('coverage-list'),
     groupSearch: document.getElementById('group-search'),
-    groupResults: document.getElementById('group-results'),
+    addGroup: document.getElementById('add-group'),
     selectedGroups: document.getElementById('selected-groups'),
     releasedCount: document.getElementById('released-count'),
     releasedList: document.getElementById('released-list'),
     clearGroups: document.getElementById('clear-groups'),
   };
 
-  el.dateInput.value = state.date;
-
-  el.referenceFile.addEventListener('change', onReferenceFileChange);
-  el.file.addEventListener('change', onScheduleFileChange);
-  el.clearCache.addEventListener('click', clearLocalData);
+  window.addEventListener('guardies:upload-file', (event) => {
+    onUploadFile(event.detail?.file, event.detail?.kind);
+  });
+  window.addEventListener('guardies:remove-file', (event) => {
+    removeUploadedFile(event.detail?.kind);
+  });
+  window.addEventListener('guardies:clear-files', clearPersistentFiles);
+  window.addEventListener('guardies:day-action', (event) => changeDayStatus(event.detail?.action));
+  window.addEventListener('guardies:apply-absence-range', (event) => applyAbsenceRange(event.detail));
+  window.addEventListener('guardies:apply-outing-range', (event) => applyOutingRange(event.detail));
+  window.addEventListener('guardies:outing-completeness', (event) => {
+    state.outingWholeGroup = event.detail?.wholeGroup !== false;
+  });
   el.professorSelect.addEventListener('change', () => {
     selectProfessor(el.professorSelect.value);
   });
@@ -76,52 +82,77 @@
     renderProfessorResults(el.professorSearch.value);
   });
   el.professorSearch.addEventListener('focus', () => {
+    if (el.professorSearch.value === labelProfessor(state.professor)) {
+      el.professorSearch.value = '';
+    }
     renderProfessorResults(el.professorSearch.value);
   });
-  el.dateInput.addEventListener('change', () => {
-    state.date = el.dateInput.value;
-    state.absencies.clear();
-    state.assignacions.clear();
-    state.comentaris.clear();
-    state.grupsFora.clear();
-    render();
-  });
-  el.clearGuardCodes.addEventListener('click', () => {
-    state.guardiaCodes.clear();
-    saveGuardCodes();
-    render();
-  });
   el.addAllHours.addEventListener('click', () => {
+    if (state.dayStatus === 'closed') return;
     addAllCurrentProfessorAbsences();
     render();
   });
   el.clearMissing.addEventListener('click', () => {
+    if (state.dayStatus === 'closed') return;
     clearCurrentProfessorAbsences();
     render();
   });
-  el.printCoverage.addEventListener('click', () => {
-    window.print();
+  el.groupSearch.addEventListener('change', () => {
+    const grup = grupsOrdenatsAmbLabel()
+      .find((item) => item.codi === el.groupSearch.value);
+    setGroupAddCandidate(grup || null);
   });
-  el.clearDayList.addEventListener('click', () => {
-    state.absencies.clear();
-    state.assignacions.clear();
-    state.comentaris.clear();
-    render();
-  });
-  el.groupSearch.addEventListener('input', () => {
-    renderGroupResults(el.groupSearch.value);
-  });
-  el.groupSearch.addEventListener('focus', () => {
-    renderGroupResults(el.groupSearch.value);
+  el.addGroup.addEventListener('click', () => {
+    if (state.dayStatus === 'closed') return;
+    const codi = el.addGroup.dataset.groupOut;
+    if (codi) addGroupOut(codi);
   });
   el.clearGroups.addEventListener('click', () => {
+    if (state.dayStatus === 'closed') return;
     state.grupsFora.clear();
+    state.grupProfessorsFora.clear();
+    state.partialGroups.clear();
+    state.outingAbsenceIds.forEach((id) => state.absencies.delete(id));
+    state.outingAbsenceIds.clear();
     renderGroupPicker();
     renderCoverage();
     renderReleasedList();
   });
 
-  parseStoredData({ resetSelection: true });
+  setupIntakeAccordion();
+  window.addEventListener('guardies:legacy-render', async (event) => {
+    if (event.detail?.reloadDay) await hydrateGuardiesDay(state.date);
+    render();
+  });
+  bootstrap();
+
+  async function bootstrap() {
+    render();
+    try {
+      const requestedCourseId = new URLSearchParams(window.location.search).get('curs') || '';
+      const context = await getGuardiesContext(requestedCourseId);
+      state.courseId = context.course.id;
+      state.courseName = context.course.name;
+      state.canWrite = context.canWrite;
+      let remoteData = await loadGuardiesData(state.courseId);
+      remoteData = await migrateLegacyData(remoteData);
+      applyRemoteData(remoteData);
+      const stats = await loadGuardiesStats(state.courseId);
+      state.guardCounts = new Map(Object.entries(stats.counts || {}));
+      state.persistenceStatus = 'ready';
+      const adminPanel = document.getElementById('admin-panel');
+      if (adminPanel) {
+        adminPanel.open = !(state.referenceText && state.untisText && state.dutiesText && state.scheduleText);
+      }
+      parseStoredData({ resetSelection: true });
+      await hydrateGuardiesDay(state.date);
+      render();
+    } catch (error) {
+      state.persistenceStatus = 'error';
+      showError(error.message || String(error));
+      render();
+    }
+  }
 
   function loadJson(key, fallback) {
     try {
@@ -129,6 +160,11 @@
     } catch {
       return fallback;
     }
+  }
+
+  function convivenciaFromObject(raw = {}) {
+    return new Map(Object.entries(raw)
+      .map(([key, values]) => [key, new Set(Array.isArray(values) ? values.filter(Boolean) : [])]));
   }
 
   function storageGet(key, fallback) {
@@ -144,7 +180,7 @@
       localStorage.setItem(key, value);
       return true;
     } catch (error) {
-      showError(`No s'ha pogut guardar el fitxer al navegador. ${error.message || error}`);
+      showError(`No s'ha pogut guardar la preferència local. ${error.message || error}`);
       return false;
     }
   }
@@ -159,8 +195,317 @@
     });
   }
 
+  function legacyData() {
+    return {
+      files: {
+        reference: {
+          text: storageGet(LEGACY_STORAGE.referenceXml, ''),
+          name: storageGet(LEGACY_STORAGE.referenceName, ''),
+        },
+        untis: {
+          text: storageGet(LEGACY_STORAGE.untisText, ''),
+          name: storageGet(LEGACY_STORAGE.untisName, ''),
+        },
+        schedule: {
+          text: storageGet(LEGACY_STORAGE.scheduleXml, ''),
+          name: storageGet(LEGACY_STORAGE.scheduleName, ''),
+        },
+      },
+      convivencia: loadJson(LEGACY_STORAGE.convivencia, {}),
+    };
+  }
+
+  async function migrateLegacyData(remoteData) {
+    const legacy = legacyData();
+    const hasLegacyFiles = Object.values(legacy.files).some((file) => file.text);
+    const hasLegacyConvivencia = Object.keys(legacy.convivencia).length > 0;
+    if (!state.canWrite || (!hasLegacyFiles && !hasLegacyConvivencia)) return remoteData;
+
+    state.persistenceStatus = 'saving';
+    for (const kind of ['reference', 'untis', 'schedule']) {
+      const legacyFile = legacy.files[kind];
+      if (!remoteData.files[kind] && legacyFile.text) {
+        await saveGuardiesFile(state.courseId, kind, legacyFile.text, legacyFile.name);
+      }
+    }
+    if (!Object.keys(remoteData.convivencia || {}).length && hasLegacyConvivencia) {
+      await saveGuardiesConvivencia(state.courseId, legacy.convivencia);
+    }
+    storageRemove(Object.values(LEGACY_STORAGE));
+    return loadGuardiesData(state.courseId);
+  }
+
+  function applyRemoteData(remoteData) {
+    const reference = remoteData.files.reference;
+    const untis = remoteData.files.untis;
+    const schedule = remoteData.files.schedule;
+    state.referenceText = reference?.text || '';
+    state.referenceName = reference?.name || '';
+      state.untisText = untis?.text || '';
+    state.untisName = untis?.name || '';
+    state.dutiesText = remoteData.files.duties?.text || '';
+    state.dutiesName = remoteData.files.duties?.name || '';
+    state.scheduleText = schedule?.text || '';
+    state.scheduleName = schedule?.name || '';
+    state.convivencia = convivenciaFromObject(remoteData.convivencia);
+  }
+
+  function serializableDay() {
+    const assignments = {};
+    const comments = {};
+    const groupTeachers = {};
+    state.assignacions.forEach((teacherId, absenceId) => { assignments[absenceId] = teacherId; });
+    state.comentaris.forEach((comment, absenceId) => { comments[absenceId] = comment; });
+    state.grupProfessorsFora.forEach((teachers, groupId) => {
+      groupTeachers[groupId] = Array.from(teachers).filter(Boolean).sort();
+    });
+    return {
+      status: state.dayStatus,
+      absenceIds: Array.from(state.absencies.keys()).sort(),
+      assignments,
+      comments,
+      groupsOut: Array.from(state.grupsFora).filter(Boolean).sort(),
+      groupTeachers,
+      partialGroups: Array.from(state.partialGroups).sort(),
+      outingAbsenceIds: Array.from(state.outingAbsenceIds).sort(),
+      cancelledAssignments: Array.from(state.cancelledAssignments).sort(),
+      publishedAt: state.publishedAt,
+      closedAt: state.closedAt,
+      countedAssignments: state.countedAssignments,
+    };
+  }
+
+  function daySignature(payload = serializableDay()) {
+    return JSON.stringify(payload);
+  }
+
+  async function hydrateGuardiesDay(date) {
+    if (!state.courseId || !date) return;
+    state.dayLoaded = false;
+    state.dayPersistenceStatus = 'loading';
+    state.clearDayContext();
+    try {
+      const saved = await loadGuardiesDay(state.courseId, date);
+      const day = xmlDayForDate(date);
+      const items = parser.agruparSessionsCobertura(
+        state.sessions.filter((session) => session.dia === day && isMeaningfulSession(session)),
+      );
+      const byId = new Map(items.map((item) => [item.id, item]));
+      (saved?.absenceIds || []).forEach((id) => {
+        const item = byId.get(id);
+        if (item && isAbsenceSelectable(item)) state.absencies.set(id, item);
+      });
+      Object.entries(saved?.assignments || {}).forEach(([id, teacherId]) => {
+        if (state.absencies.has(id) && teacherId) state.assignacions.set(id, teacherId);
+      });
+      Object.entries(saved?.comments || {}).forEach(([id, comment]) => {
+        if (state.absencies.has(id) && comment) state.comentaris.set(id, comment);
+      });
+      (saved?.groupsOut || []).forEach((groupId) => state.grupsFora.add(groupId));
+      Object.entries(saved?.groupTeachers || {}).forEach(([groupId, teachers]) => {
+        state.grupProfessorsFora.set(groupId, new Set(Array.isArray(teachers) ? teachers : []));
+      });
+      state.partialGroups = new Set(saved?.partialGroups || []);
+      state.outingAbsenceIds = new Set(saved?.outingAbsenceIds || []);
+      if (state.grupsFora.size) syncOutingAbsences();
+      state.dayStatus = saved?.status || 'draft';
+      state.publishedAt = saved?.publishedAt || '';
+      state.closedAt = saved?.closedAt || '';
+      state.updatedAt = saved?.clientUpdatedAt || '';
+      state.cancelledAssignments = new Set(saved?.cancelledAssignments || []);
+      state.countedAssignments = Array.isArray(saved?.countedAssignments) ? saved.countedAssignments : [];
+      state.dayRevision = Number(saved?.revision) || 0;
+      lastDaySignature = daySignature();
+      state.dayPersistenceStatus = 'ready';
+    } catch (error) {
+      state.dayPersistenceStatus = 'error';
+      showError(`No s'ha pogut carregar la jornada. ${error.message || error}`);
+    } finally {
+      state.dayLoaded = true;
+    }
+  }
+
+  function scheduleDaySave() {
+    if (!state.canWrite || !state.courseId || !state.date || !state.dayLoaded || state.dayStatus === 'closed') return;
+    const payload = serializableDay();
+    const signature = daySignature(payload);
+    if (signature === lastDaySignature) return;
+    clearTimeout(daySaveTimer);
+    daySaveTimer = setTimeout(async () => {
+      try {
+        state.dayPersistenceStatus = 'saving';
+        const saved = await saveGuardiesDay(state.courseId, state.date, payload, state.dayRevision);
+        state.dayRevision = saved.revision;
+        state.updatedAt = saved.clientUpdatedAt || new Date().toISOString();
+        lastDaySignature = signature;
+        state.dayPersistenceStatus = 'ready';
+      } catch (error) {
+        state.dayPersistenceStatus = 'error';
+        showError(`No s'ha pogut guardar la jornada. ${error.message || error}`);
+      }
+    }, 250);
+  }
+
+  async function persistDayNow() {
+    clearTimeout(daySaveTimer);
+    const payload = serializableDay();
+    const signature = daySignature(payload);
+    if (signature === lastDaySignature) return;
+    state.dayPersistenceStatus = 'saving';
+    const saved = await saveGuardiesDay(state.courseId, state.date, payload, state.dayRevision);
+    state.dayRevision = saved.revision;
+    state.updatedAt = saved.clientUpdatedAt || new Date().toISOString();
+    lastDaySignature = signature;
+    state.dayPersistenceStatus = 'ready';
+  }
+
+  async function changeDayStatus(action) {
+    if (!state.canWrite || !['publish', 'close', 'reopen'].includes(action)) return;
+    try {
+      state.dayPersistenceStatus = 'saving';
+      await persistDayNow();
+      const result = await transitionGuardiesDay(state.courseId, state.date, action);
+      state.dayStatus = result.day.status;
+      state.publishedAt = result.day.publishedAt || state.publishedAt;
+      state.closedAt = result.day.closedAt || '';
+      state.updatedAt = result.day.clientUpdatedAt || new Date().toISOString();
+      state.dayRevision = Number(result.day.revision) || state.dayRevision + 1;
+      state.countedAssignments = result.day.countedAssignments || state.countedAssignments;
+      state.guardCounts = new Map(Object.entries(result.stats?.counts || Object.fromEntries(state.guardCounts)));
+      lastDaySignature = daySignature();
+      state.dayPersistenceStatus = 'ready';
+      showError('');
+      render();
+    } catch (error) {
+      state.dayPersistenceStatus = 'error';
+      showError(`No s'ha pogut canviar l'estat de la jornada. ${error.message || error}`);
+    }
+  }
+
+  function datesBetween(from, to) {
+    return teachingDatesBetween(from, to);
+  }
+
+  async function applyAbsenceRange({ from, to } = {}) {
+    if (!state.canWrite || !state.professor || state.dayStatus === 'closed') return;
+    const selectedHours = new Set(currentProfessorDayItems()
+      .filter((item) => state.absencies.has(item.id))
+      .map((item) => item.hora));
+    if (!selectedHours.size) {
+      showError('Marca primer les sessions de l’absència que vols replicar.');
+      return;
+    }
+    const dates = datesBetween(from, to);
+    if (!dates.length) {
+      showError('L’interval no conté cap dia lectiu vàlid.');
+      return;
+    }
+    try {
+      state.dayPersistenceStatus = 'saving';
+      await Promise.all(dates.map((date) => {
+        const day = xmlDayForDate(date);
+        const ids = parser.agruparSessionsCobertura(
+          state.sessions.filter((session) => session.placa === state.professor && session.dia === day && isMeaningfulSession(session)),
+        ).filter((item) => selectedHours.has(item.hora) && isAbsenceSelectable(item)).map((item) => item.id);
+        return mergeGuardiesDayPlan(state.courseId, date, { absenceIds: ids });
+      }));
+      await hydrateGuardiesDay(state.date);
+      state.dayPersistenceStatus = 'ready';
+      showError('');
+      render();
+    } catch (error) {
+      state.dayPersistenceStatus = 'error';
+      showError(`No s'ha pogut aplicar l'interval. ${error.message || error}`);
+    }
+  }
+
+  async function applyOutingRange({ from, to, wholeGroup } = {}) {
+    if (!state.canWrite || !state.grupsFora.size || state.dayStatus === 'closed') return;
+    const dates = datesBetween(from, to);
+    if (!dates.length) {
+      showError('L’interval no conté cap dia lectiu vàlid.');
+      return;
+    }
+    const groupTeachers = {};
+    state.grupProfessorsFora.forEach((teachers, groupId) => {
+      groupTeachers[groupId] = Array.from(teachers);
+    });
+    try {
+      state.dayPersistenceStatus = 'saving';
+      await Promise.all(dates.map((date) => mergeGuardiesDayPlan(state.courseId, date, {
+        groupsOut: Array.from(state.grupsFora), groupTeachers,
+        partialGroups: wholeGroup ? [] : Array.from(state.grupsFora),
+        completeGroups: wholeGroup ? Array.from(state.grupsFora) : [],
+      })));
+      await hydrateGuardiesDay(state.date);
+      state.dayPersistenceStatus = 'ready';
+      showError('');
+      render();
+    } catch (error) {
+      state.dayPersistenceStatus = 'error';
+      showError(`No s'ha pogut replicar la sortida. ${error.message || error}`);
+    }
+  }
+
+  function setupIntakeAccordion() {
+    const adminPanel = document.getElementById('admin-panel');
+    const todayInfo = document.getElementById('today-info');
+    const modeButtons = Array.from(document.querySelectorAll('[data-intake-mode]'));
+    const modePanels = Array.from(document.querySelectorAll('[data-mode-panel]'));
+    const clearConvivencia = document.getElementById('clear-convivencia');
+
+    if (adminPanel) {
+      adminPanel.open = !(state.referenceText && state.untisText && state.dutiesText && state.scheduleText);
+    }
+    if (todayInfo) {
+      const label = todayInfo.querySelector('strong');
+      if (label) label.textContent = formatData(localDateString(new Date()));
+    }
+
+    modeButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const mode = button.dataset.intakeMode;
+        modeButtons.forEach((item) => {
+          const active = item.dataset.intakeMode === mode;
+          item.classList.toggle('active', active);
+          item.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        modePanels.forEach((panel) => {
+          panel.classList.toggle('hidden', panel.dataset.modePanel !== mode);
+        });
+      });
+    });
+
+    el.convivenciaAdminList = document.getElementById('convivencia-admin-list');
+    el.clearConvivencia = clearConvivencia;
+    clearConvivencia?.addEventListener('click', async () => {
+      if (!state.canWrite) return;
+      state.convivencia.clear();
+      await saveConvivencia();
+    });
+  }
+
   function saveGuardCodes() {
-    storageSet(STORAGE.guardCodes, JSON.stringify(Array.from(state.guardiaCodes)));
+    storageSet(GUARD_CODES_STORAGE, JSON.stringify(Array.from(state.guardiaCodes)));
+  }
+
+  async function saveConvivencia() {
+    if (!state.canWrite || !state.courseId) return;
+    const serializable = {};
+    state.convivencia.forEach((professors, key) => {
+      const values = Array.from(professors).filter(Boolean);
+      serializable[key] = values;
+    });
+    try {
+      state.persistenceStatus = 'saving';
+      await saveGuardiesConvivencia(state.courseId, serializable);
+      state.persistenceStatus = 'ready';
+      showError('');
+    } catch (error) {
+      state.persistenceStatus = 'error';
+      showError(`No s'ha pogut guardar la setmana. ${error.message || error}`);
+    }
+    render();
   }
 
   function showError(message) {
@@ -183,53 +528,117 @@
     }
   }
 
-  async function onReferenceFileChange(event) {
-    const file = event.target.files && event.target.files[0];
+  async function onUploadFile(file, intendedKind) {
     if (!file) return;
 
     try {
+      if (!state.canWrite) throw new Error('Només un usuari administrador pot substituir els fitxers.');
       showError('');
       const text = await readXmlFileText(file);
-      state.referenceText = text;
-      state.referenceName = file.name;
-      storageSet(STORAGE.referenceXml, text);
-      storageSet(STORAGE.referenceName, file.name);
-      if (state.scheduleText) {
-        reloadFromCache();
-      } else {
-        parseStoredData({ resetSelection: false });
+      const detectedKind = detectUploadKind(text, intendedKind);
+      if (detectedKind !== intendedKind) {
+        const labels = {
+          reference: 'XML de GestIB',
+          untis: 'GPU004 de professorat',
+          duties: 'GPU001 de guàrdies',
+          schedule: 'export d’horari d’Untis',
+        };
+        throw new Error(`Aquest fitxer no correspon al pas actual. S'espera: ${labels[intendedKind]}.`);
       }
+      await saveUploadedFile(detectedKind, text, file.name);
+      parseStoredData({ resetSelection: detectedKind === 'schedule' });
     } catch (error) {
+      state.persistenceStatus = 'error';
       showError(error.message || String(error));
       render();
-    } finally {
-      event.target.value = '';
     }
   }
 
-  async function onScheduleFileChange(event) {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
+  function detectUploadKind(text, fallback) {
+    const root = xmlRootName(text);
+    if (root === 'HORARI') return 'schedule';
+    if (root === 'CENTRE') return 'reference';
+    if (!root) return fallback;
+    return fallback;
+  }
 
-    try {
-      showError('');
-      const text = await readXmlFileText(file);
-      state.scheduleText = text;
+  function xmlRootName(text) {
+    let net = String(text || '').replace(/^\uFEFF/, '').trim();
+    net = net.replace(/^<\?xml[^>]*>\s*/i, '');
+    net = net.replace(/^(?:<!--[\s\S]*?-->\s*)+/g, '');
+    const match = net.match(/^<([A-Za-z_][\w:.-]*)\b/);
+    return (match?.[1] || '').split(':').pop().toUpperCase();
+  }
+
+  async function saveUploadedFile(kind, text, name) {
+    state.persistenceStatus = 'saving';
+    const file = await saveGuardiesFile(state.courseId, kind, text, name);
+    if (kind === 'reference') {
+      state.referenceText = file.text;
+      state.referenceName = file.name;
+    } else if (kind === 'untis') {
+      state.untisText = file.text;
+      state.untisName = file.name;
+    } else if (kind === 'duties') {
+      state.dutiesText = file.text;
+      state.dutiesName = file.name;
+    } else {
+      state.scheduleText = file.text;
       state.scheduleName = file.name;
-      storageSet(STORAGE.scheduleXml, text);
-      storageSet(STORAGE.scheduleName, file.name);
-      reloadFromCache();
+    }
+    state.persistenceStatus = 'ready';
+    if (state.referenceText && state.untisText && state.dutiesText && state.scheduleText) {
+      const adminPanel = document.getElementById('admin-panel');
+      if (adminPanel) adminPanel.open = false;
+    }
+    showError('');
+  }
+
+  async function clearUploadedFile(kind) {
+    state.persistenceStatus = 'saving';
+    await deleteGuardiesFile(state.courseId, kind);
+    if (kind === 'reference') {
+      state.referenceText = '';
+      state.referenceName = '';
+    } else if (kind === 'untis') {
+      state.untisText = '';
+      state.untisName = '';
+    } else if (kind === 'duties') {
+      state.dutiesText = '';
+      state.dutiesName = '';
+    } else {
+      state.scheduleText = '';
+      state.scheduleName = '';
+    }
+    state.persistenceStatus = 'ready';
+    showError('');
+  }
+
+  async function removeUploadedFile(kind) {
+    if (!state.canWrite || !['reference', 'untis', 'duties', 'schedule'].includes(kind)) return;
+    try {
+      await clearUploadedFile(kind);
+      state.professor = '';
+      state.absencies.clear();
+      state.assignacions.clear();
+      state.comentaris.clear();
+      state.grupsFora.clear();
+      state.grupProfessorsFora.clear();
+      state.partialGroups.clear();
+      state.outingAbsenceIds.clear();
+      parseStoredData({ resetSelection: true });
     } catch (error) {
-      showError(error.message || String(error));
+      state.persistenceStatus = 'error';
+      showError(`No s'ha pogut eliminar el fitxer. ${error.message || error}`);
       render();
-    } finally {
-      event.target.value = '';
     }
   }
 
   function parseStoredData({ resetSelection }) {
     let referenceError = '';
+    let untisError = '';
     state.referencia = null;
+    state.professoratUntis = null;
 
     if (state.referenceText) {
       try {
@@ -239,11 +648,38 @@
       }
     }
 
+    if (state.untisText) {
+      try {
+        state.professoratUntis = parser.parseUntisProfessorat(state.untisText);
+        if (!state.professoratUntis.professors.size) {
+          untisError = 'No s\'ha trobat professorat reconeixible al fitxer d\'Untis.';
+        }
+      } catch (error) {
+        untisError = error.message || String(error);
+      }
+    }
+
     try {
       if (state.scheduleText) {
-        const result = parser.parseHorariXml(state.scheduleText, state.referencia);
-        state.sessions = result.sessions;
-        state.resum = result.resum;
+        const result = parser.parseHorariXml(state.scheduleText, state.referencia, state.professoratUntis);
+        const guardSessions = parser.parseUntisGuardies(state.dutiesText, {
+          referencia: state.referencia,
+          professoratUntis: state.professoratUntis,
+          hores: result.resum.hores,
+        });
+        state.sessions = mergeSessions(result.sessions, guardSessions);
+        state.resum = {
+          ...result.resum,
+          sessions: state.sessions.length,
+          professors: new Set(state.sessions.map((sessio) => sessio.placa).filter(Boolean)).size,
+          dies: Array.from(new Set(state.sessions.map((sessio) => sessio.dia).filter(Boolean))).sort((a, b) => Number(a) - Number(b)),
+          hores: orderedHours(state.sessions.map((sessio) => sessio.hora).filter(Boolean)),
+        };
+        state.resum.franges = state.resum.dies.flatMap((dia) => (
+          state.resum.hores
+            .filter((hora) => state.sessions.some((sessio) => sessio.dia === dia && sessio.hora === hora))
+            .map((hora) => ({ key: parser.franjaKey(dia, hora), dia, hora, diaLabel: parser.diaLabel(dia), total: 0 }))
+        ));
         applyDefaultGuardiaCodes(result.defaultGuardiaCodes);
         if (resetSelection) {
           state.professor = '';
@@ -251,6 +687,9 @@
           state.assignacions.clear();
           state.comentaris.clear();
           state.grupsFora.clear();
+          state.grupProfessorsFora.clear();
+          state.partialGroups.clear();
+          state.outingAbsenceIds.clear();
         }
         renderInitialData();
       } else {
@@ -258,7 +697,10 @@
         state.resum = null;
       }
 
-      showError(referenceError ? `El XML de GestIB no s'ha pogut llegir: ${referenceError}` : '');
+      const warnings = [];
+      if (referenceError) warnings.push(`El XML de GestIB no s'ha pogut llegir: ${referenceError}`);
+      if (untisError) warnings.push(`El professorat d'Untis no s'ha pogut llegir: ${untisError}`);
+      showError(warnings.join(' '));
     } catch (error) {
       state.sessions = [];
       state.resum = null;
@@ -267,14 +709,13 @@
       state.assignacions.clear();
       state.comentaris.clear();
       state.grupsFora.clear();
+      state.grupProfessorsFora.clear();
+      state.partialGroups.clear();
+      state.outingAbsenceIds.clear();
       showError(error.message || String(error));
     }
 
     render();
-  }
-
-  function reloadFromCache() {
-    window.setTimeout(() => window.location.reload(), 50);
   }
 
   function applyDefaultGuardiaCodes(defaultCodes) {
@@ -289,23 +730,44 @@
     saveGuardCodes();
   }
 
-  function clearLocalData() {
-    storageRemove(Object.values(STORAGE));
-    state.referenceText = '';
-    state.referenceName = '';
-    state.scheduleText = '';
-    state.scheduleName = '';
-    state.referencia = null;
-    state.sessions = [];
-    state.resum = null;
-    state.professor = '';
-    state.guardiaCodes.clear();
-    state.absencies.clear();
-    state.assignacions.clear();
-    state.comentaris.clear();
-    state.grupsFora.clear();
-    showError('');
-    render();
+  async function clearPersistentFiles() {
+    if (!state.canWrite || !state.courseId) return;
+    const confirmed = window.confirm('Vols eliminar els quatre fitxers compartits de guàrdies?');
+    if (!confirmed) return;
+    try {
+      state.persistenceStatus = 'saving';
+      await Promise.all(
+        ['reference', 'untis', 'duties', 'schedule']
+          .map((kind) => deleteGuardiesFile(state.courseId, kind)),
+      );
+      state.referenceText = '';
+      state.referenceName = '';
+      state.untisText = '';
+      state.untisName = '';
+      state.dutiesText = '';
+      state.dutiesName = '';
+      state.scheduleText = '';
+      state.scheduleName = '';
+      state.referencia = null;
+      state.professoratUntis = null;
+      state.sessions = [];
+      state.resum = null;
+      state.professor = '';
+      state.absencies.clear();
+      state.assignacions.clear();
+      state.comentaris.clear();
+      state.grupsFora.clear();
+      state.grupProfessorsFora.clear();
+      state.partialGroups.clear();
+      state.outingAbsenceIds.clear();
+      state.persistenceStatus = 'ready';
+      showError('');
+      render();
+    } catch (error) {
+      state.persistenceStatus = 'error';
+      showError(`No s'han pogut eliminar els fitxers. ${error.message || error}`);
+      render();
+    }
   }
 
   function renderInitialData() {
@@ -316,7 +778,6 @@
     el.statActivitats.textContent = state.resum.activitats.length;
     el.statReference.textContent = state.referencia ? 'Sí' : state.referenceText ? 'Error' : 'No';
     renderProfessorSelect();
-    renderActivityList();
   }
 
   function renderProfessorSelect() {
@@ -329,14 +790,24 @@
 
     const professors = professorsOrdenatsAmbLabel();
     if (!state.professor || !professors.some((prof) => prof.placa === state.professor)) {
-      state.professor = professors[0]?.placa || '';
+      state.professor = '';
     }
 
-    el.professorSelect.innerHTML = professors.map((professor) => `
-      <option value="${escapeHtml(professor.placa)}" ${professor.placa === state.professor ? 'selected' : ''}>
+    el.professorSelect.innerHTML = `
+      <option value="">Selecciona professor...</option>
+      ${professors.map((professor) => `
+        <option value="${escapeHtml(professor.placa)}" ${professor.placa === state.professor ? 'selected' : ''}>
         ${escapeHtml(professor.label)}
-      </option>
-    `).join('');
+        </option>
+      `).join('')}
+    `;
+
+    if (!state.professor) {
+      el.selectedProfessorLabel.textContent = 'Cap professor';
+      el.professorSearch.value = '';
+      el.professorResults.innerHTML = '';
+      return;
+    }
 
     const selectedLabel = labelProfessor(state.professor);
     el.selectedProfessorLabel.textContent = selectedLabel;
@@ -351,10 +822,15 @@
     }
 
     const normalizedQuery = normalizeSearch(query);
+    const selectedLabel = labelProfessor(state.professor);
+    if (!normalizedQuery || normalizedQuery === normalizeSearch(selectedLabel)) {
+      el.professorResults.innerHTML = '';
+      return;
+    }
+
     const professors = professorsOrdenatsAmbLabel()
       .filter((professor) => {
-        if (!normalizedQuery) return true;
-        const haystack = normalizeSearch(`${professor.label} ${professor.short} ${professor.placa}`);
+        const haystack = normalizeSearch(`${professor.label} ${professor.short} ${professor.name} ${professor.placa}`);
         return haystack.includes(normalizedQuery);
       })
       .slice(0, 12);
@@ -370,8 +846,8 @@
         class="search-result ${professor.placa === state.professor ? 'active' : ''}"
         data-professor="${escapeHtml(professor.placa)}"
       >
-        <strong>${escapeHtml(professor.short)}</strong>
-        <span>${escapeHtml(professor.placa)}</span>
+        <strong>${escapeHtml(professor.name || professor.short || 'Professor sense nom')}</strong>
+        ${professor.name && professor.short ? `<span>${escapeHtml(professor.short)}</span>` : ''}
       </button>
     `).join('');
 
@@ -388,7 +864,7 @@
         const label = labelProfessor(placa);
         el.professorSearch.value = label;
         el.selectedProfessorLabel.textContent = label;
-        renderProfessorResults(label);
+        el.professorResults.innerHTML = '';
       }
       return;
     }
@@ -397,6 +873,7 @@
     const label = labelProfessor(placa);
     el.professorSearch.value = label;
     el.selectedProfessorLabel.textContent = label;
+    el.professorResults.innerHTML = '';
     render();
   }
 
@@ -405,6 +882,7 @@
       .map((professor) => ({
         ...professor,
         short: professorShort(professor.placa),
+        name: professorInfo(professor.placa).name,
         hasShort: Boolean(professorInfo(professor.placa).short),
         label: labelProfessor(professor.placa),
       }))
@@ -416,14 +894,23 @@
 
   function grupsOrdenatsAmbLabel() {
     const grups = new Map();
+    state.referencia?.grups?.forEach((grup) => {
+      if (!grup.codi) return;
+      grups.set(grup.codi, {
+        codi: grup.codi,
+        label: grup.visible || grup.nom || grup.codi,
+        curs: grup.cursVisible || grup.curs || '',
+      });
+    });
+
     state.sessions.forEach((sessio) => {
       if (!sessio.teClasse || !sessio.grup) return;
-      if (grups.has(sessio.grup)) return;
-      const label = sessio.grupVisible || [sessio.cursVisible, sessio.grup].filter(Boolean).join('-') || `Grup ${sessio.grup}`;
+      const existing = grups.get(sessio.grup);
+      const label = sessio.grupVisible || sessio.cursVisible || 'Grup sense nom';
       grups.set(sessio.grup, {
         codi: sessio.grup,
-        label,
-        curs: sessio.cursVisible || sessio.curs || '',
+        label: existing?.label || label,
+        curs: existing?.curs || sessio.cursVisible || sessio.curs || '',
       });
     });
 
@@ -435,44 +922,31 @@
     const grups = grupsOrdenatsAmbLabel();
     const validGroups = new Set(grups.map((grup) => grup.codi));
     Array.from(state.grupsFora).forEach((codi) => {
-      if (!validGroups.has(codi)) state.grupsFora.delete(codi);
+      if (!validGroups.has(codi)) {
+        state.grupsFora.delete(codi);
+        state.grupProfessorsFora.delete(codi);
+      }
     });
 
-    renderSelectedGroups(grups);
-    renderGroupResults(el.groupSearch.value);
-    el.clearGroups.disabled = !state.grupsFora.size;
+    renderSelectedGroupsByHour(grups);
+    const current = el.groupSearch.value;
+    const available = grups.filter((grup) => !state.grupsFora.has(grup.codi));
+    el.groupSearch.innerHTML = `
+      <option value="">Selecciona grup...</option>
+      ${available.map((grup) => `
+        <option value="${escapeHtml(grup.codi)}">${escapeHtml(grup.label)}</option>
+      `).join('')}
+    `;
+    const selectedGroup = available.find((grup) => grup.codi === current);
+    if (selectedGroup) el.groupSearch.value = selectedGroup.codi;
+    setGroupAddCandidate(selectedGroup || null);
+    el.clearGroups.disabled = state.dayStatus === 'closed' || !state.grupsFora.size;
   }
 
-  function renderGroupResults(query = '') {
-    const normalizedQuery = normalizeSearch(query);
-    const grups = grupsOrdenatsAmbLabel()
-      .filter((grup) => {
-        if (!normalizedQuery) return true;
-        return normalizeSearch(`${grup.label} ${grup.codi} ${grup.curs}`).includes(normalizedQuery);
-      })
-      .slice(0, 14);
-
-    if (!grups.length) {
-      el.groupResults.innerHTML = '<div class="search-empty">Sense resultats</div>';
-      return;
-    }
-
-    el.groupResults.innerHTML = grups.map((grup) => `
-      <button
-        type="button"
-        class="search-result ${state.grupsFora.has(grup.codi) ? 'active' : ''}"
-        data-group-out="${escapeHtml(grup.codi)}"
-      >
-        <strong>${escapeHtml(grup.label)}</strong>
-        <span>${escapeHtml(grup.codi)}</span>
-      </button>
-    `).join('');
-
-    el.groupResults.querySelectorAll('[data-group-out]').forEach((button) => {
-      button.addEventListener('click', () => {
-        toggleGroupOut(button.dataset.groupOut);
-      });
-    });
+  function setGroupAddCandidate(grup = null) {
+    el.addGroup.disabled = state.dayStatus === 'closed' || !grup;
+    el.addGroup.dataset.groupOut = grup?.codi || '';
+    el.addGroup.title = grup ? `Afegeix ${grup.label}` : 'Selecciona un grup';
   }
 
   function renderSelectedGroups(grups = grupsOrdenatsAmbLabel()) {
@@ -501,97 +975,274 @@
     });
   }
 
+  function renderSelectedGroupsByHour(grups = grupsOrdenatsAmbLabel()) {
+    const byCode = new Map(grups.map((grup) => [grup.codi, grup]));
+    const selected = Array.from(state.grupsFora)
+      .map((codi) => byCode.get(codi))
+      .filter(Boolean)
+      .sort((a, b) => a.label.localeCompare(b.label, 'ca', { numeric: true }));
+
+    if (!selected.length) {
+      el.selectedGroups.innerHTML = '<div class="empty-small">Cap grup seleccionat.</div>';
+      return;
+    }
+
+    el.selectedGroups.innerHTML = selected.map((grup) => {
+      const teacherBlocks = new Map();
+      groupTeachingBlocksForGroup(grup.codi).forEach((item) => {
+        if (!teacherBlocks.has(item.placa)) teacherBlocks.set(item.placa, []);
+        teacherBlocks.get(item.placa).push(item);
+      });
+      return `
+        <article class="selected-group-card">
+          <div class="selected-group-head">
+            <strong>${escapeHtml(grup.label)} ${state.partialGroups.has(grup.codi) ? '<em>No surt tot el grup</em>' : '<em>Grup complet</em>'}</strong>
+            <button
+              type="button"
+              class="remove-group"
+              aria-label="Treu ${escapeHtml(grup.label)}"
+              title="Treu aquest grup"
+              data-remove-group="${escapeHtml(grup.codi)}"
+            >
+              <span aria-hidden="true">X</span> Treu
+            </button>
+          </div>
+          <p class="group-card-hint">Marca qui acompanya la sortida. La resta queda alliberada ${state.partialGroups.has(grup.codi) ? 'només quan surti tot el grup' : 'en les seves hores de classe'}.</p>
+          <div class="group-teacher-list companion-list">
+            ${Array.from(teacherBlocks.entries())
+              .sort(([teacherA], [teacherB]) => labelProfessor(teacherA).localeCompare(labelProfessor(teacherB), 'ca'))
+              .map(([teacherId, blocks]) => `
+                <label class="group-teacher">
+                  <input type="checkbox" data-group-professor="${escapeHtml(grup.codi)}" data-hour="${escapeHtml(blocks[0]?.hora || '')}" value="${escapeHtml(teacherId)}" ${isGroupTeacherAccompanying(grup.codi, teacherId) ? 'checked' : ''} ${state.dayStatus === 'closed' ? 'disabled' : ''} />
+                  <span><b>${escapeHtml(labelProfessor(teacherId))}</b><small>${escapeHtml(Array.from(new Set(blocks.map((item) => horaLabel(item.hora)))).join(' · '))}</small></span>
+                </label>
+              `).join('')}
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    el.selectedGroups.querySelectorAll('[data-remove-group]').forEach((button) => {
+      button.addEventListener('click', () => {
+        toggleGroupOut(button.dataset.removeGroup);
+      });
+    });
+
+    el.selectedGroups.querySelectorAll('[data-group-professor]').forEach((input) => {
+      input.addEventListener('change', () => {
+        toggleGroupProfessor(
+          input.dataset.groupProfessor,
+          input.dataset.hour,
+          input.value,
+          input.checked,
+        );
+      });
+    });
+  }
+
   function toggleGroupOut(codi) {
+    if (state.dayStatus === 'closed') return;
     if (!codi) return;
-    if (state.grupsFora.has(codi)) state.grupsFora.delete(codi);
-    else state.grupsFora.add(codi);
+    if (state.grupsFora.has(codi)) {
+      state.grupsFora.delete(codi);
+      state.grupProfessorsFora.delete(codi);
+      state.partialGroups.delete(codi);
+      syncOutingAbsences();
+    } else {
+      state.grupsFora.add(codi);
+      ensureGroupProfessorSelection(codi);
+      if (state.outingWholeGroup) state.partialGroups.delete(codi);
+      else state.partialGroups.add(codi);
+    }
+    renderGroupPicker();
+    renderCoverage();
+    renderReleasedList();
+    scheduleDaySave();
+  }
+
+  function addGroupOut(codi) {
+    if (state.dayStatus === 'closed') return;
+    if (!codi) return;
+    state.grupsFora.add(codi);
+    ensureGroupProfessorSelection(codi);
+    if (state.outingWholeGroup) state.partialGroups.delete(codi);
+    else state.partialGroups.add(codi);
+    el.groupSearch.value = '';
+    setGroupAddCandidate();
     renderGroupPicker();
     renderCoverage();
     renderReleasedList();
   }
 
-  function renderActivityList() {
-    const activitats = state.resum?.activitats || [];
-    if (!activitats.length) {
-      el.activityList.innerHTML = '<div class="empty-small">El XML no té activitats.</div>';
+  function groupTeachingBlocksForGroup(codi) {
+    const dia = diaXmlSeleccionat();
+    if (!dia) return [];
+    return groupTeachingBlocks(
+      state.sessions.filter((sessio) => sessio.dia === dia && sessio.teClasse),
+    )
+      .filter((item) => item.grups.includes(codi))
+      .sort(sortCoverageItems);
+  }
+
+  function groupProfessorKey(hora, placa) {
+    return `${hora}|${placa}`;
+  }
+
+  function ensureGroupProfessorSelection(codi) {
+    if (state.grupProfessorsFora.has(codi)) return;
+    state.grupProfessorsFora.set(codi, new Set());
+  }
+
+  function isGroupProfessorOut(codi, hora, placa) {
+    return Boolean(state.grupProfessorsFora.get(codi)?.has(groupProfessorKey(hora, placa)));
+  }
+
+  function isGroupTeacherAccompanying(codi, placa) {
+    return Array.from(state.grupProfessorsFora.get(codi) || [])
+      .some((key) => key.endsWith(`|${placa}`));
+  }
+
+  function toggleGroupProfessor(codi, hora, placa, enabled) {
+    if (state.dayStatus === 'closed') return;
+    if (!codi || !hora || !placa) return;
+    ensureGroupProfessorSelection(codi);
+    const professors = state.grupProfessorsFora.get(codi);
+    groupTeachingBlocksForGroup(codi)
+      .filter((item) => item.placa === placa)
+      .forEach((item) => {
+        const key = groupProfessorKey(item.hora, placa);
+        if (enabled) professors.add(key);
+        else professors.delete(key);
+      });
+    syncOutingAbsences();
+    renderGroupPicker();
+    renderCoverage();
+    renderReleasedList();
+  }
+
+  function renderConvivenciaAdmin() {
+    if (!el.convivenciaAdminList) return;
+    const hores = (state.resum?.hores || []).slice()
+      .sort((a, b) => a.localeCompare(b, 'ca', { numeric: true }));
+    if (!state.sessions.length || !hores.length) {
+      el.convivenciaAdminList.innerHTML = '<div class="empty-small">Completa els quatre fitxers per configurar la setmana.</div>';
       return;
     }
 
-    el.activityList.innerHTML = activitats.map((activitat) => {
-      const checked = state.guardiaCodes.has(activitat.valor) ? 'checked' : '';
-      const info = activityInfo(activitat.valor);
-      return `
-        <label class="activity-item">
-          <input type="checkbox" value="${escapeHtml(activitat.valor)}" ${checked} />
-          <span class="activity-code">${escapeHtml(info.label)}</span>
-          <span class="activity-count">${activitat.count}</span>
-        </label>
-      `;
-    }).join('');
+    const dies = ['1', '2', '3', '4', '5'];
 
-    el.activityList.querySelectorAll('input[type="checkbox"]').forEach((input) => {
-      input.addEventListener('change', () => {
-        if (input.checked) state.guardiaCodes.add(input.value);
-        else state.guardiaCodes.delete(input.value);
-        saveGuardCodes();
-        render();
+    el.convivenciaAdminList.innerHTML = `
+      <div class="convivencia-week">
+        ${dies.map((dia) => `
+          <section class="convivencia-day">
+            <h3>${escapeHtml(parser.diaLabel(dia))}</h3>
+            <div class="convivencia-day-slots">
+              ${hores.map((hora, index) => {
+                const key = convivenciaKey(dia, hora);
+                const selected = convivenciaProfessors(dia, hora)[0] || '';
+                const candidates = guardiaProfessorsForSlot(dia, hora);
+                const selectedIsCandidate = candidates.some((candidate) => candidate.placa === selected);
+                const emptyLabel = candidates.length ? 'Sense cobertura' : 'Cap professor de guàrdia';
+                const options = candidates.map((candidate) => `
+                  <option value="${escapeHtml(candidate.placa)}">
+                    ${escapeHtml(`${candidate.convivencia ? 'GC · ' : ''}${candidate.label}`)}
+                  </option>
+                `).join('');
+                const previousOption = selected && !selectedIsCandidate
+                  ? `<option value="${escapeHtml(selected)}">${escapeHtml(`Assignació anterior · ${labelProfessor(selected)}`)}</option>`
+                  : '';
+                return `
+                  <label class="convivencia-slot ${selected ? 'covered' : ''} ${candidates.length ? '' : 'without-guards'}">
+                    <span class="convivencia-slot-time">
+                      <strong>${index + 1}a</strong>
+                      <small>${escapeHtml(hora)}</small>
+                    </span>
+                    <select data-convivencia-slot="${escapeHtml(key)}" aria-label="Convivència ${escapeHtml(parser.diaLabel(dia))} ${escapeHtml(hora)}">
+                      <option value="">${emptyLabel}</option>
+                      ${previousOption}
+                      ${options}
+                    </select>
+                  </label>
+                `;
+              }).join('')}
+            </div>
+          </section>
+        `).join('')}
+      </div>
+    `;
+
+    el.convivenciaAdminList.querySelectorAll('[data-convivencia-slot]').forEach((select) => {
+      const selected = convivenciaProfessors(...select.dataset.convivenciaSlot.split('|'))[0] || '';
+      select.value = selected;
+      select.disabled = !state.canWrite || state.persistenceStatus === 'saving';
+      select.addEventListener('change', async () => {
+        const key = select.dataset.convivenciaSlot;
+        if (select.value) state.convivencia.set(key, new Set([select.value]));
+        else state.convivencia.set(key, new Set());
+        renderConvivenciaAdmin();
+        renderCoverage();
+        await saveConvivencia();
       });
     });
   }
 
   function render() {
-    renderCacheInfo();
+    renderConvivenciaAdmin();
     const teDades = Boolean(state.sessions.length);
     el.workspace.classList.toggle('hidden', !teDades);
     el.empty.classList.toggle('hidden', teDades);
+    if (!teDades) {
+      const title = el.empty.querySelector('h2');
+      const copy = el.empty.querySelector('p');
+      if (state.persistenceStatus === 'loading') {
+        if (title) title.textContent = 'Carregant dades compartides';
+        if (copy) copy.textContent = 'Connectant amb Quota i el curs acadèmic actiu.';
+      } else {
+        if (title) title.textContent = 'Carrega l’horari per començar';
+        if (copy) {
+          copy.textContent = state.canWrite
+            ? 'Obre Arxius de configuració i completa els quatre passos de preparació.'
+            : 'Encara no s’han carregat els fitxers de configuració d’aquest curs.';
+        }
+      }
+    }
     if (!teDades) return;
 
     renderInitialData();
-    renderDateLabel();
     renderGroupPicker();
     renderSchedule();
     renderCoverage();
     renderReleasedList();
   }
 
-  function renderCacheInfo() {
-    const parts = [];
-    if (state.referenceText) parts.push(`GestIB: ${state.referenceName || 'carregat'}`);
-    if (state.scheduleText) parts.push(`Horari: ${state.scheduleName || 'carregat'}`);
-    el.cacheInfo.textContent = parts.length
-      ? `Memòria local: ${parts.join(' · ')}`
-      : 'Els fitxers quedaran guardats en aquest navegador.';
-  }
-
-  function renderDateLabel() {
-    const dia = diaXmlSeleccionat();
-    const label = formatData(state.date);
-    const teDiaLectiu = ['1', '2', '3', '4', '5'].includes(dia);
-    el.dateLabel.textContent = teDiaLectiu
-      ? `${label} · dia XML ${dia}`
-      : `${label} · sense horari lectiu al XML`;
-  }
 
   function renderSchedule() {
     const dia = diaXmlSeleccionat();
+    if (!state.professor) {
+      el.scheduleTitle.textContent = 'Sessions del professor';
+      el.addAllHours.disabled = true;
+      el.clearMissing.disabled = true;
+      el.scheduleGrid.innerHTML = '<div class="empty-small">Cerca i selecciona el professor que falta.</div>';
+      return;
+    }
     const professorLabel = labelProfessor(state.professor);
     const items = currentProfessorDayItems();
     const selectableItems = items.filter(isAbsenceSelectable);
 
     trimCurrentProfessorAbsences(items);
     el.scheduleTitle.textContent = `${professorLabel} · ${parser.diaLabel(dia)}`;
-    el.addAllHours.disabled = !selectableItems.length;
-    el.clearMissing.disabled = !selectableItems.some((item) => state.absencies.has(item.id));
+    el.addAllHours.disabled = state.dayStatus === 'closed' || !selectableItems.length;
+    el.clearMissing.disabled = state.dayStatus === 'closed' || !selectableItems.some((item) => state.absencies.has(item.id));
 
     if (!items.length) {
-      el.scheduleGrid.innerHTML = '<div class="empty-small">Aquest professor no té sessions aquest dia.</div>';
+      renderEmptySchedule(dia);
       return;
     }
 
     el.scheduleGrid.innerHTML = items.map((item) => {
       const selectable = isAbsenceSelectable(item);
       const checked = state.absencies.has(item.id) ? 'checked' : '';
-      const disabled = selectable ? '' : 'disabled';
+      const disabled = selectable && state.dayStatus !== 'closed' ? '' : 'disabled';
       const tipus = tipusItem(item);
       return `
         <label class="schedule-item ${selectable ? '' : 'schedule-item-muted'}">
@@ -620,20 +1271,66 @@
     });
   }
 
+  function renderEmptySchedule(dia) {
+    const weekItems = allProfessorWeekItems();
+    if (!weekItems.length) {
+      el.scheduleGrid.innerHTML = '<div class="empty-small">Aquest professor no té sessions al XML carregat.</div>';
+      return;
+    }
+
+    const byDay = new Map();
+    weekItems.forEach((item) => {
+      if (!byDay.has(item.dia)) byDay.set(item.dia, []);
+      byDay.get(item.dia).push(item);
+    });
+
+    const dayButtons = Array.from(byDay.entries())
+      .sort(([diaA], [diaB]) => Number(diaA) - Number(diaB))
+      .map(([itemDia, dayItems]) => {
+        const hores = Array.from(new Set(dayItems.map((item) => item.hora).filter(Boolean)))
+          .sort((a, b) => a.localeCompare(b, 'ca', { numeric: true }));
+        return `
+          <button type="button" class="ghost" data-jump-day="${escapeHtml(itemDia)}">
+            ${escapeHtml(parser.diaLabel(itemDia))} · ${escapeHtml(hores.join(', ') || 'sense hora')}
+          </button>
+        `;
+      })
+      .join('');
+
+    el.scheduleGrid.innerHTML = `
+      <div class="empty-small schedule-empty">
+        <p>Aquest professor no té sessions a ${escapeHtml(parser.diaLabel(dia))}.</p>
+        <div class="day-jumps">${dayButtons}</div>
+      </div>
+    `;
+
+    el.scheduleGrid.querySelectorAll('[data-jump-day]').forEach((button) => {
+      button.addEventListener('click', () => {
+        setDateToXmlDay(button.dataset.jumpDay);
+        state.absencies.clear();
+        state.assignacions.clear();
+        state.comentaris.clear();
+        state.grupsFora.clear();
+        state.grupProfessorsFora.clear();
+        state.partialGroups.clear();
+        state.outingAbsenceIds.clear();
+        render();
+      });
+    });
+  }
+
   function renderCoverage() {
     const selected = selectedAbsenceItems();
-    const pendents = selected.filter((item) => !state.assignacions.get(item.id)).length;
-    const franges = new Set(selected.map((item) => item.hora)).size;
-    el.coverageCount.textContent = [
-      plural(selected.length, 'sessió', 'sessions'),
-      plural(franges, 'franja', 'franges'),
-      plural(pendents, 'pendent', 'pendents'),
-    ].join(' · ');
+    selected.forEach((item) => {
+      const assignat = state.assignacions.get(item.id);
+      if (!assignat) return;
+      const encaraDisponible = guardiesPerFranja(item.dia, item.hora, item.placa, item.id)
+        .some((candidate) => candidate.placa === assignat && !candidate.unavailable);
+      if (!encaraDisponible) state.assignacions.delete(item.id);
+    });
     el.printDateLabel.textContent = formatData(state.date);
-    el.printCoverage.disabled = !selected.length;
-    el.clearDayList.disabled = !selected.length;
 
-    const warning = state.guardiaCodes.size
+    const warning = hasGuardiaCandidates()
       ? ''
       : `<div class="empty-small no-print">Marca l'activitat de guàrdia per trobar professorat disponible.</div>`;
     const selectedByHour = new Map(groupBySession(selected).map((group) => [group.hora, group.items]));
@@ -647,15 +1344,27 @@
           <h3>${escapeHtml(horaLabel(hora))}</h3>
           <span>${items.length ? `${items.length} ${items.length === 1 ? 'absència' : 'absències'}` : 'Sense absències'}</span>
         </div>
-        <div class="coverage-session-list">
-          ${items.length ? items.map(renderCoverageItem).join('') : '<div class="coverage-empty">Cap professor afegit.</div>'}
-        </div>
+        ${items.length ? `
+          <div class="coverage-session-list">
+            <div class="coverage-table">
+              <div class="coverage-row coverage-row-head">
+                <span>Professor</span>
+                <span>Grup, matèria i aula</span>
+                <span>Professor preassignat</span>
+                <span>Observacions</span>
+              </div>
+              ${items.map(renderCoverageRow).join('')}
+            </div>
+          </div>
+        ` : ''}
       </section>
     `;
     }).join('');
 
     el.coverageList.querySelectorAll('[data-assignacio]').forEach((select) => {
       select.addEventListener('change', () => {
+        if (state.dayStatus === 'closed') return;
+        state.cancelledAssignments.delete(select.dataset.assignacio);
         if (select.value) state.assignacions.set(select.dataset.assignacio, select.value);
         else state.assignacions.delete(select.dataset.assignacio);
         renderCoverage();
@@ -671,6 +1380,7 @@
 
     el.coverageList.querySelectorAll('[data-comment]').forEach((input) => {
       input.addEventListener('input', () => {
+        if (state.dayStatus === 'closed') return;
         const value = input.value.trim();
         if (value) state.comentaris.set(input.dataset.comment, value);
         else state.comentaris.delete(input.dataset.comment);
@@ -679,28 +1389,137 @@
         if (printComment) {
           printComment.textContent = value ? `Comentari: ${value}` : '';
         }
+        scheduleDaySave();
       });
     });
 
     el.coverageList.querySelectorAll('[data-remove-absence]').forEach((button) => {
       button.addEventListener('click', () => {
+        if (state.dayStatus === 'closed') return;
         state.absencies.delete(button.dataset.removeAbsence);
         state.assignacions.delete(button.dataset.removeAbsence);
         state.comentaris.delete(button.dataset.removeAbsence);
+        state.cancelledAssignments.delete(button.dataset.removeAbsence);
         renderSchedule();
         renderCoverage();
       });
     });
+    el.coverageList.querySelectorAll('[data-cancel-assignment]').forEach((input) => {
+      input.addEventListener('change', () => {
+        if (state.dayStatus === 'closed') return;
+        if (input.checked) state.cancelledAssignments.add(input.dataset.cancelAssignment);
+        else state.cancelledAssignments.delete(input.dataset.cancelAssignment);
+        renderCoverage();
+      });
+    });
+    scheduleDaySave();
+  }
+
+  function renderConvivenciaForHour(dia, hora) {
+    const professors = convivenciaProfessors(dia, hora);
+    if (!professors.length) return '';
+    const hasAbsence = professors.some((placa) => isProfessorAbsentAtHour(dia, hora, placa));
+    return `
+      <div class="convivencia-strip ${hasAbsence ? 'has-absence' : ''}">
+        <span>Convivència</span>
+        <div>
+          ${professors.map((placa) => {
+            const absent = isProfessorAbsentAtHour(dia, hora, placa);
+            return `
+              <strong class="${absent ? 'absent' : ''}">
+                ${escapeHtml(labelProfessor(placa))}
+                ${absent ? '<em>Absent</em>' : ''}
+              </strong>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function mergeSessions(scheduleSessions, guardSessions) {
+    const sessions = new Map();
+    [...scheduleSessions, ...guardSessions].forEach((session) => {
+      const semanticKey = [
+        session.placa,
+        session.dia,
+        session.hora,
+        session.teClasse ? 'classe' : 'activitat',
+        session.activitat,
+        session.materia,
+        session.grup,
+        session.aula,
+      ].join('|');
+      if (!sessions.has(semanticKey)) {
+        sessions.set(semanticKey, session);
+      } else if (session.origenGuardia === 'GPU001') {
+        sessions.set(semanticKey, {
+          ...sessions.get(semanticKey),
+          ...session,
+        });
+      }
+    });
+    return Array.from(sessions.values()).map((session) => (
+      isPatiGuardiaSession(session)
+        ? { ...session, hora: 'PATI', franja: parser.franjaKey(session.dia, 'PATI') }
+        : session
+    )).sort((a, b) => {
+      const dayDifference = Number(a.dia) - Number(b.dia);
+      if (dayDifference) return dayDifference;
+      const hourDifference = sortHours(a.hora, b.hora);
+      if (hourDifference) return hourDifference;
+      return labelProfessor(a.placa).localeCompare(labelProfessor(b.placa), 'ca', { numeric: true });
+    });
+  }
+
+  function renderAbsentNormalGuardiesForHour(dia, hora) {
+    const professors = parser.ocupacioFranja(state.sessions, dia, hora, state.guardiaCodes)
+      .filter((professor) => professor.guardies.length && isProfessorAbsentAtHour(dia, hora, professor.placa))
+      .map((professor) => professor.placa);
+    const unique = Array.from(new Set(professors));
+    if (!unique.length) return '';
+    return `
+      <div class="guard-absence-strip">
+        <span>Guàrdia normal absent</span>
+        <div>
+          ${unique.map((placa) => `<strong>${escapeHtml(labelProfessor(placa))}</strong>`).join('')}
+        </div>
+      </div>
+    `;
   }
 
   function sessionsProfessorDia(placa, dia) {
-    return state.sessions.filter((sessio) => sessio.placa === placa && sessio.dia === dia);
+    return state.sessions.filter((sessio) => sessio.placa === placa && sessio.dia === dia && isMeaningfulSession(sessio));
+  }
+
+  function allProfessorWeekItems() {
+    return parser.agruparSessionsCobertura(state.sessions.filter((sessio) => sessio.placa === state.professor && isMeaningfulSession(sessio)))
+      .sort((a, b) => {
+        const dia = Number(a.dia) - Number(b.dia);
+        if (dia) return dia;
+        return (a.hora || '').localeCompare(b.hora || '', 'ca', { numeric: true });
+      });
   }
 
   function currentProfessorDayItems() {
     const dia = diaXmlSeleccionat();
-    return parser.agruparSessionsCobertura(sessionsProfessorDia(state.professor, dia))
+    return dedupeScheduleItems(parser.agruparSessionsCobertura(sessionsProfessorDia(state.professor, dia)))
       .sort((a, b) => (a.hora || '').localeCompare(b.hora || '', 'ca', { numeric: true }));
+  }
+
+  function dedupeScheduleItems(items) {
+    const seen = new Set();
+    return items.filter((item) => {
+      const key = [
+        item.hora,
+        isAbsenceSelectable(item) ? 'classe' : tipusItem(item),
+        formatMateria(item),
+        formatBlocCurt(item),
+      ].join('|');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
   function selectedAbsenceItems() {
@@ -710,7 +1529,90 @@
       .sort(sortCoverageItems);
   }
 
-  function guardiesPerFranja(dia, hora, professorAbsent) {
+  function convivenciaKey(dia, hora) {
+    return `${dia || ''}|${hora || ''}`;
+  }
+
+  function guardiaSessionText(sessio) {
+    return [
+      sessio?.activitat,
+      sessio?.activitatCurta,
+      sessio?.activitatNom,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  }
+
+  function isConvivenciaGuardiaSession(sessio) {
+    const text = guardiaSessionText(sessio);
+    return (
+      /(^|\s)(gc|gconv)(\s|$)/.test(text) ||
+      text.includes('convivencia')
+    );
+  }
+
+  function isPatiGuardiaSession(sessio) {
+    const text = guardiaSessionText(sessio);
+    return sessio?.activitat === 'GP' || text.includes('guardia pati');
+  }
+
+  function guardiaProfessorsForSlot(dia, hora) {
+    const professors = new Map();
+    const hasGpu001Guardies = state.sessions.some((sessio) => sessio.origenGuardia === 'GPU001');
+    state.sessions
+      .filter((sessio) => (
+        sessio.dia === dia &&
+        sessio.hora === hora &&
+        sessio.placa &&
+        (!hasGpu001Guardies || sessio.origenGuardia === 'GPU001') &&
+        isGuardiaSession(sessio) &&
+        !isPatiGuardiaSession(sessio)
+      ))
+      .forEach((sessio) => {
+        const current = professors.get(sessio.placa) || {
+          placa: sessio.placa,
+          label: labelProfessor(sessio.placa),
+          convivencia: false,
+        };
+        current.convivencia ||= isConvivenciaGuardiaSession(sessio);
+        professors.set(sessio.placa, current);
+      });
+    return Array.from(professors.values())
+      .sort((a, b) => {
+        if (a.convivencia !== b.convivencia) return a.convivencia ? -1 : 1;
+        return a.label.localeCompare(b.label, 'ca', { numeric: true });
+      });
+  }
+
+  function detectedConvivenciaProfessors(dia, hora) {
+    return guardiaProfessorsForSlot(dia, hora)
+      .filter((professor) => professor.convivencia)
+      .map((professor) => professor.placa);
+  }
+
+  function convivenciaProfessors(dia, hora) {
+    const key = convivenciaKey(dia, hora);
+    const professors = state.convivencia.get(key);
+    const effective = state.convivencia.has(key)
+      ? Array.from(professors || [])
+      : detectedConvivenciaProfessors(dia, hora);
+    return effective
+      .filter(Boolean)
+      .sort((a, b) => labelProfessor(a).localeCompare(labelProfessor(b), 'ca', { numeric: true }));
+  }
+
+  function isConvivenciaProfessor(dia, hora, placa) {
+    return convivenciaProfessors(dia, hora).includes(placa);
+  }
+
+  function isMeaningfulSession(sessio) {
+    return Boolean(sessio?.teClasse || sessio?.teActivitat);
+  }
+
+  function guardiesPerFranja(dia, hora, professorAbsent, currentAbsenceId = '') {
     const ocupacio = parser.ocupacioFranja(state.sessions, dia, hora, state.guardiaCodes);
     const ocupacioByPlaca = new Map(ocupacio.map((professor) => [professor.placa, professor]));
     const candidates = new Map();
@@ -718,23 +1620,47 @@
     ocupacio
       .filter((professor) => (
         professor.placa !== professorAbsent &&
-        professor.guardies.length &&
-        !isProfessorAbsentSameSlot(dia, hora, professor.placa)
+        professor.guardies.length
       ))
       .forEach((professor) => {
         candidates.set(professor.placa, {
           ...professor,
           alliberaments: [],
+          convivencia: isConvivenciaProfessor(dia, hora, professor.placa),
+          unavailable: isProfessorAbsentAtHour(dia, hora, professor.placa) || isAssignedElsewhere(dia, hora, professor.placa, currentAbsenceId),
         });
       });
 
+    convivenciaProfessors(dia, hora).forEach((placa) => {
+      if (placa === professorAbsent) return;
+      if (candidates.has(placa)) {
+        candidates.get(placa).convivencia = true;
+        return;
+      }
+      const base = ocupacioByPlaca.get(placa) || {
+        placa,
+        label: labelProfessor(placa),
+        sessions: [],
+        classes: [],
+        guardies: [],
+        activitats: [],
+        lliure: false,
+      };
+      candidates.set(placa, {
+        ...base,
+        alliberaments: [],
+        convivencia: true,
+        unavailable: isProfessorAbsentAtHour(dia, hora, placa) || isAssignedElsewhere(dia, hora, placa, currentAbsenceId),
+      });
+    });
+
     releasedItemsForSlot(dia, hora).forEach((item) => {
-      if (item.placa === professorAbsent || isProfessorAbsentSameSlot(dia, hora, item.placa)) return;
+      if (item.placa === professorAbsent) return;
 
       if (!candidates.has(item.placa)) {
         const base = ocupacioByPlaca.get(item.placa) || {
           placa: item.placa,
-          label: `Placa ${item.placa}`,
+          label: labelProfessor(item.placa),
           sessions: [],
           classes: [],
           guardies: [],
@@ -744,29 +1670,81 @@
         candidates.set(item.placa, {
           ...base,
           alliberaments: [],
+          convivencia: isConvivenciaProfessor(dia, hora, item.placa),
+          unavailable: isProfessorAbsentAtHour(dia, hora, item.placa) || isAssignedElsewhere(dia, hora, item.placa, currentAbsenceId),
         });
       }
 
       candidates.get(item.placa).alliberaments.push(item);
+      if (isConvivenciaProfessor(dia, hora, item.placa)) candidates.get(item.placa).convivencia = true;
     });
 
     return Array.from(candidates.values())
-      .sort((a, b) => (professorShort(a.placa) || a.placa).localeCompare(professorShort(b.placa) || b.placa, 'ca', { numeric: true }));
+      .sort((a, b) => {
+        const rankA = a.unavailable ? 3 : a.convivencia ? 2 : a.alliberaments.length ? 0 : 1;
+        const rankB = b.unavailable ? 3 : b.convivencia ? 2 : b.alliberaments.length ? 0 : 1;
+        if (rankA !== rankB) return rankA - rankB;
+        const countDifference = guardCount(a.placa) - guardCount(b.placa);
+        if (countDifference) return countDifference;
+        return (professorShort(a.placa) || a.placa)
+          .localeCompare(professorShort(b.placa) || b.placa, 'ca', { numeric: true });
+      });
   }
 
-  function isProfessorAbsentSameSlot(dia, hora, placa) {
-    return Array.from(state.absencies.values())
-      .some((item) => item.dia === dia && item.hora === hora && item.placa === placa);
+  function isProfessorAbsentAtHour(dia, hora, placa) {
+    return isTeacherAbsentAtSlot(state.absencies, dia, hora, placa);
+  }
+
+  function guardCount(placa) {
+    return Number(state.guardCounts.get(placa)) || 0;
+  }
+
+  function isAssignedElsewhere(dia, hora, placa, currentAbsenceId) {
+    return Array.from(state.assignacions.entries()).some(([absenceId, assigned]) => {
+      if (absenceId === currentAbsenceId || assigned !== placa) return false;
+      const absence = state.absencies.get(absenceId);
+      return absence?.dia === dia && absence?.hora === hora;
+    });
   }
 
   function releasedItemsForDay() {
-    const dia = diaXmlSeleccionat();
-    if (!state.grupsFora.size || !dia) return [];
-    const sessions = state.sessions.filter((sessio) => sessio.dia === dia && sessio.teClasse);
-
-    return parser.agruparSessionsCobertura(sessions)
-      .filter((item) => item.grups.length && item.grups.every((grup) => state.grupsFora.has(grup)))
+    const completeGroups = new Set(Array.from(state.grupsFora).filter((groupId) => !state.partialGroups.has(groupId)));
+    const releasedTeachers = new Map();
+    completeGroups.forEach((groupId) => {
+      const accompanying = state.grupProfessorsFora.get(groupId) || new Set();
+      releasedTeachers.set(groupId, new Set(
+        groupTeachingBlocksForGroup(groupId)
+          .map((item) => groupProfessorKey(item.hora, item.placa))
+          .filter((key) => !accompanying.has(key)),
+      ));
+    });
+    return releasedTeachingBlocks({
+      sessions: state.sessions,
+      date: state.date,
+      groupsOut: completeGroups,
+      enabledTeachersByGroup: releasedTeachers,
+    })
       .sort(sortCoverageItems);
+  }
+
+  function syncOutingAbsences() {
+    state.outingAbsenceIds.forEach((id) => {
+      state.absencies.delete(id);
+      state.assignacions.delete(id);
+      state.comentaris.delete(id);
+    });
+    state.outingAbsenceIds.clear();
+    const accompanyingTeachers = new Set();
+    state.grupProfessorsFora.forEach((keys) => keys.forEach((key) => accompanyingTeachers.add(key.split('|').slice(1).join('|'))));
+    const day = diaXmlSeleccionat();
+    accompanyingTeachers.forEach((teacherId) => {
+      parser.agruparSessionsCobertura(
+        state.sessions.filter((session) => session.placa === teacherId && session.dia === day && isMeaningfulSession(session)),
+      ).filter(isAbsenceSelectable).forEach((item) => {
+        state.absencies.set(item.id, item);
+        state.outingAbsenceIds.add(item.id);
+      });
+    });
   }
 
   function releasedItemsForSlot(dia, hora) {
@@ -774,7 +1752,7 @@
   }
 
   function trimCurrentProfessorAbsences(items) {
-    const valid = new Set(items.map((item) => item.id));
+    const valid = new Set(items.filter(isAbsenceSelectable).map((item) => item.id));
     Array.from(state.absencies.entries()).forEach(([id, item]) => {
       if (item.placa === state.professor && item.dia === diaXmlSeleccionat() && !valid.has(id)) {
         state.absencies.delete(id);
@@ -804,8 +1782,11 @@
   }
 
   function sortCoverageItems(a, b) {
-    const hora = (a.hora || '').localeCompare(b.hora || '', 'ca', { numeric: true });
+    const ordered = hoursForSelectedDay();
+    const hora = ordered.indexOf(a.hora) - ordered.indexOf(b.hora);
     if (hora) return hora;
+    const group = (groupLabel(a) || tipusItem(a)).localeCompare(groupLabel(b) || tipusItem(b), 'ca', { numeric: true });
+    if (group) return group;
     const professor = labelProfessor(a.placa).localeCompare(labelProfessor(b.placa), 'ca', { numeric: true });
     if (professor) return professor;
     return formatMateria(a).localeCompare(formatMateria(b), 'ca', { numeric: true });
@@ -827,10 +1808,10 @@
     const released = releasedItemsForDay();
     const professors = new Set(released.map((item) => item.placa));
     el.releasedCount.textContent = plural(professors.size, 'professor', 'professors');
-    el.clearGroups.disabled = !state.grupsFora.size;
+    el.clearGroups.disabled = state.dayStatus === 'closed' || !state.grupsFora.size;
 
     if (!state.grupsFora.size) {
-      el.releasedList.innerHTML = '<div class="empty-small">Selecciona els grups que són fora del centre.</div>';
+      el.releasedList.innerHTML = '<div class="empty-small">Selecciona un grup de sortida.</div>';
       return;
     }
 
@@ -871,41 +1852,117 @@
       .map((franja) => franja.hora);
     const unique = Array.from(new Set(hores));
     if (unique.length) {
-      return unique.sort((a, b) => a.localeCompare(b, 'ca', { numeric: true }));
+      return orderedHours(unique);
     }
-    return (state.resum?.hores || []).slice().sort((a, b) => a.localeCompare(b, 'ca', { numeric: true }));
+    return orderedHours(state.resum?.hores || []);
+  }
+
+  function orderedHours(values) {
+    const unique = Array.from(new Set(values));
+    const hasPati = unique.includes('PATI');
+    const normal = unique.filter((value) => value !== 'PATI')
+      .sort((a, b) => String(a).localeCompare(String(b), 'ca', { numeric: true }));
+    if (hasPati) normal.splice(Math.min(3, normal.length), 0, 'PATI');
+    return normal;
+  }
+
+  function sortHours(a, b) {
+    if (a === b) return 0;
+    if (a === 'PATI') return 1;
+    if (b === 'PATI') return -1;
+    return String(a || '').localeCompare(String(b || ''), 'ca', { numeric: true });
+  }
+
+  function renderCoverageRow(item) {
+    const isPati = item.sessions?.some(isPatiGuardiaSession);
+    const candidates = isPati ? [] : guardiesPerFranja(item.dia, item.hora, item.placa, item.id);
+    const assignat = state.assignacions.get(item.id) || '';
+    const hasCandidates = candidates.length > 0;
+    const hasAvailableCandidates = candidates.some((candidate) => !candidate.unavailable);
+    const hasReleasedCandidates = candidates.some((candidate) => (
+      !candidate.unavailable && candidate.alliberaments.length
+    ));
+    const comentari = state.comentaris.get(item.id) || '';
+    const group = groupLabel(item) || 'Sense grup';
+    const subject = formatMateria(item) || 'Sense matèria';
+    const room = aulaLabel(item);
+    const assignatIsConvivencia = assignat && isConvivenciaProfessor(item.dia, item.hora, assignat);
+    const cancelled = state.cancelledAssignments.has(item.id);
+    const taskLabel = isPati ? 'Pati · GP' : isGuardiaItem(item) ? formatMateria(item) : group;
+    const locked = state.dayStatus === 'closed';
+
+    return `
+      <article class="coverage-item coverage-row ${assignat ? 'covered' : ''} ${cancelled ? 'not-completed' : ''} ${isPati ? 'informational' : ''}">
+        <div class="coverage-professor-cell">
+          <span class="cell-kicker">Falta</span>
+          <strong>${escapeHtml(labelProfessor(item.placa))}</strong>
+          <button type="button" class="icon-remove no-print" aria-label="Elimina aquesta absència" data-remove-absence="${escapeHtml(item.id)}" ${locked ? 'disabled' : ''}>X</button>
+        </div>
+        <div class="coverage-detail-cell">
+          <span class="cell-kicker">Sessió</span>
+          <strong>${escapeHtml(taskLabel)}</strong>
+          <span>${escapeHtml(isGuardiaItem(item) ? 'Torn sense cobrir' : subject)}</span>
+          ${room ? `<span>${escapeHtml(room)}</span>` : ''}
+        </div>
+        <div class="coverage-assignment-cell ${hasReleasedCandidates ? 'has-released-candidates' : ''} ${hasCandidates && !hasAvailableCandidates ? 'only-unavailable' : ''}">
+          ${isPati ? '<span class="info-only-label">Informatiu · no se substitueix</span>' : `
+          <select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates && !locked ? '' : 'disabled'}>
+            <option value="">Sense preassignar</option>
+            ${candidates.map((candidate) => `
+              <option
+                class="candidate-option ${candidateOptionClass(candidate)}"
+                value="${escapeHtml(candidate.placa)}"
+                ${candidate.placa === assignat ? 'selected' : ''}
+                ${candidate.unavailable ? 'disabled' : ''}
+              >
+                ${escapeHtml(candidateSelectLabel(candidate))}
+              </option>
+            `).join('')}
+          </select>`}
+          ${assignatIsConvivencia ? '<span class="convivencia-badge">Convivència · ús excepcional</span>' : ''}
+          <span class="print-only print-assignment">${escapeHtml(assignat ? labelProfessor(assignat) : '')}</span>
+          ${assignat && !isPati ? `<label class="completion-toggle no-print"><input type="checkbox" data-cancel-assignment="${escapeHtml(item.id)}" ${cancelled ? 'checked' : ''} ${locked ? 'disabled' : ''} /> No realitzada</label>` : ''}
+        </div>
+        <label class="coverage-comment-cell">
+          <textarea data-comment="${escapeHtml(item.id)}" rows="2" placeholder="Observacions" ${locked ? 'disabled' : ''}>${escapeHtml(comentari)}</textarea>
+          <span class="print-only" data-comment-print="${escapeHtml(item.id)}">${escapeHtml(comentari)}</span>
+        </label>
+      </article>
+    `;
   }
 
   function renderCoverageItem(item) {
-    const candidates = guardiesPerFranja(item.dia, item.hora, item.placa);
+    const candidates = guardiesPerFranja(item.dia, item.hora, item.placa, item.id);
     const assignat = state.assignacions.get(item.id) || '';
     const hasCandidates = candidates.length > 0;
     const assignatLabel = assignat ? labelProfessor(assignat) : 'Pendent';
     const comentari = state.comentaris.get(item.id) || '';
+    const details = coverageDetails(item);
 
     return `
       <article class="coverage-item ${assignat ? 'covered' : ''}">
         <div class="coverage-head">
           <div>
-            <div class="session-title">
-              <span class="absent-name">${escapeHtml(labelProfessor(item.placa))}</span>
-              <span class="screen-only"> · ${escapeHtml(formatMateria(item))}</span>
-            </div>
-            <div class="session-meta">${escapeHtml(formatMateria(item))} · ${escapeHtml(formatBlocCurt(item))}</div>
+            <div class="session-title">${escapeHtml(labelProfessor(item.placa))}</div>
+            <div class="session-meta">${escapeHtml(details)}</div>
           </div>
-          <span class="pill">${assignat ? 'Assignada' : hasCandidates ? `${candidates.length} candidats` : 'Sense candidats'}</span>
+          <button type="button" class="icon-remove no-print" aria-label="Elimina aquesta absència" data-remove-absence="${escapeHtml(item.id)}">X</button>
         </div>
         <div class="assignment">
           <select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates ? '' : 'disabled'}>
-            <option value="">Tria professorat disponible</option>
+            <option value="">Professor preassignat</option>
             ${candidates.map((candidate) => `
-              <option value="${escapeHtml(candidate.placa)}" ${candidate.placa === assignat ? 'selected' : ''}>
-                ${escapeHtml(labelProfessor(candidate.placa))} · ${escapeHtml(assignmentLoadLabel(item, candidate.placa))} · ${escapeHtml(formatCandidateAvailability(candidate))}
+              <option
+                class="candidate-option ${candidateOptionClass(candidate)}"
+                value="${escapeHtml(candidate.placa)}"
+                ${candidate.placa === assignat ? 'selected' : ''}
+                ${candidate.unavailable ? 'disabled' : ''}
+              >
+                ${escapeHtml(candidateSelectLabel(candidate))}
               </option>
             `).join('')}
           </select>
           <button type="button" class="ghost" data-clear-assignacio="${escapeHtml(item.id)}">Neteja</button>
-          <button type="button" class="ghost" data-remove-absence="${escapeHtml(item.id)}">Treu</button>
           <span class="print-only print-assignment">Guàrdia: ${escapeHtml(assignatLabel)}</span>
         </div>
         <label class="comment-field no-print">
@@ -915,6 +1972,25 @@
         <div class="print-only print-comment" data-comment-print="${escapeHtml(item.id)}">${comentari ? `Comentari: ${escapeHtml(comentari)}` : ''}</div>
       </article>
     `;
+  }
+
+  function coverageDetails(item) {
+    return [
+      groupLabel(item),
+      formatMateria(item),
+      aulaLabel(item),
+    ].filter(Boolean).join(' · ') || 'Sense detall';
+  }
+
+  function groupLabel(item) {
+    if (item.grupsVisibles?.length) return item.grupsVisibles.join(' + ');
+    if (item.cursosVisibles?.length) return item.cursosVisibles.join(' + ');
+    return '';
+  }
+
+  function aulaLabel(item) {
+    if (item.aulaNom) return item.aulaNom;
+    return '';
   }
 
   function assignmentLoadLabel(item, placa) {
@@ -933,7 +2009,9 @@
   }
 
   function horaLabel(hora) {
-    const index = hoursForSelectedDay().indexOf(hora);
+    if (hora === 'PATI') return 'Pati';
+    const normalHours = hoursForSelectedDay().filter((value) => value !== 'PATI');
+    const index = normalHours.indexOf(hora);
     return index >= 0 ? `${index + 1}a hora · ${hora}` : hora;
   }
 
@@ -946,31 +2024,53 @@
   }
 
   function professorShort(placa) {
-    return professorInfo(placa).short || placa;
+    return professorInfo(placa).short || '';
   }
 
   function labelProfessor(placa) {
     const info = professorInfo(placa);
-    return info.short ? `${info.short} · plaça ${placa}` : `Plaça ${placa}`;
+    if (info.name && info.short && info.name !== info.short) return `${info.name} · ${info.short}`;
+    if (info.name) return info.name;
+    return info.short || 'Professor sense nom';
   }
 
   function activityInfo(code) {
     const info = state.referencia?.activitats?.get(code);
     const label = info
-      ? `${info.label || info.descripcio || 'Activitat'} · ${code}`
-      : `Activitat ${code}`;
+      ? info.label || info.descripcio || 'Activitat'
+      : 'Activitat';
     return { label, info };
   }
 
   function tipusItem(item) {
-    if (item.activitat && state.guardiaCodes.has(item.activitat)) return 'Guàrdia';
-    if (item.activitat) return item.activitatCurta || item.activitatNom || `Activitat ${item.activitat}`;
+    if (isGuardiaItem(item)) return 'Guàrdia';
+    if (item.activitat) return 'Activitat';
+    if (!item.sessions?.some((sessio) => sessio.teClasse)) return 'Sense sessio';
     return 'Classe';
   }
 
   function isAbsenceSelectable(item) {
-    return item.sessions.some((sessio) => sessio.teClasse) ||
-      Boolean(item.activitat && state.guardiaCodes.has(item.activitat));
+    const hasTeachingSession = item.sessions.some((sessio) => sessio.teClasse);
+    return hasTeachingSession || isGuardiaItem(item);
+  }
+
+  function isGuardiaItem(item) {
+    return item.sessions?.some(isGuardiaSession);
+  }
+
+  function isGuardiaSession(sessio) {
+    return Boolean(
+      sessio.activitatEsGuardia ||
+      sessio.activitatEsGuardiaGeneral ||
+      (sessio.activitat && state.guardiaCodes.has(sessio.activitat))
+    );
+  }
+
+  function hasGuardiaCandidates() {
+    return state.sessions.some((sessio) => (
+      sessio.activitatEsGuardiaGeneral ||
+      (sessio.activitat && state.guardiaCodes.has(sessio.activitat))
+    ));
   }
 
   function formatSessionsActivitat(sessions) {
@@ -984,7 +2084,22 @@
     const labels = [];
     if (candidate.guardies?.length) labels.push(formatSessionsActivitat(candidate.guardies));
     if (candidate.alliberaments?.length) labels.push(formatAlliberamentLabel(candidate.alliberaments));
+    if (candidate.convivencia) labels.push('Convivencia');
     return labels.length ? labels.join(' + ') : 'Disponible';
+  }
+
+  function candidateSelectLabel(candidate) {
+    const count = guardCount(candidate.placa);
+    if (candidate.unavailable) return `No disponible - ${labelProfessor(candidate.placa)}`;
+    if (candidate.alliberaments?.length) return `Alliberat · ${count} fetes - ${labelProfessor(candidate.placa)}`;
+    const prefix = candidate.convivencia ? 'Convivència - ' : 'Guàrdia - ';
+    return `${prefix}${count} fetes - ${labelProfessor(candidate.placa)}`;
+  }
+
+  function candidateOptionClass(candidate) {
+    if (candidate.unavailable) return 'candidate-unavailable';
+    if (candidate.alliberaments?.length) return 'candidate-released';
+    return 'candidate-guard';
   }
 
   function formatAlliberamentLabel(items) {
@@ -997,18 +2112,20 @@
   }
 
   function formatMateria(item) {
-    if (item.materia) return item.materiaCurta || item.materiaNom || `Matèria ${item.materia}`;
-    if (item.activitat) return item.activitatCurta || item.activitatNom || `Activitat ${item.activitat}`;
+    if (isGuardiaItem(item) && !item.materia) return 'Guàrdia';
+    if (item.materia) return item.materiaCurta || item.materiaNom || 'Matèria sense nom';
+    if (item.activitat) return item.activitatCurta || item.activitatNom || 'Activitat sense nom';
     return 'Sessió';
   }
 
   function formatBlocCurt(item) {
     const parts = [];
     if (item.grupsVisibles?.length) parts.push(item.grupsVisibles.join(' + '));
-    else if (item.grups.length) parts.push(`Grup ${item.grups.join(' + ')}`);
+    else if (item.grups.length) parts.push('Grup sense nom');
     else if (item.cursosVisibles?.length) parts.push(item.cursosVisibles.join(' + '));
-    else if (item.cursos.length) parts.push(`Curs ${item.cursos.join(' + ')}`);
-    if (item.aulaNom || item.aula) parts.push(item.aulaNom || `Aula ${item.aula}`);
+    else if (item.cursos.length) parts.push('Curs sense nom');
+    if (item.aulaNom) parts.push(item.aulaNom);
+    else if (item.aula) parts.push('Aula sense nom');
     return parts.join(' · ') || 'Sense grup';
   }
 
@@ -1025,11 +2142,13 @@
   }
 
   function diaXmlSeleccionat() {
-    if (!state.date) return '';
-    const date = new Date(`${state.date}T12:00:00`);
-    if (Number.isNaN(date.getTime())) return '';
-    const jsDay = date.getDay();
-    return jsDay === 0 ? '7' : String(jsDay);
+    return xmlDayForDate(state.date);
+  }
+
+  function setDateToXmlDay(xmlDay) {
+    const date = dateForXmlDayInSameWeek(state.date, xmlDay);
+    if (!date) return;
+    state.changeDate(date);
   }
 
   function localDateString(date) {
