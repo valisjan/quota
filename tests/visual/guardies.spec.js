@@ -5,6 +5,7 @@ const referenceXml = `<?xml version="1.0" encoding="UTF-8"?>
   <CURSOS>
     <CURS codi="1" descripcio="1r ESO">
       <GRUP codi="10" nom="A" />
+      <GRUP codi="11" nom="B" />
     </CURS>
   </CURSOS>
   <PLACES>
@@ -29,6 +30,8 @@ const scheduleXml = `<?xml version="1.0" encoding="UTF-8"?>
   <SESSIONS>
     <SESSIO placa="1" dia="1" hora="08:00" curs="1" grup="10" materia="100" aula="300" />
     <SESSIO placa="1" dia="1" hora="09:00" curs="1" grup="10" materia="100" aula="300" />
+    <SESSIO placa="4" dia="1" hora="08:00" curs="1" grup="10" materia="100" aula="300" />
+    <SESSIO placa="4" dia="1" hora="08:00" curs="1" grup="11" materia="100" aula="300" />
   </SESSIONS>
 </HORARI>`;
 
@@ -166,8 +169,19 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#group-search').selectOption('10');
     await expect(page.locator('[data-remove-group="10"]')).toBeVisible();
     await expect(page.locator('#group-search')).toHaveValue('');
+    const releasedCandidates = page.locator('[data-group-released="10"]:not(:disabled)');
+    await expect(releasedCandidates).toHaveCount(2);
+    await expect(releasedCandidates.first()).toBeChecked();
+    await expect(releasedCandidates.nth(1)).toBeChecked();
+    await expect(page.locator('[data-group-released="10"]:disabled')).toHaveCount(1);
+    await expect(page.locator('[data-group-released="10"]:disabled')).not.toBeChecked();
+    await expect(page.locator('[data-confirm-group-released="10"]')).toContainText('Afegeix 1 professor disponible');
+    await expect(page.locator('#released-count')).toContainText('0 professors');
+    await page.locator('[data-confirm-group-released="10"]').click();
     await expect(page.locator('#released-count')).toContainText('1 professor');
-    await page.locator('[data-group-professor]').first().check();
+
+    await page.locator('[data-add-group-companion="10"]').selectOption('1');
+    await expect(page.locator('[data-group-companion="10"][data-teacher="1"]')).toBeVisible();
     await expect(page.locator('#released-count')).toContainText('0 professors');
     await expect(page.locator('#coverage-count')).toContainText('3 sessions');
 
@@ -177,7 +191,7 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#date-input').press('Tab');
     await page.getByRole('tab', { name: 'Grup de sortida' }).click();
     await expect(page.locator('[data-remove-group="10"]')).toBeVisible();
-    await expect(page.locator('[data-group-professor]').first()).toBeChecked();
+    await expect(page.locator('[data-group-companion="10"][data-teacher="1"]')).toBeVisible();
 
     await page.locator('[data-add-group-companion="10"]').selectOption('2');
     await expect(page.locator('[data-group-companion="10"][data-teacher="2"]')).toBeVisible();

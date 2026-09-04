@@ -41,6 +41,7 @@ export const useGuardiesStore = defineStore('guardies', {
     comentaris: new Map(),
     grupsFora: new Set(),
     grupProfessorsFora: new Map(),
+    grupProfessorsAlliberats: new Map(),
     partialGroups: new Set(),
     outingAbsenceIds: new Set(),
     outingWholeGroup: true,
@@ -70,6 +71,7 @@ export const useGuardiesStore = defineStore('guardies', {
     clearGroupsOut() {
       this.grupsFora.clear();
       this.grupProfessorsFora.clear();
+      this.grupProfessorsAlliberats.clear();
       this.partialGroups.clear();
       this.outingAbsenceIds.clear();
     },

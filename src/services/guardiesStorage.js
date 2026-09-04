@@ -252,6 +252,7 @@ export async function saveGuardiesDay(cursId, date, payload, expectedRevision = 
     comments: payload.comments && typeof payload.comments === 'object' ? payload.comments : {},
     groupsOut: Array.from(new Set(payload.groupsOut || [])).filter(Boolean),
     groupTeachers: payload.groupTeachers && typeof payload.groupTeachers === 'object' ? payload.groupTeachers : {},
+    groupReleasedTeachers: payload.groupReleasedTeachers && typeof payload.groupReleasedTeachers === 'object' ? payload.groupReleasedTeachers : {},
     partialGroups: Array.from(new Set(payload.partialGroups || [])).filter(Boolean),
     outingAbsenceIds: Array.from(new Set(payload.outingAbsenceIds || [])).filter(Boolean),
     cancelledAssignments: Array.from(new Set(payload.cancelledAssignments || [])).filter(Boolean),
@@ -372,7 +373,7 @@ export async function mergeGuardiesDayPlan(cursId, date, patch) {
     data.days ||= {};
     const current = data.days[date] || {
       schemaVersion: 1, date, status: 'draft', absenceIds: [], assignments: {}, comments: {},
-      groupsOut: [], groupTeachers: {}, partialGroups: [], outingAbsenceIds: [], cancelledAssignments: [], publishedAt: '', closedAt: '',
+      groupsOut: [], groupTeachers: {}, groupReleasedTeachers: {}, partialGroups: [], outingAbsenceIds: [], cancelledAssignments: [], publishedAt: '', closedAt: '',
       countedAssignments: [], revision: 0,
     };
     if (current.status === 'closed') return current;
@@ -381,6 +382,7 @@ export async function mergeGuardiesDayPlan(cursId, date, patch) {
       absenceIds: Array.from(new Set([...(current.absenceIds || []), ...additions])),
       groupsOut: Array.from(new Set([...(current.groupsOut || []), ...groups])),
       groupTeachers: { ...(current.groupTeachers || {}), ...(patch.groupTeachers || {}) },
+      groupReleasedTeachers: { ...(current.groupReleasedTeachers || {}), ...(patch.groupReleasedTeachers || {}) },
       partialGroups: Array.from(new Set([...(current.partialGroups || []).filter((groupId) => !completeGroups.has(groupId)), ...partialGroups])),
       revision: (Number(current.revision) || 0) + 1,
       clientUpdatedAt: new Date().toISOString(),
@@ -393,7 +395,7 @@ export async function mergeGuardiesDayPlan(cursId, date, patch) {
     const snapshot = await transaction.get(reference);
     const current = snapshot.exists() ? snapshot.data() : {
       schemaVersion: 1, date, status: 'draft', absenceIds: [], assignments: {}, comments: {},
-      groupsOut: [], groupTeachers: {}, partialGroups: [], outingAbsenceIds: [], cancelledAssignments: [], publishedAt: '', closedAt: '',
+      groupsOut: [], groupTeachers: {}, groupReleasedTeachers: {}, partialGroups: [], outingAbsenceIds: [], cancelledAssignments: [], publishedAt: '', closedAt: '',
       countedAssignments: [], revision: 0,
     };
     if (current.status === 'closed') return current;
@@ -404,6 +406,7 @@ export async function mergeGuardiesDayPlan(cursId, date, patch) {
       absenceIds: Array.from(new Set([...(current.absenceIds || []), ...additions])),
       groupsOut: Array.from(new Set([...(current.groupsOut || []), ...groups])),
       groupTeachers: { ...(current.groupTeachers || {}), ...(patch.groupTeachers || {}) },
+      groupReleasedTeachers: { ...(current.groupReleasedTeachers || {}), ...(patch.groupReleasedTeachers || {}) },
       partialGroups: Array.from(new Set([...(current.partialGroups || []).filter((groupId) => !completeGroups.has(groupId)), ...partialGroups])),
       revision: (Number(current.revision) || 0) + 1,
       clientUpdatedAt: new Date().toISOString(),

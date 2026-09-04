@@ -35,6 +35,7 @@ import {
   const state = useGuardiesStore();
   let daySaveTimer = null;
   let lastDaySignature = '';
+  const pendingGroupReleasedSelections = new Map();
 
   const el = {
     error: document.getElementById('error-box'),
@@ -105,6 +106,8 @@ import {
     if (!state.canWrite || state.dayStatus === 'closed') return;
     state.grupsFora.clear();
     state.grupProfessorsFora.clear();
+    state.grupProfessorsAlliberats.clear();
+    pendingGroupReleasedSelections.clear();
     state.partialGroups.clear();
     state.outingAbsenceIds.forEach((id) => state.absencies.delete(id));
     state.outingAbsenceIds.clear();
@@ -248,10 +251,14 @@ import {
     const assignments = {};
     const comments = {};
     const groupTeachers = {};
+    const groupReleasedTeachers = {};
     state.assignacions.forEach((teacherId, absenceId) => { assignments[absenceId] = teacherId; });
     state.comentaris.forEach((comment, absenceId) => { comments[absenceId] = comment; });
     state.grupProfessorsFora.forEach((teachers, groupId) => {
       groupTeachers[groupId] = Array.from(teachers).filter(Boolean).sort();
+    });
+    state.grupProfessorsAlliberats.forEach((teachers, groupId) => {
+      groupReleasedTeachers[groupId] = Array.from(teachers).filter(Boolean).sort();
     });
     return {
       status: state.dayStatus,
@@ -260,6 +267,7 @@ import {
       comments,
       groupsOut: Array.from(state.grupsFora).filter(Boolean).sort(),
       groupTeachers,
+      groupReleasedTeachers,
       partialGroups: Array.from(state.partialGroups).sort(),
       outingAbsenceIds: Array.from(state.outingAbsenceIds).sort(),
       cancelledAssignments: Array.from(state.cancelledAssignments).sort(),
@@ -275,6 +283,7 @@ import {
 
   async function hydrateGuardiesDay(date) {
     if (!state.courseId || !date) return;
+    pendingGroupReleasedSelections.clear();
     state.dayLoaded = false;
     state.dayPersistenceStatus = 'loading';
     state.clearDayContext();
@@ -299,8 +308,16 @@ import {
       Object.entries(saved?.groupTeachers || {}).forEach(([groupId, teachers]) => {
         state.grupProfessorsFora.set(groupId, new Set(Array.isArray(teachers) ? teachers : []));
       });
+      Object.entries(saved?.groupReleasedTeachers || {}).forEach(([groupId, teachers]) => {
+        state.grupProfessorsAlliberats.set(groupId, new Set(Array.isArray(teachers) ? teachers : []));
+      });
       state.partialGroups = new Set(saved?.partialGroups || []);
       state.outingAbsenceIds = new Set(saved?.outingAbsenceIds || []);
+      if (saved && !Object.prototype.hasOwnProperty.call(saved, 'groupReleasedTeachers')) {
+        state.grupsFora.forEach((groupId) => {
+          state.grupProfessorsAlliberats.set(groupId, defaultReleasedGroupKeys(groupId));
+        });
+      }
       if (state.grupsFora.size) syncOutingAbsences();
       state.dayStatus = saved?.status || 'draft';
       state.publishedAt = saved?.publishedAt || '';
@@ -431,13 +448,17 @@ import {
       return;
     }
     const groupTeachers = {};
+    const groupReleasedTeachers = {};
     state.grupProfessorsFora.forEach((teachers, groupId) => {
       groupTeachers[groupId] = Array.from(teachers);
+    });
+    state.grupProfessorsAlliberats.forEach((teachers, groupId) => {
+      groupReleasedTeachers[groupId] = Array.from(teachers);
     });
     try {
       state.dayPersistenceStatus = 'saving';
       await Promise.all(dates.map((date) => mergeGuardiesDayPlan(state.courseId, date, {
-        groupsOut: Array.from(state.grupsFora), groupTeachers,
+        groupsOut: Array.from(state.grupsFora), groupTeachers, groupReleasedTeachers,
         partialGroups: wholeGroup ? [] : Array.from(state.grupsFora),
         completeGroups: wholeGroup ? Array.from(state.grupsFora) : [],
       })));
@@ -631,6 +652,8 @@ import {
       state.comentaris.clear();
       state.grupsFora.clear();
       state.grupProfessorsFora.clear();
+      state.grupProfessorsAlliberats.clear();
+      pendingGroupReleasedSelections.clear();
       state.partialGroups.clear();
       state.outingAbsenceIds.clear();
       parseStoredData({ resetSelection: true });
@@ -695,6 +718,8 @@ import {
           state.comentaris.clear();
           state.grupsFora.clear();
           state.grupProfessorsFora.clear();
+          state.grupProfessorsAlliberats.clear();
+          pendingGroupReleasedSelections.clear();
           state.partialGroups.clear();
           state.outingAbsenceIds.clear();
         }
@@ -717,6 +742,8 @@ import {
       state.comentaris.clear();
       state.grupsFora.clear();
       state.grupProfessorsFora.clear();
+      state.grupProfessorsAlliberats.clear();
+      pendingGroupReleasedSelections.clear();
       state.partialGroups.clear();
       state.outingAbsenceIds.clear();
       showError(error.message || String(error));
@@ -765,6 +792,8 @@ import {
       state.comentaris.clear();
       state.grupsFora.clear();
       state.grupProfessorsFora.clear();
+      state.grupProfessorsAlliberats.clear();
+      pendingGroupReleasedSelections.clear();
       state.partialGroups.clear();
       state.outingAbsenceIds.clear();
       state.persistenceStatus = 'ready';
@@ -932,6 +961,8 @@ import {
       if (!validGroups.has(codi)) {
         state.grupsFora.delete(codi);
         state.grupProfessorsFora.delete(codi);
+        state.grupProfessorsAlliberats.delete(codi);
+        pendingGroupReleasedSelections.delete(codi);
       }
     });
 
@@ -988,12 +1019,15 @@ import {
 
     el.selectedGroups.innerHTML = selected.map((grup) => {
       const completeGroups = new Set(Array.from(state.grupsFora).filter((groupId) => !state.partialGroups.has(groupId)));
-      const teacherBlocks = new Map();
-      groupTeachingBlocksForGroup(grup.codi).forEach((item) => {
-        if (!teacherBlocks.has(item.placa)) teacherBlocks.set(item.placa, []);
-        teacherBlocks.get(item.placa).push(item);
-      });
+      const teachingBlocks = groupTeachingBlocksForGroup(grup.codi);
       const companions = groupCompanionTeacherIds(grup.codi);
+      const allCompanions = allCompanionTeacherIds();
+      const defaultReleased = new Set(teachingBlocks
+        .filter((block) => !allCompanions.has(block.placa) && block.grups.every((groupId) => completeGroups.has(groupId)))
+        .map((block) => groupProfessorKey(block.hora, block.placa)));
+      const selectedReleased = pendingGroupReleasedSelections.get(grup.codi)
+        || state.grupProfessorsAlliberats.get(grup.codi)
+        || defaultReleased;
       const availableCompanions = professorsOrdenatsAmbLabel()
         .filter((professor) => !companions.includes(professor.placa));
       return `
@@ -1011,7 +1045,7 @@ import {
               <span aria-hidden="true">X</span> Treu
             </button>
           </div>
-          <p class="group-card-hint">Marca qui acompanya la sortida. Només queda disponible el professorat assignat exclusivament a grups que surten en aquella hora${state.partialGroups.has(grup.codi) ? '; si no surt tot el grup, no s’allibera ningú' : ''}.</p>
+          <p class="group-card-hint">El professorat que queda lliure ja apareix marcat. Desmarca qui no hagi de quedar disponible; si acompanya la sortida, afegeix-lo també com a acompanyant. Després confirma la selecció${state.partialGroups.has(grup.codi) ? '; com que no surt tot el grup, ningú queda preseleccionat' : ''}.</p>
           <div class="companion-picker">
             <label>
               <span>Afegeix professorat acompanyant</span>
@@ -1029,36 +1063,32 @@ import {
               `).join('') : '<small>Cap acompanyant seleccionat.</small>'}
             </div>
           </div>
-          <p class="group-teacher-title">Professorat que té classe amb el grup</p>
+          <p class="group-teacher-title">Professorat disponible en quedar lliure el grup</p>
           <div class="group-teacher-list companion-list">
-            ${Array.from(teacherBlocks.entries())
-              .sort(([teacherA, blocksA], [teacherB, blocksB]) => {
-                const ordered = hoursForSelectedDay();
-                const firstA = Math.min(...blocksA.map((item) => ordered.indexOf(item.hora)).filter((index) => index >= 0));
-                const firstB = Math.min(...blocksB.map((item) => ordered.indexOf(item.hora)).filter((index) => index >= 0));
-                if (firstA !== firstB) return firstA - firstB;
-                return labelProfessor(teacherA).localeCompare(labelProfessor(teacherB), 'ca');
-              })
-              .map(([teacherId, blocks]) => {
-                const sharedWarnings = blocks.flatMap((block) => {
-                  const remainingGroups = block.grups
-                    .filter((groupId) => groupId !== grup.codi && !completeGroups.has(groupId))
-                    .map((groupId) => byCode.get(groupId)?.label || groupId);
-                  return remainingGroups.length
-                    ? [`${horaLabel(block.hora)}: també té ${remainingGroups.join(' + ')}; no queda disponible.`]
-                    : [];
-                });
+            ${teachingBlocks.map((block) => {
+                const key = groupProfessorKey(block.hora, block.placa);
+                const remainingGroups = block.grups
+                  .filter((groupId) => !completeGroups.has(groupId))
+                  .map((groupId) => byCode.get(groupId)?.label || groupId);
+                const eligible = !remainingGroups.length && !allCompanions.has(block.placa);
                 return `
                   <label class="group-teacher">
-                    <input type="checkbox" data-group-professor="${escapeHtml(grup.codi)}" data-hour="${escapeHtml(blocks[0]?.hora || '')}" value="${escapeHtml(teacherId)}" ${isGroupTeacherAccompanying(grup.codi, teacherId) ? 'checked' : ''} ${!state.canWrite || state.dayStatus === 'closed' ? 'disabled' : ''} />
+                    <input type="checkbox" data-group-released="${escapeHtml(grup.codi)}" value="${escapeHtml(key)}" ${selectedReleased.has(key) && eligible ? 'checked' : ''} ${!state.canWrite || state.dayStatus === 'closed' || !eligible ? 'disabled' : ''} />
                     <span>
-                      <b>${escapeHtml(labelProfessor(teacherId))}</b>
-                      <small>${escapeHtml(Array.from(new Set(blocks.map((item) => horaLabel(item.hora)))).join(' · '))}</small>
-                      ${sharedWarnings.length ? `<small class="shared-group-warning">${escapeHtml(sharedWarnings.join(' '))}</small>` : ''}
+                      <b>${escapeHtml(labelProfessor(block.placa))}</b>
+                      <small>${escapeHtml(horaLabel(block.hora))}</small>
+                      ${remainingGroups.length ? `<small class="shared-group-warning">També té ${escapeHtml(remainingGroups.join(' + '))}; no queda disponible.</small>` : ''}
+                      ${allCompanions.has(block.placa) ? '<small class="shared-group-warning">Acompanya una sortida; no queda disponible.</small>' : ''}
                     </span>
                   </label>
                 `;
               }).join('')}
+          </div>
+          <div class="group-teacher-actions">
+            <small>El botó és necessari encara que cap professor acompanyi el grup.</small>
+            <button type="button" data-confirm-group-released="${escapeHtml(grup.codi)}" ${!state.canWrite || state.dayStatus === 'closed' || !teachingBlocks.length ? 'disabled' : ''}>
+              ${groupTeacherConfirmationLabel(releasedTeacherCount(selectedReleased))}
+            </button>
           </div>
         </article>
       `;
@@ -1070,14 +1100,16 @@ import {
       });
     });
 
-    el.selectedGroups.querySelectorAll('[data-group-professor]').forEach((input) => {
+    el.selectedGroups.querySelectorAll('[data-group-released]').forEach((input) => {
       input.addEventListener('change', () => {
-        toggleGroupProfessor(
-          input.dataset.groupProfessor,
-          input.dataset.hour,
-          input.value,
-          input.checked,
-        );
+        stageGroupReleased(input.dataset.groupReleased, input.value, input.checked);
+        updateGroupTeacherConfirmation(input.closest('.selected-group-card'));
+      });
+    });
+
+    el.selectedGroups.querySelectorAll('[data-confirm-group-released]').forEach((button) => {
+      button.addEventListener('click', () => {
+        confirmGroupReleased(button.dataset.confirmGroupReleased);
       });
     });
 
@@ -1100,6 +1132,8 @@ import {
     if (state.grupsFora.has(codi)) {
       state.grupsFora.delete(codi);
       state.grupProfessorsFora.delete(codi);
+      state.grupProfessorsAlliberats.delete(codi);
+      pendingGroupReleasedSelections.delete(codi);
       state.partialGroups.delete(codi);
       syncOutingAbsences();
     } else {
@@ -1146,21 +1180,23 @@ import {
     state.grupProfessorsFora.set(codi, new Set());
   }
 
-  function isGroupProfessorOut(codi, hora, placa) {
-    return Boolean(state.grupProfessorsFora.get(codi)?.has(groupProfessorKey(hora, placa)));
-  }
-
-  function isGroupTeacherAccompanying(codi, placa) {
-    return Array.from(state.grupProfessorsFora.get(codi) || [])
-      .some((key) => key.endsWith(`|${placa}`));
-  }
-
   function groupCompanionTeacherIds(codi) {
     return Array.from(new Set(
       Array.from(state.grupProfessorsFora.get(codi) || [])
         .map((key) => key.split('|').slice(1).join('|'))
         .filter(Boolean),
     )).sort((a, b) => labelProfessor(a).localeCompare(labelProfessor(b), 'ca', { numeric: true }));
+  }
+
+  function allCompanionTeacherIds() {
+    const teachers = new Set();
+    state.grupProfessorsFora.forEach((keys) => {
+      keys.forEach((key) => {
+        const teacherId = key.split('|').slice(1).join('|');
+        if (teacherId) teachers.add(teacherId);
+      });
+    });
+    return teachers;
   }
 
   function addGroupCompanion(codi, placa) {
@@ -1170,6 +1206,12 @@ import {
     const blocks = groupTeachingBlocksForGroup(codi).filter((item) => item.placa === placa);
     if (blocks.length) blocks.forEach((item) => professors.add(groupProfessorKey(item.hora, placa)));
     else professors.add(groupProfessorKey('*', placa));
+    state.grupProfessorsAlliberats.forEach((released) => {
+      Array.from(released).filter((key) => key.endsWith(`|${placa}`)).forEach((key) => released.delete(key));
+    });
+    pendingGroupReleasedSelections.forEach((released) => {
+      Array.from(released).filter((key) => key.endsWith(`|${placa}`)).forEach((key) => released.delete(key));
+    });
     syncOutingAbsences();
     renderGroupPicker();
     renderCoverage();
@@ -1189,19 +1231,51 @@ import {
     renderReleasedList();
   }
 
-  function toggleGroupProfessor(codi, hora, placa, enabled) {
-    if (!state.canWrite || state.dayStatus === 'closed') return;
-    if (!codi || !hora || !placa) return;
-    ensureGroupProfessorSelection(codi);
-    const professors = state.grupProfessorsFora.get(codi);
-    groupTeachingBlocksForGroup(codi)
-      .filter((item) => item.placa === placa)
-      .forEach((item) => {
-        const key = groupProfessorKey(item.hora, placa);
-        if (enabled) professors.add(key);
-        else professors.delete(key);
-      });
-    syncOutingAbsences();
+  function groupTeacherConfirmationLabel(count) {
+    if (!count) return 'Confirma sense professorat disponible';
+    return `Afegeix ${count} ${count === 1 ? 'professor' : 'professors'} disponibles`;
+  }
+
+  function releasedTeacherCount(keys) {
+    return new Set(Array.from(keys || []).map((key) => key.split('|').slice(1).join('|')).filter(Boolean)).size;
+  }
+
+  function defaultReleasedGroupKeys(codi) {
+    const completeGroups = new Set(Array.from(state.grupsFora).filter((groupId) => !state.partialGroups.has(groupId)));
+    const companions = allCompanionTeacherIds();
+    return new Set(groupTeachingBlocksForGroup(codi)
+      .filter((block) => !companions.has(block.placa) && block.grups.every((groupId) => completeGroups.has(groupId)))
+      .map((block) => groupProfessorKey(block.hora, block.placa)));
+  }
+
+  function stageGroupReleased(codi, key, enabled) {
+    if (!state.canWrite || state.dayStatus === 'closed' || !codi || !key) return;
+    if (!pendingGroupReleasedSelections.has(codi)) {
+      pendingGroupReleasedSelections.set(codi, new Set(
+        state.grupProfessorsAlliberats.get(codi) || defaultReleasedGroupKeys(codi),
+      ));
+    }
+    const selected = pendingGroupReleasedSelections.get(codi);
+    if (enabled) selected.add(key);
+    else selected.delete(key);
+  }
+
+  function updateGroupTeacherConfirmation(card) {
+    if (!card) return;
+    const button = card.querySelector('[data-confirm-group-released]');
+    if (!button) return;
+    const count = releasedTeacherCount(Array.from(card.querySelectorAll('[data-group-released]:checked')).map((input) => input.value));
+    button.textContent = groupTeacherConfirmationLabel(count);
+    card.classList.add('has-pending-selection');
+  }
+
+  function confirmGroupReleased(codi) {
+    if (!state.canWrite || state.dayStatus === 'closed' || !codi) return;
+    const selected = pendingGroupReleasedSelections.get(codi)
+      || state.grupProfessorsAlliberats.get(codi)
+      || defaultReleasedGroupKeys(codi);
+    state.grupProfessorsAlliberats.set(codi, new Set(selected));
+    pendingGroupReleasedSelections.delete(codi);
     renderGroupPicker();
     renderCoverage();
     renderReleasedList();
@@ -1399,6 +1473,8 @@ import {
         state.comentaris.clear();
         state.grupsFora.clear();
         state.grupProfessorsFora.clear();
+        state.grupProfessorsAlliberats.clear();
+        pendingGroupReleasedSelections.clear();
         state.partialGroups.clear();
         state.outingAbsenceIds.clear();
         render();
@@ -1796,14 +1872,13 @@ import {
 
   function releasedItemsForDay() {
     const completeGroups = new Set(Array.from(state.grupsFora).filter((groupId) => !state.partialGroups.has(groupId)));
+    const accompanyingTeachers = allCompanionTeacherIds();
     const releasedTeachers = new Map();
     completeGroups.forEach((groupId) => {
-      const accompanying = state.grupProfessorsFora.get(groupId) || new Set();
-      releasedTeachers.set(groupId, new Set(
-        groupTeachingBlocksForGroup(groupId)
-          .map((item) => groupProfessorKey(item.hora, item.placa))
-          .filter((key) => !accompanying.has(key)),
-      ));
+      const confirmed = state.grupProfessorsAlliberats.get(groupId) || new Set();
+      releasedTeachers.set(groupId, new Set(Array.from(confirmed).filter((key) => (
+        !accompanyingTeachers.has(key.split('|').slice(1).join('|'))
+      ))));
     });
     return releasedTeachingBlocks({
       sessions: state.sessions,
