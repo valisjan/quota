@@ -55,7 +55,6 @@ import {
     scheduleGrid: document.getElementById('schedule-grid'),
     coverageList: document.getElementById('coverage-list'),
     groupSearch: document.getElementById('group-search'),
-    addGroup: document.getElementById('add-group'),
     selectedGroups: document.getElementById('selected-groups'),
     releasedCount: document.getElementById('released-count'),
     releasedList: document.getElementById('released-list'),
@@ -98,17 +97,11 @@ import {
     render();
   });
   el.groupSearch.addEventListener('change', () => {
-    const grup = grupsOrdenatsAmbLabel()
-      .find((item) => item.codi === el.groupSearch.value);
-    setGroupAddCandidate(grup || null);
-  });
-  el.addGroup.addEventListener('click', () => {
-    if (state.dayStatus === 'closed') return;
-    const codi = el.addGroup.dataset.groupOut;
+    const codi = el.groupSearch.value;
     if (codi) addGroupOut(codi);
   });
   el.clearGroups.addEventListener('click', () => {
-    if (state.dayStatus === 'closed') return;
+    if (!state.canWrite || state.dayStatus === 'closed') return;
     state.grupsFora.clear();
     state.grupProfessorsFora.clear();
     state.partialGroups.clear();
@@ -929,24 +922,16 @@ import {
     });
 
     renderSelectedGroupsByHour(grups);
-    const current = el.groupSearch.value;
     const available = grups.filter((grup) => !state.grupsFora.has(grup.codi));
     el.groupSearch.innerHTML = `
-      <option value="">Selecciona grup...</option>
+      <option value="">Selecciona un grup per afegir-lo...</option>
       ${available.map((grup) => `
         <option value="${escapeHtml(grup.codi)}">${escapeHtml(grup.label)}</option>
       `).join('')}
     `;
-    const selectedGroup = available.find((grup) => grup.codi === current);
-    if (selectedGroup) el.groupSearch.value = selectedGroup.codi;
-    setGroupAddCandidate(selectedGroup || null);
-    el.clearGroups.disabled = state.dayStatus === 'closed' || !state.grupsFora.size;
-  }
-
-  function setGroupAddCandidate(grup = null) {
-    el.addGroup.disabled = state.dayStatus === 'closed' || !grup;
-    el.addGroup.dataset.groupOut = grup?.codi || '';
-    el.addGroup.title = grup ? `Afegeix ${grup.label}` : 'Selecciona un grup';
+    el.groupSearch.value = '';
+    el.groupSearch.disabled = !state.canWrite || state.dayStatus === 'closed' || !available.length;
+    el.clearGroups.disabled = !state.canWrite || state.dayStatus === 'closed' || !state.grupsFora.size;
   }
 
   function renderSelectedGroups(grups = grupsOrdenatsAmbLabel()) {
@@ -1003,6 +988,7 @@ import {
               aria-label="Treu ${escapeHtml(grup.label)}"
               title="Treu aquest grup"
               data-remove-group="${escapeHtml(grup.codi)}"
+              ${!state.canWrite || state.dayStatus === 'closed' ? 'disabled' : ''}
             >
               <span aria-hidden="true">X</span> Treu
             </button>
@@ -1013,7 +999,7 @@ import {
               .sort(([teacherA], [teacherB]) => labelProfessor(teacherA).localeCompare(labelProfessor(teacherB), 'ca'))
               .map(([teacherId, blocks]) => `
                 <label class="group-teacher">
-                  <input type="checkbox" data-group-professor="${escapeHtml(grup.codi)}" data-hour="${escapeHtml(blocks[0]?.hora || '')}" value="${escapeHtml(teacherId)}" ${isGroupTeacherAccompanying(grup.codi, teacherId) ? 'checked' : ''} ${state.dayStatus === 'closed' ? 'disabled' : ''} />
+                  <input type="checkbox" data-group-professor="${escapeHtml(grup.codi)}" data-hour="${escapeHtml(blocks[0]?.hora || '')}" value="${escapeHtml(teacherId)}" ${isGroupTeacherAccompanying(grup.codi, teacherId) ? 'checked' : ''} ${!state.canWrite || state.dayStatus === 'closed' ? 'disabled' : ''} />
                   <span><b>${escapeHtml(labelProfessor(teacherId))}</b><small>${escapeHtml(Array.from(new Set(blocks.map((item) => horaLabel(item.hora)))).join(' · '))}</small></span>
                 </label>
               `).join('')}
@@ -1041,7 +1027,7 @@ import {
   }
 
   function toggleGroupOut(codi) {
-    if (state.dayStatus === 'closed') return;
+    if (!state.canWrite || state.dayStatus === 'closed') return;
     if (!codi) return;
     if (state.grupsFora.has(codi)) {
       state.grupsFora.delete(codi);
@@ -1061,14 +1047,13 @@ import {
   }
 
   function addGroupOut(codi) {
-    if (state.dayStatus === 'closed') return;
+    if (!state.canWrite || state.dayStatus === 'closed') return;
     if (!codi) return;
     state.grupsFora.add(codi);
     ensureGroupProfessorSelection(codi);
     if (state.outingWholeGroup) state.partialGroups.delete(codi);
     else state.partialGroups.add(codi);
     el.groupSearch.value = '';
-    setGroupAddCandidate();
     renderGroupPicker();
     renderCoverage();
     renderReleasedList();
@@ -1103,7 +1088,7 @@ import {
   }
 
   function toggleGroupProfessor(codi, hora, placa, enabled) {
-    if (state.dayStatus === 'closed') return;
+    if (!state.canWrite || state.dayStatus === 'closed') return;
     if (!codi || !hora || !placa) return;
     ensureGroupProfessorSelection(codi);
     const professors = state.grupProfessorsFora.get(codi);

@@ -99,12 +99,11 @@ function applyOutingRange() {
         <label for="group-search">Grup de sortida</label>
         <div class="group-search-row">
           <select id="group-search">
-            <option value="">Selecciona grup...</option>
+            <option value="">Selecciona un grup per afegir-lo...</option>
           </select>
-          <button id="add-group" type="button" disabled>+ Afegeix al dia</button>
         </div>
         <label class="whole-group-toggle">
-          <input v-model="wholeGroup" type="checkbox" />
+          <input v-model="wholeGroup" type="checkbox" :disabled="!canWrite || dayStatus === 'closed'" />
           <span><strong>Surt tot el grup</strong><small>Si és parcial, cap professor queda alliberat.</small></span>
         </label>
         <div class="outing-range">

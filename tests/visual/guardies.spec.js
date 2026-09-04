@@ -164,11 +164,20 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#date-input').press('Tab');
     await page.getByRole('tab', { name: 'Grup de sortida' }).click();
     await page.locator('#group-search').selectOption('10');
-    await page.locator('#add-group').click();
+    await expect(page.locator('[data-remove-group="10"]')).toBeVisible();
+    await expect(page.locator('#group-search')).toHaveValue('');
     await expect(page.locator('#released-count')).toContainText('1 professor');
     await page.locator('[data-group-professor]').first().check();
     await expect(page.locator('#released-count')).toContainText('0 professors');
     await expect(page.locator('#coverage-count')).toContainText('3 sessions');
+
+    await page.waitForTimeout(500);
+    await page.reload();
+    await page.locator('#date-input').fill('2026-09-07');
+    await page.locator('#date-input').press('Tab');
+    await page.getByRole('tab', { name: 'Grup de sortida' }).click();
+    await expect(page.locator('[data-remove-group="10"]')).toBeVisible();
+    await expect(page.locator('[data-group-professor]').first()).toBeChecked();
   });
 
   test('la versió impresa conserva les franges i amaga els controls', async ({ page }) => {

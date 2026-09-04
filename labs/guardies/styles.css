@@ -1029,13 +1029,7 @@ h3 {
 }
 
 .group-search-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 5px;
-}
-
-.group-search-row button {
-  white-space: nowrap;
+  display: block;
 }
 
 .group-selection-head {
