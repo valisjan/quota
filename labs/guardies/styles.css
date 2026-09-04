@@ -1838,8 +1838,19 @@ h3 {
   .range-builder,
   .outing-range { grid-template-columns: 1fr 1fr; }
   .range-copy { grid-column: 1 / -1; }
-  .range-builder button,
-  .outing-range button { grid-column: 1 / -1; }
+.range-builder button,
+.outing-range button { grid-column: 1 / -1; }
+
+.range-feedback {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 700;
+}
+
+.range-feedback.is-success { color: var(--green); }
+.range-feedback.is-error { color: var(--coral); }
 
   .cache-info {
     display: none;

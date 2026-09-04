@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  completeGuardDutyHours,
   dateForXmlDayInSameWeek,
   groupTeachingBlocks,
   isTeacherAbsentAtSlot,
@@ -8,6 +9,14 @@ import {
   selectedAbsencesForDate,
   xmlDayForDate,
 } from '../../src/modules/guardies/domain/day.js';
+
+test('completa les set sessions i insereix el pati després de tercera', () => {
+  assert.deepEqual(
+    completeGuardDutyHours(['8:00', '8:55', '9:50', '11:15', '12:10', '13:05']),
+    ['8:00', '8:55', '9:50', 'PATI', '11:15', '12:10', '13:05', '14:00'],
+  );
+  assert.deepEqual(completeGuardDutyHours(['08:00', '09:00']), ['08:00', '09:00', 'PATI']);
+});
 
 test('converteix dates locals a dies XML sense desplaçaments UTC', () => {
   assert.equal(xmlDayForDate('2026-09-07'), '1');

@@ -1,6 +1,7 @@
 import * as parser from './horariXmlParser.js';
 import { GUARD_CODES_STORAGE, useGuardiesStore } from './stores/guardies.js';
 import {
+  completeGuardDutyHours,
   dateForXmlDayInSameWeek,
   groupTeachingBlocks,
   isTeacherAbsentAtSlot,
@@ -413,10 +414,20 @@ import {
   }
 
   async function applyOutingRange({ from, to, wholeGroup } = {}) {
-    if (!state.canWrite || !state.grupsFora.size || state.dayStatus === 'closed') return;
-    const dates = datesBetween(from, to);
+    const reportResult = (ok, message, count = 0) => {
+      window.dispatchEvent(new CustomEvent('guardies:outing-range-result', {
+        detail: { ok, message, count },
+      }));
+    };
+    if (!state.canWrite || !state.grupsFora.size || state.dayStatus === 'closed') {
+      reportResult(false, 'Selecciona almenys un grup abans de copiar la sortida.');
+      return;
+    }
+    const dates = datesBetween(from, to).filter((date) => date !== state.date);
     if (!dates.length) {
-      showError('L’interval no conté cap dia lectiu vàlid.');
+      const message = 'Tria un interval que inclogui almenys un altre dia lectiu.';
+      showError(message);
+      reportResult(false, message);
       return;
     }
     const groupTeachers = {};
@@ -433,10 +444,13 @@ import {
       await hydrateGuardiesDay(state.date);
       state.dayPersistenceStatus = 'ready';
       showError('');
+      reportResult(true, `Sortida copiada a ${dates.length} ${dates.length === 1 ? 'dia lectiu' : 'dies lectius'}.`, dates.length);
       render();
     } catch (error) {
       state.dayPersistenceStatus = 'error';
-      showError(`No s'ha pogut replicar la sortida. ${error.message || error}`);
+      const message = `No s'ha pogut copiar la sortida. ${error.message || error}`;
+      showError(message);
+      reportResult(false, message);
     }
   }
 
@@ -996,7 +1010,13 @@ import {
           <p class="group-card-hint">Marca qui acompanya la sortida. La resta queda alliberada ${state.partialGroups.has(grup.codi) ? 'només quan surti tot el grup' : 'en les seves hores de classe'}.</p>
           <div class="group-teacher-list companion-list">
             ${Array.from(teacherBlocks.entries())
-              .sort(([teacherA], [teacherB]) => labelProfessor(teacherA).localeCompare(labelProfessor(teacherB), 'ca'))
+              .sort(([teacherA, blocksA], [teacherB, blocksB]) => {
+                const ordered = hoursForSelectedDay();
+                const firstA = Math.min(...blocksA.map((item) => ordered.indexOf(item.hora)).filter((index) => index >= 0));
+                const firstB = Math.min(...blocksB.map((item) => ordered.indexOf(item.hora)).filter((index) => index >= 0));
+                if (firstA !== firstB) return firstA - firstB;
+                return labelProfessor(teacherA).localeCompare(labelProfessor(teacherB), 'ca');
+              })
               .map(([teacherId, blocks]) => `
                 <label class="group-teacher">
                   <input type="checkbox" data-group-professor="${escapeHtml(grup.codi)}" data-hour="${escapeHtml(blocks[0]?.hora || '')}" value="${escapeHtml(teacherId)}" ${isGroupTeacherAccompanying(grup.codi, teacherId) ? 'checked' : ''} ${!state.canWrite || state.dayStatus === 'closed' ? 'disabled' : ''} />
@@ -1793,7 +1813,7 @@ import {
     const released = releasedItemsForDay();
     const professors = new Set(released.map((item) => item.placa));
     el.releasedCount.textContent = plural(professors.size, 'professor', 'professors');
-    el.clearGroups.disabled = state.dayStatus === 'closed' || !state.grupsFora.size;
+    el.clearGroups.disabled = !state.canWrite || state.dayStatus === 'closed' || !state.grupsFora.size;
 
     if (!state.grupsFora.size) {
       el.releasedList.innerHTML = '<div class="empty-small">Selecciona un grup de sortida.</div>';
@@ -1843,18 +1863,17 @@ import {
   }
 
   function orderedHours(values) {
-    const unique = Array.from(new Set(values));
-    const hasPati = unique.includes('PATI');
-    const normal = unique.filter((value) => value !== 'PATI')
-      .sort((a, b) => String(a).localeCompare(String(b), 'ca', { numeric: true }));
-    if (hasPati) normal.splice(Math.min(3, normal.length), 0, 'PATI');
-    return normal;
+    return completeGuardDutyHours(values);
   }
 
   function sortHours(a, b) {
     if (a === b) return 0;
-    if (a === 'PATI') return 1;
-    if (b === 'PATI') return -1;
+    const ordered = hoursForSelectedDay();
+    const indexA = ordered.indexOf(a);
+    const indexB = ordered.indexOf(b);
+    if (indexA >= 0 && indexB >= 0) return indexA - indexB;
+    if (indexA >= 0) return -1;
+    if (indexB >= 0) return 1;
     return String(a || '').localeCompare(String(b || ''), 'ca', { numeric: true });
   }
 
@@ -1994,7 +2013,7 @@ import {
   }
 
   function horaLabel(hora) {
-    if (hora === 'PATI') return 'Pati';
+    if (hora === 'PATI') return 'Pati · 10:45–11:15';
     const normalHours = hoursForSelectedDay().filter((value) => value !== 'PATI');
     const index = normalHours.indexOf(hora);
     return index >= 0 ? `${index + 1}a hora · ${hora}` : hora;

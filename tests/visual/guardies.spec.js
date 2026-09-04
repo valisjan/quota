@@ -178,6 +178,22 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.getByRole('tab', { name: 'Grup de sortida' }).click();
     await expect(page.locator('[data-remove-group="10"]')).toBeVisible();
     await expect(page.locator('[data-group-professor]').first()).toBeChecked();
+
+    await page.locator('#outing-to').fill('2026-09-08');
+    await page.getByRole('button', { name: 'Copia als dies de l’interval' }).click();
+    await expect(page.getByText('Sortida copiada a 1 dia lectiu.')).toBeVisible();
+    await page.locator('#date-input').fill('2026-09-08');
+    await page.locator('#date-input').press('Tab');
+    await expect(page.locator('[data-remove-group="10"]')).toBeVisible();
+  });
+
+  test('mostra el pati entre tercera i quarta i explica la còpia de sortides', async ({ page }) => {
+    await openGuardies(page);
+    await uploadConfiguration(page);
+    await expect(page.locator('#coverage-list .coverage-session').nth(3)).toContainText('Pati · 10:45–11:15');
+    await page.getByRole('tab', { name: 'Grup de sortida' }).click();
+    await expect(page.getByRole('button', { name: 'Copia als dies de l’interval' })).toBeDisabled();
+    await expect(page.getByText('El dia actual ja es desa automàticament')).toBeVisible();
   });
 
   test('la versió impresa conserva les franges i amaga els controls', async ({ page }) => {

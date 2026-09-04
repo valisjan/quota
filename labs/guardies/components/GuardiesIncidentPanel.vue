@@ -1,15 +1,24 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useGuardiesStore } from '../stores/guardies.js';
 
 const store = useGuardiesStore();
-const { date, dayStatus, canWrite } = storeToRefs(store);
+const { date, dayStatus, canWrite, grupsFora } = storeToRefs(store);
 const absenceFrom = ref(date.value);
 const absenceTo = ref(date.value);
 const outingFrom = ref(date.value);
 const outingTo = ref(date.value);
 const wholeGroup = ref(true);
+const outingFeedback = ref('');
+const outingFeedbackKind = ref('');
+
+const canCopyOuting = computed(() => (
+  Boolean(outingFrom.value && outingTo.value)
+  && outingFrom.value <= outingTo.value
+  && (outingFrom.value !== date.value || outingTo.value !== date.value)
+  && grupsFora.value.size > 0
+));
 
 watch(date, (value) => {
   absenceFrom.value = value;
@@ -29,10 +38,20 @@ function applyAbsenceRange() {
 }
 
 function applyOutingRange() {
+  outingFeedback.value = 'Copiant la sortida...';
+  outingFeedbackKind.value = '';
   window.dispatchEvent(new CustomEvent('guardies:apply-outing-range', {
     detail: { from: outingFrom.value, to: outingTo.value, wholeGroup: wholeGroup.value },
   }));
 }
+
+function handleOutingRangeResult(event) {
+  outingFeedback.value = event.detail?.message || '';
+  outingFeedbackKind.value = event.detail?.ok ? 'success' : 'error';
+}
+
+onMounted(() => window.addEventListener('guardies:outing-range-result', handleOutingRangeResult));
+onBeforeUnmount(() => window.removeEventListener('guardies:outing-range-result', handleOutingRangeResult));
 </script>
 
 <template>
@@ -107,9 +126,14 @@ function applyOutingRange() {
           <span><strong>Surt tot el grup</strong><small>Si és parcial, cap professor queda alliberat.</small></span>
         </label>
         <div class="outing-range">
-          <label>Des de <input v-model="outingFrom" type="date" /></label>
-          <label>Fins a <input v-model="outingTo" type="date" /></label>
-          <button type="button" class="ghost" :disabled="!canWrite || dayStatus === 'closed'" @click="applyOutingRange">Replica la sortida</button>
+          <div class="range-copy">
+            <strong>Copia aquesta sortida a altres dies</strong>
+            <small>El dia actual ja es desa automàticament; l’interval serveix només per copiar-la.</small>
+          </div>
+          <label for="outing-from">Des de <input id="outing-from" v-model="outingFrom" type="date" /></label>
+          <label for="outing-to">Fins a <input id="outing-to" v-model="outingTo" type="date" /></label>
+          <button type="button" class="ghost" :disabled="!canWrite || dayStatus === 'closed' || !canCopyOuting" @click="applyOutingRange">Copia als dies de l’interval</button>
+          <p v-if="outingFeedback" class="range-feedback" :class="`is-${outingFeedbackKind}`" role="status" aria-live="polite">{{ outingFeedback }}</p>
         </div>
         <div class="group-selection-head">
           <span id="released-count" class="pill">0 professors</span>
