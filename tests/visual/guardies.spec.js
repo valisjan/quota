@@ -179,6 +179,10 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('[data-remove-group="10"]')).toBeVisible();
     await expect(page.locator('[data-group-professor]').first()).toBeChecked();
 
+    await page.locator('[data-add-group-companion="10"]').selectOption('2');
+    await expect(page.locator('[data-group-companion="10"][data-teacher="2"]')).toBeVisible();
+    await expect(page.locator('#coverage-count')).toContainText('4 sessions');
+
     await page.locator('#outing-to').fill('2026-09-08');
     await page.getByRole('button', { name: 'Copia als dies de l’interval' }).click();
     await expect(page.getByText('Sortida copiada a 1 dia lectiu.')).toBeVisible();

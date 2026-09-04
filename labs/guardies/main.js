@@ -993,6 +993,9 @@ import {
         if (!teacherBlocks.has(item.placa)) teacherBlocks.set(item.placa, []);
         teacherBlocks.get(item.placa).push(item);
       });
+      const companions = groupCompanionTeacherIds(grup.codi);
+      const availableCompanions = professorsOrdenatsAmbLabel()
+        .filter((professor) => !companions.includes(professor.placa));
       return `
         <article class="selected-group-card">
           <div class="selected-group-head">
@@ -1009,6 +1012,24 @@ import {
             </button>
           </div>
           <p class="group-card-hint">Marca qui acompanya la sortida. Només queda disponible el professorat assignat exclusivament a grups que surten en aquella hora${state.partialGroups.has(grup.codi) ? '; si no surt tot el grup, no s’allibera ningú' : ''}.</p>
+          <div class="companion-picker">
+            <label>
+              <span>Afegeix professorat acompanyant</span>
+              <select data-add-group-companion="${escapeHtml(grup.codi)}" ${!state.canWrite || state.dayStatus === 'closed' || !availableCompanions.length ? 'disabled' : ''}>
+                <option value="">Selecciona un professor...</option>
+                ${availableCompanions.map((professor) => `<option value="${escapeHtml(professor.placa)}">${escapeHtml(professor.label)}</option>`).join('')}
+              </select>
+            </label>
+            <div class="companion-chips">
+              ${companions.length ? companions.map((teacherId) => `
+                <span class="companion-chip" data-group-companion="${escapeHtml(grup.codi)}" data-teacher="${escapeHtml(teacherId)}">
+                  ${escapeHtml(labelProfessor(teacherId))}
+                  <button type="button" aria-label="Treu ${escapeHtml(labelProfessor(teacherId))} dels acompanyants" data-remove-group-companion="${escapeHtml(grup.codi)}" data-teacher="${escapeHtml(teacherId)}" ${!state.canWrite || state.dayStatus === 'closed' ? 'disabled' : ''}>×</button>
+                </span>
+              `).join('') : '<small>Cap acompanyant seleccionat.</small>'}
+            </div>
+          </div>
+          <p class="group-teacher-title">Professorat que té classe amb el grup</p>
           <div class="group-teacher-list companion-list">
             ${Array.from(teacherBlocks.entries())
               .sort(([teacherA, blocksA], [teacherB, blocksB]) => {
@@ -1057,6 +1078,18 @@ import {
           input.value,
           input.checked,
         );
+      });
+    });
+
+    el.selectedGroups.querySelectorAll('[data-add-group-companion]').forEach((select) => {
+      select.addEventListener('change', () => {
+        if (select.value) addGroupCompanion(select.dataset.addGroupCompanion, select.value);
+      });
+    });
+
+    el.selectedGroups.querySelectorAll('[data-remove-group-companion]').forEach((button) => {
+      button.addEventListener('click', () => {
+        removeGroupCompanion(button.dataset.removeGroupCompanion, button.dataset.teacher);
       });
     });
   }
@@ -1120,6 +1153,40 @@ import {
   function isGroupTeacherAccompanying(codi, placa) {
     return Array.from(state.grupProfessorsFora.get(codi) || [])
       .some((key) => key.endsWith(`|${placa}`));
+  }
+
+  function groupCompanionTeacherIds(codi) {
+    return Array.from(new Set(
+      Array.from(state.grupProfessorsFora.get(codi) || [])
+        .map((key) => key.split('|').slice(1).join('|'))
+        .filter(Boolean),
+    )).sort((a, b) => labelProfessor(a).localeCompare(labelProfessor(b), 'ca', { numeric: true }));
+  }
+
+  function addGroupCompanion(codi, placa) {
+    if (!state.canWrite || state.dayStatus === 'closed' || !codi || !placa) return;
+    ensureGroupProfessorSelection(codi);
+    const professors = state.grupProfessorsFora.get(codi);
+    const blocks = groupTeachingBlocksForGroup(codi).filter((item) => item.placa === placa);
+    if (blocks.length) blocks.forEach((item) => professors.add(groupProfessorKey(item.hora, placa)));
+    else professors.add(groupProfessorKey('*', placa));
+    syncOutingAbsences();
+    renderGroupPicker();
+    renderCoverage();
+    renderReleasedList();
+  }
+
+  function removeGroupCompanion(codi, placa) {
+    if (!state.canWrite || state.dayStatus === 'closed' || !codi || !placa) return;
+    const professors = state.grupProfessorsFora.get(codi);
+    if (!professors) return;
+    Array.from(professors)
+      .filter((key) => key.endsWith(`|${placa}`))
+      .forEach((key) => professors.delete(key));
+    syncOutingAbsences();
+    renderGroupPicker();
+    renderCoverage();
+    renderReleasedList();
   }
 
   function toggleGroupProfessor(codi, hora, placa, enabled) {
