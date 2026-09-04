@@ -211,7 +211,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function iniciarSessioGoogle() {
     const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ hd: DOMINI });
+    provider.setCustomParameters({
+      hd: DOMINI,
+      prompt: 'select_account',
+    });
     try {
       await signInWithPopup(auth, provider);
     } catch (err) {
