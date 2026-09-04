@@ -47,3 +47,44 @@ test('agrupa un bloc compartit i exigeix que tots els grups siguin fora', () => 
   assert.equal(releasedTeachingBlocks({ sessions, date: '2026-09-07', groupsOut: new Set(['1A']), enabledTeachersByGroup: selected }).length, 0);
   assert.equal(releasedTeachingBlocks({ sessions, date: '2026-09-07', groupsOut: new Set(['1A', '1B']), enabledTeachersByGroup: selected }).length, 1);
 });
+
+test('un professor de grup flexible només queda lliure quan surten els dos grups', () => {
+  const lesson = (placa, grup) => ({
+    placa,
+    grup,
+    grupVisible: grup === '1A' ? '1ESO-A' : '1ESO-B',
+    dia: '1',
+    hora: '08:00',
+    teClasse: true,
+    materia: 'MAT',
+    aula: 'A',
+  });
+  const sessions = [
+    lesson('PEP', '1A'),
+    lesson('JUAN', '1A'),
+    lesson('ANITA', '1B'),
+    lesson('JUANITA', '1B'),
+    lesson('SUTANITA', '1A'),
+    lesson('SUTANITA', '1B'),
+  ];
+  const selections = new Map([
+    ['1A', new Set(['08:00|PEP', '08:00|JUAN', '08:00|SUTANITA'])],
+    ['1B', new Set(['08:00|ANITA', '08:00|JUANITA', '08:00|SUTANITA'])],
+  ]);
+
+  const onlyA = releasedTeachingBlocks({
+    sessions,
+    date: '2026-09-07',
+    groupsOut: new Set(['1A']),
+    enabledTeachersByGroup: selections,
+  }).map((block) => block.placa).sort();
+  assert.deepEqual(onlyA, ['JUAN', 'PEP']);
+
+  const bothGroups = releasedTeachingBlocks({
+    sessions,
+    date: '2026-09-07',
+    groupsOut: new Set(['1A', '1B']),
+    enabledTeachersByGroup: selections,
+  }).map((block) => block.placa).sort();
+  assert.deepEqual(bothGroups, ['ANITA', 'JUAN', 'JUANITA', 'PEP', 'SUTANITA']);
+});

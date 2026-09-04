@@ -1159,6 +1159,12 @@ h3 {
   white-space: nowrap;
 }
 
+.group-teacher .shared-group-warning {
+  color: var(--amber);
+  font-weight: 750;
+  white-space: normal;
+}
+
 .group-teacher small {
   margin-top: 1px;
   overflow: hidden;

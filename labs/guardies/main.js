@@ -987,6 +987,7 @@ import {
     }
 
     el.selectedGroups.innerHTML = selected.map((grup) => {
+      const completeGroups = new Set(Array.from(state.grupsFora).filter((groupId) => !state.partialGroups.has(groupId)));
       const teacherBlocks = new Map();
       groupTeachingBlocksForGroup(grup.codi).forEach((item) => {
         if (!teacherBlocks.has(item.placa)) teacherBlocks.set(item.placa, []);
@@ -1007,7 +1008,7 @@ import {
               <span aria-hidden="true">X</span> Treu
             </button>
           </div>
-          <p class="group-card-hint">Marca qui acompanya la sortida. La resta queda alliberada ${state.partialGroups.has(grup.codi) ? 'només quan surti tot el grup' : 'en les seves hores de classe'}.</p>
+          <p class="group-card-hint">Marca qui acompanya la sortida. Només queda disponible el professorat assignat exclusivament a grups que surten en aquella hora${state.partialGroups.has(grup.codi) ? '; si no surt tot el grup, no s’allibera ningú' : ''}.</p>
           <div class="group-teacher-list companion-list">
             ${Array.from(teacherBlocks.entries())
               .sort(([teacherA, blocksA], [teacherB, blocksB]) => {
@@ -1017,12 +1018,26 @@ import {
                 if (firstA !== firstB) return firstA - firstB;
                 return labelProfessor(teacherA).localeCompare(labelProfessor(teacherB), 'ca');
               })
-              .map(([teacherId, blocks]) => `
-                <label class="group-teacher">
-                  <input type="checkbox" data-group-professor="${escapeHtml(grup.codi)}" data-hour="${escapeHtml(blocks[0]?.hora || '')}" value="${escapeHtml(teacherId)}" ${isGroupTeacherAccompanying(grup.codi, teacherId) ? 'checked' : ''} ${!state.canWrite || state.dayStatus === 'closed' ? 'disabled' : ''} />
-                  <span><b>${escapeHtml(labelProfessor(teacherId))}</b><small>${escapeHtml(Array.from(new Set(blocks.map((item) => horaLabel(item.hora)))).join(' · '))}</small></span>
-                </label>
-              `).join('')}
+              .map(([teacherId, blocks]) => {
+                const sharedWarnings = blocks.flatMap((block) => {
+                  const remainingGroups = block.grups
+                    .filter((groupId) => groupId !== grup.codi && !completeGroups.has(groupId))
+                    .map((groupId) => byCode.get(groupId)?.label || groupId);
+                  return remainingGroups.length
+                    ? [`${horaLabel(block.hora)}: també té ${remainingGroups.join(' + ')}; no queda disponible.`]
+                    : [];
+                });
+                return `
+                  <label class="group-teacher">
+                    <input type="checkbox" data-group-professor="${escapeHtml(grup.codi)}" data-hour="${escapeHtml(blocks[0]?.hora || '')}" value="${escapeHtml(teacherId)}" ${isGroupTeacherAccompanying(grup.codi, teacherId) ? 'checked' : ''} ${!state.canWrite || state.dayStatus === 'closed' ? 'disabled' : ''} />
+                    <span>
+                      <b>${escapeHtml(labelProfessor(teacherId))}</b>
+                      <small>${escapeHtml(Array.from(new Set(blocks.map((item) => horaLabel(item.hora)))).join(' · '))}</small>
+                      ${sharedWarnings.length ? `<small class="shared-group-warning">${escapeHtml(sharedWarnings.join(' '))}</small>` : ''}
+                    </span>
+                  </label>
+                `;
+              }).join('')}
           </div>
         </article>
       `;
