@@ -2,6 +2,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  enableNetwork,
   getDoc,
   getDocs,
   runTransaction,
@@ -9,8 +10,7 @@ import {
   setDoc,
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { deleteObject, getBytes, ref, uploadBytes } from 'firebase/storage';
-import { auth, db, storage } from '../firebase';
+import { auth, db } from '../firebase';
 import { E2E_AUTH_BYPASS, E2E_CURS_ID } from './e2e';
 
 const FILE_KINDS = new Set(['reference', 'untis', 'duties', 'schedule']);
@@ -58,14 +58,23 @@ async function normalizeFile(data) {
 async function loadStoredFile(data) {
   if (!data) return null;
   if (data.text) return normalizeFile(data);
-  if (!data.storagePath) return null;
-  const bytes = await getBytes(ref(storage, data.storagePath), MAX_FILE_BYTES);
-  return {
-    text: new TextDecoder(data.encoding || 'utf-8').decode(bytes),
-    name: data.name || 'fitxer',
-    size: Number(data.size) || bytes.byteLength,
-    storagePath: data.storagePath,
-  };
+  return null;
+}
+
+function isOfflineError(error) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return error?.code === 'unavailable' || message.includes('client is offline');
+}
+
+async function withNetworkRetry(operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    await enableNetwork(db).catch(() => {});
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    return operation();
+  }
 }
 
 function normalizeConvivencia(data) {
@@ -102,7 +111,16 @@ function waitForUser() {
 
 async function resolveCourse(requestedCourseId) {
   if (E2E_AUTH_BYPASS) return { id: E2E_CURS_ID, name: 'E2E 2026-27' };
-  const snapshot = await getDocs(collection(db, 'cursos'));
+  if (requestedCourseId && /^[\w-]{1,100}$/.test(requestedCourseId)) {
+    try {
+      const requested = await withNetworkRetry(() => getDoc(doc(db, 'cursos', requestedCourseId)));
+      if (requested.exists()) return { id: requested.id, name: requested.data().nom || requested.id };
+    } catch (error) {
+      if (isOfflineError(error)) return { id: requestedCourseId, name: requestedCourseId };
+      throw error;
+    }
+  }
+  const snapshot = await withNetworkRetry(() => getDocs(collection(db, 'cursos')));
   const courses = snapshot.docs
     .map((item) => ({ id: item.id, ...item.data() }))
     .sort((a, b) => b.id.localeCompare(a.id, 'ca', { numeric: true }));
@@ -124,7 +142,7 @@ export async function getGuardiesContext(requestedCourseId = '') {
 
   const user = await waitForUser();
   if (!user) throw new Error('Inicia sessió a Quota per accedir a les dades de guàrdies.');
-  const userSnapshot = await getDoc(doc(db, 'usuaris', user.uid));
+  const userSnapshot = await withNetworkRetry(() => getDoc(doc(db, 'usuaris', user.uid)));
   const role = userSnapshot.exists() ? userSnapshot.data().rol : '';
   return {
     user,
@@ -147,13 +165,13 @@ export async function loadGuardiesData(cursId) {
     };
   }
 
-  const [reference, untis, duties, schedule, convivencia] = await Promise.all([
+  const [reference, untis, duties, schedule, convivencia] = await withNetworkRetry(() => Promise.all([
     getDoc(guardiesRef(cursId, 'reference')),
     getDoc(guardiesRef(cursId, 'untis')),
     getDoc(guardiesRef(cursId, 'duties')),
     getDoc(guardiesRef(cursId, 'schedule')),
     getDoc(guardiesRef(cursId, 'convivencia')),
-  ]);
+  ]));
   return {
     files: {
       reference: reference.exists() ? await loadStoredFile(reference.data()) : null,
@@ -169,7 +187,7 @@ export async function loadGuardiesStats(cursId) {
   if (E2E_AUTH_BYPASS) {
     return getE2EData(cursId).stats || { counts: {} };
   }
-  const snapshot = await getDoc(guardiesStatsRef(cursId));
+  const snapshot = await withNetworkRetry(() => getDoc(guardiesStatsRef(cursId)));
   return snapshot.exists() ? snapshot.data() : { counts: {} };
 }
 
@@ -181,22 +199,14 @@ export async function saveGuardiesFile(cursId, kind, text, name) {
     setE2EData(cursId, data);
     return file;
   }
-  const previous = await getDoc(guardiesRef(cursId, kind));
-  const storagePath = `guardies/${cursId}/imports/${kind}/${crypto.randomUUID()}-${encodeURIComponent(file.name)}`;
-  await uploadBytes(ref(storage, storagePath), new Blob([file.text], { type: 'text/plain;charset=utf-8' }), {
-    contentType: 'text/plain;charset=utf-8',
-  });
   await setDoc(guardiesRef(cursId, kind), {
     kind: file.kind,
     name: file.name,
     size: file.size,
-    storagePath,
+    text: file.text,
     encoding: 'utf-8',
     updatedAt: serverTimestamp(),
   });
-  const oldPath = previous.exists() ? previous.data().storagePath : '';
-  if (oldPath && oldPath !== storagePath) deleteObject(ref(storage, oldPath)).catch(() => {});
-  file.storagePath = storagePath;
   return file;
 }
 
@@ -208,10 +218,7 @@ export async function deleteGuardiesFile(cursId, kind) {
     setE2EData(cursId, data);
     return;
   }
-  const snapshot = await getDoc(guardiesRef(cursId, kind));
   await deleteDoc(guardiesRef(cursId, kind));
-  const storagePath = snapshot.exists() ? snapshot.data().storagePath : '';
-  if (storagePath) await deleteObject(ref(storage, storagePath)).catch(() => {});
 }
 
 export async function saveGuardiesConvivencia(cursId, assignacions) {
@@ -234,7 +241,7 @@ export async function loadGuardiesDay(cursId, date) {
     return data.days?.[date] || null;
   }
   try {
-    const snapshot = await getDoc(guardiesDayRef(cursId, date));
+    const snapshot = await withNetworkRetry(() => getDoc(guardiesDayRef(cursId, date)));
     return snapshot.exists() ? snapshot.data() : null;
   } catch (error) {
     if (error?.code === 'permission-denied') return null;

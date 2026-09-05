@@ -241,7 +241,7 @@ service cloud.firestore {
                 'kind',
                 'name',
                 'size',
-                'storagePath',
+                'text',
                 'encoding',
                 'updatedAt'
               ])
@@ -250,8 +250,8 @@ service cloud.firestore {
               && request.resource.data.name.size() <= 180
               && request.resource.data.size is int
               && request.resource.data.size <= 850 * 1024
-              && request.resource.data.storagePath is string
-              && request.resource.data.storagePath.size() <= 500
+              && request.resource.data.text is string
+              && request.resource.data.text.size() <= 850 * 1024
               && request.resource.data.encoding == 'utf-8'
               && request.resource.data.updatedAt == request.time
             )
