@@ -217,9 +217,13 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(releasedCandidates.nth(1)).toBeChecked();
     await expect(page.locator('[data-group-released="10"]:disabled')).toHaveCount(1);
     await expect(page.locator('[data-group-released="10"]:disabled')).not.toBeChecked();
-    await expect(page.locator('[data-confirm-group-released="10"]')).toContainText('Afegeix 1 professor disponible');
+    await expect(page.locator('#released-count')).toContainText('1 professor');
+    await expect(page.locator('[data-confirm-group-released="10"]')).toHaveCount(0);
+    await releasedCandidates.first().uncheck();
+    await releasedCandidates.nth(1).uncheck();
     await expect(page.locator('#released-count')).toContainText('0 professors');
-    await page.locator('[data-confirm-group-released="10"]').click();
+    await releasedCandidates.first().check();
+    await releasedCandidates.nth(1).check();
     await expect(page.locator('#released-count')).toContainText('1 professor');
 
     await page.locator('[data-add-group-companion="10"]').selectOption('1');

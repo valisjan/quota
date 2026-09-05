@@ -1519,50 +1519,6 @@ h3 {
   font-weight: 800;
 }
 
-.group-teacher-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 8px;
-  border-top: 1px solid var(--border);
-  padding-top: 8px;
-}
-
-.group-teacher-actions small {
-  max-width: 34ch;
-  color: var(--muted);
-  font-size: 0.58rem;
-  line-height: 1.35;
-}
-
-.group-teacher-actions button {
-  flex: 0 0 auto;
-  min-height: 32px;
-  border: 1px solid var(--primary);
-  border-radius: 5px;
-  background: var(--primary);
-  color: #fff;
-  padding: 5px 10px;
-  font-size: 0.64rem;
-  font-weight: 800;
-}
-
-.selected-group-card.has-pending-selection .group-teacher-actions button {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
-}
-
-@media (max-width: 560px) {
-  .group-teacher-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .group-teacher-actions button {
-    width: 100%;
-  }
-}
-
 .group-teacher {
   display: grid;
   grid-template-columns: 13px minmax(0, 1fr);
