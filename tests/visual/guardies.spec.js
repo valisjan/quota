@@ -98,6 +98,7 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('#duties-file')).toBeDisabled();
     await expect(page.locator('#xml-file')).toBeDisabled();
     await expect(page.locator('#cache-info')).toContainText('0/4 fitxers compartits');
+    await expect(page.locator('#admin-panel')).not.toHaveAttribute('open', '');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 

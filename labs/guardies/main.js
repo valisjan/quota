@@ -141,9 +141,7 @@ import {
       state.guardCounts = new Map(Object.entries(stats.counts || {}));
       state.persistenceStatus = 'ready';
       const adminPanel = document.getElementById('admin-panel');
-      if (adminPanel) {
-        adminPanel.open = !(state.referenceText && state.untisText && state.dutiesText && state.scheduleText);
-      }
+      if (adminPanel) adminPanel.open = false;
       parseStoredData({ resetSelection: true });
       await hydrateGuardiesDay(state.date);
       render();
@@ -485,9 +483,7 @@ import {
     const modePanels = Array.from(document.querySelectorAll('[data-mode-panel]'));
     const clearConvivencia = document.getElementById('clear-convivencia');
 
-    if (adminPanel) {
-      adminPanel.open = !(state.referenceText && state.untisText && state.dutiesText && state.scheduleText);
-    }
+    if (adminPanel) adminPanel.open = false;
     if (todayInfo) {
       const label = todayInfo.querySelector('strong');
       if (label) label.textContent = formatData(localDateString(new Date()));
