@@ -20,8 +20,13 @@ const saveMessage = ref('');
 const holidayDate = ref('');
 const holidayLabel = ref('');
 const selectedTeacher = ref('');
+const teacherQuery = ref('');
+const showTeacherResults = ref(false);
+const newZoneName = ref('');
 const weekAnchor = ref(state.date);
-let seededFromUntis = false;
+let saveTimer = null;
+let lastSavedSignature = '';
+let replacingDraft = false;
 
 function detectedStartYear() {
   return schoolYearStart(state.referencia?.any || state.courseName || state.courseId);
@@ -39,44 +44,36 @@ function teacherLabel(teacherId) {
     || 'Professor sense nom';
 }
 
-function gpTeacherIds(dayId) {
-  return Array.from(new Set(state.sessions
-    .filter((session) => session.dia === dayId && session.activitat === 'GP')
-    .map((session) => session.placa)
-    .filter(Boolean)));
+function signature(value) {
+  return JSON.stringify(normalizePatioConfig(value, { startYear: value?.startYear || detectedStartYear() }));
 }
 
-function seedDetectedTeachers() {
-  if (seededFromUntis || state.patiConfig) return;
-  if (!state.sessions.length) return;
-  const hasAny = WEEKDAYS.some(({ id }) => draft.value.weekdayTeachers[id].length);
-  if (hasAny) return;
-  WEEKDAYS.forEach(({ id }) => {
-    draft.value.weekdayTeachers[id] = gpTeacherIds(id).map((teacherId, index) => ({
-      teacherId,
-      startZoneId: draft.value.zones[index % Math.max(1, draft.value.zones.length)]?.id || '',
-    }));
-  });
-  seededFromUntis = true;
+function replaceDraft(value) {
+  replacingDraft = true;
+  draft.value = cloneConfig(value);
+  lastSavedSignature = signature(draft.value);
+  queueMicrotask(() => { replacingDraft = false; });
 }
 
 watch(() => state.patiConfig, (value) => {
-  if (value) {
-    draft.value = cloneConfig(value);
-    seededFromUntis = true;
-  } else {
-    draft.value = cloneConfig({ startYear: detectedStartYear() });
-    seededFromUntis = false;
-    seedDetectedTeachers();
-  }
-}, { immediate: true, deep: true });
+  replaceDraft(value || { startYear: detectedStartYear() });
+}, { immediate: true });
 
-watch(() => [state.sessions.length, state.referencia?.any], () => {
-  if (!state.patiConfig && draft.value.startYear !== detectedStartYear()) {
-    draft.value = cloneConfig({ startYear: detectedStartYear() });
+watch(() => state.referencia?.any, () => {
+  const startYear = detectedStartYear();
+  if (!state.patiConfig && draft.value.startYear !== startYear) {
+    replaceDraft({ ...draft.value, startYear, courseStart: '', courseEnd: '' });
   }
-  seedDetectedTeachers();
 });
+
+watch(draft, () => {
+  if (replacingDraft || !state.canWrite || !state.courseId) return;
+  const currentSignature = signature(draft.value);
+  if (currentSignature === lastSavedSignature) return;
+  saveMessage.value = 'Canvis pendents…';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveAutomatically, 450);
+}, { deep: true });
 
 watch(() => state.date, (value) => {
   if (value) weekAnchor.value = value;
@@ -84,16 +81,18 @@ watch(() => state.date, (value) => {
 
 const official = computed(() => officialSchoolCalendar(draft.value.startYear));
 const selectedRoster = computed(() => draft.value.weekdayTeachers[activeDay.value] || []);
-const detectedForActiveDay = computed(() => new Set(gpTeacherIds(activeDay.value)));
 const selectableTeachers = computed(() => {
   const selected = new Set(selectedRoster.value.map((item) => item.teacherId));
-  const detected = detectedForActiveDay.value;
   return state.professorOptions
     .filter((teacher) => !selected.has(teacher.placa))
-    .sort((a, b) => {
-      const detection = Number(detected.has(b.placa)) - Number(detected.has(a.placa));
-      return detection || a.label.localeCompare(b.label, 'ca', { numeric: true });
-    });
+    .sort((a, b) => a.label.localeCompare(b.label, 'ca', { numeric: true }));
+});
+const teacherResults = computed(() => {
+  const query = normalizeSearch(teacherQuery.value);
+  if (!query) return [];
+  return selectableTeachers.value
+    .filter((teacher) => normalizeSearch(`${teacher.label} ${teacher.placa} ${teacher.short || ''}`).includes(query))
+    .slice(0, 10);
 });
 const previewDates = computed(() => weekDates(weekAnchor.value));
 const configuredTeacherCount = computed(() => WEEKDAYS.reduce(
@@ -108,13 +107,16 @@ function uniqueZoneId() {
 }
 
 function addZone() {
+  const name = newZoneName.value.trim();
+  if (!name) return;
   const id = uniqueZoneId();
-  draft.value.zones.push({ id, name: `Zona ${draft.value.zones.length + 1}` });
+  draft.value.zones.push({ id, name });
   WEEKDAYS.forEach(({ id: dayId }) => {
     draft.value.weekdayTeachers[dayId].forEach((teacher, index) => {
       if (!teacher.startZoneId) teacher.startZoneId = draft.value.zones[index % draft.value.zones.length].id;
     });
   });
+  newZoneName.value = '';
 }
 
 function removeZone(zoneId) {
@@ -136,6 +138,8 @@ function addTeacher() {
     startZoneId: draft.value.zones[selectedRoster.value.length % Math.max(1, draft.value.zones.length)]?.id || '',
   });
   selectedTeacher.value = '';
+  teacherQuery.value = '';
+  showTeacherResults.value = false;
 }
 
 function removeTeacher(teacherId) {
@@ -143,16 +147,24 @@ function removeTeacher(teacherId) {
     .filter((teacher) => teacher.teacherId !== teacherId);
 }
 
-function importDetectedTeachers() {
-  const existing = new Set(selectedRoster.value.map((teacher) => teacher.teacherId));
-  gpTeacherIds(activeDay.value).forEach((teacherId) => {
-    if (existing.has(teacherId)) return;
-    selectedRoster.value.push({
-      teacherId,
-      startZoneId: draft.value.zones[selectedRoster.value.length % Math.max(1, draft.value.zones.length)]?.id || '',
-    });
-    existing.add(teacherId);
-  });
+function normalizeSearch(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function onTeacherInput() {
+  const current = state.professorOptions.find((teacher) => teacher.placa === selectedTeacher.value);
+  if (!current || teacherQuery.value !== current.label) selectedTeacher.value = '';
+  showTeacherResults.value = true;
+}
+
+function chooseTeacher(teacher) {
+  selectedTeacher.value = teacher.placa;
+  teacherQuery.value = teacher.label;
+  showTeacherResults.value = false;
 }
 
 function addHoliday() {
@@ -188,15 +200,23 @@ function moveWeek(amount) {
   weekAnchor.value = addDays(previewDates.value[0], amount * 7);
 }
 
-async function save() {
-  if (!state.canWrite || saving.value) return;
+async function saveAutomatically() {
+  if (!state.canWrite || !state.courseId) return;
+  if (saving.value) {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveAutomatically, 200);
+    return;
+  }
+  const pendingSignature = signature(draft.value);
+  if (pendingSignature === lastSavedSignature) return;
   saving.value = true;
-  saveMessage.value = '';
+  saveMessage.value = 'Desant automàticament…';
   try {
     const clean = await saveGuardiesPati(state.courseId, draft.value);
-    state.patiConfig = clean;
-    draft.value = cloneConfig(clean);
-    saveMessage.value = 'Configuració desada';
+    lastSavedSignature = signature(clean);
+    if (signature(draft.value) === pendingSignature) state.patiConfig = clean;
+    else saveTimer = setTimeout(saveAutomatically, 200);
+    saveMessage.value = 'Desat automàticament';
     window.dispatchEvent(new CustomEvent('guardies:pati-updated'));
   } catch (error) {
     saveMessage.value = `No s'ha pogut desar: ${error.message || error}`;
@@ -223,9 +243,19 @@ async function save() {
             <p class="kicker">1 · Espais</p>
             <h2>Zones de pati</h2>
           </div>
-          <button v-if="state.canWrite" id="add-pati-zone" type="button" class="ghost" @click="addZone">Afegeix zona</button>
         </div>
         <p class="hint tight">L'ordre defineix el recorregut. Després de la darrera zona, la rotació torna a la primera.</p>
+        <form v-if="state.canWrite" class="pati-add-zone" @submit.prevent="addZone">
+          <input
+            id="new-pati-zone"
+            v-model="newZoneName"
+            type="text"
+            maxlength="80"
+            placeholder="Nom de la nova zona"
+            aria-label="Nom de la nova zona"
+          />
+          <button id="add-pati-zone" type="submit" :disabled="!newZoneName.trim()">Afegeix</button>
+        </form>
         <div v-if="draft.zones.length" class="pati-zone-list">
           <div v-for="(zone, index) in draft.zones" :key="zone.id" class="pati-zone-row">
             <span>{{ index + 1 }}</span>
@@ -242,8 +272,8 @@ async function save() {
             <p class="kicker">2 · Professorat</p>
             <h2>GP de cada dia</h2>
           </div>
-          <button v-if="state.canWrite" type="button" class="ghost" @click="importDetectedTeachers">Importa GP d'Untis</button>
         </div>
+        <p class="hint tight">La cap d'estudis configura aquesta assignació manualment. Les activitats GP d'Untis no s'importen.</p>
         <div class="pati-day-tabs" role="tablist" aria-label="Dia de la setmana">
           <button
             v-for="day in WEEKDAYS"
@@ -252,25 +282,44 @@ async function save() {
             role="tab"
             :aria-selected="activeDay === day.id"
             :class="{ active: activeDay === day.id }"
-            @click="activeDay = day.id; selectedTeacher = ''"
+            @click="activeDay = day.id; selectedTeacher = ''; teacherQuery = ''; showTeacherResults = false"
           >
             {{ day.short }} <span>{{ draft.weekdayTeachers[day.id].length }}</span>
           </button>
         </div>
         <div v-if="state.canWrite" class="pati-add-teacher">
-          <select id="pati-teacher-select" v-model="selectedTeacher" aria-label="Professor que fa guàrdia de pati">
-            <option value="">Selecciona professor...</option>
-            <option v-for="teacher in selectableTeachers" :key="teacher.placa" :value="teacher.placa">
-              {{ detectedForActiveDay.has(teacher.placa) ? 'GP Untis · ' : '' }}{{ teacher.label }}
-            </option>
-          </select>
+          <div class="pati-teacher-autocomplete">
+            <input
+              id="pati-teacher-search"
+              v-model="teacherQuery"
+              type="search"
+              autocomplete="off"
+              placeholder="Escriu nom o codi del professor..."
+              aria-label="Professor que fa guàrdia de pati"
+              aria-autocomplete="list"
+              :aria-expanded="showTeacherResults && teacherResults.length > 0"
+              @input="onTeacherInput"
+              @focus="showTeacherResults = true"
+              @keydown.escape="showTeacherResults = false"
+            />
+            <div v-if="showTeacherResults && teacherResults.length" class="pati-teacher-results" role="listbox">
+              <button
+                v-for="teacher in teacherResults"
+                :key="teacher.placa"
+                type="button"
+                role="option"
+                @mousedown.prevent="chooseTeacher(teacher)"
+              >
+                <strong>{{ teacher.label }}</strong>
+              </button>
+            </div>
+          </div>
           <button id="add-pati-teacher" type="button" :disabled="!selectedTeacher" @click="addTeacher">Afegeix</button>
         </div>
         <div v-if="selectedRoster.length" class="pati-roster-list">
           <div v-for="teacher in selectedRoster" :key="teacher.teacherId" class="pati-roster-row">
             <div>
               <strong>{{ teacherLabel(teacher.teacherId) }}</strong>
-              <span v-if="detectedForActiveDay.has(teacher.teacherId)" class="source-chip">GP a Untis</span>
             </div>
             <label>
               Zona inicial
@@ -356,9 +405,7 @@ async function save() {
         No creen substitucions; els festius no consumeixen cap pas de la rotació.
       </p>
       <span v-if="saveMessage" :class="['pati-save-message', { error: saveMessage.startsWith('No') }]">{{ saveMessage }}</span>
-      <button v-if="state.canWrite" id="save-pati-config" type="button" :disabled="saving" @click="save">
-        {{ saving ? 'Desant…' : 'Desa la configuració de pati' }}
-      </button>
+      <span v-if="state.canWrite && !saveMessage" class="pati-save-message">Desat automàtic</span>
     </footer>
   </details>
 </template>

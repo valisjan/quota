@@ -161,25 +161,30 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('[data-convivencia-slot="1|08:00"]')).toHaveValue(selected);
   });
 
-  test('configura zones de pati, importa GP i salta els festius en la rotació', async ({ page }) => {
+  test('configura manualment zones i GP, desa automàticament i salta festius', async ({ page }) => {
     await openGuardies(page);
     await uploadConfiguration(page);
     await page.locator('#date-input').fill('2026-09-14');
     await page.locator('#date-input').press('Tab');
 
     await page.locator('#pati-panel summary').click();
+    await expect(page.locator('.pati-roster-row')).toHaveCount(0);
+    await page.locator('#new-pati-zone').fill('Pista');
     await page.locator('#add-pati-zone').click();
+    await page.locator('#new-pati-zone').fill('Porxada');
     await page.locator('#add-pati-zone').click();
-    await page.getByLabel('Nom de la zona 1').fill('Pista');
-    await page.getByLabel('Nom de la zona 2').fill('Porxada');
+
+    await page.locator('#pati-teacher-search').fill('Fuentes');
+    await page.locator('.pati-teacher-results [role="option"]').first().click();
+    await page.locator('#add-pati-teacher').click();
     await expect(page.locator('.pati-roster-row')).toContainText('Fuentes Serra');
-    await expect(page.locator('.pati-roster-row')).toContainText('GP a Untis');
+    await expect(page.getByText("Les activitats GP d'Untis no s'importen.")).toBeVisible();
 
     await page.locator('#pati-holiday-date').fill('2026-09-21');
     await page.locator('#pati-holiday-label').fill('Festa del centre');
     await page.locator('#add-pati-holiday').click();
-    await page.locator('#save-pati-config').click();
-    await expect(page.getByText('Configuració desada')).toBeVisible();
+    await expect(page.getByText('Desat automàticament')).toBeVisible();
+    await expect(page.locator('#save-pati-config')).toHaveCount(0);
     await expect(page.locator('#coverage-list .pati-info-strip')).toContainText('Pista');
 
     await page.reload();
