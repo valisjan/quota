@@ -1855,16 +1855,56 @@ import {
       if (isConvivenciaProfessor(dia, hora, item.placa)) candidates.get(item.placa).convivencia = true;
     });
 
+    allProfessorIds().forEach((placa) => {
+      if (placa === professorAbsent || candidates.has(placa)) return;
+      const base = ocupacioByPlaca.get(placa) || {
+        placa,
+        label: labelProfessor(placa),
+        sessions: [],
+        classes: [],
+        guardies: [],
+        activitats: [],
+        lliure: false,
+      };
+      candidates.set(placa, {
+        ...base,
+        alliberaments: [],
+        convivencia: false,
+        outsideDuty: true,
+        unavailable: isProfessorAbsentAtHour(dia, hora, placa) || isAssignedElsewhere(dia, hora, placa, currentAbsenceId),
+      });
+    });
+
     return Array.from(candidates.values())
       .sort((a, b) => {
-        const rankA = a.unavailable ? 3 : a.convivencia ? 2 : a.alliberaments.length ? 0 : 1;
-        const rankB = b.unavailable ? 3 : b.convivencia ? 2 : b.alliberaments.length ? 0 : 1;
+        const rankA = a.unavailable ? 4 : a.convivencia ? 2 : a.alliberaments.length ? 0 : a.outsideDuty ? 3 : 1;
+        const rankB = b.unavailable ? 4 : b.convivencia ? 2 : b.alliberaments.length ? 0 : b.outsideDuty ? 3 : 1;
         if (rankA !== rankB) return rankA - rankB;
         const countDifference = guardCount(a.placa) - guardCount(b.placa);
         if (countDifference) return countDifference;
         return (professorShort(a.placa) || a.placa)
           .localeCompare(professorShort(b.placa) || b.placa, 'ca', { numeric: true });
       });
+  }
+
+  function allProfessorIds() {
+    const ids = new Set(state.sessions.map((session) => session.placa).filter(Boolean));
+    const sessionsByShort = new Map();
+    state.sessions.forEach((session) => {
+      if (session.placa && session.professorCurta) {
+        sessionsByShort.set(normalizeSearch(session.professorCurta), session.placa);
+      }
+    });
+    const placesByShort = new Map();
+    state.referencia?.places?.forEach((place) => {
+      if (place.codi && place.curta) placesByShort.set(normalizeSearch(place.curta), place.codi);
+    });
+    state.professoratUntis?.professors?.forEach((professor) => {
+      const normalized = normalizeSearch(professor.codi);
+      const placa = sessionsByShort.get(normalized) || placesByShort.get(normalized) || professor.codi;
+      if (placa) ids.add(placa);
+    });
+    return Array.from(ids);
   }
 
   function isProfessorAbsentAtHour(dia, hora, placa) {
@@ -2191,9 +2231,14 @@ import {
 
   function professorInfo(placa) {
     const sessio = state.sessions.find((item) => item.placa === placa && (item.professorCurta || item.professorNom));
+    const place = state.referencia?.places?.get(placa);
+    const short = sessio?.professorCurta || place?.curta || placa;
+    const untis = state.professoratUntis?.professors?.get(short)
+      || Array.from(state.professoratUntis?.professors?.values?.() || [])
+        .find((professor) => normalizeSearch(professor.codi) === normalizeSearch(short));
     return {
-      short: sessio?.professorCurta || '',
-      name: sessio?.professorNom || '',
+      short,
+      name: sessio?.professorNom || untis?.label || place?.descripcio || '',
     };
   }
 
@@ -2264,8 +2309,12 @@ import {
 
   function candidateSelectLabel(candidate) {
     const count = guardCount(candidate.placa);
-    if (candidate.unavailable) return `No disponible - ${labelProfessor(candidate.placa)}`;
+    if (candidate.unavailable) {
+      const reason = candidate.outsideDuty ? ' · ni G ni alliberat' : '';
+      return `No disponible${reason} - ${labelProfessor(candidate.placa)}`;
+    }
     if (candidate.alliberaments?.length) return `Alliberat · ${count} fetes - ${labelProfessor(candidate.placa)}`;
+    if (candidate.outsideDuty) return `Ni G ni alliberat · ${count} fetes - ${labelProfessor(candidate.placa)}`;
     const prefix = candidate.convivencia ? 'Convivència - ' : 'Guàrdia - ';
     return `${prefix}${count} fetes - ${labelProfessor(candidate.placa)}`;
   }
@@ -2273,6 +2322,7 @@ import {
   function candidateOptionClass(candidate) {
     if (candidate.unavailable) return 'candidate-unavailable';
     if (candidate.alliberaments?.length) return 'candidate-released';
+    if (candidate.outsideDuty) return 'candidate-outside-duty';
     return 'candidate-guard';
   }
 

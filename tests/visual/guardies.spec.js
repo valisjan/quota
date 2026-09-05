@@ -133,6 +133,18 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('#coverage-list [data-assignacio]')).toHaveCount(3);
     await expect(page.locator('#print-coverage')).toBeEnabled();
 
+    const firstAssignment = page.locator('#coverage-list [data-assignacio]').first();
+    const candidateLabels = await firstAssignment.locator('option').allTextContents();
+    const guardIndex = candidateLabels.findIndex((label) => label.includes('Guàrdia -'));
+    const outsideDutyIndexes = candidateLabels
+      .map((label, index) => label.includes('Ni G ni alliberat') ? index : -1)
+      .filter((index) => index >= 0);
+    expect(guardIndex).toBeGreaterThan(0);
+    expect(outsideDutyIndexes.length).toBeGreaterThan(0);
+    expect(Math.min(...outsideDutyIndexes)).toBeGreaterThan(guardIndex);
+    await firstAssignment.selectOption('4');
+    await expect(firstAssignment).toHaveValue('4');
+
     await page.waitForTimeout(500);
     await page.reload();
     await page.locator('#date-input').fill('2026-09-07');

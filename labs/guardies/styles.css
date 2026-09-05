@@ -1841,6 +1841,11 @@ h3 {
   font-weight: 800;
 }
 
+.coverage-assignment-cell .candidate-outside-duty {
+  color: var(--amber);
+  font-weight: 750;
+}
+
 .coverage-assignment-cell .candidate-unavailable {
   background: var(--coral-soft);
   color: var(--coral);
