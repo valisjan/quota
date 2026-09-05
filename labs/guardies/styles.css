@@ -567,6 +567,288 @@ h3 {
   color: var(--green);
 }
 
+.pati-panel {
+  border-left: 3px solid var(--amber);
+}
+
+.pati-panel .admin-icon {
+  color: var(--amber);
+}
+
+.pati-admin-grid {
+  display: grid;
+  grid-template-columns: minmax(270px, 0.75fr) minmax(420px, 1.25fr);
+  gap: 10px;
+  padding: 10px;
+}
+
+.pati-calendar-block,
+.pati-preview-block {
+  grid-column: 1 / -1;
+}
+
+.pati-zone-list,
+.pati-roster-list {
+  display: grid;
+  gap: 6px;
+}
+
+.pati-zone-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 6px;
+}
+
+.pati-zone-row > span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--amber-soft);
+  color: var(--amber);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.pati-zone-row input,
+.pati-holiday-form input[type="text"] {
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 9px;
+}
+
+.pati-day-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.pati-day-tabs button {
+  min-width: 0;
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text-soft);
+  padding: 0 5px;
+}
+
+.pati-day-tabs button span {
+  display: inline-grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  margin-left: 2px;
+  border-radius: 99px;
+  background: var(--surface-strong);
+  font-size: 0.62rem;
+}
+
+.pati-day-tabs button.active {
+  border-color: var(--amber-border);
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.pati-add-teacher {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.pati-roster-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(130px, 0.7fr) 30px;
+  align-items: end;
+  gap: 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  padding: 7px;
+}
+
+.pati-roster-row > div {
+  min-width: 0;
+}
+
+.pati-roster-row strong {
+  display: block;
+  overflow: hidden;
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pati-roster-row label {
+  display: grid;
+  gap: 3px;
+}
+
+.source-chip {
+  display: inline-flex;
+  width: max-content;
+  margin-top: 3px;
+  border-radius: 99px;
+  background: var(--green-soft);
+  color: var(--green);
+  padding: 2px 6px;
+  font-size: 0.58rem;
+  font-weight: 850;
+}
+
+.source-chip.official {
+  margin: 0;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  text-decoration: none;
+}
+
+.official-calendar-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 9px;
+}
+
+.official-calendar-summary > span,
+.custom-holiday-list > span {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text-soft);
+  padding: 4px 7px;
+  font-size: 0.66rem;
+}
+
+.pati-holiday-form {
+  display: grid;
+  grid-template-columns: 155px minmax(220px, 1fr) auto;
+  gap: 6px;
+}
+
+.custom-holiday-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.custom-holiday-list button {
+  min-height: 18px;
+  margin-left: 5px;
+  border: 0;
+  background: transparent;
+  color: var(--coral);
+  padding: 0;
+}
+
+.week-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.pati-week-preview {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.pati-day-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.pati-day-card > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-strong);
+  padding: 6px 7px;
+  font-size: 0.68rem;
+}
+
+.pati-day-card > header span {
+  color: var(--muted);
+}
+
+.pati-preview-assignments {
+  display: grid;
+}
+
+.pati-preview-assignments > span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-soft);
+  padding: 5px 7px;
+  font-size: 0.63rem;
+}
+
+.pati-preview-assignments > span:last-child {
+  border-bottom: 0;
+}
+
+.pati-preview-assignments strong {
+  color: var(--amber);
+  font-size: 0.59rem;
+  text-transform: uppercase;
+}
+
+.pati-day-card.holiday {
+  border-color: var(--coral-border);
+  background: var(--coral-soft);
+}
+
+.non-teaching-label,
+.pati-no-roster {
+  margin: 0;
+  color: var(--muted);
+  padding: 12px 7px;
+  font-size: 0.65rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+.non-teaching-label {
+  color: var(--coral);
+}
+
+.pati-save-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding: 10px;
+}
+
+.pati-save-bar p {
+  flex: 1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.pati-save-message {
+  color: var(--green);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.pati-save-message.error {
+  color: var(--coral);
+}
+
 .admin-block {
   min-width: 0;
   border: 1px solid var(--border);
@@ -1672,6 +1954,72 @@ h3 {
   font-size: 0.65rem;
 }
 
+.pati-info-strip {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  border-bottom: 1px solid var(--amber-border);
+  background: var(--amber-soft);
+  padding: 6px 7px;
+}
+
+.pati-info-strip > span {
+  color: var(--amber);
+  font-size: 0.58rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.pati-info-strip > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pati-info-strip strong {
+  display: inline-grid;
+  gap: 1px;
+  border: 1px solid var(--amber-border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text-soft);
+  padding: 4px 6px;
+  font-size: 0.65rem;
+}
+
+.pati-info-strip strong em {
+  color: var(--amber);
+  font-size: 0.55rem;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+.pati-info-strip strong.absent {
+  border-color: var(--coral-border);
+  color: var(--coral);
+}
+
+.pati-info-strip strong small {
+  font-size: 0.55rem;
+}
+
+.pati-info-strip p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+
+.pati-info-strip.holiday {
+  border-color: var(--coral-border);
+  background: var(--coral-soft);
+}
+
+.pati-info-strip.holiday > span,
+.pati-info-strip.holiday p {
+  color: var(--coral);
+}
+
 .convivencia-badge {
   justify-self: start;
   border-radius: 999px;
@@ -1830,6 +2178,15 @@ h3 {
     grid-template-columns: 1fr;
   }
 
+  .pati-admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pati-calendar-block,
+  .pati-preview-block {
+    grid-column: auto;
+  }
+
   .convivencia-admin {
     grid-column: auto;
   }
@@ -1901,6 +2258,10 @@ h3 {
 
   .convivencia-week {
     grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+
+  .pati-week-preview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .guard-layout {
@@ -2009,6 +2370,33 @@ h3 {
   }
 
   .convivencia-week {
+    grid-template-columns: 1fr;
+  }
+
+  .pati-admin-grid {
+    padding: 7px;
+  }
+
+  .pati-roster-row {
+    grid-template-columns: minmax(0, 1fr) 30px;
+  }
+
+  .pati-roster-row label {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .pati-holiday-form,
+  .pati-week-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .pati-save-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pati-info-strip {
     grid-template-columns: 1fr;
   }
 

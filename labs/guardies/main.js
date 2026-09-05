@@ -10,6 +10,10 @@ import {
 } from '../../src/modules/guardies/domain/day.js';
 import { teachingDatesBetween } from '../../src/modules/guardies/domain/workflow.js';
 import {
+  nonTeachingReason,
+  patioAssignmentsForDate,
+} from '../../src/modules/guardies/domain/patio.js';
+import {
   deleteGuardiesFile,
   getGuardiesContext,
   loadGuardiesData,
@@ -70,6 +74,7 @@ import {
     removeUploadedFile(event.detail?.kind);
   });
   window.addEventListener('guardies:clear-files', clearPersistentFiles);
+  window.addEventListener('guardies:pati-updated', () => renderCoverage());
   window.addEventListener('guardies:day-action', (event) => changeDayStatus(event.detail?.action));
   window.addEventListener('guardies:apply-absence-range', (event) => applyAbsenceRange(event.detail));
   window.addEventListener('guardies:apply-outing-range', (event) => applyOutingRange(event.detail));
@@ -245,6 +250,7 @@ import {
     state.scheduleText = schedule?.text || '';
     state.scheduleName = schedule?.name || '';
     state.convivencia = convivenciaFromObject(remoteData.convivencia);
+    state.patiConfig = remoteData.pati || null;
   }
 
   function serializableDay() {
@@ -818,6 +824,7 @@ import {
 
   function renderProfessorSelect() {
     if (!state.sessions.length) {
+      state.professorOptions = [];
       el.professorSelect.innerHTML = '';
       el.professorResults.innerHTML = '';
       el.selectedProfessorLabel.textContent = 'Cap professor';
@@ -825,6 +832,7 @@ import {
     }
 
     const professors = professorsOrdenatsAmbLabel();
+    state.professorOptions = professors;
     if (!state.professor || !professors.some((prof) => prof.placa === state.professor)) {
       state.professor = '';
     }
@@ -1507,6 +1515,7 @@ import {
           <h3>${escapeHtml(horaLabel(hora))}</h3>
           <span>${items.length ? `${items.length} ${items.length === 1 ? 'absència' : 'absències'}` : 'Sense absències'}</span>
         </div>
+        ${hora === 'PATI' ? renderPatiForDate() : ''}
         ${items.length ? `
           <div class="coverage-session-list">
             <div class="coverage-table">
@@ -1592,6 +1601,44 @@ import {
               <strong class="${absent ? 'absent' : ''}">
                 ${escapeHtml(labelProfessor(placa))}
                 ${absent ? '<em>Absent</em>' : ''}
+              </strong>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPatiForDate() {
+    if (!state.patiConfig) {
+      return '<div class="pati-info-strip empty"><span>Zones de pati</span><p>Encara no hi ha una rotació configurada.</p></div>';
+    }
+    const reason = nonTeachingReason(state.date, state.patiConfig);
+    if (reason) {
+      return `
+        <div class="pati-info-strip holiday">
+          <span>Pati no lectiu</span>
+          <p>${escapeHtml(reason.label)} · la rotació no avança</p>
+        </div>
+      `;
+    }
+    const assignments = patioAssignmentsForDate(state.date, state.patiConfig);
+    if (!assignments.length) {
+      return '<div class="pati-info-strip empty"><span>Zones de pati</span><p>Sense professorat de GP configurat per a aquest dia.</p></div>';
+    }
+    return `
+      <div class="pati-info-strip">
+        <span>Zones de pati</span>
+        <div>
+          ${assignments.map((assignment) => {
+            const absent = Array.from(state.absencies.values()).some((item) => (
+              item.placa === assignment.teacherId && item.dia === diaXmlSeleccionat()
+            ));
+            return `
+              <strong class="${absent ? 'absent' : ''}">
+                <em>${escapeHtml(assignment.zoneName)}</em>
+                ${escapeHtml(labelProfessor(assignment.teacherId))}
+                ${absent ? '<small>Absent · no se substitueix</small>' : ''}
               </strong>
             `;
           }).join('')}

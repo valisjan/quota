@@ -41,7 +41,8 @@ SANZ,"Sanz Vidal, Clara"`;
 
 const dutiesText = `1,,"ADEL","G",,1,3,,
 2,,"FUEN","G",,1,1,,
-3,,"SANZ","G",,1,2,,`;
+3,,"SANZ","G",,1,2,,
+4,,"FUEN","GP",,1,4,,`;
 
 const referenceFile = {
   name: 'gestib-e2e.xml',
@@ -160,6 +161,42 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('[data-convivencia-slot="1|08:00"]')).toHaveValue(selected);
   });
 
+  test('configura zones de pati, importa GP i salta els festius en la rotació', async ({ page }) => {
+    await openGuardies(page);
+    await uploadConfiguration(page);
+    await page.locator('#date-input').fill('2026-09-14');
+    await page.locator('#date-input').press('Tab');
+
+    await page.locator('#pati-panel summary').click();
+    await page.locator('#add-pati-zone').click();
+    await page.locator('#add-pati-zone').click();
+    await page.getByLabel('Nom de la zona 1').fill('Pista');
+    await page.getByLabel('Nom de la zona 2').fill('Porxada');
+    await expect(page.locator('.pati-roster-row')).toContainText('Fuentes Serra');
+    await expect(page.locator('.pati-roster-row')).toContainText('GP a Untis');
+
+    await page.locator('#pati-holiday-date').fill('2026-09-21');
+    await page.locator('#pati-holiday-label').fill('Festa del centre');
+    await page.locator('#add-pati-holiday').click();
+    await page.locator('#save-pati-config').click();
+    await expect(page.getByText('Configuració desada')).toBeVisible();
+    await expect(page.locator('#coverage-list .pati-info-strip')).toContainText('Pista');
+
+    await page.reload();
+    await page.locator('#date-input').fill('2026-09-21');
+    await page.locator('#date-input').press('Tab');
+    await expect(page.locator('#coverage-list .pati-info-strip')).toContainText('Festa del centre');
+    await expect(page.locator('#coverage-list .pati-info-strip')).toContainText('la rotació no avança');
+
+    await page.locator('#date-input').fill('2026-09-28');
+    await page.locator('#date-input').press('Tab');
+    await expect(page.locator('#coverage-list .pati-info-strip')).toContainText('Porxada');
+    await page.locator('#pati-panel summary').click();
+    await expect(page.getByLabel('Nom de la zona 1')).toHaveValue('Pista');
+    await expect(page.getByLabel('Nom de la zona 2')).toHaveValue('Porxada');
+    await expect(page.getByText('Festa del centre')).toBeVisible();
+  });
+
   test('una sortida completa allibera professorat i els acompanyants generen absències', async ({ page }) => {
     await openGuardies(page);
     await uploadConfiguration(page);
@@ -195,7 +232,7 @@ test.describe('Guàrdies: comportament existent', () => {
 
     await page.locator('[data-add-group-companion="10"]').selectOption('2');
     await expect(page.locator('[data-group-companion="10"][data-teacher="2"]')).toBeVisible();
-    await expect(page.locator('#coverage-count')).toContainText('4 sessions');
+    await expect(page.locator('#coverage-count')).toContainText('5 sessions');
 
     await page.locator('#outing-to').fill('2026-09-08');
     await page.getByRole('button', { name: 'Copia als dies de l’interval' }).click();

@@ -265,6 +265,27 @@ service cloud.firestore {
               && request.resource.data.updatedAt == request.time
             )
             || (
+              id == 'pati'
+              && request.resource.data.keys().hasOnly([
+                'schemaVersion',
+                'startYear',
+                'courseStart',
+                'courseEnd',
+                'zones',
+                'customHolidays',
+                'weekdayTeachers',
+                'updatedAt'
+              ])
+              && request.resource.data.schemaVersion == 1
+              && request.resource.data.startYear is int
+              && request.resource.data.courseStart is string
+              && request.resource.data.courseEnd is string
+              && request.resource.data.zones is list
+              && request.resource.data.customHolidays is list
+              && request.resource.data.weekdayTeachers is map
+              && request.resource.data.updatedAt == request.time
+            )
+            || (
               id == 'stats'
               && request.resource.data.keys().hasOnly(['counts', 'updatedAt'])
               && request.resource.data.counts is map
@@ -280,7 +301,7 @@ service cloud.firestore {
         allow create, update: if esAdmin()
           && request.resource.data.keys().hasOnly([
             'schemaVersion', 'date', 'status', 'absenceIds', 'assignments',
-            'comments', 'groupsOut', 'groupTeachers', 'partialGroups', 'outingAbsenceIds', 'cancelledAssignments',
+            'comments', 'groupsOut', 'groupTeachers', 'groupReleasedTeachers', 'partialGroups', 'outingAbsenceIds', 'cancelledAssignments',
             'publishedAt', 'closedAt', 'countedAssignments', 'clientUpdatedAt',
             'revision', 'updatedAt'
           ])
@@ -292,6 +313,7 @@ service cloud.firestore {
           && request.resource.data.comments is map
           && request.resource.data.groupsOut is list
           && request.resource.data.groupTeachers is map
+          && request.resource.data.groupReleasedTeachers is map
           && request.resource.data.partialGroups is list
           && request.resource.data.outingAbsenceIds is list
           && request.resource.data.cancelledAssignments is list

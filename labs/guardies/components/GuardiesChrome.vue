@@ -2,6 +2,7 @@
 import GuardiesTopBar from './GuardiesTopBar.vue';
 import GuardiesWorkHeader from './GuardiesWorkHeader.vue';
 import GuardiesSetupPanel from './GuardiesSetupPanel.vue';
+import GuardiesPatiPanel from './GuardiesPatiPanel.vue';
 import GuardiesConvivenciaPanel from './GuardiesConvivenciaPanel.vue';
 import GuardiesWorkspace from './GuardiesWorkspace.vue';
 </script>
@@ -16,6 +17,9 @@ import GuardiesWorkspace from './GuardiesWorkspace.vue';
   </Teleport>
   <Teleport to="#guardies-convivencia-root">
     <GuardiesConvivenciaPanel />
+  </Teleport>
+  <Teleport to="#guardies-pati-root">
+    <GuardiesPatiPanel />
   </Teleport>
   <Teleport to="#guardies-workspace-root">
     <GuardiesWorkspace />

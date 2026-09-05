@@ -12,6 +12,7 @@ import {
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { E2E_AUTH_BYPASS, E2E_CURS_ID } from './e2e';
+import { normalizePatioConfig } from '../modules/guardies/domain/patio';
 
 const FILE_KINDS = new Set(['reference', 'untis', 'duties', 'schedule']);
 const MAX_FILE_BYTES = 850 * 1024;
@@ -81,6 +82,11 @@ function normalizeConvivencia(data) {
   return data?.assignacions && typeof data.assignacions === 'object'
     ? data.assignacions
     : {};
+}
+
+function normalizePati(data) {
+  if (!data || typeof data !== 'object') return null;
+  return normalizePatioConfig(data, { startYear: data.startYear });
 }
 
 function validateFile(kind, text, name) {
@@ -162,15 +168,17 @@ export async function loadGuardiesData(cursId) {
         schedule: data.files.schedule || null,
       },
       convivencia: data.convivencia || {},
+      pati: normalizePati(data.pati),
     };
   }
 
-  const [reference, untis, duties, schedule, convivencia] = await withNetworkRetry(() => Promise.all([
+  const [reference, untis, duties, schedule, convivencia, pati] = await withNetworkRetry(() => Promise.all([
     getDoc(guardiesRef(cursId, 'reference')),
     getDoc(guardiesRef(cursId, 'untis')),
     getDoc(guardiesRef(cursId, 'duties')),
     getDoc(guardiesRef(cursId, 'schedule')),
     getDoc(guardiesRef(cursId, 'convivencia')),
+    getDoc(guardiesRef(cursId, 'pati')),
   ]));
   return {
     files: {
@@ -180,6 +188,7 @@ export async function loadGuardiesData(cursId) {
       schedule: schedule.exists() ? await loadStoredFile(schedule.data()) : null,
     },
     convivencia: convivencia.exists() ? normalizeConvivencia(convivencia.data()) : {},
+    pati: pati.exists() ? normalizePati(pati.data()) : null,
   };
 }
 
@@ -233,6 +242,21 @@ export async function saveGuardiesConvivencia(cursId, assignacions) {
     assignacions: cleanAssignments,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function saveGuardiesPati(cursId, config) {
+  const clean = normalizePatioConfig(config, { startYear: config?.startYear });
+  if (E2E_AUTH_BYPASS) {
+    const data = getE2EData(cursId);
+    data.pati = clean;
+    setE2EData(cursId, data);
+    return clean;
+  }
+  await setDoc(guardiesRef(cursId, 'pati'), {
+    ...clean,
+    updatedAt: serverTimestamp(),
+  });
+  return clean;
 }
 
 export async function loadGuardiesDay(cursId, date) {
