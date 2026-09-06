@@ -97,6 +97,9 @@ export const useGuardiesStore = defineStore('guardies', {
       if (!date || date === this.date) return;
       this.date = date;
       this.clearDayContext();
+      const url = new URL(window.location.href);
+      url.searchParams.set('data', date);
+      window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
     },
   },
 });

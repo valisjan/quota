@@ -142,6 +142,8 @@ import {
     try {
       const search = new URLSearchParams(window.location.search);
       const requestedCourseId = search.get('curs') || '';
+      const requestedDate = search.get('data') || '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)) state.changeDate(requestedDate);
       const context = await getGuardiesContext(requestedCourseId, {
         teacherView: search.get('vista') === 'professor',
       });

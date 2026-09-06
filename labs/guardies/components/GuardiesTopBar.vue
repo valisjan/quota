@@ -4,16 +4,18 @@ import { storeToRefs } from 'pinia';
 import { useGuardiesStore } from '../stores/guardies.js';
 
 const dark = ref(document.documentElement.classList.contains('dark'));
-const { courseId, isAdmin, teacherView } = storeToRefs(useGuardiesStore());
+const { courseId, date, isAdmin, teacherView } = storeToRefs(useGuardiesStore());
 const guardiesHref = computed(() => {
   const query = new URLSearchParams();
   if (courseId.value) query.set('curs', courseId.value);
+  if (date.value) query.set('data', date.value);
   const suffix = query.toString();
   return `/labs/guardies/${suffix ? `?${suffix}` : ''}`;
 });
 const professoratHref = computed(() => {
   const query = new URLSearchParams();
   if (courseId.value) query.set('curs', courseId.value);
+  if (date.value) query.set('data', date.value);
   query.set('vista', 'professor');
   return `/labs/guardies/?${query.toString()}`;
 });

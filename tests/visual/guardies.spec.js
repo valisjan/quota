@@ -127,7 +127,15 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.getByRole('button', { name: 'Dia anterior' }).click();
     await expect(page.locator('#date-input')).toHaveValue('2026-09-07');
 
-    await page.goto('/labs/guardies/?vista=professor');
+    await page.getByRole('link', { name: 'Professorat', exact: true }).click();
+    await expect(page).toHaveURL(/vista=professor/);
+    await expect(page).toHaveURL(/data=2026-09-07/);
+    await expect(page.locator('#date-input')).toHaveValue('2026-09-07');
+    await page.getByRole('link', { name: 'Guàrdies', exact: true }).click();
+    await expect(page).toHaveURL(/data=2026-09-07/);
+    await expect(page.locator('#date-input')).toHaveValue('2026-09-07');
+    await page.getByRole('link', { name: 'Professorat', exact: true }).click();
+    await expect(page.locator('#date-input')).toHaveValue('2026-09-07');
     await expect(page.getByRole('heading', { name: 'Jornada encara no publicada' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Guàrdies del dia' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('.teacher-stats-panel')).toBeHidden();
