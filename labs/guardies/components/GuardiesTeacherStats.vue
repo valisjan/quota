@@ -57,7 +57,6 @@ const totals = computed(() => recordedRows.value.reduce((result, row) => ({
       <div>
         <p class="kicker">Curs {{ courseName }}</p>
         <h2 id="teacher-stats-title">Guàrdies realitzades</h2>
-        <p>El recompte s’actualitza quan es tanca la jornada i separa l’origen de cada cobertura.</p>
       </div>
       <div class="teacher-stats-totals" aria-label="Resum del curs">
         <span><strong>{{ totals.released }}</strong> com a alliberat</span>
@@ -96,6 +95,5 @@ const totals = computed(() => recordedRows.value.reduce((result, row) => ({
     <div v-else class="empty-small teacher-stats-empty">
       {{ recordedRows.length ? 'No hi ha resultats per a aquesta cerca.' : 'Encara no s’ha tancat cap jornada amb cobertures realitzades.' }}
     </div>
-    <p class="teacher-stats-note">«Altres» inclou les assignacions extraordinàries de professorat que no estava ni de G ni alliberat.</p>
   </section>
 </template>

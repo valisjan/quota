@@ -1295,12 +1295,6 @@ h3 {
   font-size: 0.78rem;
 }
 
-.teacher-stats-note {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.59rem;
-}
-
 .teacher-stats-empty {
   margin: 0;
 }
