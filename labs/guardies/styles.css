@@ -315,6 +315,19 @@ h3 {
   width: 100%;
 }
 
+.guardies-auth-gate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.guardies-auth-gate p {
+  margin: 0;
+  color: var(--coral);
+  font-size: 0.72rem;
+}
+
 .day-state {
   display: inline-grid;
   grid-template-columns: 8px auto;

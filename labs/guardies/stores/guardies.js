@@ -53,6 +53,7 @@ export const useGuardiesStore = defineStore('guardies', {
     adminSection: 'daily',
     teacherSection: 'daily',
     contextReady: false,
+    authRequired: false,
     viewerName: '',
     viewerEmail: '',
     persistenceStatus: 'loading',

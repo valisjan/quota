@@ -12,7 +12,13 @@ import {
   setDoc,
   where,
 } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import {
+  getRedirectResult,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithPopup,
+  signInWithRedirect,
+} from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { E2E_AUTH_BYPASS, E2E_CURS_ID } from './e2e';
 import { normalizePatioConfig } from '../modules/guardies/domain/patio';
@@ -26,6 +32,8 @@ const FILE_KINDS = new Set(['reference', 'untis', 'duties']);
 const DELETABLE_FILE_KINDS = new Set([...FILE_KINDS, 'schedule']);
 const MAX_FILE_BYTES = 850 * 1024;
 const E2E_PREFIX = 'quota-e2e-guardies:';
+const STAFF_DOMAIN = 'iesjosepsuredaiblanes.com';
+let redirectResultPromise = null;
 
 function getE2EData(cursId) {
   const raw = localStorage.getItem(`${E2E_PREFIX}${cursId}`);
@@ -121,8 +129,10 @@ function validateFile(kind, text, name) {
   };
 }
 
-function waitForUser() {
+async function waitForUser() {
   if (E2E_AUTH_BYPASS) return Promise.resolve({ uid: 'e2e-admin' });
+  redirectResultPromise ||= getRedirectResult(auth);
+  await redirectResultPromise;
   if (auth.currentUser) return Promise.resolve(auth.currentUser);
   return new Promise((resolve) => {
     let unsubscribe = () => {};
@@ -131,6 +141,22 @@ function waitForUser() {
       resolve(user);
     });
   });
+}
+
+export async function signInGuardies() {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ hd: STAFF_DOMAIN, prompt: 'select_account' });
+  try {
+    await signInWithPopup(auth, provider);
+    return true;
+  } catch (error) {
+    if (['auth/popup-blocked', 'auth/cancelled-popup-request'].includes(error?.code)) {
+      await signInWithRedirect(auth, provider);
+      return false;
+    }
+    if (error?.code !== 'auth/popup-closed-by-user') throw error;
+    return false;
+  }
 }
 
 async function resolveCourse(requestedCourseId) {

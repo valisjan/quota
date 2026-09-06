@@ -4,9 +4,9 @@ import GuardiesCoveragePanel from './GuardiesCoveragePanel.vue';
 import GuardiesIncidentPanel from './GuardiesIncidentPanel.vue';
 import { useGuardiesStore } from '../stores/guardies.js';
 
-const { canWrite, adminSection, teacherSection } = storeToRefs(useGuardiesStore());
+const { canWrite, authRequired, adminSection, teacherSection } = storeToRefs(useGuardiesStore());
 const visible = () => (canWrite.value && adminSection.value === 'daily')
-  || (!canWrite.value && teacherSection.value === 'daily');
+  || (!canWrite.value && !authRequired.value && teacherSection.value === 'daily');
 </script>
 
 <template>

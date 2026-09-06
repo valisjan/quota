@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import GuardiesTopBar from './GuardiesTopBar.vue';
 import GuardiesWorkHeader from './GuardiesWorkHeader.vue';
@@ -8,10 +9,26 @@ import GuardiesConvivenciaPanel from './GuardiesConvivenciaPanel.vue';
 import GuardiesWorkspace from './GuardiesWorkspace.vue';
 import GuardiesTeacherStats from './GuardiesTeacherStats.vue';
 import GuardiesGuardCountPanel from './GuardiesGuardCountPanel.vue';
+import { signInGuardies } from '../../../src/services/guardiesStorage.js';
 import { useGuardiesStore } from '../stores/guardies.js';
 
 const store = useGuardiesStore();
-const { canWrite, contextReady, adminSection, teacherSection } = storeToRefs(store);
+const { canWrite, contextReady, authRequired, adminSection, teacherSection } = storeToRefs(store);
+const signingIn = ref(false);
+const signInError = ref('');
+
+async function signIn() {
+  signingIn.value = true;
+  signInError.value = '';
+  try {
+    const signedIn = await signInGuardies();
+    if (signedIn) window.location.reload();
+    else signingIn.value = false;
+  } catch (error) {
+    signInError.value = error?.message || String(error);
+    signingIn.value = false;
+  }
+}
 </script>
 
 <template>
@@ -34,11 +51,15 @@ const { canWrite, contextReady, adminSection, teacherSection } = storeToRefs(sto
     <GuardiesPatiPanel v-show="canWrite && adminSection === 'config'" />
   </Teleport>
   <Teleport v-if="contextReady && !canWrite" to="#guardies-setup-root">
-    <nav class="teacher-view-tabs no-print" aria-label="Vista del professorat" role="tablist">
+    <section v-if="authRequired" class="guardies-auth-gate no-print">
+      <button type="button" :disabled="signingIn" @click="signIn">{{ signingIn ? 'Connectant…' : 'Inicia sessió' }}</button>
+      <p v-if="signInError" role="alert">{{ signInError }}</p>
+    </section>
+    <nav v-if="!authRequired" class="teacher-view-tabs no-print" aria-label="Vista del professorat" role="tablist">
       <button type="button" role="tab" :aria-selected="teacherSection === 'daily'" :class="{ active: teacherSection === 'daily' }" @click="store.teacherSection = 'daily'">Guàrdies del dia</button>
       <button type="button" role="tab" :aria-selected="teacherSection === 'stats'" :class="{ active: teacherSection === 'stats' }" @click="store.teacherSection = 'stats'">Guàrdies realitzades</button>
     </nav>
-    <GuardiesTeacherStats v-show="teacherSection === 'stats'" />
+    <GuardiesTeacherStats v-show="!authRequired && teacherSection === 'stats'" />
   </Teleport>
   <Teleport to="#guardies-workspace-root">
     <GuardiesWorkspace />

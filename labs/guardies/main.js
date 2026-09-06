@@ -138,9 +138,10 @@ import {
   bootstrap();
 
   async function bootstrap() {
+    const search = new URLSearchParams(window.location.search);
+    state.teacherView = search.get('vista') === 'professor';
     render();
     try {
-      const search = new URLSearchParams(window.location.search);
       const requestedCourseId = search.get('curs') || '';
       const requestedDate = search.get('data') || '';
       if (/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)) state.changeDate(requestedDate);
@@ -154,6 +155,7 @@ import {
       state.teacherView = context.teacherView;
       state.viewerName = context.user?.displayName || '';
       state.viewerEmail = context.user?.email || '';
+      state.authRequired = false;
       let remoteData = await loadGuardiesData(state.courseId);
       remoteData = await migrateLegacyData(remoteData);
       applyRemoteData(remoteData);
@@ -171,7 +173,8 @@ import {
     } catch (error) {
       state.persistenceStatus = 'error';
       state.contextReady = true;
-      showError(error.message || String(error));
+      state.authRequired = String(error?.message || error).includes('Inicia sessió');
+      showError(state.authRequired ? '' : error.message || String(error));
       render();
     }
   }
