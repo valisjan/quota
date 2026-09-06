@@ -17,7 +17,8 @@ import {
   onAuthStateChanged,
   signInWithPopup,
 } from 'firebase/auth';
-import { auth, db } from '../firebase';
+import { auth, db, isIOSWebKit } from '../firebase';
+import { getRestCollection, getRestDocument } from './firestoreRest';
 import { E2E_AUTH_BYPASS, E2E_CURS_ID, getE2ECollection } from './e2e';
 import { normalizePatioConfig } from '../modules/guardies/domain/patio';
 import {
@@ -111,6 +112,39 @@ async function withNetworkRetry(operation) {
   throw lastError;
 }
 
+function readDoc(reference) {
+  if (!isIOSWebKit) return getDoc(reference);
+  return getRestDocument(reference.path);
+}
+
+function readCollection(reference) {
+  if (!isIOSWebKit) return getDocs(reference);
+  return getRestCollection(reference.path);
+}
+
+function subscribeWithPolling(load, onChange, onError, interval = 5000) {
+  let active = true;
+  let timer = null;
+  let running = false;
+  const poll = async () => {
+    if (!active || running) return;
+    running = true;
+    try {
+      await onChange(await load());
+    } catch (error) {
+      onError(error);
+    } finally {
+      running = false;
+      if (active) timer = window.setTimeout(poll, interval);
+    }
+  };
+  timer = window.setTimeout(poll, interval);
+  return () => {
+    active = false;
+    if (timer) window.clearTimeout(timer);
+  };
+}
+
 function normalizeConvivencia(data) {
   return data?.assignacions && typeof data.assignacions === 'object'
     ? data.assignacions
@@ -188,14 +222,14 @@ async function resolveCourse(requestedCourseId) {
   if (E2E_AUTH_BYPASS) return { id: E2E_CURS_ID, name: 'E2E 2026-27' };
   if (requestedCourseId && /^[\w-]{1,100}$/.test(requestedCourseId)) {
     try {
-      const requested = await withNetworkRetry(() => getDoc(doc(db, 'cursos', requestedCourseId)));
+      const requested = await withNetworkRetry(() => readDoc(doc(db, 'cursos', requestedCourseId)));
       if (requested.exists()) return { id: requested.id, name: requested.data().nom || requested.id };
     } catch (error) {
       if (isOfflineError(error)) return { id: requestedCourseId, name: requestedCourseId };
       throw error;
     }
   }
-  const snapshot = await withNetworkRetry(() => getDocs(collection(db, 'cursos')));
+  const snapshot = await withNetworkRetry(() => readCollection(collection(db, 'cursos')));
   const courses = snapshot.docs
     .map((item) => ({ id: item.id, ...item.data() }))
     .sort((a, b) => b.id.localeCompare(a.id, 'ca', { numeric: true }));
@@ -220,7 +254,7 @@ export async function getGuardiesContext(requestedCourseId = '', { teacherView =
 
   const user = await waitForUser();
   if (!user) throw new Error('Inicia sessió a Quota per accedir a les dades de guàrdies.');
-  const userSnapshot = await withNetworkRetry(() => getDoc(doc(db, 'usuaris', user.uid)));
+  const userSnapshot = await withNetworkRetry(() => readDoc(doc(db, 'usuaris', user.uid)));
   const profile = userSnapshot.exists() ? userSnapshot.data() : {};
   const role = profile.rol || '';
   const isAdmin = role === 'admin';
@@ -254,12 +288,12 @@ export async function loadGuardiesData(cursId) {
   }
 
   const [reference, untis, duties, convivencia, pati, exclusions] = await withNetworkRetry(() => Promise.all([
-    getDoc(guardiesRef(cursId, 'reference')),
-    getDoc(guardiesRef(cursId, 'untis')),
-    getDoc(guardiesRef(cursId, 'duties')),
-    getDoc(guardiesRef(cursId, 'convivencia')),
-    getDoc(guardiesRef(cursId, 'pati')),
-    getDoc(guardiesExclusionsRef(cursId)),
+    readDoc(guardiesRef(cursId, 'reference')),
+    readDoc(guardiesRef(cursId, 'untis')),
+    readDoc(guardiesRef(cursId, 'duties')),
+    readDoc(guardiesRef(cursId, 'convivencia')),
+    readDoc(guardiesRef(cursId, 'pati')),
+    readDoc(guardiesExclusionsRef(cursId)),
   ]));
   return {
     files: {
@@ -288,6 +322,16 @@ export function subscribeGuardiesData(cursId, onChange, onError = () => {}) {
         stats: data.stats || { counts: {} },
       })).catch(onError);
     });
+  }
+
+  if (isIOSWebKit) {
+    return subscribeWithPolling(async () => {
+      const [data, stats] = await Promise.all([
+        loadGuardiesData(cursId),
+        loadGuardiesStats(cursId),
+      ]);
+      return { ...data, stats };
+    }, onChange, onError, 8000);
   }
 
   let guardiesReady = false;
@@ -346,9 +390,9 @@ export async function loadGuardiesTeacherDirectory(cursId) {
   }
 
   const [courseSnapshot, usersSnapshot, preauthorizedSnapshot] = await withNetworkRetry(() => Promise.all([
-    getDocs(collection(db, 'cursos', cursId, 'professors')),
-    getDocs(collection(db, 'usuaris')),
-    getDocs(collection(db, 'preautoritzats')),
+    readCollection(collection(db, 'cursos', cursId, 'professors')),
+    readCollection(collection(db, 'usuaris')),
+    readCollection(collection(db, 'preautoritzats')),
   ]));
   const profiles = [...usersSnapshot.docs, ...preauthorizedSnapshot.docs].map((item) => ({
     ...item.data(),
@@ -396,7 +440,7 @@ export async function loadGuardiesStats(cursId) {
   if (E2E_AUTH_BYPASS) {
     return getE2EData(cursId).stats || { counts: {} };
   }
-  const snapshot = await withNetworkRetry(() => getDoc(guardiesStatsRef(cursId)));
+  const snapshot = await withNetworkRetry(() => readDoc(guardiesStatsRef(cursId)));
   return snapshot.exists() ? snapshot.data() : { counts: {} };
 }
 
@@ -510,7 +554,7 @@ export async function loadGuardiesDay(cursId, date, { publishedOnly = false } = 
     return publishedOnly && !['published', 'closed'].includes(day?.status) ? null : day;
   }
   try {
-    const snapshot = await withNetworkRetry(() => getDoc(guardiesDayRef(cursId, date)));
+    const snapshot = await withNetworkRetry(() => readDoc(guardiesDayRef(cursId, date)));
     const day = snapshot.exists() ? snapshot.data() : null;
     return publishedOnly && !['published', 'closed'].includes(day?.status) ? null : day;
   } catch (error) {
@@ -528,6 +572,14 @@ export function subscribeGuardiesDay(cursId, date, onChange, onError = () => {},
         hasPendingWrites: false,
       });
     });
+  }
+
+  if (isIOSWebKit) {
+    return subscribeWithPolling(
+      () => loadGuardiesDay(cursId, date, { publishedOnly }),
+      (day) => onChange(day, { fromCache: false, hasPendingWrites: false }),
+      onError,
+    );
   }
 
   if (publishedOnly) {

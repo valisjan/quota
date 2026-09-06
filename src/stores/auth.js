@@ -2,11 +2,20 @@ import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db, auth, isIOSWebKit } from '../firebase';
+import { getRestDocument } from '../services/firestoreRest';
 import { useCursStore } from './curs';
 import { E2E_AUTH_BYPASS } from '../services/e2e';
 
 const DOMINI = 'iesjosepsuredaiblanes.com';
+
+function userDoc(collectionName, id) {
+  return doc(db, collectionName, id);
+}
+
+function readUserDoc(collectionName, id) {
+  return isIOSWebKit ? getRestDocument(`${collectionName}/${id}`) : getDoc(userDoc(collectionName, id));
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const estaAutenticat = ref(false);
@@ -50,10 +59,10 @@ export const useAuthStore = defineStore('auth', () => {
           _clear();
           return;
         }
-        const snap = await getDoc(doc(db, 'usuaris', firebaseUser.uid));
+        const snap = await readUserDoc('usuaris', firebaseUser.uid);
         if (snap.exists()) {
           let data = snap.data();
-          const preSnap = await getDoc(doc(db, 'preautoritzats', userEmail));
+          const preSnap = await readUserDoc('preautoritzats', userEmail);
           const pre = preSnap.exists() ? preSnap.data() : null;
           if (pre && calAplicarPreautoritzacio(data, pre)) {
             const preDepartaments = normalitzarDepartamentsUsuari(pre);
@@ -63,7 +72,7 @@ export const useAuthStore = defineStore('auth', () => {
               departaments: preDepartaments,
               updatedAt: new Date(),
             };
-            await updateDoc(doc(db, 'usuaris', firebaseUser.uid), actualitzacio);
+            await updateDoc(userDoc('usuaris', firebaseUser.uid), actualitzacio);
             data = { ...data, ...actualitzacio };
           }
           uid.value = firebaseUser.uid;
@@ -75,17 +84,17 @@ export const useAuthStore = defineStore('auth', () => {
           departaments.value = normalitzarDepartamentsUsuari(data);
           estaAutenticat.value = !!data.rol;
           esPendent.value = !data.rol;
-          updateDoc(doc(db, 'usuaris', firebaseUser.uid), {
+          updateDoc(userDoc('usuaris', firebaseUser.uid), {
             nom: firebaseUser.displayName,
             photoURL: photoURL.value,
             lastLogin: new Date(),
           }).catch(() => {});
         } else {
           // Primer login: comprova si el full té un rol pre-assignat
-          const preSnap = await getDoc(doc(db, 'preautoritzats', userEmail));
+          const preSnap = await readUserDoc('preautoritzats', userEmail);
           const pre = preSnap.exists() ? preSnap.data() : null;
           const preDepartaments = normalitzarDepartamentsUsuari(pre || {});
-          await setDoc(doc(db, 'usuaris', firebaseUser.uid), {
+          await setDoc(userDoc('usuaris', firebaseUser.uid), {
             email: userEmail,
             nom: firebaseUser.displayName || userEmail,
             photoURL: firebaseUser.photoURL || '',

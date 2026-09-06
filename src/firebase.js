@@ -34,4 +34,4 @@ const db = initializeFirestore(app, isIOSWebKit
     });
 const auth = getAuth(app);
 
-export { db, auth };
+export { db, auth, isIOSWebKit };
