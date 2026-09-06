@@ -229,6 +229,10 @@ test.describe('Guàrdies: comportament existent', () => {
     await fuentesCard.locator('[data-pati-zone-override]').selectOption({ label: 'Porxada' });
     await expect(fuentesCard).toHaveClass(/overridden/);
     await expect(fuentesCard.locator('[data-pati-zone-override]')).toHaveValue('zona-2');
+    await page.locator('[data-comment="__pati_observation__"]')
+      .fill('Banys ha de quedar cobert durant tot el pati.');
+    await expect(page.locator('[data-comment-print="__pati_observation__"]'))
+      .toContainText('Banys ha de quedar cobert');
 
     await page.locator('#professor-search').fill('Fuentes');
     await page.locator('#professor-results [data-professor]').first().click();
@@ -249,6 +253,8 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#date-input').press('Tab');
     await expect(page.locator('.pati-zone-card').filter({ hasText: 'Fuentes Serra' })
       .locator('[data-pati-zone-override]')).toHaveValue('zona-2');
+    await expect(page.locator('[data-comment="__pati_observation__"]'))
+      .toHaveValue('Banys ha de quedar cobert durant tot el pati.');
     await page.locator('#date-input').fill('2026-09-21');
     await page.locator('#date-input').press('Tab');
     await expect(page.locator('#coverage-list .pati-info-strip')).toContainText('Festa del centre');

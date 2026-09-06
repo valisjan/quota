@@ -2001,7 +2001,13 @@ h3 {
   text-transform: uppercase;
 }
 
-.pati-info-strip > div {
+.pati-content {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.pati-zone-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 5px;
@@ -2118,6 +2124,43 @@ h3 {
 
 .pati-card-spacer {
   visibility: hidden;
+}
+
+.pati-observation {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  border-top: 1px solid var(--amber-border);
+  padding-top: 6px;
+}
+
+.pati-observation > span {
+  color: var(--amber);
+  font-size: 0.58rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.pati-observation textarea {
+  width: 100%;
+  min-height: 34px;
+  resize: vertical;
+  border-color: var(--amber-border);
+  background: var(--surface);
+  font-size: 0.68rem;
+}
+
+.pati-observation-readonly,
+.pati-observation-print {
+  border-top: 1px solid var(--amber-border);
+  padding-top: 5px;
+  color: var(--text-soft) !important;
+  font-weight: 700;
+}
+
+.pati-observation-print:empty {
+  display: none;
 }
 
 .pati-info-strip p {
@@ -2513,6 +2556,10 @@ h3 {
   }
 
   .pati-info-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .pati-observation {
     grid-template-columns: 1fr;
   }
 

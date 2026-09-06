@@ -34,7 +34,7 @@ Els fitxers i la configuració setmanal queden guardats a Firestore dins el curs
 - Autoguardat, publicació, actualització i tancament de la jornada.
 - Implicació automàtica dels acompanyants en totes les seves classes i guàrdies.
 - Impressió A4 amb set sessions i pati.
-- Rotació setmanal de zones de pati, festius i canvis de zona per a una data concreta.
+- Rotació setmanal de zones de pati, festius, canvis de zona puntuals i observacions diàries.
 - Còmput anual de cobertures efectivament realitzades, separat entre professorat alliberat, G i assignacions extraordinàries.
 
 ## Fases posteriors

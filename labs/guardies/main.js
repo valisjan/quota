@@ -30,6 +30,7 @@ import {
 } from '../../src/services/guardiesStorage';
 
 (function initGuardiesLab() {
+  const PATI_COMMENT_KEY = '__pati_observation__';
   const LEGACY_STORAGE = {
     referenceXml: 'quota_guardies_lab_reference_xml',
     referenceName: 'quota_guardies_lab_reference_name',
@@ -357,7 +358,7 @@ import {
       }
     });
     Object.entries(saved?.comments || {}).forEach(([id, comment]) => {
-      if (state.absencies.has(id) && comment) state.comentaris.set(id, comment);
+      if ((state.absencies.has(id) || id === PATI_COMMENT_KEY) && comment) state.comentaris.set(id, comment);
     });
     (saved?.groupsOut || []).forEach((groupId) => state.grupsFora.add(groupId));
     Object.entries(saved?.groupTeachers || {}).forEach(([groupId, teachers]) => {
@@ -1653,7 +1654,8 @@ import {
         const printComment = Array.from(el.coverageList.querySelectorAll('[data-comment-print]'))
           .find((node) => node.dataset.commentPrint === input.dataset.comment);
         if (printComment) {
-          printComment.textContent = value ? `Comentari: ${value}` : '';
+          const prefix = input.dataset.comment === PATI_COMMENT_KEY ? 'Observacions del pati' : 'Comentari';
+          printComment.textContent = value ? `${prefix}: ${value}` : '';
         }
         scheduleDaySave();
       });
@@ -1725,11 +1727,24 @@ import {
     if (!assignments.length) {
       return '<div class="pati-info-strip empty"><span>Zones de pati</span><p>Sense professorat de GP configurat per a aquest dia.</p></div>';
     }
+    const observation = state.comentaris.get(PATI_COMMENT_KEY) || '';
+    const observationControl = state.canWrite ? `
+      <label class="pati-observation no-print">
+        <span>Observacions del pati</span>
+        <textarea
+          data-comment="${PATI_COMMENT_KEY}"
+          rows="2"
+          placeholder="Canvis, incidències o indicacions per al pati…"
+          ${state.dayStatus === 'closed' ? 'disabled' : ''}
+        >${escapeHtml(observation)}</textarea>
+      </label>
+    ` : observation ? `<p class="pati-observation-readonly">${escapeHtml(observation)}</p>` : '';
     return `
       <div class="pati-info-strip">
         <span>Zones de pati</span>
-        <div>
-          ${assignments.map((assignment) => {
+        <div class="pati-content">
+          <div class="pati-zone-grid">
+            ${assignments.map((assignment) => {
             const absent = isProfessorAbsentAtHour(diaXmlSeleccionat(), 'PATI', assignment.teacherId);
             const zoneControl = state.canWrite ? `
               <select
@@ -1761,7 +1776,10 @@ import {
                     : '<small class="pati-card-spacer" aria-hidden="true">&nbsp;</small>'}
               </article>
             `;
-          }).join('')}
+            }).join('')}
+          </div>
+          ${observationControl}
+          <p class="pati-observation-print print-only" data-comment-print="${PATI_COMMENT_KEY}">${observation ? `Observacions del pati: ${escapeHtml(observation)}` : ''}</p>
         </div>
       </div>
     `;
