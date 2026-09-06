@@ -45,7 +45,6 @@ export const useGuardiesStore = defineStore('guardies', {
     grupProfessorsAlliberats: new Map(),
     partialGroups: new Set(),
     outingAbsenceIds: new Set(),
-    outingWholeGroup: true,
     courseId: '',
     courseName: '',
     canWrite: false,

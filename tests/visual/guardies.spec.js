@@ -319,6 +319,34 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('[data-remove-group="10"]')).toBeVisible();
   });
 
+  test('decideix per cada grup si la sortida és completa o parcial', async ({ page }) => {
+    await openGuardies(page);
+    await uploadConfiguration(page);
+    await page.locator('#date-input').fill('2026-09-07');
+    await page.locator('#date-input').press('Tab');
+    await page.getByRole('tab', { name: 'Grup de sortida' }).click();
+
+    await page.locator('#group-search').selectOption('10');
+    await page.locator('#group-search').selectOption('11');
+    const groupA = page.locator('[data-group-complete="10"]');
+    const groupB = page.locator('[data-group-complete="11"]');
+    await expect(groupA).toBeChecked();
+    await expect(groupB).toBeChecked();
+
+    await groupA.uncheck();
+    await expect(groupA).not.toBeChecked();
+    await expect(groupB).toBeChecked();
+    await expect(groupA.locator('xpath=ancestor::label')).toContainText('Sortida parcial');
+
+    await page.locator('#outing-to').fill('2026-09-08');
+    await page.getByRole('button', { name: 'Copia als dies de l’interval' }).click();
+    await expect(page.getByText('Sortida copiada a 1 dia lectiu.')).toBeVisible();
+    await page.locator('#date-input').fill('2026-09-08');
+    await page.locator('#date-input').press('Tab');
+    await expect(page.locator('[data-group-complete="10"]')).not.toBeChecked();
+    await expect(page.locator('[data-group-complete="11"]')).toBeChecked();
+  });
+
   test('mostra el pati entre tercera i quarta i explica la còpia de sortides', async ({ page }) => {
     await openGuardies(page);
     await uploadConfiguration(page);

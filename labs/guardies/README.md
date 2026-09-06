@@ -28,7 +28,7 @@ Els fitxers i la configuració setmanal queden guardats a Firestore dins el curs
 - Comentari per cada absència.
 - Candidats jerarquitzats per origen i menor nombre de cobertures anuals.
 - Cerca del professorat que té guàrdia a la mateixa franja.
-- Sortides completes o parcials, amb selecció dels acompanyants.
+- Sortides amb decisió completa o parcial independent per a cada grup i selecció dels acompanyants.
 - Detecció del professorat que queda alliberat perquè tenia classe amb aquests grups.
 - Ús del professorat alliberat com a candidat de cobertura a la mateixa franja.
 - Autoguardat, publicació, actualització i tancament de la jornada.

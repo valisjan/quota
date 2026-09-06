@@ -359,33 +359,7 @@ h3 {
 .range-builder input,
 .outing-range input { min-height: 34px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); color: var(--text); padding: 0 6px; }
 
-.whole-group-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--green-border);
-  border-radius: 5px;
-  background: var(--green-soft);
-  margin-top: 9px;
-  padding: 8px;
-}
-.whole-group-toggle span,
-.whole-group-toggle strong,
-.whole-group-toggle small { display: block; }
-.whole-group-toggle strong { color: var(--text); }
-.whole-group-toggle small { margin-top: 2px; font-weight: 500; }
 .outing-range { border-top: 0; margin-top: 5px; padding-top: 0; }
-
-.selected-group-head em {
-  display: inline-block;
-  border-radius: 999px;
-  background: var(--primary-soft);
-  color: var(--primary-strong);
-  margin-left: 5px;
-  padding: 2px 6px;
-  font-size: .56rem;
-  font-style: normal;
-}
 .group-card-hint { margin: 0; padding: 6px 8px; color: var(--muted); font-size: .62rem; }
 .companion-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; padding: 0 8px 8px; }
 .info-only-label { color: var(--muted); font-size: .7rem; font-weight: 800; }
@@ -1393,6 +1367,41 @@ h3 {
 
 .selected-group-head strong {
   font-size: 0.78rem;
+}
+
+.group-completeness {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--green-border);
+  border-radius: 5px;
+  background: var(--green-soft);
+  margin-top: 7px;
+  padding: 7px 8px;
+  cursor: pointer;
+}
+
+.group-completeness.is-partial {
+  border-color: var(--amber-border);
+  background: var(--amber-soft);
+}
+
+.group-completeness span,
+.group-completeness strong,
+.group-completeness small {
+  display: block;
+}
+
+.group-completeness strong {
+  color: var(--text);
+  font-size: 0.68rem;
+}
+
+.group-completeness small {
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 0.59rem;
+  font-weight: 600;
 }
 
 .selected-group-head button,

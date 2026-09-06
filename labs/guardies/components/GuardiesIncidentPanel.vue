@@ -9,7 +9,6 @@ const absenceFrom = ref(date.value);
 const absenceTo = ref(date.value);
 const outingFrom = ref(date.value);
 const outingTo = ref(date.value);
-const wholeGroup = ref(true);
 const outingFeedback = ref('');
 const outingFeedbackKind = ref('');
 
@@ -27,10 +26,6 @@ watch(date, (value) => {
   outingTo.value = value;
 });
 
-watch(wholeGroup, (value) => {
-  window.dispatchEvent(new CustomEvent('guardies:outing-completeness', { detail: { wholeGroup: value } }));
-}, { immediate: true });
-
 function applyAbsenceRange() {
   window.dispatchEvent(new CustomEvent('guardies:apply-absence-range', {
     detail: { from: absenceFrom.value, to: absenceTo.value },
@@ -41,7 +36,7 @@ function applyOutingRange() {
   outingFeedback.value = 'Copiant la sortida...';
   outingFeedbackKind.value = '';
   window.dispatchEvent(new CustomEvent('guardies:apply-outing-range', {
-    detail: { from: outingFrom.value, to: outingTo.value, wholeGroup: wholeGroup.value },
+    detail: { from: outingFrom.value, to: outingTo.value },
   }));
 }
 
@@ -121,10 +116,6 @@ onBeforeUnmount(() => window.removeEventListener('guardies:outing-range-result',
             <option value="">Selecciona un grup per afegir-lo...</option>
           </select>
         </div>
-        <label class="whole-group-toggle">
-          <input v-model="wholeGroup" type="checkbox" :disabled="!canWrite || dayStatus === 'closed'" />
-          <span><strong>Surt tot el grup</strong><small>Si és parcial, cap professor queda alliberat.</small></span>
-        </label>
         <div class="outing-range">
           <div class="range-copy">
             <strong>Copia aquesta sortida a altres dies</strong>

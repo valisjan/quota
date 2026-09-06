@@ -86,9 +86,6 @@ import {
   window.addEventListener('guardies:day-action', (event) => changeDayStatus(event.detail?.action));
   window.addEventListener('guardies:apply-absence-range', (event) => applyAbsenceRange(event.detail));
   window.addEventListener('guardies:apply-outing-range', (event) => applyOutingRange(event.detail));
-  window.addEventListener('guardies:outing-completeness', (event) => {
-    state.outingWholeGroup = event.detail?.wholeGroup !== false;
-  });
   el.professorSelect.addEventListener('change', () => {
     selectProfessor(el.professorSelect.value);
   });
@@ -539,7 +536,7 @@ import {
     }
   }
 
-  async function applyOutingRange({ from, to, wholeGroup } = {}) {
+  async function applyOutingRange({ from, to } = {}) {
     const reportResult = (ok, message, count = 0) => {
       window.dispatchEvent(new CustomEvent('guardies:outing-range-result', {
         detail: { ok, message, count },
@@ -568,8 +565,8 @@ import {
       state.dayPersistenceStatus = 'saving';
       await Promise.all(dates.map((date) => mergeGuardiesDayPlan(state.courseId, date, {
         groupsOut: Array.from(state.grupsFora), groupTeachers, groupReleasedTeachers,
-        partialGroups: wholeGroup ? [] : Array.from(state.grupsFora),
-        completeGroups: wholeGroup ? Array.from(state.grupsFora) : [],
+        partialGroups: Array.from(state.partialGroups),
+        completeGroups: Array.from(state.grupsFora).filter((groupId) => !state.partialGroups.has(groupId)),
       })));
       await hydrateGuardiesDay(state.date);
       state.dayPersistenceStatus = 'ready';
@@ -1119,6 +1116,7 @@ import {
 
     el.selectedGroups.innerHTML = selected.map((grup) => {
       const completeGroups = new Set(Array.from(state.grupsFora).filter((groupId) => !state.partialGroups.has(groupId)));
+      const groupIsComplete = completeGroups.has(grup.codi);
       const teachingBlocks = groupTeachingBlocksForGroup(grup.codi);
       const companions = groupCompanionTeacherIds(grup.codi);
       const allCompanions = allCompanionTeacherIds();
@@ -1132,7 +1130,7 @@ import {
       return `
         <article class="selected-group-card">
           <div class="selected-group-head">
-            <strong>${escapeHtml(grup.label)} ${state.partialGroups.has(grup.codi) ? '<em>No surt tot el grup</em>' : '<em>Grup complet</em>'}</strong>
+            <strong>${escapeHtml(grup.label)}</strong>
             <button
               type="button"
               class="remove-group"
@@ -1144,7 +1142,23 @@ import {
               <span aria-hidden="true">X</span> Treu
             </button>
           </div>
-          <p class="group-card-hint">El professorat que queda lliure s'afegeix automàticament. Desmarca qui no hagi de quedar disponible; si acompanya la sortida, afegeix-lo també com a acompanyant${state.partialGroups.has(grup.codi) ? '. Com que no surt tot el grup, ningú queda preseleccionat' : ''}.</p>
+          <label class="group-completeness ${groupIsComplete ? '' : 'is-partial'}">
+            <input
+              type="checkbox"
+              data-group-complete="${escapeHtml(grup.codi)}"
+              ${groupIsComplete ? 'checked' : ''}
+              ${!state.canWrite || state.dayStatus === 'closed' ? 'disabled' : ''}
+            />
+            <span>
+              <strong>Surt tot el grup</strong>
+              <small>${groupIsComplete
+                ? 'Sortida completa: es calcula el professorat que queda alliberat.'
+                : 'Sortida parcial: el professorat del grup no queda alliberat.'}</small>
+            </span>
+          </label>
+          <p class="group-card-hint">${groupIsComplete
+            ? 'El professorat que queda lliure es marca automàticament. Desmarca les excepcions i afegeix els acompanyants.'
+            : 'Indica el professorat acompanyant; en una sortida parcial ningú queda alliberat.'}</p>
           <div class="companion-picker">
             <label>
               <span>Afegeix professorat acompanyant</span>
@@ -1167,16 +1181,20 @@ import {
             ${teachingBlocks.map((block) => {
                 const key = groupProfessorKey(block.hora, block.placa);
                 const remainingGroups = block.grups
-                  .filter((groupId) => !completeGroups.has(groupId))
+                  .filter((groupId) => groupId !== grup.codi && !completeGroups.has(groupId))
                   .map((groupId) => byCode.get(groupId)?.label || groupId);
-                const eligible = !remainingGroups.length && !allCompanions.has(block.placa);
+                const eligible = groupIsComplete && !remainingGroups.length && !allCompanions.has(block.placa);
                 return `
                   <label class="group-teacher">
                     <input type="checkbox" data-group-released="${escapeHtml(grup.codi)}" value="${escapeHtml(key)}" ${selectedReleased.has(key) && eligible ? 'checked' : ''} ${!state.canWrite || state.dayStatus === 'closed' || !eligible ? 'disabled' : ''} />
                     <span>
                       <b>${escapeHtml(labelProfessor(block.placa))}</b>
                       <small>${escapeHtml(horaLabel(block.hora))}</small>
-                      ${remainingGroups.length ? `<small class="shared-group-warning">També té ${escapeHtml(remainingGroups.join(' + '))}; no queda disponible.</small>` : ''}
+                      ${!groupIsComplete
+                        ? '<small class="shared-group-warning">Sortida parcial; no queda disponible.</small>'
+                        : remainingGroups.length
+                          ? `<small class="shared-group-warning">També té ${escapeHtml(remainingGroups.join(' + '))}; no queda disponible.</small>`
+                          : ''}
                       ${allCompanions.has(block.placa) ? '<small class="shared-group-warning">Acompanya una sortida; no queda disponible.</small>' : ''}
                     </span>
                   </label>
@@ -1190,6 +1208,12 @@ import {
     el.selectedGroups.querySelectorAll('[data-remove-group]').forEach((button) => {
       button.addEventListener('click', () => {
         toggleGroupOut(button.dataset.removeGroup);
+      });
+    });
+
+    el.selectedGroups.querySelectorAll('[data-group-complete]').forEach((input) => {
+      input.addEventListener('change', () => {
+        setGroupCompleteness(input.dataset.groupComplete, input.checked);
       });
     });
 
@@ -1225,8 +1249,7 @@ import {
     } else {
       state.grupsFora.add(codi);
       ensureGroupProfessorSelection(codi);
-      if (state.outingWholeGroup) state.partialGroups.delete(codi);
-      else state.partialGroups.add(codi);
+      state.partialGroups.delete(codi);
     }
     refreshAutomaticReleasedSelections(exclusions);
     renderGroupPicker();
@@ -1241,13 +1264,24 @@ import {
     const exclusions = releasedSelectionExclusions();
     state.grupsFora.add(codi);
     ensureGroupProfessorSelection(codi);
-    if (state.outingWholeGroup) state.partialGroups.delete(codi);
-    else state.partialGroups.add(codi);
+    state.partialGroups.delete(codi);
     refreshAutomaticReleasedSelections(exclusions);
     el.groupSearch.value = '';
     renderGroupPicker();
     renderCoverage();
     renderReleasedList();
+  }
+
+  function setGroupCompleteness(codi, complete) {
+    if (!state.canWrite || state.dayStatus === 'closed' || !state.grupsFora.has(codi)) return;
+    const exclusions = releasedSelectionExclusions();
+    if (complete) state.partialGroups.delete(codi);
+    else state.partialGroups.add(codi);
+    refreshAutomaticReleasedSelections(exclusions);
+    renderGroupPicker();
+    renderCoverage();
+    renderReleasedList();
+    scheduleDaySave();
   }
 
   function groupTeachingBlocksForGroup(codi) {
