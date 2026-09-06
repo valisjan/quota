@@ -114,6 +114,12 @@ test.describe('Guàrdies: comportament existent', () => {
 
     await page.goto('/labs/guardies/?vista=professor');
     await expect(page.getByRole('heading', { name: 'Jornada encara no publicada' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Guàrdies del dia' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('.teacher-stats-panel')).toBeHidden();
+    await page.getByRole('tab', { name: 'Guàrdies realitzades' }).click();
+    await expect(page.locator('.teacher-stats-panel')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Jornada encara no publicada' })).toBeHidden();
+    await page.getByRole('tab', { name: 'Guàrdies del dia' }).click();
     await expect(page.locator('#workspace')).toBeHidden();
     await expect(page.locator('.day-state')).toContainText('No publicada');
   });
@@ -251,13 +257,17 @@ test.describe('Guàrdies: comportament existent', () => {
 
     await page.goto('/labs/guardies/?vista=professor');
     await expect(page.getByRole('heading', { name: 'Guàrdies publicades' })).toBeVisible();
+    await expect(page.locator('.teacher-stats-panel')).toBeHidden();
+    await page.getByRole('tab', { name: 'Guàrdies realitzades' }).click();
     await expect(page.locator('.teacher-stats-panel')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Guàrdies publicades' })).toBeHidden();
     for (const selector of ['#admin-panel', '#pati-panel', '#convivencia-panel']) {
       await expect(page.locator(selector)).toBeHidden();
     }
     const teacherCount = page.locator('.teacher-stats-row').filter({ hasText: 'Fuentes Serra' });
     await expect(teacherCount.locator('[data-count-guard]')).toHaveText('1');
     await expect(teacherCount.locator('[data-count-total]')).toHaveText('1');
+    await page.getByRole('tab', { name: 'Guàrdies del dia' }).click();
     await page.locator('#date-input').fill('2026-09-07');
     await page.locator('#date-input').press('Tab');
     await expect(page.locator('.readonly-assignment').filter({ hasText: 'Fuentes Serra' })).toHaveCount(1);

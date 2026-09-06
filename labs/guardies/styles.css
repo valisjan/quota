@@ -1126,6 +1126,32 @@ h3 {
 
 .guard-layout.is-readonly { grid-template-columns: 1fr; }
 
+.teacher-view-tabs {
+  display: flex;
+  gap: 4px;
+  width: fit-content;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  padding: 4px;
+  box-shadow: var(--shadow-sm);
+}
+
+.teacher-view-tabs button {
+  min-height: 34px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.teacher-view-tabs button.active {
+  border-color: var(--primary-border);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
 .teacher-stats-panel {
   display: grid;
   gap: 10px;
@@ -2724,6 +2750,14 @@ h3 {
 
   .teacher-stats-head {
     display: grid;
+  }
+
+  .teacher-view-tabs {
+    width: 100%;
+  }
+
+  .teacher-view-tabs button {
+    flex: 1;
   }
 
   .teacher-stats-totals {

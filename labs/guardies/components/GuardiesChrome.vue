@@ -9,13 +9,14 @@ import GuardiesWorkspace from './GuardiesWorkspace.vue';
 import GuardiesTeacherStats from './GuardiesTeacherStats.vue';
 import { useGuardiesStore } from '../stores/guardies.js';
 
-const { canWrite, contextReady } = storeToRefs(useGuardiesStore());
+const store = useGuardiesStore();
+const { canWrite, contextReady, teacherSection } = storeToRefs(store);
 </script>
 
 <template>
   <GuardiesTopBar />
   <Teleport to="#guardies-work-header-root">
-    <GuardiesWorkHeader />
+    <GuardiesWorkHeader v-show="canWrite || teacherSection === 'daily'" />
   </Teleport>
   <Teleport to="#guardies-setup-root">
     <GuardiesSetupPanel v-show="canWrite" />
@@ -27,7 +28,11 @@ const { canWrite, contextReady } = storeToRefs(useGuardiesStore());
     <GuardiesPatiPanel v-show="canWrite" />
   </Teleport>
   <Teleport v-if="contextReady && !canWrite" to="#guardies-setup-root">
-    <GuardiesTeacherStats />
+    <nav class="teacher-view-tabs no-print" aria-label="Vista del professorat" role="tablist">
+      <button type="button" role="tab" :aria-selected="teacherSection === 'daily'" :class="{ active: teacherSection === 'daily' }" @click="store.teacherSection = 'daily'">Guàrdies del dia</button>
+      <button type="button" role="tab" :aria-selected="teacherSection === 'stats'" :class="{ active: teacherSection === 'stats' }" @click="store.teacherSection = 'stats'">Guàrdies realitzades</button>
+    </nav>
+    <GuardiesTeacherStats v-show="teacherSection === 'stats'" />
   </Teleport>
   <Teleport to="#guardies-workspace-root">
     <GuardiesWorkspace />

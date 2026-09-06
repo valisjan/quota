@@ -4,16 +4,16 @@ import GuardiesCoveragePanel from './GuardiesCoveragePanel.vue';
 import GuardiesIncidentPanel from './GuardiesIncidentPanel.vue';
 import { useGuardiesStore } from '../stores/guardies.js';
 
-const { canWrite } = storeToRefs(useGuardiesStore());
+const { canWrite, teacherSection } = storeToRefs(useGuardiesStore());
 </script>
 
 <template>
-  <section id="empty-state" class="empty">
+  <section v-show="canWrite || teacherSection === 'daily'" id="empty-state" class="empty">
     <h2>{{ canWrite ? "Carrega l'horari per començar" : 'Encara no hi ha cap full de guàrdies disponible' }}</h2>
     <p>{{ canWrite ? 'Obre Arxius de configuració i completa els tres passos de preparació.' : 'Quan la cap d’estudis publiqui la jornada, la podràs consultar aquí.' }}</p>
   </section>
 
-  <section id="workspace" class="workspace hidden">
+  <section v-show="canWrite || teacherSection === 'daily'" id="workspace" class="workspace hidden">
     <section class="stats hidden" aria-label="Resum de la configuració">
       <strong id="stat-sessions">0</strong>
       <strong id="stat-professors">0</strong>
