@@ -23,6 +23,8 @@ import {
   saveGuardiesDay,
   saveGuardiesConvivencia,
   saveGuardiesFile,
+  subscribeGuardiesData,
+  subscribeGuardiesDay,
   transitionGuardiesDay,
 } from '../../src/services/guardiesStorage';
 
@@ -39,6 +41,11 @@ import {
   const state = useGuardiesStore();
   let daySaveTimer = null;
   let lastDaySignature = '';
+  let lastRemoteDataSignature = '';
+  let unsubscribeGuardiesData = () => {};
+  let unsubscribeGuardiesDay = () => {};
+  let watchedDate = '';
+  let pendingRemoteDay = null;
 
   const el = {
     error: document.getElementById('error-box'),
@@ -121,8 +128,12 @@ import {
 
   setupIntakeAccordion();
   window.addEventListener('guardies:legacy-render', async (event) => {
-    if (event.detail?.reloadDay) await hydrateGuardiesDay(state.date);
+    if (event.detail?.reloadDay) await activateGuardiesDay(state.date);
     render();
+  });
+  window.addEventListener('beforeunload', () => {
+    unsubscribeGuardiesData();
+    unsubscribeGuardiesDay();
   });
   bootstrap();
 
@@ -139,11 +150,13 @@ import {
       applyRemoteData(remoteData);
       const stats = await loadGuardiesStats(state.courseId);
       state.guardCounts = new Map(Object.entries(stats.counts || {}));
+      lastRemoteDataSignature = remoteDataSignature({ ...remoteData, stats });
       state.persistenceStatus = 'ready';
       const adminPanel = document.getElementById('admin-panel');
       if (adminPanel) adminPanel.open = false;
       parseStoredData({ resetSelection: true });
-      await hydrateGuardiesDay(state.date);
+      await activateGuardiesDay(state.date);
+      subscribeToRemoteData();
       render();
     } catch (error) {
       state.persistenceStatus = 'error';
@@ -242,6 +255,45 @@ import {
     state.patiConfig = remoteData.pati || null;
   }
 
+  function remoteDataSignature(remoteData) {
+    return JSON.stringify({
+      files: remoteData.files || {},
+      convivencia: remoteData.convivencia || {},
+      pati: remoteData.pati || null,
+      counts: remoteData.stats?.counts || {},
+    });
+  }
+
+  function subscribeToRemoteData() {
+    unsubscribeGuardiesData();
+    unsubscribeGuardiesData = subscribeGuardiesData(state.courseId, async (remoteData) => {
+      const signature = remoteDataSignature(remoteData);
+      if (signature === lastRemoteDataSignature) return;
+      const previousFiles = JSON.stringify({
+        reference: state.referenceText,
+        untis: state.untisText,
+        duties: state.dutiesText,
+      });
+      lastRemoteDataSignature = signature;
+      applyRemoteData(remoteData);
+      state.guardCounts = new Map(Object.entries(remoteData.stats?.counts || {}));
+      const nextFiles = JSON.stringify({
+        reference: state.referenceText,
+        untis: state.untisText,
+        duties: state.dutiesText,
+      });
+      parseStoredData({ resetSelection: false });
+      if (previousFiles !== nextFiles && daySignature() === lastDaySignature) {
+        await hydrateGuardiesDay(state.date);
+      }
+      state.persistenceStatus = 'ready';
+      render();
+    }, (error) => {
+      if (error?.code === 'permission-denied') return;
+      showError(`No s'han pogut sincronitzar les dades. ${error.message || error}`);
+    });
+  }
+
   function serializableDay() {
     const assignments = {};
     const comments = {};
@@ -276,6 +328,51 @@ import {
     return JSON.stringify(payload);
   }
 
+  function applyGuardiesDay(saved, date) {
+    if (date !== state.date) return;
+    state.clearDayContext();
+    const day = xmlDayForDate(date);
+    const items = parser.agruparSessionsCobertura(
+      state.sessions.filter((session) => session.dia === day && isMeaningfulSession(session)),
+    );
+    const byId = new Map(items.map((item) => [item.id, item]));
+    (saved?.absenceIds || []).forEach((id) => {
+      const item = byId.get(id);
+      if (item && isAbsenceSelectable(item)) state.absencies.set(id, item);
+    });
+    Object.entries(saved?.assignments || {}).forEach(([id, teacherId]) => {
+      if (state.absencies.has(id) && teacherId) state.assignacions.set(id, teacherId);
+    });
+    Object.entries(saved?.comments || {}).forEach(([id, comment]) => {
+      if (state.absencies.has(id) && comment) state.comentaris.set(id, comment);
+    });
+    (saved?.groupsOut || []).forEach((groupId) => state.grupsFora.add(groupId));
+    Object.entries(saved?.groupTeachers || {}).forEach(([groupId, teachers]) => {
+      state.grupProfessorsFora.set(groupId, new Set(Array.isArray(teachers) ? teachers : []));
+    });
+    Object.entries(saved?.groupReleasedTeachers || {}).forEach(([groupId, teachers]) => {
+      state.grupProfessorsAlliberats.set(groupId, new Set(Array.isArray(teachers) ? teachers : []));
+    });
+    state.partialGroups = new Set(saved?.partialGroups || []);
+    state.outingAbsenceIds = new Set(saved?.outingAbsenceIds || []);
+    if (saved && !Object.prototype.hasOwnProperty.call(saved, 'groupReleasedTeachers')) {
+      state.grupsFora.forEach((groupId) => {
+        state.grupProfessorsAlliberats.set(groupId, defaultReleasedGroupKeys(groupId));
+      });
+    }
+    if (state.grupsFora.size) syncOutingAbsences();
+    state.dayStatus = saved?.status || 'draft';
+    state.publishedAt = saved?.publishedAt || '';
+    state.closedAt = saved?.closedAt || '';
+    state.updatedAt = saved?.clientUpdatedAt || '';
+    state.cancelledAssignments = new Set(saved?.cancelledAssignments || []);
+    state.countedAssignments = Array.isArray(saved?.countedAssignments) ? saved.countedAssignments : [];
+    state.dayRevision = Number(saved?.revision) || 0;
+    lastDaySignature = daySignature();
+    state.dayPersistenceStatus = 'ready';
+    state.dayLoaded = true;
+  }
+
   async function hydrateGuardiesDay(date) {
     if (!state.courseId || !date) return;
     state.dayLoaded = false;
@@ -283,51 +380,49 @@ import {
     state.clearDayContext();
     try {
       const saved = await loadGuardiesDay(state.courseId, date);
-      const day = xmlDayForDate(date);
-      const items = parser.agruparSessionsCobertura(
-        state.sessions.filter((session) => session.dia === day && isMeaningfulSession(session)),
-      );
-      const byId = new Map(items.map((item) => [item.id, item]));
-      (saved?.absenceIds || []).forEach((id) => {
-        const item = byId.get(id);
-        if (item && isAbsenceSelectable(item)) state.absencies.set(id, item);
-      });
-      Object.entries(saved?.assignments || {}).forEach(([id, teacherId]) => {
-        if (state.absencies.has(id) && teacherId) state.assignacions.set(id, teacherId);
-      });
-      Object.entries(saved?.comments || {}).forEach(([id, comment]) => {
-        if (state.absencies.has(id) && comment) state.comentaris.set(id, comment);
-      });
-      (saved?.groupsOut || []).forEach((groupId) => state.grupsFora.add(groupId));
-      Object.entries(saved?.groupTeachers || {}).forEach(([groupId, teachers]) => {
-        state.grupProfessorsFora.set(groupId, new Set(Array.isArray(teachers) ? teachers : []));
-      });
-      Object.entries(saved?.groupReleasedTeachers || {}).forEach(([groupId, teachers]) => {
-        state.grupProfessorsAlliberats.set(groupId, new Set(Array.isArray(teachers) ? teachers : []));
-      });
-      state.partialGroups = new Set(saved?.partialGroups || []);
-      state.outingAbsenceIds = new Set(saved?.outingAbsenceIds || []);
-      if (saved && !Object.prototype.hasOwnProperty.call(saved, 'groupReleasedTeachers')) {
-        state.grupsFora.forEach((groupId) => {
-          state.grupProfessorsAlliberats.set(groupId, defaultReleasedGroupKeys(groupId));
-        });
-      }
-      if (state.grupsFora.size) syncOutingAbsences();
-      state.dayStatus = saved?.status || 'draft';
-      state.publishedAt = saved?.publishedAt || '';
-      state.closedAt = saved?.closedAt || '';
-      state.updatedAt = saved?.clientUpdatedAt || '';
-      state.cancelledAssignments = new Set(saved?.cancelledAssignments || []);
-      state.countedAssignments = Array.isArray(saved?.countedAssignments) ? saved.countedAssignments : [];
-      state.dayRevision = Number(saved?.revision) || 0;
-      lastDaySignature = daySignature();
-      state.dayPersistenceStatus = 'ready';
+      if (date !== state.date) return;
+      applyGuardiesDay(saved, date);
     } catch (error) {
       state.dayPersistenceStatus = 'error';
       showError(`No s'ha pogut carregar la jornada. ${error.message || error}`);
     } finally {
-      state.dayLoaded = true;
+      if (date === state.date) state.dayLoaded = true;
     }
+  }
+
+  async function activateGuardiesDay(date) {
+    unsubscribeGuardiesDay();
+    watchedDate = date;
+    pendingRemoteDay = null;
+    await hydrateGuardiesDay(date);
+    if (date !== state.date || date !== watchedDate) return;
+    unsubscribeGuardiesDay = subscribeGuardiesDay(state.courseId, date, (saved) => {
+      if (date !== state.date || date !== watchedDate || !state.dayLoaded) return;
+      const remoteRevision = Number(saved?.revision) || 0;
+      const isDeletion = !saved;
+      if ((!isDeletion && remoteRevision <= state.dayRevision) || (isDeletion && state.dayRevision === 0)) return;
+      if (state.dayPersistenceStatus === 'saving' || daySignature() !== lastDaySignature) {
+        pendingRemoteDay = { saved, date };
+        return;
+      }
+      applyGuardiesDay(saved, date);
+      showError('');
+      render();
+    }, (error) => {
+      if (error?.code === 'permission-denied') return;
+      showError(`No s'ha pogut sincronitzar la jornada. ${error.message || error}`);
+    });
+  }
+
+  function flushPendingRemoteDay() {
+    if (!pendingRemoteDay || pendingRemoteDay.date !== state.date) return false;
+    const { saved, date } = pendingRemoteDay;
+    pendingRemoteDay = null;
+    const remoteRevision = Number(saved?.revision) || 0;
+    if ((saved && remoteRevision <= state.dayRevision) || (!saved && state.dayRevision === 0)) return false;
+    applyGuardiesDay(saved, date);
+    render();
+    return true;
   }
 
   function scheduleDaySave() {
@@ -344,9 +439,13 @@ import {
         state.updatedAt = saved.clientUpdatedAt || new Date().toISOString();
         lastDaySignature = signature;
         state.dayPersistenceStatus = 'ready';
+        flushPendingRemoteDay();
       } catch (error) {
         state.dayPersistenceStatus = 'error';
-        showError(`No s'ha pogut guardar la jornada. ${error.message || error}`);
+        const synchronized = flushPendingRemoteDay();
+        showError(synchronized
+          ? 'La jornada havia canviat en una altra sessió i s\'ha sincronitzat. Revisa el teu darrer canvi.'
+          : `No s'ha pogut guardar la jornada. ${error.message || error}`);
       }
     }, 250);
   }
@@ -362,6 +461,7 @@ import {
     state.updatedAt = saved.clientUpdatedAt || new Date().toISOString();
     lastDaySignature = signature;
     state.dayPersistenceStatus = 'ready';
+    flushPendingRemoteDay();
   }
 
   async function changeDayStatus(action) {
@@ -379,6 +479,7 @@ import {
       state.guardCounts = new Map(Object.entries(result.stats?.counts || Object.fromEntries(state.guardCounts)));
       lastDaySignature = daySignature();
       state.dayPersistenceStatus = 'ready';
+      flushPendingRemoteDay();
       showError('');
       render();
     } catch (error) {

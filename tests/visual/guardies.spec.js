@@ -103,6 +103,31 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('[data-upload-name="schedule"]')).toHaveCount(0);
   });
 
+  test('sincronitza la jornada entre dues sessions sense recarregar', async ({ page, context }) => {
+    await openGuardies(page);
+    const otherPage = await context.newPage();
+    await openGuardies(otherPage);
+    await expect(otherPage.locator('#cache-info')).toContainText('0/3 fitxers compartits');
+
+    await uploadConfiguration(page);
+    await expect(otherPage.locator('#cache-info')).toContainText('3/3 fitxers compartits');
+    await expect(otherPage.locator('#workspace')).toBeVisible();
+
+    await page.locator('#date-input').fill('2026-09-07');
+    await page.locator('#date-input').press('Tab');
+    await otherPage.locator('#date-input').fill('2026-09-07');
+    await otherPage.locator('#date-input').press('Tab');
+    await expect(otherPage.locator('#coverage-count')).toContainText('0 sessions');
+
+    await page.locator('#professor-search').fill('ADELL');
+    await page.locator('#professor-results [data-professor]').first().click();
+    await page.locator('#add-all-hours').click();
+
+    await expect(otherPage.locator('#coverage-count')).toContainText('3 sessions');
+    await expect(otherPage.locator('#coverage-list [data-assignacio]')).toHaveCount(3);
+    await otherPage.close();
+  });
+
   test('selecciona un professor absent, crea cobertures i conserva la jornada', async ({ page }) => {
     await openGuardies(page);
     await uploadConfiguration(page);

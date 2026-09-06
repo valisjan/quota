@@ -5,6 +5,7 @@ import {
   enableNetwork,
   getDoc,
   getDocs,
+  onSnapshot,
   runTransaction,
   serverTimestamp,
   setDoc,
@@ -20,7 +21,7 @@ const MAX_FILE_BYTES = 850 * 1024;
 const E2E_PREFIX = 'quota-e2e-guardies:';
 
 function getE2EData(cursId) {
-  const raw = sessionStorage.getItem(`${E2E_PREFIX}${cursId}`);
+  const raw = localStorage.getItem(`${E2E_PREFIX}${cursId}`);
   if (!raw) return { files: {}, convivencia: {} };
   try {
     return JSON.parse(raw);
@@ -30,7 +31,16 @@ function getE2EData(cursId) {
 }
 
 function setE2EData(cursId, data) {
-  sessionStorage.setItem(`${E2E_PREFIX}${cursId}`, JSON.stringify(data));
+  localStorage.setItem(`${E2E_PREFIX}${cursId}`, JSON.stringify(data));
+}
+
+function subscribeE2E(cursId, callback) {
+  const key = `${E2E_PREFIX}${cursId}`;
+  const listener = (event) => {
+    if (event.key === key) callback(getE2EData(cursId));
+  };
+  window.addEventListener('storage', listener);
+  return () => window.removeEventListener('storage', listener);
 }
 
 function guardiesRef(cursId, id) {
@@ -190,6 +200,41 @@ export async function loadGuardiesData(cursId) {
   };
 }
 
+export function subscribeGuardiesData(cursId, onChange, onError = () => {}) {
+  if (E2E_AUTH_BYPASS) {
+    return subscribeE2E(cursId, (data) => {
+      Promise.resolve(onChange({
+        files: {
+          reference: data.files?.reference || null,
+          untis: data.files?.untis || null,
+          duties: data.files?.duties || null,
+        },
+        convivencia: data.convivencia || {},
+        pati: normalizePati(data.pati),
+        stats: data.stats || { counts: {} },
+      })).catch(onError);
+    });
+  }
+
+  return onSnapshot(collection(db, 'cursos', cursId, 'guardies'), async (snapshot) => {
+    try {
+      const documents = new Map(snapshot.docs.map((item) => [item.id, item.data()]));
+      await onChange({
+        files: {
+          reference: await loadStoredFile(documents.get('reference')),
+          untis: await loadStoredFile(documents.get('untis')),
+          duties: await loadStoredFile(documents.get('duties')),
+        },
+        convivencia: normalizeConvivencia(documents.get('convivencia')),
+        pati: normalizePati(documents.get('pati')),
+        stats: documents.get('stats') || { counts: {} },
+      });
+    } catch (error) {
+      onError(error);
+    }
+  }, onError);
+}
+
 export async function loadGuardiesStats(cursId) {
   if (E2E_AUTH_BYPASS) {
     return getE2EData(cursId).stats || { counts: {} };
@@ -269,6 +314,22 @@ export async function loadGuardiesDay(cursId, date) {
     if (error?.code === 'permission-denied') return null;
     throw error;
   }
+}
+
+export function subscribeGuardiesDay(cursId, date, onChange, onError = () => {}) {
+  if (E2E_AUTH_BYPASS) {
+    return subscribeE2E(cursId, (data) => onChange(data.days?.[date] || null, {
+      fromCache: false,
+      hasPendingWrites: false,
+    }));
+  }
+
+  return onSnapshot(guardiesDayRef(cursId, date), (snapshot) => {
+    onChange(snapshot.exists() ? snapshot.data() : null, {
+      fromCache: snapshot.metadata.fromCache,
+      hasPendingWrites: snapshot.metadata.hasPendingWrites,
+    });
+  }, onError);
 }
 
 export async function saveGuardiesDay(cursId, date, payload, expectedRevision = 0) {
