@@ -6,7 +6,7 @@ import { useGuardiesStore } from '../stores/guardies.js';
 const store = useGuardiesStore();
 const {
   date, absencies, assignacions, dayStatus, dayPersistenceStatus,
-  publishedAt, updatedAt, closedAt, canWrite,
+  publishedAt, updatedAt, closedAt, canWrite, teacherView,
 } = storeToRefs(store);
 
 const xmlDay = computed(() => {
@@ -71,10 +71,15 @@ function clearDay() {
   window.dispatchEvent(new CustomEvent('guardies:legacy-render'));
 }
 
-const statusLabel = computed(() => ({ draft: 'Esborrany', published: 'Publicada', closed: 'Tancada' }[dayStatus.value] || 'Esborrany'));
-const saveLabel = computed(() => ({
-  loading: 'Carregant…', saving: 'Desant…', error: 'Error en desar', ready: 'Desat', idle: 'Desat',
-}[dayPersistenceStatus.value] || 'Desat'));
+const statusLabel = computed(() => ({ draft: 'Esborrany', unpublished: 'No publicada', published: 'Publicada', closed: 'Tancada' }[dayStatus.value] || 'No publicada'));
+const saveLabel = computed(() => {
+  if (teacherView.value) return ({
+    loading: 'Carregant…', error: 'Error de lectura', ready: 'Sincronitzat', idle: 'Sincronitzat',
+  }[dayPersistenceStatus.value] || 'Sincronitzat');
+  return ({
+    loading: 'Carregant…', saving: 'Desant…', error: 'Error en desar', ready: 'Desat', idle: 'Desat',
+  }[dayPersistenceStatus.value] || 'Desat');
+});
 
 function changeStatus(action) {
   window.dispatchEvent(new CustomEvent('guardies:day-action', { detail: { action } }));
@@ -84,17 +89,17 @@ function changeStatus(action) {
 <template>
   <header class="work-header no-print">
     <div class="work-title">
-      <p class="kicker">Control diari</p>
-      <h1>Guàrdies</h1>
+      <p class="kicker">{{ teacherView ? 'Consulta diària' : 'Control diari' }}</p>
+      <h1>{{ teacherView ? 'Guàrdies publicades' : 'Guàrdies' }}</h1>
     </div>
 
     <div class="date-dock">
       <label class="date-field" for="date-input">
-        <span>Dia de treball</span>
+        <span>{{ teacherView ? 'Dia de consulta' : 'Dia de treball' }}</span>
         <input id="date-input" type="date" :value="date" @change="onDateChange" />
       </label>
       <div id="date-label" class="date-summary-card">
-        <span>Dia preparat</span>
+        <span>{{ teacherView ? 'Dia seleccionat' : 'Dia preparat' }}</span>
         <strong>{{ formatDate(date) }}</strong>
         <em v-if="!['1', '2', '3', '4', '5'].includes(xmlDay)">Sense horari lectiu al GPU001</em>
       </div>
@@ -111,11 +116,11 @@ function changeStatus(action) {
         <small>{{ saveLabel }}</small>
       </div>
       <span id="coverage-count" class="pill">{{ coverageLabel }}</span>
-      <button v-if="dayStatus === 'draft'" type="button" :disabled="!canWrite || dayPersistenceStatus === 'saving' || !selectedAbsences.length" @click="changeStatus('publish')">Publica</button>
-      <button v-if="dayStatus === 'published'" type="button" class="close-day" :disabled="!canWrite || dayPersistenceStatus === 'saving'" @click="changeStatus('close')">Tanca jornada</button>
-      <button v-if="dayStatus === 'closed'" type="button" class="ghost" :disabled="!canWrite || dayPersistenceStatus === 'saving'" @click="changeStatus('reopen')">Reobre</button>
+      <button v-if="canWrite && dayStatus === 'draft'" type="button" :disabled="dayPersistenceStatus === 'saving' || !selectedAbsences.length" @click="changeStatus('publish')">Publica</button>
+      <button v-if="canWrite && dayStatus === 'published'" type="button" class="close-day" :disabled="dayPersistenceStatus === 'saving'" @click="changeStatus('close')">Tanca jornada</button>
+      <button v-if="canWrite && dayStatus === 'closed'" type="button" class="ghost" :disabled="dayPersistenceStatus === 'saving'" @click="changeStatus('reopen')">Reobre</button>
       <button id="print-coverage" type="button" class="ghost" :disabled="!selectedAbsences.length" @click="printCoverage">Imprimeix A4</button>
-      <button id="clear-day-list" type="button" class="ghost" :disabled="!canWrite || dayStatus === 'closed' || !selectedAbsences.length" @click="clearDay">Neteja dia</button>
+      <button v-if="canWrite" id="clear-day-list" type="button" class="ghost" :disabled="dayStatus === 'closed' || !selectedAbsences.length" @click="clearDay">Neteja dia</button>
     </div>
     <p v-if="publishedAt || updatedAt || closedAt" class="day-audit">
       <span v-if="publishedAt">Publicada {{ formatTimestamp(publishedAt) }}</span>

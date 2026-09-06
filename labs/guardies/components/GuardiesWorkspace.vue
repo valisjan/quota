@@ -9,8 +9,8 @@ const { canWrite } = storeToRefs(useGuardiesStore());
 
 <template>
   <section id="empty-state" class="empty">
-    <h2>Carrega l'horari per començar</h2>
-    <p>Obre Arxius de configuració i completa els tres passos de preparació.</p>
+    <h2>{{ canWrite ? "Carrega l'horari per començar" : 'Encara no hi ha cap full de guàrdies disponible' }}</h2>
+    <p>{{ canWrite ? 'Obre Arxius de configuració i completa els tres passos de preparació.' : 'Quan la cap d’estudis publiqui la jornada, la podràs consultar aquí.' }}</p>
   </section>
 
   <section id="workspace" class="workspace hidden">

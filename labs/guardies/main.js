@@ -139,11 +139,18 @@ import {
   async function bootstrap() {
     render();
     try {
-      const requestedCourseId = new URLSearchParams(window.location.search).get('curs') || '';
-      const context = await getGuardiesContext(requestedCourseId);
+      const search = new URLSearchParams(window.location.search);
+      const requestedCourseId = search.get('curs') || '';
+      const context = await getGuardiesContext(requestedCourseId, {
+        teacherView: search.get('vista') === 'professor',
+      });
       state.courseId = context.course.id;
       state.courseName = context.course.name;
       state.canWrite = context.canWrite;
+      state.isAdmin = context.isAdmin;
+      state.teacherView = context.teacherView;
+      state.viewerName = context.user?.displayName || '';
+      state.viewerEmail = context.user?.email || '';
       let remoteData = await loadGuardiesData(state.courseId);
       remoteData = await migrateLegacyData(remoteData);
       applyRemoteData(remoteData);
@@ -156,9 +163,11 @@ import {
       parseStoredData({ resetSelection: true });
       await activateGuardiesDay(state.date);
       subscribeToRemoteData();
+      state.contextReady = true;
       render();
     } catch (error) {
       state.persistenceStatus = 'error';
+      state.contextReady = true;
       showError(error.message || String(error));
       render();
     }
@@ -372,7 +381,7 @@ import {
       });
     }
     if (state.grupsFora.size) syncOutingAbsences();
-    state.dayStatus = saved?.status || 'draft';
+    state.dayStatus = saved?.status || (state.canWrite ? 'draft' : 'unpublished');
     state.publishedAt = saved?.publishedAt || '';
     state.closedAt = saved?.closedAt || '';
     state.updatedAt = saved?.clientUpdatedAt || '';
@@ -390,7 +399,7 @@ import {
     state.dayPersistenceStatus = 'loading';
     state.clearDayContext();
     try {
-      const saved = await loadGuardiesDay(state.courseId, date);
+      const saved = await loadGuardiesDay(state.courseId, date, { publishedOnly: !state.canWrite });
       if (date !== state.date) return;
       applyGuardiesDay(saved, date);
     } catch (error) {
@@ -1462,7 +1471,9 @@ import {
 
   function render() {
     renderConvivenciaAdmin();
-    const teDades = Boolean(state.sessions.length);
+    const hasSchedule = Boolean(state.sessions.length);
+    const hasVisibleDay = state.canWrite || ['published', 'closed'].includes(state.dayStatus);
+    const teDades = hasSchedule && hasVisibleDay;
     el.workspace.classList.toggle('hidden', !teDades);
     el.empty.classList.toggle('hidden', teDades);
     if (!teDades) {
@@ -1471,8 +1482,11 @@ import {
       if (state.persistenceStatus === 'loading') {
         if (title) title.textContent = 'Carregant dades compartides';
         if (copy) copy.textContent = 'Connectant amb Quota i el curs acadèmic actiu.';
+      } else if (hasSchedule && !state.canWrite) {
+        if (title) title.textContent = 'Jornada encara no publicada';
+        if (copy) copy.textContent = 'La cap d’estudis encara no ha publicat el full de guàrdies d’aquest dia.';
       } else {
-        if (title) title.textContent = 'Carrega l’horari per començar';
+        if (title) title.textContent = state.canWrite ? 'Carrega l’horari per començar' : 'Encara no hi ha cap full de guàrdies disponible';
         if (copy) {
           copy.textContent = state.canWrite
             ? 'Obre Arxius de configuració i completa els tres passos de preparació.'
@@ -2346,24 +2360,11 @@ import {
     const assignatIsConvivencia = assignat && isConvivenciaProfessor(item.dia, item.hora, assignat);
     const cancelled = state.cancelledAssignments.has(item.id);
     const taskLabel = isPati ? 'Pati · GP' : isGuardiaItem(item) ? formatMateria(item) : group;
-    const locked = state.dayStatus === 'closed';
-
-    return `
-      <article class="coverage-item coverage-row ${assignat ? 'covered' : ''} ${cancelled ? 'not-completed' : ''} ${isPati ? 'informational' : ''}">
-        <div class="coverage-professor-cell">
-          <span class="cell-kicker">Falta</span>
-          <strong>${escapeHtml(labelProfessor(item.placa))}</strong>
-          <button type="button" class="icon-remove no-print" aria-label="Elimina aquesta absència" data-remove-absence="${escapeHtml(item.id)}" ${locked ? 'disabled' : ''}>X</button>
-        </div>
-        <div class="coverage-detail-cell">
-          <span class="cell-kicker">Sessió</span>
-          <strong>${escapeHtml(taskLabel)}</strong>
-          <span>${escapeHtml(isGuardiaItem(item) ? 'Torn sense cobrir' : subject)}</span>
-          ${room ? `<span>${escapeHtml(room)}</span>` : ''}
-        </div>
-        <div class="coverage-assignment-cell ${hasReleasedCandidates ? 'has-released-candidates' : ''} ${hasCandidates && !hasAvailableCandidates ? 'only-unavailable' : ''}">
-          ${isPati ? '<span class="info-only-label">Informatiu · no se substitueix</span>' : `
-          <select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates && !locked ? '' : 'disabled'}>
+    const locked = state.dayStatus === 'closed' || !state.canWrite;
+    const assignmentControl = isPati
+      ? '<span class="info-only-label">Informatiu · no se substitueix</span>'
+      : state.canWrite
+        ? `<select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates && !locked ? '' : 'disabled'}>
             <option value="">Sense preassignar</option>
             ${candidates.map((candidate) => `
               <option
@@ -2375,15 +2376,35 @@ import {
                 ${escapeHtml(candidateSelectLabel(candidate))}
               </option>
             `).join('')}
-          </select>`}
+          </select>`
+        : `<strong class="readonly-assignment ${assignat ? 'assigned' : 'pending'}">${escapeHtml(assignat ? labelProfessor(assignat) : 'Sense cobrir')}</strong>`;
+    const commentControl = state.canWrite
+      ? `<textarea data-comment="${escapeHtml(item.id)}" rows="2" placeholder="Observacions" ${locked ? 'disabled' : ''}>${escapeHtml(comentari)}</textarea>`
+      : `<span class="readonly-comment">${escapeHtml(comentari || 'Sense observacions')}</span>`;
+
+    return `
+      <article class="coverage-item coverage-row ${assignat ? 'covered' : ''} ${cancelled ? 'not-completed' : ''} ${isPati ? 'informational' : ''}">
+        <div class="coverage-professor-cell">
+          <span class="cell-kicker">Falta</span>
+          <strong>${escapeHtml(labelProfessor(item.placa))}</strong>
+          ${state.canWrite ? `<button type="button" class="icon-remove no-print" aria-label="Elimina aquesta absència" data-remove-absence="${escapeHtml(item.id)}" ${locked ? 'disabled' : ''}>X</button>` : ''}
+        </div>
+        <div class="coverage-detail-cell">
+          <span class="cell-kicker">Sessió</span>
+          <strong>${escapeHtml(taskLabel)}</strong>
+          <span>${escapeHtml(isGuardiaItem(item) ? 'Torn sense cobrir' : subject)}</span>
+          ${room ? `<span>${escapeHtml(room)}</span>` : ''}
+        </div>
+        <div class="coverage-assignment-cell ${hasReleasedCandidates ? 'has-released-candidates' : ''} ${hasCandidates && !hasAvailableCandidates ? 'only-unavailable' : ''}">
+          ${assignmentControl}
           ${assignatIsConvivencia ? '<span class="convivencia-badge">Convivència · ús excepcional</span>' : ''}
           <span class="print-only print-assignment">${escapeHtml(assignat ? labelProfessor(assignat) : '')}</span>
-          ${assignat && !isPati ? `<label class="completion-toggle no-print"><input type="checkbox" data-cancel-assignment="${escapeHtml(item.id)}" ${cancelled ? 'checked' : ''} ${locked ? 'disabled' : ''} /> No realitzada</label>` : ''}
+          ${state.canWrite && assignat && !isPati ? `<label class="completion-toggle no-print"><input type="checkbox" data-cancel-assignment="${escapeHtml(item.id)}" ${cancelled ? 'checked' : ''} ${locked ? 'disabled' : ''} /> No realitzada</label>` : ''}
         </div>
-        <label class="coverage-comment-cell">
-          <textarea data-comment="${escapeHtml(item.id)}" rows="2" placeholder="Observacions" ${locked ? 'disabled' : ''}>${escapeHtml(comentari)}</textarea>
+        <div class="coverage-comment-cell">
+          ${commentControl}
           <span class="print-only" data-comment-print="${escapeHtml(item.id)}">${escapeHtml(comentari)}</span>
-        </label>
+        </div>
       </article>
     `;
   }

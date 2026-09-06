@@ -101,6 +101,11 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('[data-upload-name="untis"]')).toHaveText('GPU004.TXT');
     await expect(page.locator('[data-upload-name="duties"]')).toHaveText('GPU001.TXT');
     await expect(page.locator('[data-upload-name="schedule"]')).toHaveCount(0);
+
+    await page.goto('/labs/guardies/?vista=professor');
+    await expect(page.getByRole('heading', { name: 'Jornada encara no publicada' })).toBeVisible();
+    await expect(page.locator('#workspace')).toBeHidden();
+    await expect(page.locator('.day-state')).toContainText('No publicada');
   });
 
   test('sincronitza la jornada entre dues sessions sense recarregar', async ({ page, context }) => {
@@ -169,6 +174,20 @@ test.describe('Guàrdies: comportament existent', () => {
       JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).stats.counts['2']
     ));
     expect(guardCount).toEqual({ total: 1, released: 0, guard: 1, other: 0 });
+
+    await page.goto('/labs/guardies/?vista=professor');
+    await expect(page.getByRole('heading', { name: 'Guàrdies publicades' })).toBeVisible();
+    await expect(page.locator('.teacher-stats-panel')).toBeVisible();
+    for (const selector of ['#admin-panel', '#pati-panel', '#convivencia-panel']) {
+      await expect(page.locator(selector)).toBeHidden();
+    }
+    const teacherCount = page.locator('.teacher-stats-row').filter({ hasText: 'Fuentes Serra' });
+    await expect(teacherCount.locator('[data-count-guard]')).toHaveText('1');
+    await expect(teacherCount.locator('[data-count-total]')).toHaveText('1');
+    await page.locator('#date-input').fill('2026-09-07');
+    await page.locator('#date-input').press('Tab');
+    await expect(page.locator('.readonly-assignment').filter({ hasText: 'Fuentes Serra' })).toHaveCount(1);
+    await expect(page.locator('[data-assignacio], [data-remove-absence]')).toHaveCount(0);
   });
 
   test('guarda una assignació setmanal de convivència', async ({ page }) => {

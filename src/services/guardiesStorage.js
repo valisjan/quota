@@ -154,23 +154,35 @@ async function resolveCourse(requestedCourseId) {
   return { id: selected.id, name: selected.nom || selected.id };
 }
 
-export async function getGuardiesContext(requestedCourseId = '') {
+export async function getGuardiesContext(requestedCourseId = '', { teacherView = false } = {}) {
   if (E2E_AUTH_BYPASS) {
     return {
-      user: { uid: 'e2e-admin' },
+      user: { uid: 'e2e-admin', displayName: 'E2E Admin', email: 'e2e.admin@iesjosepsuredaiblanes.com' },
       course: await resolveCourse(requestedCourseId),
-      canWrite: true,
+      role: 'admin',
+      isAdmin: true,
+      teacherView,
+      canWrite: !teacherView,
     };
   }
 
   const user = await waitForUser();
   if (!user) throw new Error('Inicia sessió a Quota per accedir a les dades de guàrdies.');
   const userSnapshot = await withNetworkRetry(() => getDoc(doc(db, 'usuaris', user.uid)));
-  const role = userSnapshot.exists() ? userSnapshot.data().rol : '';
+  const profile = userSnapshot.exists() ? userSnapshot.data() : {};
+  const role = profile.rol || '';
+  const isAdmin = role === 'admin';
   return {
-    user,
+    user: {
+      uid: user.uid,
+      displayName: profile.nom || user.displayName || '',
+      email: profile.email || user.email || '',
+    },
     course: await resolveCourse(requestedCourseId),
-    canWrite: role === 'admin',
+    role,
+    isAdmin,
+    teacherView: !isAdmin || teacherView,
+    canWrite: isAdmin && !teacherView,
   };
 }
 
@@ -308,14 +320,16 @@ export async function saveGuardiesPati(cursId, config) {
   return clean;
 }
 
-export async function loadGuardiesDay(cursId, date) {
+export async function loadGuardiesDay(cursId, date, { publishedOnly = false } = {}) {
   if (E2E_AUTH_BYPASS) {
     const data = getE2EData(cursId);
-    return data.days?.[date] || null;
+    const day = data.days?.[date] || null;
+    return publishedOnly && !['published', 'closed'].includes(day?.status) ? null : day;
   }
   try {
     const snapshot = await withNetworkRetry(() => getDoc(guardiesDayRef(cursId, date)));
-    return snapshot.exists() ? snapshot.data() : null;
+    const day = snapshot.exists() ? snapshot.data() : null;
+    return publishedOnly && !['published', 'closed'].includes(day?.status) ? null : day;
   } catch (error) {
     if (error?.code === 'permission-denied') return null;
     throw error;
@@ -324,10 +338,13 @@ export async function loadGuardiesDay(cursId, date) {
 
 export function subscribeGuardiesDay(cursId, date, onChange, onError = () => {}, { publishedOnly = false } = {}) {
   if (E2E_AUTH_BYPASS) {
-    return subscribeE2E(cursId, (data) => onChange(data.days?.[date] || null, {
-      fromCache: false,
-      hasPendingWrites: false,
-    }));
+    return subscribeE2E(cursId, (data) => {
+      const day = data.days?.[date] || null;
+      onChange(publishedOnly && !['published', 'closed'].includes(day?.status) ? null : day, {
+        fromCache: false,
+        hasPendingWrites: false,
+      });
+    });
   }
 
   if (publishedOnly) {

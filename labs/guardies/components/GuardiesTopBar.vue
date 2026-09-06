@@ -1,7 +1,17 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useGuardiesStore } from '../stores/guardies.js';
 
 const dark = ref(document.documentElement.classList.contains('dark'));
+const { courseId, isAdmin, teacherView } = storeToRefs(useGuardiesStore());
+const viewHref = computed(() => {
+  const query = new URLSearchParams();
+  if (courseId.value) query.set('curs', courseId.value);
+  if (!teacherView.value) query.set('vista', 'professor');
+  const suffix = query.toString();
+  return `/labs/guardies/${suffix ? `?${suffix}` : ''}`;
+});
 
 function toggleTheme() {
   dark.value = !dark.value;
@@ -24,6 +34,7 @@ function toggleTheme() {
       <div class="nav-tabs" aria-label="Seccions">
         <a href="/">Quota</a>
         <a class="active" href="/labs/guardies/" aria-current="page">Guàrdies</a>
+        <a v-if="isAdmin" class="guardies-view-switch" :href="viewHref">{{ teacherView ? 'Torna a gestió' : 'Vista professorat' }}</a>
       </div>
       <button id="theme-toggle" type="button" class="theme-toggle" aria-label="Canvia el tema" @click="toggleTheme">
         <span class="theme-icon" aria-hidden="true">◐</span>

@@ -36,6 +36,7 @@ Els fitxers i la configuració setmanal queden guardats a Firestore dins el curs
 - Impressió A4 amb set sessions i pati.
 - Rotació setmanal de zones de pati, festius, canvis de zona puntuals i observacions diàries.
 - Còmput anual de cobertures efectivament realitzades, separat entre professorat alliberat, G i assignacions extraordinàries.
+- Vista de professorat en mode lectura amb les jornades publicades, cercador i recompte anual de guàrdies realitzades.
 
 ## Fases posteriors
 
