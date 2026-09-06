@@ -61,6 +61,15 @@ function onDateChange(event) {
   window.dispatchEvent(new CustomEvent('guardies:legacy-render', { detail: { reloadDay: true } }));
 }
 
+function shiftDate(days) {
+  if (!date.value) return;
+  const parsed = new Date(`${date.value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return;
+  parsed.setDate(parsed.getDate() + days);
+  store.changeDate(localDateString(parsed));
+  window.dispatchEvent(new CustomEvent('guardies:legacy-render', { detail: { reloadDay: true } }));
+}
+
 function printCoverage() {
   window.print();
 }
@@ -94,10 +103,14 @@ function changeStatus(action) {
     </div>
 
     <div class="date-dock">
-      <label class="date-field" for="date-input">
-        <span>{{ teacherView ? 'Dia de consulta' : 'Dia de treball' }}</span>
-        <input id="date-input" type="date" :value="date" @change="onDateChange" />
-      </label>
+      <div class="date-field">
+        <label for="date-input">{{ teacherView ? 'Dia de consulta' : 'Dia de treball' }}</label>
+        <div class="date-input-row">
+          <button type="button" class="date-arrow" aria-label="Dia anterior" title="Dia anterior" @click="shiftDate(-1)">←</button>
+          <input id="date-input" type="date" :value="date" @change="onDateChange" />
+          <button type="button" class="date-arrow" aria-label="Dia següent" title="Dia següent" @click="shiftDate(1)">→</button>
+        </div>
+      </div>
       <div id="date-label" class="date-summary-card">
         <span>{{ teacherView ? 'Dia seleccionat' : 'Dia preparat' }}</span>
         <strong>{{ formatDate(date) }}</strong>

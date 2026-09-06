@@ -36,7 +36,8 @@ const dutiesText = `10,"1ESO-A","ADEL","MAT","Aula 1",1,1,,
 1,,"ADEL","G",,1,3,,
 2,,"FUEN","G",,1,1,,
 3,,"SANZ","G",,1,2,,
-4,,"FUEN","GP",,1,4,,`;
+4,,"FUEN","GP",,1,4,,
+20,"1ESO-A","ADEL","MAT","Aula 1",2,5,,`;
 
 const referenceFile = {
   name: 'gestib-e2e.xml',
@@ -102,6 +103,13 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('[data-upload-name="duties"]')).toHaveText('GPU001.TXT');
     await expect(page.locator('[data-upload-name="schedule"]')).toHaveCount(0);
 
+    await page.locator('#date-input').fill('2026-09-07');
+    await page.locator('#date-input').press('Tab');
+    await page.getByRole('button', { name: 'Dia següent' }).click();
+    await expect(page.locator('#date-input')).toHaveValue('2026-09-08');
+    await page.getByRole('button', { name: 'Dia anterior' }).click();
+    await expect(page.locator('#date-input')).toHaveValue('2026-09-07');
+
     await page.goto('/labs/guardies/?vista=professor');
     await expect(page.getByRole('heading', { name: 'Jornada encara no publicada' })).toBeVisible();
     await expect(page.locator('#workspace')).toBeHidden();
@@ -131,6 +139,25 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(otherPage.locator('#coverage-count')).toContainText('3 sessions');
     await expect(otherPage.locator('#coverage-list [data-assignacio]')).toHaveCount(3);
     await otherPage.close();
+  });
+
+  test('aplica totes les hores de cada dia en un interval i en mostra el resultat', async ({ page }) => {
+    await openGuardies(page);
+    await uploadConfiguration(page);
+    await page.locator('#date-input').fill('2026-09-07');
+    await page.locator('#date-input').press('Tab');
+    await page.locator('#professor-search').fill('ADELL');
+    await page.locator('#professor-results [data-professor]').first().click();
+    await page.locator('#add-all-hours').click();
+
+    await page.locator('.range-builder input[type="date"]').nth(1).fill('2026-09-08');
+    await page.getByRole('button', { name: 'Aplica interval' }).click();
+    await expect(page.locator('.range-builder .range-feedback')).toHaveText('Totes les hores aplicades a 2 dies lectius · 4 sessions.');
+
+    await page.locator('#date-input').fill('2026-09-08');
+    await page.locator('#date-input').press('Tab');
+    await expect(page.locator('#coverage-count')).toContainText('1 sessió');
+    await expect(page.locator('#coverage-list')).toContainText('Adell Domènech');
   });
 
   test('selecciona un professor absent, crea cobertures i conserva la jornada', async ({ page }) => {

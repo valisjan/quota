@@ -9,6 +9,8 @@ const absenceFrom = ref(date.value);
 const absenceTo = ref(date.value);
 const outingFrom = ref(date.value);
 const outingTo = ref(date.value);
+const absenceFeedback = ref('');
+const absenceFeedbackKind = ref('');
 const outingFeedback = ref('');
 const outingFeedbackKind = ref('');
 
@@ -24,12 +26,23 @@ watch(date, (value) => {
   absenceTo.value = value;
   outingFrom.value = value;
   outingTo.value = value;
+  absenceFeedback.value = '';
+  absenceFeedbackKind.value = '';
+  outingFeedback.value = '';
+  outingFeedbackKind.value = '';
 });
 
 function applyAbsenceRange() {
+  absenceFeedback.value = 'Aplicant l’interval...';
+  absenceFeedbackKind.value = '';
   window.dispatchEvent(new CustomEvent('guardies:apply-absence-range', {
     detail: { from: absenceFrom.value, to: absenceTo.value },
   }));
+}
+
+function handleAbsenceRangeResult(event) {
+  absenceFeedback.value = event.detail?.message || '';
+  absenceFeedbackKind.value = event.detail?.ok ? 'success' : 'error';
 }
 
 function applyOutingRange() {
@@ -45,8 +58,14 @@ function handleOutingRangeResult(event) {
   outingFeedbackKind.value = event.detail?.ok ? 'success' : 'error';
 }
 
-onMounted(() => window.addEventListener('guardies:outing-range-result', handleOutingRangeResult));
-onBeforeUnmount(() => window.removeEventListener('guardies:outing-range-result', handleOutingRangeResult));
+onMounted(() => {
+  window.addEventListener('guardies:absence-range-result', handleAbsenceRangeResult);
+  window.addEventListener('guardies:outing-range-result', handleOutingRangeResult);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('guardies:absence-range-result', handleAbsenceRangeResult);
+  window.removeEventListener('guardies:outing-range-result', handleOutingRangeResult);
+});
 </script>
 
 <template>
@@ -105,6 +124,7 @@ onBeforeUnmount(() => window.removeEventListener('guardies:outing-range-result',
         <label>Des de <input v-model="absenceFrom" type="date" /></label>
         <label>Fins a <input v-model="absenceTo" type="date" /></label>
         <button type="button" :disabled="!canWrite || dayStatus === 'closed'" @click="applyAbsenceRange">Aplica interval</button>
+        <p v-if="absenceFeedback" class="range-feedback" :class="`is-${absenceFeedbackKind}`" role="status" aria-live="polite">{{ absenceFeedback }}</p>
       </div>
     </section>
 

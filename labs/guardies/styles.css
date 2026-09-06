@@ -360,6 +360,16 @@ h3 {
 .outing-range input { min-height: 34px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); color: var(--text); padding: 0 6px; }
 
 .outing-range { border-top: 0; margin-top: 5px; padding-top: 0; }
+.range-feedback {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 700;
+}
+
+.range-feedback.is-success { color: var(--green); }
+.range-feedback.is-error { color: var(--coral); }
 .group-card-hint { margin: 0; padding: 6px 8px; color: var(--muted); font-size: .62rem; }
 .companion-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; padding: 0 8px 8px; }
 .info-only-label { color: var(--muted); font-size: .7rem; font-weight: 800; }
@@ -389,7 +399,7 @@ h3 {
 
 .date-dock {
   display: grid;
-  grid-template-columns: 165px minmax(190px, 1fr) minmax(170px, 0.82fr);
+  grid-template-columns: 210px minmax(190px, 1fr) minmax(170px, 0.82fr);
   align-items: stretch;
   gap: 7px;
   min-width: 0;
@@ -401,13 +411,39 @@ h3 {
   gap: 3px;
 }
 
-.date-field > span,
+.date-field > label,
 .date-summary-card > span {
   display: block;
   color: var(--muted);
   font-size: 0.64rem;
   font-weight: 850;
   text-transform: uppercase;
+}
+
+.date-input-row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  gap: 4px;
+}
+
+.date-input-row input {
+  width: 100%;
+  min-width: 0;
+}
+
+.date-arrow {
+  min-height: 34px;
+  padding: 0;
+  border-color: var(--border);
+  background: var(--surface-subtle);
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.date-arrow:hover {
+  border-color: var(--primary-border);
+  background: var(--primary-soft);
 }
 
 .date-summary-card {
@@ -2608,7 +2644,7 @@ h3 {
   }
 
   .date-dock {
-    grid-template-columns: 150px 1fr 1fr;
+    grid-template-columns: 210px 1fr 1fr;
   }
 
   .day-command-bar {
@@ -2717,17 +2753,6 @@ h3 {
   .range-copy { grid-column: 1 / -1; }
 .range-builder button,
 .outing-range button { grid-column: 1 / -1; }
-
-.range-feedback {
-  grid-column: 1 / -1;
-  margin: 0;
-  color: var(--muted);
-  font-size: .68rem;
-  font-weight: 700;
-}
-
-.range-feedback.is-success { color: var(--green); }
-.range-feedback.is-error { color: var(--coral); }
 
   .cache-info {
     display: none;

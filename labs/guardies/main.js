@@ -513,35 +513,60 @@ import {
   }
 
   async function applyAbsenceRange({ from, to } = {}) {
-    if (!state.canWrite || !state.professor || state.dayStatus === 'closed') return;
-    const selectedHours = new Set(currentProfessorDayItems()
-      .filter((item) => state.absencies.has(item.id))
-      .map((item) => item.hora));
-    if (!selectedHours.size) {
-      showError('Marca primer les sessions de l’absència que vols replicar.');
+    const reportResult = (ok, message, count = 0) => {
+      window.dispatchEvent(new CustomEvent('guardies:absence-range-result', {
+        detail: { ok, message, count },
+      }));
+    };
+    if (!state.canWrite || !state.professor || state.dayStatus === 'closed') {
+      reportResult(false, 'Selecciona primer el professor absent.');
+      return;
+    }
+    const currentItems = currentProfessorDayItems().filter(isAbsenceSelectable);
+    const selectedItems = currentItems.filter((item) => state.absencies.has(item.id));
+    const selectedHours = new Set(selectedItems.map((item) => item.hora));
+    if (!selectedItems.length) {
+      const message = 'Marca primer les sessions de l’absència que vols replicar.';
+      showError(message);
+      reportResult(false, message);
       return;
     }
     const dates = datesBetween(from, to);
     if (!dates.length) {
-      showError('L’interval no conté cap dia lectiu vàlid.');
+      const message = 'L’interval no conté cap dia lectiu vàlid.';
+      showError(message);
+      reportResult(false, message);
       return;
     }
+    const wholeDay = currentItems.length > 0 && selectedItems.length === currentItems.length;
+    const plans = dates.map((date) => {
+      const day = xmlDayForDate(date);
+      const dayItems = parser.agruparSessionsCobertura(
+        state.sessions.filter((session) => session.placa === state.professor && session.dia === day && isMeaningfulSession(session)),
+      ).filter(isAbsenceSelectable);
+      const ids = (wholeDay ? dayItems : dayItems.filter((item) => selectedHours.has(item.hora))).map((item) => item.id);
+      return { date, ids };
+    });
     try {
       state.dayPersistenceStatus = 'saving';
-      await Promise.all(dates.map((date) => {
-        const day = xmlDayForDate(date);
-        const ids = parser.agruparSessionsCobertura(
-          state.sessions.filter((session) => session.placa === state.professor && session.dia === day && isMeaningfulSession(session)),
-        ).filter((item) => selectedHours.has(item.hora) && isAbsenceSelectable(item)).map((item) => item.id);
-        return mergeGuardiesDayPlan(state.courseId, date, { absenceIds: ids });
-      }));
+      await persistDayNow();
+      await Promise.all(plans
+        .filter(({ date }) => date !== state.date)
+        .map(({ date, ids }) => mergeGuardiesDayPlan(state.courseId, date, { absenceIds: ids })));
       await hydrateGuardiesDay(state.date);
       state.dayPersistenceStatus = 'ready';
       showError('');
+      const sessions = plans.reduce((total, plan) => total + plan.ids.length, 0);
+      const message = wholeDay
+        ? `Totes les hores aplicades a ${dates.length} ${dates.length === 1 ? 'dia lectiu' : 'dies lectius'} · ${sessions} ${sessions === 1 ? 'sessió' : 'sessions'}.`
+        : `Sessions marcades aplicades a ${dates.length} ${dates.length === 1 ? 'dia lectiu' : 'dies lectius'} · ${sessions} ${sessions === 1 ? 'sessió' : 'sessions'}.`;
+      reportResult(true, message, sessions);
       render();
     } catch (error) {
       state.dayPersistenceStatus = 'error';
-      showError(`No s'ha pogut aplicar l'interval. ${error.message || error}`);
+      const message = `No s'ha pogut aplicar l'interval. ${error.message || error}`;
+      showError(message);
+      reportResult(false, message);
     }
   }
 
