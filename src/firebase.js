@@ -1,5 +1,10 @@
 import { initializeApp } from 'firebase/app';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  memoryLocalCache,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -12,12 +17,21 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = initializeFirestore(app, {
-  experimentalAutoDetectLongPolling: true,
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager(),
-  }),
-});
+const isIOSWebKit = typeof navigator !== 'undefined' && (
+  /iPad|iPhone|iPod/.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+);
+const db = initializeFirestore(app, isIOSWebKit
+  ? {
+      experimentalForceLongPolling: true,
+      localCache: memoryLocalCache(),
+    }
+  : {
+      experimentalAutoDetectLongPolling: true,
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    });
 const auth = getAuth(app);
 
 export { db, auth };

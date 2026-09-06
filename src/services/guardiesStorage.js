@@ -99,14 +99,19 @@ function isOfflineError(error) {
 }
 
 async function withNetworkRetry(operation) {
-  try {
-    return await operation();
-  } catch (error) {
-    if (!isOfflineError(error)) throw error;
+  const delays = [0, 400, 1200, 2500];
+  let lastError;
+  for (const delay of delays) {
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isOfflineError(error)) throw error;
+      lastError = error;
+    }
     await enableNetwork(db).catch(() => {});
-    await new Promise((resolve) => setTimeout(resolve, 350));
-    return operation();
   }
+  throw lastError;
 }
 
 function normalizeConvivencia(data) {
