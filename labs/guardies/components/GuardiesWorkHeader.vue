@@ -132,7 +132,7 @@ function changeStatus(action) {
       <button v-if="canWrite && dayStatus === 'draft'" type="button" :disabled="dayPersistenceStatus === 'saving' || !selectedAbsences.length" @click="changeStatus('publish')">Publica</button>
       <button v-if="canWrite && dayStatus === 'published'" type="button" class="close-day" :disabled="dayPersistenceStatus === 'saving'" @click="changeStatus('close')">Tanca jornada</button>
       <button v-if="canWrite && dayStatus === 'closed'" type="button" class="ghost" :disabled="dayPersistenceStatus === 'saving'" @click="changeStatus('reopen')">Reobre</button>
-      <button id="print-coverage" type="button" class="ghost" :disabled="!selectedAbsences.length" @click="printCoverage">Imprimeix A4</button>
+      <button id="print-coverage" type="button" class="ghost" :disabled="!selectedAbsences.length" @click="printCoverage">Imprimeix A3</button>
       <button v-if="canWrite" id="clear-day-list" type="button" class="ghost" :disabled="dayStatus === 'closed' || !selectedAbsences.length" @click="clearDay">Neteja dia</button>
     </div>
     <p v-if="publishedAt || updatedAt || closedAt" class="day-audit">

@@ -459,7 +459,7 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.getByText('El dia actual ja es desa automàticament')).toBeVisible();
   });
 
-  test('la versió impresa conserva les franges i amaga els controls', async ({ page }) => {
+  test('la versió impresa A3 conserva les franges en una sola pàgina i amaga els controls', async ({ page }, testInfo) => {
     await openGuardies(page);
     await uploadConfiguration(page);
     await page.locator('#date-input').fill('2026-09-07');
@@ -467,9 +467,23 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#professor-search').fill('ADELL');
     await page.locator('#professor-results [data-professor]').first().click();
     await page.locator('#add-all-hours').click();
+    for (const professor of ['FUENTES', 'SANZ', 'MAT1']) {
+      await page.locator('#professor-search').fill(professor);
+      await page.locator('#professor-results [data-professor]').first().click();
+      await page.locator('#add-all-hours').click();
+    }
     await page.emulateMedia({ media: 'print' });
     await expect(page.locator('.print-header')).toBeVisible();
     await expect(page.locator('.entry-panel')).toBeHidden();
     expect(await page.locator('.coverage-session').count()).toBeGreaterThan(0);
+    if (testInfo.project.name === 'chromium-desktop') {
+      const pdf = await page.pdf({ printBackground: true, preferCSSPageSize: true });
+      const raw = pdf.toString('latin1');
+      const pages = raw.match(/\/Type\s*\/Page(?!s)\b/g) || [];
+      const mediaBox = raw.match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)/);
+      expect(pages).toHaveLength(1);
+      expect(Number(mediaBox?.[1])).toBeGreaterThan(840);
+      expect(Number(mediaBox?.[2])).toBeGreaterThan(1190);
+    }
   });
 });
