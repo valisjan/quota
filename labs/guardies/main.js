@@ -405,7 +405,7 @@ import {
     state.dayPersistenceStatus = 'loading';
     state.clearDayContext();
     try {
-      const saved = await loadGuardiesDay(state.courseId, date, { publishedOnly: !state.canWrite });
+      const saved = await loadGuardiesDay(state.courseId, date, { publishedOnly: !state.isAdmin });
       if (date !== state.date) return;
       applyGuardiesDay(saved, date);
     } catch (error) {
@@ -437,7 +437,7 @@ import {
     }, (error) => {
       if (error?.code === 'permission-denied') return;
       showError(`No s'ha pogut sincronitzar la jornada. ${error.message || error}`);
-    }, { publishedOnly: !state.canWrite });
+    }, { publishedOnly: !state.isAdmin });
   }
 
   function flushPendingRemoteDay() {
@@ -1503,7 +1503,7 @@ import {
   function render() {
     renderConvivenciaAdmin();
     const hasSchedule = Boolean(state.sessions.length);
-    const hasVisibleDay = state.canWrite || ['published', 'closed'].includes(state.dayStatus);
+    const hasVisibleDay = state.isAdmin || ['published', 'closed'].includes(state.dayStatus);
     const teDades = hasSchedule && hasVisibleDay;
     el.workspace.classList.toggle('hidden', !teDades);
     el.empty.classList.toggle('hidden', teDades);
@@ -1513,7 +1513,7 @@ import {
       if (state.persistenceStatus === 'loading') {
         if (title) title.textContent = 'Carregant dades compartides';
         if (copy) copy.textContent = 'Connectant amb Quota i el curs acadèmic actiu.';
-      } else if (hasSchedule && !state.canWrite) {
+      } else if (hasSchedule && !state.isAdmin) {
         if (title) title.textContent = 'Jornada encara no publicada';
         if (copy) copy.textContent = 'La cap d’estudis encara no ha publicat el full de guàrdies d’aquest dia.';
       } else {
