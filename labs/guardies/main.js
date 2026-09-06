@@ -1235,14 +1235,8 @@ import {
             />
             <span>
               <strong>Surt tot el grup</strong>
-              <small>${groupIsComplete
-                ? 'Sortida completa: es calcula el professorat que queda alliberat.'
-                : 'Sortida parcial: el professorat del grup no queda alliberat.'}</small>
             </span>
           </label>
-          <p class="group-card-hint">${groupIsComplete
-            ? 'El professorat que queda lliure es marca automàticament. Desmarca les excepcions i afegeix els acompanyants.'
-            : 'Indica el professorat acompanyant; en una sortida parcial ningú queda alliberat.'}</p>
           <div class="companion-picker">
             <label>
               <span>Afegeix professorat acompanyant</span>
@@ -1257,7 +1251,7 @@ import {
                   ${escapeHtml(labelProfessor(teacherId))}
                   <button type="button" aria-label="Treu ${escapeHtml(labelProfessor(teacherId))} dels acompanyants" data-remove-group-companion="${escapeHtml(grup.codi)}" data-teacher="${escapeHtml(teacherId)}" ${!state.canWrite || state.dayStatus === 'closed' ? 'disabled' : ''}>×</button>
                 </span>
-              `).join('') : '<small>Cap acompanyant seleccionat.</small>'}
+              `).join('') : ''}
             </div>
           </div>
           <p class="group-teacher-title">Professorat disponible en quedar lliure el grup</p>
@@ -1275,11 +1269,11 @@ import {
                       <b>${escapeHtml(labelProfessor(block.placa))}</b>
                       <small>${escapeHtml(horaLabel(block.hora))}</small>
                       ${!groupIsComplete
-                        ? '<small class="shared-group-warning">Sortida parcial; no queda disponible.</small>'
+                        ? '<small class="shared-group-warning">Sortida parcial</small>'
                         : remainingGroups.length
-                          ? `<small class="shared-group-warning">També té ${escapeHtml(remainingGroups.join(' + '))}; no queda disponible.</small>`
+                          ? `<small class="shared-group-warning">També: ${escapeHtml(remainingGroups.join(' + '))}</small>`
                           : ''}
-                      ${allCompanions.has(block.placa) ? '<small class="shared-group-warning">Acompanya una sortida; no queda disponible.</small>' : ''}
+                      ${allCompanions.has(block.placa) ? '<small class="shared-group-warning">Acompanyant</small>' : ''}
                     </span>
                   </label>
                 `;
@@ -1553,20 +1547,12 @@ import {
     el.empty.classList.toggle('hidden', teDades);
     if (!teDades) {
       const title = el.empty.querySelector('h2');
-      const copy = el.empty.querySelector('p');
       if (state.persistenceStatus === 'loading') {
         if (title) title.textContent = 'Carregant dades compartides';
-        if (copy) copy.textContent = 'Connectant amb Quota i el curs acadèmic actiu.';
       } else if (hasSchedule && !state.isAdmin) {
         if (title) title.textContent = 'Jornada encara no publicada';
-        if (copy) copy.textContent = 'La cap d’estudis encara no ha publicat el full de guàrdies d’aquest dia.';
       } else {
         if (title) title.textContent = state.canWrite ? 'Carrega l’horari per començar' : 'Encara no hi ha cap full de guàrdies disponible';
-        if (copy) {
-          copy.textContent = state.canWrite
-            ? 'Obre Arxius de configuració i completa els tres passos de preparació.'
-            : 'Encara no s’han carregat els fitxers de configuració d’aquest curs.';
-        }
       }
     }
     if (!teDades) return;
@@ -1895,7 +1881,7 @@ import {
       return `
         <div class="pati-info-strip holiday">
           <span>Pati no lectiu</span>
-          <p>${escapeHtml(reason.label)} · la rotació no avança</p>
+          <p>${escapeHtml(reason.label)}</p>
         </div>
       `;
     }

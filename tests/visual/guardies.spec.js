@@ -394,7 +394,6 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#add-pati-teacher').click();
     await expect(page.locator('.pati-roster-row')).toHaveCount(2);
     await expect(page.locator('.pati-roster-row').first()).toContainText('Fuentes Serra');
-    await expect(page.getByText("Les activitats GP d'Untis no s'importen.")).toBeVisible();
 
     await page.getByRole('tab', { name: 'Gestió diària' }).click();
 
@@ -447,7 +446,6 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#date-input').fill('2026-09-21');
     await page.locator('#date-input').press('Tab');
     await expect(page.locator('#coverage-list .pati-info-strip')).toContainText('Festa del centre');
-    await expect(page.locator('#coverage-list .pati-info-strip')).toContainText('la rotació no avança');
 
     await page.locator('#date-input').fill('2026-09-28');
     await page.locator('#date-input').press('Tab');
@@ -526,7 +524,6 @@ test.describe('Guàrdies: comportament existent', () => {
     await groupA.uncheck();
     await expect(groupA).not.toBeChecked();
     await expect(groupB).toBeChecked();
-    await expect(groupA.locator('xpath=ancestor::label')).toContainText('Sortida parcial');
 
     await page.locator('#outing-to').fill('2026-09-08');
     await page.getByRole('button', { name: 'Copia als dies de l’interval' }).click();
@@ -537,13 +534,12 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('[data-group-complete="11"]')).toBeChecked();
   });
 
-  test('mostra el pati entre tercera i quarta i explica la còpia de sortides', async ({ page }) => {
+  test('mostra el pati entre tercera i quarta i permet copiar sortides', async ({ page }) => {
     await openGuardies(page);
     await uploadConfiguration(page);
     await expect(page.locator('#coverage-list .coverage-session').nth(3)).toContainText('Pati · 10:45–11:15');
     await page.getByRole('tab', { name: 'Grup de sortida' }).click();
     await expect(page.getByRole('button', { name: 'Copia als dies de l’interval' })).toBeDisabled();
-    await expect(page.getByText('El dia actual ja es desa automàticament')).toBeVisible();
   });
 
   test('la versió impresa A3 conserva les franges en una sola pàgina i amaga els controls', async ({ page }, testInfo) => {

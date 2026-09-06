@@ -379,10 +379,8 @@ h3 {
 .range-builder > button,
 .outing-range > button { grid-column: 1 / -1; }
 
-.range-copy strong,
-.range-copy small { display: block; }
+.range-copy strong { display: block; }
 .range-copy strong { color: var(--text); font-size: .72rem; }
-.range-copy small { margin-top: 2px; color: var(--muted); font-size: .62rem; }
 .range-builder label,
 .outing-range label { display: grid; gap: 3px; }
 .range-builder input,
@@ -399,7 +397,6 @@ h3 {
 
 .range-feedback.is-success { color: var(--green); }
 .range-feedback.is-error { color: var(--coral); }
-.group-card-hint { margin: 0; padding: 6px 8px; color: var(--muted); font-size: .62rem; }
 .companion-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; padding: 0 8px 8px; }
 .info-only-label { color: var(--muted); font-size: .7rem; font-weight: 800; }
 .completion-toggle { display: flex; align-items: center; gap: 5px; margin-top: 4px; font-size: .6rem; }
@@ -919,16 +916,10 @@ h3 {
 .pati-save-bar {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
   border-top: 1px solid var(--border);
   padding: 10px;
-}
-
-.pati-save-bar p {
-  flex: 1;
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.7rem;
 }
 
 .pati-save-message {
@@ -960,16 +951,6 @@ h3 {
 .admin-block-head h2 {
   margin: 0;
   font-size: 0.9rem;
-}
-
-.hint {
-  color: var(--muted);
-  font-size: 0.72rem;
-  line-height: 1.35;
-}
-
-.hint.tight {
-  margin: -2px 0 7px;
 }
 
 .upload-row {

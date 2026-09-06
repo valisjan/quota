@@ -81,7 +81,6 @@ function clearFiles() {
           </div>
           <button id="clear-cache" type="button" class="ghost" :disabled="!canWrite || persistenceStatus === 'saving'" @click="clearFiles">Neteja fitxers</button>
         </div>
-        <p class="hint tight">Segueix l'ordre. Els fitxers queden compartits a Quota per al curs acadèmic actiu.</p>
         <ol class="setup-list">
           <li v-for="(upload, index) in uploads" :key="upload.kind" class="setup-step" :class="{ complete: upload.loaded, locked: upload.locked }" :data-upload-step="upload.kind">
             <span class="setup-number">{{ index + 1 }}</span>

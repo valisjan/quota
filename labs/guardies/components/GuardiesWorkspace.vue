@@ -12,7 +12,6 @@ const visible = () => (canWrite.value && adminSection.value === 'daily')
 <template>
   <section v-show="visible()" id="empty-state" class="empty">
     <h2>{{ canWrite ? "Carrega l'horari per començar" : 'Encara no hi ha cap full de guàrdies disponible' }}</h2>
-    <p>{{ canWrite ? 'Obre Arxius de configuració i completa els tres passos de preparació.' : 'Quan la cap d’estudis publiqui la jornada, la podràs consultar aquí.' }}</p>
   </section>
 
   <section v-show="visible()" id="workspace" class="workspace hidden">

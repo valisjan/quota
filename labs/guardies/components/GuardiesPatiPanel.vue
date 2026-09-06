@@ -250,7 +250,6 @@ async function saveAutomatically() {
             <h2>Zones de pati</h2>
           </div>
         </div>
-        <p class="hint tight">L'ordre defineix el recorregut. Després de la darrera zona, la rotació torna a la primera.</p>
         <form v-if="state.canWrite" class="pati-add-zone" @submit.prevent="addZone">
           <input
             id="new-pati-zone"
@@ -269,7 +268,7 @@ async function saveAutomatically() {
             <button v-if="state.canWrite" type="button" class="icon-remove" :aria-label="`Elimina ${zone.name}`" @click="removeZone(zone.id)">×</button>
           </div>
         </div>
-        <div v-else class="empty-small">Afegeix les zones en l'ordre en què les recorrerà el professorat.</div>
+        <div v-else class="empty-small">Cap zona configurada.</div>
       </section>
 
       <section class="admin-block pati-roster-block">
@@ -279,7 +278,6 @@ async function saveAutomatically() {
             <h2>GP de cada dia</h2>
           </div>
         </div>
-        <p class="hint tight">La cap d'estudis configura aquesta assignació manualment. Les activitats GP d'Untis no s'importen.</p>
         <div class="pati-day-tabs" role="tablist" aria-label="Dia de la setmana">
           <button
             v-for="day in WEEKDAYS"
@@ -337,7 +335,7 @@ async function saveAutomatically() {
             <button v-if="state.canWrite" type="button" class="icon-remove" :aria-label="`Elimina ${teacherLabel(teacher.teacherId)}`" @click="removeTeacher(teacher.teacherId)">×</button>
           </div>
         </div>
-        <div v-else class="empty-small">Aquest dia encara no té professorat de GP.</div>
+        <div v-else class="empty-small">Cap professor de GP.</div>
       </section>
 
       <section class="admin-block pati-calendar-block">
@@ -355,7 +353,6 @@ async function saveAutomatically() {
           >CAIB {{ draft.startYear }}–{{ draft.startYear + 1 }} ↗</a>
           <span v-else class="source-chip official">Calendari pendent de validar</span>
         </div>
-        <p class="hint tight">El calendari oficial ja està incorporat. Afegeix aquí els festius locals, dies de lliure disposició i altres dies propis del centre.</p>
         <div class="official-calendar-summary">
           <span>{{ formatDate(official.courseStart) }}–{{ formatDate(official.courseEnd) }}</span>
           <span v-for="range in official.ranges" :key="range.start">{{ range.label }} · {{ formatDate(range.start) }}–{{ formatDate(range.end) }}</span>
@@ -406,10 +403,6 @@ async function saveAutomatically() {
     </div>
 
     <footer class="pati-save-bar">
-      <p>
-        <strong>Els patis són informatius.</strong>
-        No creen substitucions; els festius no consumeixen cap pas de la rotació.
-      </p>
       <span v-if="saveMessage" :class="['pati-save-message', { error: saveMessage.startsWith('No') }]">{{ saveMessage }}</span>
       <span v-if="state.canWrite && !saveMessage" class="pati-save-message">Desat automàtic</span>
     </footer>

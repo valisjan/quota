@@ -16,7 +16,6 @@
           </div>
           <button id="clear-convivencia" type="button" class="ghost">Neteja setmana</button>
         </div>
-        <p class="hint tight">Cada sessió mostra només el professorat que hi té guàrdia. Les activitats GC o Guàrdia de convivència es detecten automàticament.</p>
         <div id="convivencia-admin-list" class="convivencia-admin-list"></div>
       </section>
     </div>

@@ -119,7 +119,6 @@ onBeforeUnmount(() => {
       <div class="range-builder">
         <div class="range-copy">
           <strong>Aplica a un interval</strong>
-          <small>Replica les sessions marcades als dies lectius compresos.</small>
         </div>
         <label>Des de <input v-model="absenceFrom" type="date" /></label>
         <label>Fins a <input v-model="absenceTo" type="date" /></label>
@@ -139,7 +138,6 @@ onBeforeUnmount(() => {
         <div class="outing-range">
           <div class="range-copy">
             <strong>Copia aquesta sortida a altres dies</strong>
-            <small>El dia actual ja es desa automàticament; l’interval serveix només per copiar-la.</small>
           </div>
           <label for="outing-from">Des de <input id="outing-from" v-model="outingFrom" type="date" /></label>
           <label for="outing-to">Fins a <input id="outing-to" v-model="outingTo" type="date" /></label>
