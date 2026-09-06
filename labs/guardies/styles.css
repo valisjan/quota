@@ -299,6 +299,22 @@ h3 {
   padding: 10px 14px;
 }
 
+.work-header.teacher-date-header {
+  display: block;
+  width: min(100%, 280px);
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.teacher-date-header .date-dock {
+  display: block;
+  width: 100%;
+}
+
 .day-state {
   display: inline-grid;
   grid-template-columns: 8px auto;

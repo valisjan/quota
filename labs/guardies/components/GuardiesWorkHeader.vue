@@ -96,10 +96,10 @@ function changeStatus(action) {
 </script>
 
 <template>
-  <header class="work-header no-print">
-    <div class="work-title">
-      <p class="kicker">{{ teacherView ? 'Consulta diària' : 'Control diari' }}</p>
-      <h1>{{ teacherView ? 'Guàrdies publicades' : 'Guàrdies' }}</h1>
+  <header class="work-header no-print" :class="{ 'teacher-date-header': teacherView }">
+    <div v-if="!teacherView" class="work-title">
+      <p class="kicker">Control diari</p>
+      <h1>Guàrdies</h1>
     </div>
 
     <div class="date-dock">
@@ -111,18 +111,18 @@ function changeStatus(action) {
           <button type="button" class="date-arrow" aria-label="Dia següent" title="Dia següent" @click="shiftDate(1)">→</button>
         </div>
       </div>
-      <div id="date-label" class="date-summary-card">
-        <span>{{ teacherView ? 'Dia seleccionat' : 'Dia preparat' }}</span>
+      <div v-if="!teacherView" id="date-label" class="date-summary-card">
+        <span>Dia preparat</span>
         <strong>{{ formatDate(date) }}</strong>
         <em v-if="!['1', '2', '3', '4', '5'].includes(xmlDay)">Sense horari lectiu al GPU001</em>
       </div>
-      <div id="today-info" class="date-summary-card today-info">
+      <div v-if="!teacherView" id="today-info" class="date-summary-card today-info">
         <span>Avui</span>
         <strong>{{ formatDate(localDateString(new Date())) }}</strong>
       </div>
     </div>
 
-    <div class="day-command-bar">
+    <div v-if="!teacherView" class="day-command-bar">
       <div class="day-state" :class="`is-${dayStatus}`">
         <span class="day-state-dot" aria-hidden="true"></span>
         <strong>{{ statusLabel }}</strong>
@@ -135,7 +135,7 @@ function changeStatus(action) {
       <button id="print-coverage" type="button" class="ghost" :disabled="!selectedAbsences.length" @click="printCoverage">Imprimeix A3</button>
       <button v-if="canWrite" id="clear-day-list" type="button" class="ghost" :disabled="dayStatus === 'closed' || !selectedAbsences.length" @click="clearDay">Neteja dia</button>
     </div>
-    <p v-if="publishedAt || updatedAt || closedAt" class="day-audit">
+    <p v-if="!teacherView && (publishedAt || updatedAt || closedAt)" class="day-audit">
       <span v-if="publishedAt">Publicada {{ formatTimestamp(publishedAt) }}</span>
       <span v-if="dayStatus === 'published' && updatedAt">Actualitzada {{ formatTimestamp(updatedAt) }}</span>
       <span v-if="closedAt">Tancada {{ formatTimestamp(closedAt) }}</span>

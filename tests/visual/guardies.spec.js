@@ -144,7 +144,7 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.getByRole('heading', { name: 'Jornada encara no publicada' })).toBeHidden();
     await page.getByRole('tab', { name: 'Guàrdies del dia' }).click();
     await expect(page.locator('#workspace')).toBeHidden();
-    await expect(page.locator('.day-state')).toContainText('No publicada');
+    await expect(page.locator('.day-state, #coverage-count, #print-coverage')).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Professorat', exact: true })).toHaveAttribute('aria-current', 'page');
   });
 
@@ -303,11 +303,13 @@ test.describe('Guàrdies: comportament existent', () => {
     expect(guardCount).toEqual({ total: 1, released: 0, guard: 1, other: 0 });
 
     await page.goto('/labs/guardies/?vista=professor');
-    await expect(page.getByRole('heading', { name: 'Guàrdies publicades' })).toBeVisible();
+    await expect(page.locator('.teacher-date-header')).toBeVisible();
+    await expect(page.locator('.teacher-date-header #date-input')).toBeVisible();
+    await expect(page.locator('.teacher-date-header .work-title, .teacher-date-header .date-summary-card, .teacher-date-header .day-command-bar')).toHaveCount(0);
     await expect(page.locator('.teacher-stats-panel')).toBeHidden();
     await page.getByRole('tab', { name: 'Guàrdies realitzades' }).click();
     await expect(page.locator('.teacher-stats-panel')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Guàrdies publicades' })).toBeHidden();
+    await expect(page.locator('.teacher-date-header')).toBeHidden();
     for (const selector of ['#admin-panel', '#pati-panel', '#convivencia-panel']) {
       await expect(page.locator(selector)).toBeHidden();
     }
