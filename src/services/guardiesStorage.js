@@ -20,6 +20,7 @@ import {
 import { auth, db, isIOSWebKit } from '../firebase';
 import { getRestCollection, getRestDocument } from './firestoreRest';
 import { E2E_AUTH_BYPASS, E2E_CURS_ID, getE2ECollection } from './e2e';
+import { selectDefaultAcademicCourse } from '../utils/academicCourse';
 import { normalizePatioConfig } from '../modules/guardies/domain/patio';
 import {
   normalizeGuardCount,
@@ -234,8 +235,7 @@ async function resolveCourse(requestedCourseId) {
     .map((item) => ({ id: item.id, ...item.data() }))
     .sort((a, b) => b.id.localeCompare(a.id, 'ca', { numeric: true }));
   const selected = courses.find((course) => course.id === requestedCourseId)
-    || courses.find((course) => !course.bloqueig)
-    || courses[0];
+    || selectDefaultAcademicCourse(courses);
   if (!selected) throw new Error('No hi ha cap curs acadèmic configurat a Quota.');
   return { id: selected.id, name: selected.nom || selected.id };
 }

@@ -4,8 +4,10 @@ import { collection, doc, onSnapshot, setDoc, updateDoc } from 'firebase/firesto
 import { db } from '../firebase';
 import { eliminarCursAcademicComplet } from '../services/cursCleanup';
 import { E2E_AUTH_BYPASS, E2E_CURS_ID, getE2ECursos } from '../services/e2e';
+import { selectDefaultAcademicCourse } from '../utils/academicCourse';
 
 const STORAGE_KEY = 'quota_curs_actiu';
+const EXPLICIT_STORAGE_KEY = 'quota_curs_actiu_explicit';
 
 export const useCursStore = defineStore('curs', () => {
   const cursos = ref([]);
@@ -55,17 +57,14 @@ export const useCursStore = defineStore('curs', () => {
           .sort((a, b) => b.id.localeCompare(a.id));
 
         const cursGuardat = localStorage.getItem(STORAGE_KEY);
-        if (!cursActiuId.value && cursGuardat) {
-          cursActiuId.value = cursGuardat;
-        }
-
-        // Mantenir el curs guardat; auto-seleccionar només si no existeix.
-        if (!cursActiuId.value || !cursos.value.find((c) => c.id === cursActiuId.value)) {
-          const preferit = cursos.value.find((c) => !c.bloqueig) || cursos.value[0];
-          cursActiuId.value = preferit?.id || null;
-          if (cursActiuId.value) localStorage.setItem(STORAGE_KEY, cursActiuId.value);
-          else localStorage.removeItem(STORAGE_KEY);
-        }
+        const cursExplicit = localStorage.getItem(EXPLICIT_STORAGE_KEY);
+        const seleccioExplicita = cursExplicit === cursGuardat
+          ? cursos.value.find((c) => c.id === cursExplicit)
+          : null;
+        const preferit = seleccioExplicita || selectDefaultAcademicCourse(cursos.value);
+        cursActiuId.value = preferit?.id || null;
+        if (cursActiuId.value) localStorage.setItem(STORAGE_KEY, cursActiuId.value);
+        else localStorage.removeItem(STORAGE_KEY);
         cursosReady.value = true;
       },
       (error) => {
@@ -80,6 +79,7 @@ export const useCursStore = defineStore('curs', () => {
     await setDoc(doc(db, 'cursos', id), { nom, bloqueig: false, createdAt: new Date() });
     cursActiuId.value = id;
     localStorage.setItem(STORAGE_KEY, id);
+    localStorage.setItem(EXPLICIT_STORAGE_KEY, id);
   }
 
   async function setBloqueig(cursId, valor) {
@@ -89,6 +89,7 @@ export const useCursStore = defineStore('curs', () => {
   function canviarCursActiu(id) {
     cursActiuId.value = id;
     localStorage.setItem(STORAGE_KEY, id);
+    localStorage.setItem(EXPLICIT_STORAGE_KEY, id);
   }
 
   async function eliminarCurs(cursId, options = {}) {
