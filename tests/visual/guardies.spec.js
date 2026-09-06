@@ -152,8 +152,8 @@ test.describe('Guàrdies: comportament existent', () => {
     expect(guardIndex).toBeGreaterThan(0);
     expect(outsideDutyIndexes.length).toBeGreaterThan(0);
     expect(Math.min(...outsideDutyIndexes)).toBeGreaterThan(guardIndex);
-    await firstAssignment.selectOption('4');
-    await expect(firstAssignment).toHaveValue('4');
+    await firstAssignment.selectOption('2');
+    await expect(firstAssignment).toHaveValue('2');
 
     await page.waitForTimeout(500);
     await page.reload();
@@ -165,6 +165,10 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.getByText('Publicada', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Tanca jornada' }).click();
     await expect(page.getByText('Tancada', { exact: true })).toBeVisible();
+    const guardCount = await page.evaluate(() => (
+      JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).stats.counts['2']
+    ));
+    expect(guardCount).toEqual({ total: 1, released: 0, guard: 1, other: 0 });
   });
 
   test('guarda una assignació setmanal de convivència', async ({ page }) => {
@@ -216,10 +220,15 @@ test.describe('Guàrdies: comportament existent', () => {
     expect(cardSizes[0].width).toBeCloseTo(cardSizes[1].width, 0);
     expect(cardSizes[0].height).toBe(cardSizes[1].height);
     const typeSizes = await patioCards.first().evaluate((card) => ({
-      zone: Number.parseFloat(getComputedStyle(card.querySelector('.pati-zone-name')).fontSize),
+      zone: Number.parseFloat(getComputedStyle(card.querySelector('.pati-zone-select')).fontSize),
       teacher: Number.parseFloat(getComputedStyle(card.querySelector('.pati-teacher-name')).fontSize),
     }));
     expect(typeSizes.zone).toBeGreaterThan(typeSizes.teacher);
+
+    const fuentesCard = patioCards.filter({ hasText: 'Fuentes Serra' });
+    await fuentesCard.locator('[data-pati-zone-override]').selectOption({ label: 'Porxada' });
+    await expect(fuentesCard).toHaveClass(/overridden/);
+    await expect(fuentesCard.locator('[data-pati-zone-override]')).toHaveValue('zona-2');
 
     await page.locator('#professor-search').fill('Fuentes');
     await page.locator('#professor-results [data-professor]').first().click();
@@ -236,6 +245,10 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('#coverage-list .pati-info-strip')).toContainText('Pista');
 
     await page.reload();
+    await page.locator('#date-input').fill('2026-09-14');
+    await page.locator('#date-input').press('Tab');
+    await expect(page.locator('.pati-zone-card').filter({ hasText: 'Fuentes Serra' })
+      .locator('[data-pati-zone-override]')).toHaveValue('zona-2');
     await page.locator('#date-input').fill('2026-09-21');
     await page.locator('#date-input').press('Tab');
     await expect(page.locator('#coverage-list .pati-info-strip')).toContainText('Festa del centre');
@@ -266,6 +279,7 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('[data-group-released="10"]:disabled')).toHaveCount(1);
     await expect(page.locator('[data-group-released="10"]:disabled')).not.toBeChecked();
     await expect(page.locator('#released-count')).toContainText('1 professor');
+    await expect(page.getByText('Candidat', { exact: true })).toHaveCount(0);
     await expect(page.locator('[data-confirm-group-released="10"]')).toHaveCount(0);
     await releasedCandidates.first().uncheck();
     await releasedCandidates.nth(1).uncheck();

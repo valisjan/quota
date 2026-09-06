@@ -8,7 +8,7 @@ import {
   releasedTeachingBlocks,
   xmlDayForDate,
 } from '../../src/modules/guardies/domain/day.js';
-import { teachingDatesBetween } from '../../src/modules/guardies/domain/workflow.js';
+import { normalizeGuardCount, teachingDatesBetween } from '../../src/modules/guardies/domain/workflow.js';
 import {
   nonTeachingReason,
   patioAssignmentsForDate,
@@ -23,6 +23,7 @@ import {
   saveGuardiesDay,
   saveGuardiesConvivencia,
   saveGuardiesFile,
+  saveGuardiesPati,
   subscribeGuardiesData,
   subscribeGuardiesDay,
   transitionGuardiesDay,
@@ -299,7 +300,12 @@ import {
     const comments = {};
     const groupTeachers = {};
     const groupReleasedTeachers = {};
-    state.assignacions.forEach((teacherId, absenceId) => { assignments[absenceId] = teacherId; });
+    state.assignacions.forEach((teacherId, absenceId) => {
+      assignments[absenceId] = {
+        teacherId,
+        source: state.assignmentSources.get(absenceId) || 'other',
+      };
+    });
     state.comentaris.forEach((comment, absenceId) => { comments[absenceId] = comment; });
     state.grupProfessorsFora.forEach((teachers, groupId) => {
       groupTeachers[groupId] = Array.from(teachers).filter(Boolean).sort();
@@ -340,8 +346,15 @@ import {
       const item = byId.get(id);
       if (item && isAbsenceSelectable(item)) state.absencies.set(id, item);
     });
-    Object.entries(saved?.assignments || {}).forEach(([id, teacherId]) => {
-      if (state.absencies.has(id) && teacherId) state.assignacions.set(id, teacherId);
+    Object.entries(saved?.assignments || {}).forEach(([id, assignment]) => {
+      const teacherId = typeof assignment === 'string' ? assignment : assignment?.teacherId;
+      const source = typeof assignment === 'object' && ['released', 'guard'].includes(assignment?.source)
+        ? assignment.source
+        : 'other';
+      if (state.absencies.has(id) && teacherId) {
+        state.assignacions.set(id, teacherId);
+        state.assignmentSources.set(id, source);
+      }
     });
     Object.entries(saved?.comments || {}).forEach(([id, comment]) => {
       if (state.absencies.has(id) && comment) state.comentaris.set(id, comment);
@@ -738,6 +751,7 @@ import {
       state.professor = '';
       state.absencies.clear();
       state.assignacions.clear();
+      state.assignmentSources.clear();
       state.comentaris.clear();
       state.grupsFora.clear();
       state.grupProfessorsFora.clear();
@@ -801,6 +815,7 @@ import {
           state.professor = '';
           state.absencies.clear();
           state.assignacions.clear();
+          state.assignmentSources.clear();
           state.comentaris.clear();
           state.grupsFora.clear();
           state.grupProfessorsFora.clear();
@@ -824,6 +839,7 @@ import {
       state.professor = '';
       state.absencies.clear();
       state.assignacions.clear();
+      state.assignmentSources.clear();
       state.comentaris.clear();
       state.grupsFora.clear();
       state.grupProfessorsFora.clear();
@@ -871,6 +887,7 @@ import {
       state.professor = '';
       state.absencies.clear();
       state.assignacions.clear();
+      state.assignmentSources.clear();
       state.comentaris.clear();
       state.grupsFora.clear();
       state.grupProfessorsFora.clear();
@@ -1486,6 +1503,7 @@ import {
         else {
           state.absencies.delete(input.dataset.absence);
           state.assignacions.delete(input.dataset.absence);
+          state.assignmentSources.delete(input.dataset.absence);
           state.comentaris.delete(input.dataset.absence);
         }
         renderCoverage();
@@ -1531,6 +1549,7 @@ import {
         setDateToXmlDay(button.dataset.jumpDay);
         state.absencies.clear();
         state.assignacions.clear();
+        state.assignmentSources.clear();
         state.comentaris.clear();
         state.grupsFora.clear();
         state.grupProfessorsFora.clear();
@@ -1547,9 +1566,17 @@ import {
     selected.forEach((item) => {
       const assignat = state.assignacions.get(item.id);
       if (!assignat) return;
-      const encaraDisponible = guardiesPerFranja(item.dia, item.hora, item.placa, item.id)
-        .some((candidate) => candidate.placa === assignat && !candidate.unavailable);
-      if (!encaraDisponible) state.assignacions.delete(item.id);
+      const candidate = guardiesPerFranja(item.dia, item.hora, item.placa, item.id)
+        .find((option) => option.placa === assignat && !option.unavailable);
+      if (!candidate) {
+        state.assignacions.delete(item.id);
+        state.assignmentSources.delete(item.id);
+      } else {
+        state.assignmentSources.set(
+          item.id,
+          candidate.alliberaments?.length ? 'released' : candidate.outsideDuty ? 'other' : 'guard',
+        );
+      }
     });
     el.printDateLabel.textContent = formatData(state.date);
 
@@ -1561,9 +1588,7 @@ import {
     const dayHours = hoursForSelectedDay();
     el.coverageList.innerHTML = warning + dayHours.map((hora) => {
       const items = selectedByHour.get(hora) || [];
-      const visibleItems = hora === 'PATI'
-        ? items.filter((item) => !item.sessions?.some(isPatiGuardiaSession))
-        : items;
+      const visibleItems = hora === 'PATI' ? [] : items;
       return `
       <section class="coverage-session ${hora === 'PATI' ? 'pati-session' : ''}">
         <div class="coverage-session-head">
@@ -1592,8 +1617,21 @@ import {
       select.addEventListener('change', () => {
         if (state.dayStatus === 'closed') return;
         state.cancelledAssignments.delete(select.dataset.assignacio);
-        if (select.value) state.assignacions.set(select.dataset.assignacio, select.value);
-        else state.assignacions.delete(select.dataset.assignacio);
+        if (select.value) {
+          const absence = state.absencies.get(select.dataset.assignacio);
+          const candidate = absence
+            ? guardiesPerFranja(absence.dia, absence.hora, absence.placa, absence.id)
+              .find((item) => item.placa === select.value)
+            : null;
+          state.assignacions.set(select.dataset.assignacio, select.value);
+          state.assignmentSources.set(
+            select.dataset.assignacio,
+            candidate?.alliberaments?.length ? 'released' : candidate?.outsideDuty ? 'other' : 'guard',
+          );
+        } else {
+          state.assignacions.delete(select.dataset.assignacio);
+          state.assignmentSources.delete(select.dataset.assignacio);
+        }
         renderCoverage();
       });
     });
@@ -1601,6 +1639,7 @@ import {
     el.coverageList.querySelectorAll('[data-clear-assignacio]').forEach((button) => {
       button.addEventListener('click', () => {
         state.assignacions.delete(button.dataset.clearAssignacio);
+        state.assignmentSources.delete(button.dataset.clearAssignacio);
         renderCoverage();
       });
     });
@@ -1625,11 +1664,16 @@ import {
         if (state.dayStatus === 'closed') return;
         state.absencies.delete(button.dataset.removeAbsence);
         state.assignacions.delete(button.dataset.removeAbsence);
+        state.assignmentSources.delete(button.dataset.removeAbsence);
         state.comentaris.delete(button.dataset.removeAbsence);
         state.cancelledAssignments.delete(button.dataset.removeAbsence);
         renderSchedule();
         renderCoverage();
       });
+    });
+
+    el.coverageList.querySelectorAll('[data-pati-zone-override]').forEach((select) => {
+      select.addEventListener('change', () => updatePatiZoneOverride(select));
     });
     el.coverageList.querySelectorAll('[data-cancel-assignment]').forEach((input) => {
       input.addEventListener('change', () => {
@@ -1687,20 +1731,68 @@ import {
         <div>
           ${assignments.map((assignment) => {
             const absent = isProfessorAbsentAtHour(diaXmlSeleccionat(), 'PATI', assignment.teacherId);
+            const zoneControl = state.canWrite ? `
+              <select
+                class="pati-zone-select no-print"
+                data-pati-zone-override="${escapeHtml(assignment.teacherId)}"
+                data-pati-base-zone="${escapeHtml(assignment.baseZoneId)}"
+                aria-label="Zona de ${escapeHtml(labelProfessor(assignment.teacherId))} per al ${escapeHtml(state.date)}"
+              >
+                <option value="">${escapeHtml(assignment.baseZoneName)} · rotació</option>
+                ${state.patiConfig.zones.map((zone) => `
+                  <option value="${escapeHtml(zone.id)}" ${assignment.overridden && zone.id === assignment.zoneId ? 'selected' : ''}>
+                    ${escapeHtml(zone.name)}
+                  </option>
+                `).join('')}
+              </select>
+              <strong class="pati-zone-name print-only">${escapeHtml(assignment.zoneName)}</strong>
+            ` : `<strong class="pati-zone-name">${escapeHtml(assignment.zoneName)}</strong>`;
             return `
               <article
-                class="pati-zone-card ${absent ? 'absent' : ''}"
+                class="pati-zone-card ${absent ? 'absent' : ''} ${assignment.overridden ? 'overridden' : ''}"
                 aria-label="${escapeHtml(`${assignment.zoneName}: ${labelProfessor(assignment.teacherId)}${absent ? ', absent' : ''}`)}"
               >
-                <strong class="pati-zone-name">${escapeHtml(assignment.zoneName)}</strong>
+                ${zoneControl}
                 <span class="pati-teacher-name">${escapeHtml(labelProfessor(assignment.teacherId))}</span>
-                ${absent ? '<small class="pati-absence-badge">Absent</small>' : '<small class="pati-card-spacer" aria-hidden="true">&nbsp;</small>'}
+                ${absent
+                  ? '<small class="pati-absence-badge">Absent</small>'
+                  : assignment.overridden
+                    ? '<small class="pati-override-badge">Canvi d\'avui</small>'
+                    : '<small class="pati-card-spacer" aria-hidden="true">&nbsp;</small>'}
               </article>
             `;
           }).join('')}
         </div>
       </div>
     `;
+  }
+
+  async function updatePatiZoneOverride(select) {
+    if (!state.canWrite || !state.patiConfig) return;
+    const teacherId = select.dataset.patiZoneOverride;
+    const day = diaXmlSeleccionat();
+    const previous = state.patiConfig;
+    const next = JSON.parse(JSON.stringify(previous));
+    const teacher = next.weekdayTeachers?.[day]?.find((item) => item.teacherId === teacherId);
+    if (!teacher) return;
+    teacher.zoneOverrides ||= {};
+    const zoneId = select.value;
+    if (zoneId && zoneId !== select.dataset.patiBaseZone) teacher.zoneOverrides[state.date] = zoneId;
+    else delete teacher.zoneOverrides[state.date];
+    state.patiConfig = next;
+    renderCoverage();
+    try {
+      state.persistenceStatus = 'saving';
+      state.patiConfig = await saveGuardiesPati(state.courseId, next);
+      state.persistenceStatus = 'ready';
+      showError('');
+      window.dispatchEvent(new CustomEvent('guardies:pati-updated'));
+    } catch (error) {
+      state.patiConfig = previous;
+      state.persistenceStatus = 'error';
+      showError(`No s'ha pogut canviar la zona del pati. ${error.message || error}`);
+      renderCoverage();
+    }
   }
 
   function mergeSessions(scheduleSessions, guardSessions) {
@@ -2002,7 +2094,14 @@ import {
   }
 
   function guardCount(placa) {
-    return Number(state.guardCounts.get(placa)) || 0;
+    return normalizeGuardCount(state.guardCounts.get(placa)).total;
+  }
+
+  function guardCountLabel(placa) {
+    const count = normalizeGuardCount(state.guardCounts.get(placa));
+    const parts = [`${count.released} allib.`, `${count.guard} G`];
+    if (count.other) parts.push(`${count.other} extra`);
+    return parts.join(' · ');
   }
 
   function isAssignedElsewhere(dia, hora, placa, currentAbsenceId) {
@@ -2036,6 +2135,7 @@ import {
     state.outingAbsenceIds.forEach((id) => {
       state.absencies.delete(id);
       state.assignacions.delete(id);
+      state.assignmentSources.delete(id);
       state.comentaris.delete(id);
     });
     state.outingAbsenceIds.clear();
@@ -2062,6 +2162,7 @@ import {
       if (item.placa === state.professor && item.dia === diaXmlSeleccionat() && !valid.has(id)) {
         state.absencies.delete(id);
         state.assignacions.delete(id);
+        state.assignmentSources.delete(id);
         state.comentaris.delete(id);
       }
     });
@@ -2073,6 +2174,7 @@ import {
       if (item.placa === state.professor && item.dia === dia) {
         state.absencies.delete(id);
         state.assignacions.delete(id);
+        state.assignmentSources.delete(id);
         state.comentaris.delete(id);
       }
     });
@@ -2145,7 +2247,6 @@ import {
           <strong>${escapeHtml(labelProfessor(item.placa))}</strong>
           <span>${escapeHtml(formatMateria(item))} · ${escapeHtml(formatBlocCurt(item))}</span>
         </div>
-        <span class="released-tag">Candidat</span>
       </article>
     `;
   }
@@ -2398,15 +2499,15 @@ import {
   }
 
   function candidateSelectLabel(candidate) {
-    const count = guardCount(candidate.placa);
+    const count = guardCountLabel(candidate.placa);
     if (candidate.unavailable) {
       const reason = candidate.outsideDuty ? ' · ni G ni alliberat' : '';
       return `No disponible${reason} - ${labelProfessor(candidate.placa)}`;
     }
-    if (candidate.alliberaments?.length) return `Alliberat · ${count} fetes - ${labelProfessor(candidate.placa)}`;
-    if (candidate.outsideDuty) return `Ni G ni alliberat · ${count} fetes - ${labelProfessor(candidate.placa)}`;
+    if (candidate.alliberaments?.length) return `Alliberat · ${count} - ${labelProfessor(candidate.placa)}`;
+    if (candidate.outsideDuty) return `Ni G ni alliberat · ${count} - ${labelProfessor(candidate.placa)}`;
     const prefix = candidate.convivencia ? 'Convivència - ' : 'Guàrdia - ';
-    return `${prefix}${count} fetes - ${labelProfessor(candidate.placa)}`;
+    return `${prefix}${count} - ${labelProfessor(candidate.placa)}`;
   }
 
   function candidateOptionClass(candidate) {

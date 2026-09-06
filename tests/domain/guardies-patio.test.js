@@ -48,6 +48,19 @@ test('cada dia de la setmana conserva una rotació independent', () => {
   assert.deepEqual(patioAssignmentsForDate('2026-09-21', current).map((item) => item.zoneName), ['Porxada']);
 });
 
+test('un canvi de zona puntual només afecta la data indicada', () => {
+  const current = config({
+    weekdayTeachers: {
+      1: [{ teacherId: 'pep', startZoneId: 'a', zoneOverrides: { '2026-09-14': 'c' } }],
+    },
+  });
+  const changed = patioAssignmentsForDate('2026-09-14', current)[0];
+  assert.equal(changed.zoneName, 'Jardí');
+  assert.equal(changed.baseZoneName, 'Pista');
+  assert.equal(changed.overridden, true);
+  assert.equal(patioAssignmentsForDate('2026-09-21', current)[0].zoneName, 'Porxada');
+});
+
 test('els dies no lectius del centre s’afegeixen als oficials', () => {
   const current = config({
     customHolidays: [{ date: '2026-09-21', label: 'Festa del centre' }],

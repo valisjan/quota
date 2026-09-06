@@ -38,6 +38,7 @@ export const useGuardiesStore = defineStore('guardies', {
     convivencia: new Map(),
     absencies: new Map(),
     assignacions: new Map(),
+    assignmentSources: new Map(),
     comentaris: new Map(),
     grupsFora: new Set(),
     grupProfessorsFora: new Map(),
@@ -64,6 +65,7 @@ export const useGuardiesStore = defineStore('guardies', {
     clearAbsencePlan() {
       this.absencies.clear();
       this.assignacions.clear();
+      this.assignmentSources.clear();
       this.comentaris.clear();
       this.cancelledAssignments.clear();
       this.outingAbsenceIds.clear();

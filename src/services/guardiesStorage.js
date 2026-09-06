@@ -16,6 +16,10 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { E2E_AUTH_BYPASS, E2E_CURS_ID } from './e2e';
 import { normalizePatioConfig } from '../modules/guardies/domain/patio';
+import {
+  normalizeCountedAssignment,
+  updateGuardCounts,
+} from '../modules/guardies/domain/workflow';
 
 const FILE_KINDS = new Set(['reference', 'untis', 'duties']);
 const DELETABLE_FILE_KINDS = new Set([...FILE_KINDS, 'schedule']);
@@ -393,11 +397,12 @@ export async function saveGuardiesDay(cursId, date, payload, expectedRevision = 
   });
 }
 
-function frequency(values) {
-  return values.reduce((result, value) => {
-    result[value] = (result[value] || 0) + 1;
-    return result;
-  }, {});
+function countedAssignmentsForDay(day) {
+  const cancelled = new Set(day.cancelledAssignments || []);
+  return Object.entries(day.assignments || {})
+    .filter(([absenceId]) => !cancelled.has(absenceId))
+    .map(([, assignment]) => normalizeCountedAssignment(assignment))
+    .filter(Boolean);
 }
 
 export async function transitionGuardiesDay(cursId, date, action) {
@@ -412,17 +417,9 @@ export async function transitionGuardiesDay(cursId, date, action) {
     if (action === 'publish') Object.assign(day, { status: 'published', publishedAt: day.publishedAt || now, closedAt: '' });
     if (action === 'reopen') Object.assign(day, { status: 'published', closedAt: '' });
     if (action === 'close') {
-      const cancelled = new Set(day.cancelledAssignments || []);
-      const countedAssignments = Object.entries(day.assignments || {})
-        .filter(([absenceId]) => !cancelled.has(absenceId))
-        .map(([, teacherId]) => teacherId)
-        .filter(Boolean);
+      const countedAssignments = countedAssignmentsForDay(day);
       data.stats ||= { counts: {} };
-      const previous = frequency(previousCounted);
-      const next = frequency(countedAssignments);
-      new Set([...Object.keys(previous), ...Object.keys(next)]).forEach((teacherId) => {
-        data.stats.counts[teacherId] = Math.max(0, Number(data.stats.counts[teacherId] || 0) + (next[teacherId] || 0) - (previous[teacherId] || 0));
-      });
+      data.stats.counts = updateGuardCounts(data.stats.counts, previousCounted, countedAssignments);
       Object.assign(day, { status: 'closed', closedAt: now, countedAssignments });
     }
     day.clientUpdatedAt = now;
@@ -449,17 +446,8 @@ export async function transitionGuardiesDay(cursId, date, action) {
     if (action === 'publish') Object.assign(update, { status: 'published', publishedAt: day.publishedAt || now, closedAt: '' });
     if (action === 'reopen') Object.assign(update, { status: 'published', closedAt: '' });
     if (action === 'close') {
-      const cancelled = new Set(day.cancelledAssignments || []);
-      const countedAssignments = Object.entries(day.assignments || {})
-        .filter(([absenceId]) => !cancelled.has(absenceId))
-        .map(([, teacherId]) => teacherId)
-        .filter(Boolean);
-      const counts = { ...(stats.counts || {}) };
-      const previous = frequency(day.countedAssignments || []);
-      const next = frequency(countedAssignments);
-      new Set([...Object.keys(previous), ...Object.keys(next)]).forEach((teacherId) => {
-        counts[teacherId] = Math.max(0, Number(counts[teacherId] || 0) + (next[teacherId] || 0) - (previous[teacherId] || 0));
-      });
+      const countedAssignments = countedAssignmentsForDay(day);
+      const counts = updateGuardCounts(stats.counts, day.countedAssignments || [], countedAssignments);
       Object.assign(update, { status: 'closed', closedAt: now, countedAssignments });
       stats = { counts, updatedAt: serverTimestamp() };
       transaction.set(statsReference, stats);

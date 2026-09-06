@@ -85,7 +85,12 @@ function normalizeTeacher(teacher, zoneIds) {
   const teacherId = String(teacher?.teacherId || '').trim().slice(0, 100);
   if (!teacherId) return null;
   const startZoneId = zoneIds.has(teacher?.startZoneId) ? teacher.startZoneId : '';
-  return { teacherId, startZoneId };
+  const zoneOverrides = Object.fromEntries(Object.entries(
+    teacher?.zoneOverrides && typeof teacher.zoneOverrides === 'object' ? teacher.zoneOverrides : {},
+  )
+    .filter(([date, zoneId]) => DATE_RE.test(date) && zoneIds.has(zoneId))
+    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB)));
+  return { teacherId, startZoneId, zoneOverrides };
 }
 
 export function normalizePatioConfig(raw = {}, { startYear } = {}) {
@@ -192,8 +197,18 @@ export function patioAssignmentsForDate(value, rawConfig) {
   return config.weekdayTeachers[weekday].map((teacher, teacherIndex) => {
     let initialZone = config.zones.findIndex((zone) => zone.id === teacher.startZoneId);
     if (initialZone < 0) initialZone = teacherIndex % config.zones.length;
-    const zone = config.zones[(initialZone + rotation) % config.zones.length];
-    return { ...teacher, zoneId: zone.id, zoneName: zone.name, rotation };
+    const baseZone = config.zones[(initialZone + rotation) % config.zones.length];
+    const overrideZone = config.zones.find((zone) => zone.id === teacher.zoneOverrides?.[value]);
+    const zone = overrideZone || baseZone;
+    return {
+      ...teacher,
+      zoneId: zone.id,
+      zoneName: zone.name,
+      baseZoneId: baseZone.id,
+      baseZoneName: baseZone.name,
+      overridden: Boolean(overrideZone && overrideZone.id !== baseZone.id),
+      rotation,
+    };
   });
 }
 
