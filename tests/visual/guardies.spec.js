@@ -200,8 +200,32 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#pati-teacher-search').fill('Fuentes');
     await page.locator('.pati-teacher-results [role="option"]').first().click();
     await page.locator('#add-pati-teacher').click();
-    await expect(page.locator('.pati-roster-row')).toContainText('Fuentes Serra');
+    await page.locator('#pati-teacher-search').fill('Sanz');
+    await page.locator('.pati-teacher-results [role="option"]').first().click();
+    await page.locator('#add-pati-teacher').click();
+    await expect(page.locator('.pati-roster-row')).toHaveCount(2);
+    await expect(page.locator('.pati-roster-row').first()).toContainText('Fuentes Serra');
     await expect(page.getByText("Les activitats GP d'Untis no s'importen.")).toBeVisible();
+
+    const patioCards = page.locator('#coverage-list .pati-zone-card');
+    await expect(patioCards).toHaveCount(2);
+    const cardSizes = await patioCards.evaluateAll((cards) => cards.map((card) => ({
+      width: card.getBoundingClientRect().width,
+      height: card.getBoundingClientRect().height,
+    })));
+    expect(cardSizes[0].width).toBeCloseTo(cardSizes[1].width, 0);
+    expect(cardSizes[0].height).toBe(cardSizes[1].height);
+    const typeSizes = await patioCards.first().evaluate((card) => ({
+      zone: Number.parseFloat(getComputedStyle(card.querySelector('.pati-zone-name')).fontSize),
+      teacher: Number.parseFloat(getComputedStyle(card.querySelector('.pati-teacher-name')).fontSize),
+    }));
+    expect(typeSizes.zone).toBeGreaterThan(typeSizes.teacher);
+
+    await page.locator('#professor-search').fill('Fuentes');
+    await page.locator('#professor-results [data-professor]').first().click();
+    await page.locator('#schedule-grid .schedule-item').filter({ hasText: 'PATI' }).locator('[data-absence]').check();
+    await expect(page.locator('.pati-zone-card.absent')).toHaveCount(1);
+    await expect(page.locator('.pati-zone-card.absent .pati-absence-badge')).toContainText('Absent');
 
     await page.locator('#pati-holiday-date').fill('2026-09-21');
     await page.locator('#pati-holiday-label').fill('Festa del centre');

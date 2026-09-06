@@ -1683,15 +1683,16 @@ import {
         <span>Zones de pati</span>
         <div>
           ${assignments.map((assignment) => {
-            const absent = Array.from(state.absencies.values()).some((item) => (
-              item.placa === assignment.teacherId && item.dia === diaXmlSeleccionat()
-            ));
+            const absent = isProfessorAbsentAtHour(diaXmlSeleccionat(), 'PATI', assignment.teacherId);
             return `
-              <strong class="${absent ? 'absent' : ''}">
-                <em>${escapeHtml(assignment.zoneName)}</em>
-                ${escapeHtml(labelProfessor(assignment.teacherId))}
-                ${absent ? '<small>Absent · no se substitueix</small>' : ''}
-              </strong>
+              <article
+                class="pati-zone-card ${absent ? 'absent' : ''}"
+                aria-label="${escapeHtml(`${assignment.zoneName}: ${labelProfessor(assignment.teacherId)}${absent ? ', absent' : ''}`)}"
+              >
+                <strong class="pati-zone-name">${escapeHtml(assignment.zoneName)}</strong>
+                <span class="pati-teacher-name">${escapeHtml(labelProfessor(assignment.teacherId))}</span>
+                ${absent ? '<small class="pati-absence-badge">Absent</small>' : '<small class="pati-card-spacer" aria-hidden="true">&nbsp;</small>'}
+              </article>
             `;
           }).join('')}
         </div>
