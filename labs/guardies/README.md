@@ -8,16 +8,9 @@ A l'apartat **Arxius de configuració** es carreguen, en aquest ordre:
 
 1. **XML GestIB**: places, grups, matèries, activitats i aules.
 2. **GPU004.TXT**: codis i noms del professorat d'Untis.
-3. **GPU001.TXT**: sessions de guàrdia del professorat.
-4. **Export d'horari Untis**:
+3. **GPU001.TXT**: horari complet, classes, grups, activitats i guàrdies.
 
-```xml
-<HORARI>
-  <SESSIONS>
-    <SESSIO placa="..." dia="..." hora="..." curs="..." grup="..." materia="..." activitat="..." aula="..." />
-  </SESSIONS>
-</HORARI>
-```
+No cal carregar l'XML complet d'Untis: GPU001 conté les mateixes sessions en un fitxer molt més lleuger. Els noms complets del professorat continuen provenint de GPU004.
 
 Els fitxers i la configuració setmanal queden guardats a Firestore dins el curs acadèmic actiu. Es carreguen automàticament des de qualsevol navegador amb una sessió vàlida de Quota. Un usuari administrador pot substituir o eliminar cada fitxer des del mateix assistent.
 

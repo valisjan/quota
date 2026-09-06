@@ -84,6 +84,34 @@ test('converteix GPU001 en guàrdies i exclou pati de la guàrdia general', asyn
   ]);
 });
 
+test('usa GPU001 com a horari complet i conserva els noms de GPU004', async ({ page }) => {
+  const result = await runParser(page, (parser, { reference, duties, teachers }) => {
+    const parsedReference = parser.parseGestibReference(reference);
+    const parsedTeachers = parser.parseUntisProfessorat(teachers);
+    const parsed = parser.parseUntisHorari(duties, {
+      referencia: parsedReference,
+      professoratUntis: parsedTeachers,
+    });
+    return parsed.sessions.map((session) => ({
+      teacher: session.professorCurta,
+      name: session.professorNom,
+      group: session.grupVisible,
+      subject: session.materiaCurta,
+      hour: session.hora,
+      guard: session.activitatEsGuardiaGeneral,
+    }));
+  }, {
+    reference: referenceXml,
+    teachers: 'PROF1,"Professor, Primer"\nGUARD1,"Guàrdia, Gina"',
+    duties: '1,"1ESO-A","PROF1","MAT","Aula 1",1,1,,\n2,,"GUARD1","G",,1,1,,',
+  });
+
+  expect(result).toEqual([
+    { teacher: 'PROF1', name: 'Professor, Primer', group: '1ESO-A', subject: 'MAT', hour: '8:00', guard: false },
+    { teacher: 'GUARD1', name: 'Guàrdia, Gina', group: '', subject: '', hour: '8:00', guard: true },
+  ]);
+});
+
 test('agrupa sessions simultànies del mateix bloc de cobertura', async ({ page }) => {
   const result = await runParser(page, (parser) => {
     const base = {

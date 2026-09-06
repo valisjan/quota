@@ -25,21 +25,15 @@ const referenceXml = `<?xml version="1.0" encoding="UTF-8"?>
   </AULES>
 </CENTRE>`;
 
-const scheduleXml = `<?xml version="1.0" encoding="UTF-8"?>
-<HORARI>
-  <SESSIONS>
-    <SESSIO placa="1" dia="1" hora="08:00" curs="1" grup="10" materia="100" aula="300" />
-    <SESSIO placa="1" dia="1" hora="09:00" curs="1" grup="10" materia="100" aula="300" />
-    <SESSIO placa="4" dia="1" hora="08:00" curs="1" grup="10" materia="100" aula="300" />
-    <SESSIO placa="4" dia="1" hora="08:00" curs="1" grup="11" materia="100" aula="300" />
-  </SESSIONS>
-</HORARI>`;
-
 const teachersText = `ADEL,"Adell Domènech, Marina"
 FUEN,"Fuentes Serra, Gabriel"
 SANZ,"Sanz Vidal, Clara"`;
 
-const dutiesText = `1,,"ADEL","G",,1,3,,
+const dutiesText = `10,"1ESO-A","ADEL","MAT","Aula 1",1,1,,
+11,"1ESO-A","ADEL","MAT","Aula 1",1,2,,
+12,"1ESO-A","MAT1","MAT","Aula 1",1,1,,
+12,"1ESO-B","MAT1","MAT","Aula 1",1,1,,
+1,,"ADEL","G",,1,3,,
 2,,"FUEN","G",,1,1,,
 3,,"SANZ","G",,1,2,,
 4,,"FUEN","GP",,1,4,,`;
@@ -48,12 +42,6 @@ const referenceFile = {
   name: 'gestib-e2e.xml',
   mimeType: 'application/xml',
   buffer: Buffer.from(referenceXml),
-};
-
-const scheduleFile = {
-  name: 'horari-e2e.xml',
-  mimeType: 'application/xml',
-  buffer: Buffer.from(scheduleXml),
 };
 
 const teachersFile = {
@@ -82,9 +70,6 @@ async function uploadConfiguration(page) {
 
   await page.locator('#duties-file').setInputFiles(dutiesFile);
   await expect(page.locator('[data-upload-status="duties"]')).toHaveText('OK');
-
-  await page.locator('#xml-file').setInputFiles(scheduleFile);
-  await expect(page.locator('[data-upload-status="schedule"]')).toHaveText('OK');
   await expect(page.locator('#workspace')).toBeVisible();
 }
 
@@ -96,8 +81,8 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('#reference-file')).toBeEnabled();
     await expect(page.locator('#untis-file')).toBeDisabled();
     await expect(page.locator('#duties-file')).toBeDisabled();
-    await expect(page.locator('#xml-file')).toBeDisabled();
-    await expect(page.locator('#cache-info')).toContainText('0/4 fitxers compartits');
+    await expect(page.locator('#xml-file')).toHaveCount(0);
+    await expect(page.locator('#cache-info')).toContainText('0/3 fitxers compartits');
     await expect(page.locator('#admin-panel')).not.toHaveAttribute('open', '');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
@@ -108,14 +93,14 @@ test.describe('Guàrdies: comportament existent', () => {
 
     await expect(page.locator('#stat-sessions')).not.toHaveText('0');
     await expect(page.locator('#stat-reference')).toHaveText('Sí');
-    await expect(page.locator('#cache-info')).toContainText('4/4 fitxers compartits');
+    await expect(page.locator('#cache-info')).toContainText('3/3 fitxers compartits');
 
     await page.reload();
     await expect(page.locator('#workspace')).toBeVisible();
     await expect(page.locator('[data-upload-name="reference"]')).toHaveText('gestib-e2e.xml');
     await expect(page.locator('[data-upload-name="untis"]')).toHaveText('GPU004.TXT');
     await expect(page.locator('[data-upload-name="duties"]')).toHaveText('GPU001.TXT');
-    await expect(page.locator('[data-upload-name="schedule"]')).toHaveText('horari-e2e.xml');
+    await expect(page.locator('[data-upload-name="schedule"]')).toHaveCount(0);
   });
 
   test('selecciona un professor absent, crea cobertures i conserva la jornada', async ({ page }) => {
@@ -162,16 +147,16 @@ test.describe('Guàrdies: comportament existent', () => {
     await uploadConfiguration(page);
 
     await page.locator('#convivencia-panel summary').click();
-    const firstSlot = page.locator('[data-convivencia-slot="1|08:00"]');
+    const firstSlot = page.locator('[data-convivencia-slot="1|8:00"]');
     await expect(firstSlot).toBeVisible();
     await firstSlot.selectOption({ index: 1 });
     const selected = await firstSlot.inputValue();
     expect(selected).not.toBe('');
 
-    await expect(page.locator('#cache-info')).toContainText('4/4 fitxers compartits');
+    await expect(page.locator('#cache-info')).toContainText('3/3 fitxers compartits');
     await page.reload();
     await page.locator('#convivencia-panel summary').click();
-    await expect(page.locator('[data-convivencia-slot="1|08:00"]')).toHaveValue(selected);
+    await expect(page.locator('[data-convivencia-slot="1|8:00"]')).toHaveValue(selected);
   });
 
   test('configura manualment zones i GP, desa automàticament i salta festius', async ({ page }) => {

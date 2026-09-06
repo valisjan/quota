@@ -26,8 +26,6 @@ export const useGuardiesStore = defineStore('guardies', {
     untisName: '',
     dutiesText: '',
     dutiesName: '',
-    scheduleText: '',
-    scheduleName: '',
     referencia: null,
     professoratUntis: null,
     sessions: [],

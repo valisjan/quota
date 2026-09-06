@@ -10,11 +10,11 @@ const { canWrite } = storeToRefs(useGuardiesStore());
 <template>
   <section id="empty-state" class="empty">
     <h2>Carrega l'horari per començar</h2>
-    <p>Obre Arxius de configuració i completa els quatre passos de preparació.</p>
+    <p>Obre Arxius de configuració i completa els tres passos de preparació.</p>
   </section>
 
   <section id="workspace" class="workspace hidden">
-    <section class="stats hidden" aria-label="Resum del XML">
+    <section class="stats hidden" aria-label="Resum de la configuració">
       <strong id="stat-sessions">0</strong>
       <strong id="stat-professors">0</strong>
       <strong id="stat-grups">0</strong>

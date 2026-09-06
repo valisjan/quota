@@ -204,10 +204,6 @@ import {
           text: storageGet(LEGACY_STORAGE.untisText, ''),
           name: storageGet(LEGACY_STORAGE.untisName, ''),
         },
-        schedule: {
-          text: storageGet(LEGACY_STORAGE.scheduleXml, ''),
-          name: storageGet(LEGACY_STORAGE.scheduleName, ''),
-        },
       },
       convivencia: loadJson(LEGACY_STORAGE.convivencia, {}),
     };
@@ -220,7 +216,7 @@ import {
     if (!state.canWrite || (!hasLegacyFiles && !hasLegacyConvivencia)) return remoteData;
 
     state.persistenceStatus = 'saving';
-    for (const kind of ['reference', 'untis', 'schedule']) {
+    for (const kind of ['reference', 'untis']) {
       const legacyFile = legacy.files[kind];
       if (!remoteData.files[kind] && legacyFile.text) {
         await saveGuardiesFile(state.courseId, kind, legacyFile.text, legacyFile.name);
@@ -236,15 +232,12 @@ import {
   function applyRemoteData(remoteData) {
     const reference = remoteData.files.reference;
     const untis = remoteData.files.untis;
-    const schedule = remoteData.files.schedule;
     state.referenceText = reference?.text || '';
     state.referenceName = reference?.name || '';
-      state.untisText = untis?.text || '';
+    state.untisText = untis?.text || '';
     state.untisName = untis?.name || '';
     state.dutiesText = remoteData.files.duties?.text || '';
     state.dutiesName = remoteData.files.duties?.name || '';
-    state.scheduleText = schedule?.text || '';
-    state.scheduleName = schedule?.name || '';
     state.convivencia = convivenciaFromObject(remoteData.convivencia);
     state.patiConfig = remoteData.pati || null;
   }
@@ -563,17 +556,19 @@ import {
       showError('');
       const text = await readXmlFileText(file);
       const detectedKind = detectUploadKind(text, intendedKind);
+      if (xmlRootName(text) === 'DOCUMENT') {
+        throw new Error('Aquest XML complet d\'Untis no és necessari. Exporta i carrega GPU001.TXT.');
+      }
       if (detectedKind !== intendedKind) {
         const labels = {
           reference: 'XML de GestIB',
           untis: 'GPU004 de professorat',
-          duties: 'GPU001 de guàrdies',
-          schedule: 'export d’horari d’Untis',
+          duties: 'GPU001 d\'horari i guàrdies',
         };
         throw new Error(`Aquest fitxer no correspon al pas actual. S'espera: ${labels[intendedKind]}.`);
       }
       await saveUploadedFile(detectedKind, text, file.name);
-      parseStoredData({ resetSelection: detectedKind === 'schedule' });
+      parseStoredData({ resetSelection: detectedKind === 'duties' });
     } catch (error) {
       state.persistenceStatus = 'error';
       showError(error.message || String(error));
@@ -583,7 +578,7 @@ import {
 
   function detectUploadKind(text, fallback) {
     const root = xmlRootName(text);
-    if (root === 'HORARI') return 'schedule';
+    if (root === 'HORARI' || root === 'DOCUMENT') return 'schedule';
     if (root === 'CENTRE') return 'reference';
     if (!root) return fallback;
     return fallback;
@@ -609,12 +604,9 @@ import {
     } else if (kind === 'duties') {
       state.dutiesText = file.text;
       state.dutiesName = file.name;
-    } else {
-      state.scheduleText = file.text;
-      state.scheduleName = file.name;
     }
     state.persistenceStatus = 'ready';
-    if (state.referenceText && state.untisText && state.dutiesText && state.scheduleText) {
+    if (state.referenceText && state.untisText && state.dutiesText) {
       const adminPanel = document.getElementById('admin-panel');
       if (adminPanel) adminPanel.open = false;
     }
@@ -633,16 +625,13 @@ import {
     } else if (kind === 'duties') {
       state.dutiesText = '';
       state.dutiesName = '';
-    } else {
-      state.scheduleText = '';
-      state.scheduleName = '';
     }
     state.persistenceStatus = 'ready';
     showError('');
   }
 
   async function removeUploadedFile(kind) {
-    if (!state.canWrite || !['reference', 'untis', 'duties', 'schedule'].includes(kind)) return;
+    if (!state.canWrite || !['reference', 'untis', 'duties'].includes(kind)) return;
     try {
       await clearUploadedFile(kind);
       state.professor = '';
@@ -688,14 +677,12 @@ import {
     }
 
     try {
-      if (state.scheduleText) {
-        const result = parser.parseHorariXml(state.scheduleText, state.referencia, state.professoratUntis);
-        const guardSessions = parser.parseUntisGuardies(state.dutiesText, {
+      if (state.dutiesText) {
+        const result = parser.parseUntisHorari(state.dutiesText, {
           referencia: state.referencia,
           professoratUntis: state.professoratUntis,
-          hores: result.resum.hores,
         });
-        state.sessions = mergeSessions(result.sessions, guardSessions);
+        state.sessions = mergeSessions(result.sessions, []);
         state.resum = {
           ...result.resum,
           sessions: state.sessions.length,
@@ -762,7 +749,7 @@ import {
 
   async function clearPersistentFiles() {
     if (!state.canWrite || !state.courseId) return;
-    const confirmed = window.confirm('Vols eliminar els quatre fitxers compartits de guàrdies?');
+    const confirmed = window.confirm('Vols eliminar els tres fitxers compartits de guàrdies?');
     if (!confirmed) return;
     try {
       state.persistenceStatus = 'saving';
@@ -776,8 +763,6 @@ import {
       state.untisName = '';
       state.dutiesText = '';
       state.dutiesName = '';
-      state.scheduleText = '';
-      state.scheduleName = '';
       state.referencia = null;
       state.professoratUntis = null;
       state.sessions = [];
@@ -1261,7 +1246,7 @@ import {
     const hores = (state.resum?.hores || []).slice()
       .sort((a, b) => a.localeCompare(b, 'ca', { numeric: true }));
     if (!state.sessions.length || !hores.length) {
-      el.convivenciaAdminList.innerHTML = '<div class="empty-small">Completa els quatre fitxers per configurar la setmana.</div>';
+      el.convivenciaAdminList.innerHTML = '<div class="empty-small">Completa els tres fitxers per configurar la setmana.</div>';
       return;
     }
 
@@ -1337,7 +1322,7 @@ import {
         if (title) title.textContent = 'Carrega l’horari per començar';
         if (copy) {
           copy.textContent = state.canWrite
-            ? 'Obre Arxius de configuració i completa els quatre passos de preparació.'
+            ? 'Obre Arxius de configuració i completa els tres passos de preparació.'
             : 'Encara no s’han carregat els fitxers de configuració d’aquest curs.';
         }
       }
@@ -1410,7 +1395,7 @@ import {
   function renderEmptySchedule(dia) {
     const weekItems = allProfessorWeekItems();
     if (!weekItems.length) {
-      el.scheduleGrid.innerHTML = '<div class="empty-small">Aquest professor no té sessions al XML carregat.</div>';
+      el.scheduleGrid.innerHTML = '<div class="empty-small">Aquest professor no té sessions al GPU001 carregat.</div>';
       return;
     }
 

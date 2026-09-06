@@ -6,21 +6,19 @@ import { useGuardiesStore } from '../stores/guardies.js';
 const definitions = [
   { kind: 'reference', title: 'XML GestIB', accept: '.xml,text/xml,application/xml,*/*' },
   { kind: 'untis', title: 'Professorat Untis (GPU004)', accept: '.txt,.csv,text/plain,text/csv,*/*' },
-  { kind: 'duties', title: 'Guàrdies Untis (GPU001)', accept: '.txt,.csv,text/plain,text/csv,*/*' },
-  { kind: 'schedule', title: "Export d'horari Untis", accept: '.xml,text/xml,application/xml,*/*' },
+  { kind: 'duties', title: 'Horari i guàrdies Untis (GPU001)', accept: '.txt,.csv,text/plain,text/csv,*/*' },
 ];
 
 const store = useGuardiesStore();
 const {
   referenceText, referenceName, untisText, untisName, dutiesText, dutiesName,
-  scheduleText, scheduleName, persistenceStatus, courseName, courseId, canWrite,
+  persistenceStatus, courseName, courseId, canWrite,
 } = storeToRefs(store);
 
 const values = computed(() => ({
   reference: { text: referenceText.value, name: referenceName.value },
   untis: { text: untisText.value, name: untisName.value },
   duties: { text: dutiesText.value, name: dutiesName.value },
-  schedule: { text: scheduleText.value, name: scheduleName.value },
 }));
 
 const uploads = computed(() => {
@@ -47,7 +45,7 @@ const cacheLabel = computed(() => {
   const count = uploads.value.filter((upload) => upload.loaded).length;
   const course = courseName.value || courseId.value || 'curs actiu';
   const mode = canWrite.value ? 'compartits' : 'només lectura';
-  return `${count}/4 fitxers ${mode} · ${course}`;
+  return `${count}/3 fitxers ${mode} · ${course}`;
 });
 
 function selectFile(event, kind) {
@@ -89,9 +87,9 @@ function clearFiles() {
             <span class="setup-number">{{ index + 1 }}</span>
             <span class="setup-copy"><strong>{{ upload.title }}</strong><small :data-upload-name="upload.kind">{{ upload.filename }}</small></span>
             <span class="setup-status" :data-upload-status="upload.kind">{{ upload.status }}</span>
-            <label class="upload" :class="{ 'upload-secondary': upload.kind !== 'schedule', disabled: upload.locked }">
+            <label class="upload" :class="{ 'upload-secondary': upload.kind !== 'duties', disabled: upload.locked }">
               <span :data-upload-action="upload.kind">{{ upload.loaded ? 'Substitueix' : 'Carrega' }}</span>
-              <input :id="upload.kind === 'schedule' ? 'xml-file' : `${upload.kind}-file`" type="file" :accept="upload.accept" :disabled="upload.locked" @change="selectFile($event, upload.kind)" />
+              <input :id="`${upload.kind}-file`" type="file" :accept="upload.accept" :disabled="upload.locked" @change="selectFile($event, upload.kind)" />
             </label>
             <button type="button" class="remove-upload" :aria-label="`Elimina ${upload.title}`" :data-remove-upload="upload.kind" :disabled="!upload.loaded || !canWrite || persistenceStatus === 'saving'" @click="removeFile(upload.kind)">X</button>
           </li>

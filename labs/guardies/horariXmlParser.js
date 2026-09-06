@@ -10,6 +10,8 @@
     '7': 'Diumenge',
   };
 
+  const HORES_UNTIS_PER_DEFECTE = ['8:00', '8:55', '9:50', '11:15', '12:10', '13:05', '14:15'];
+
   function atribut(node, nom) {
     return (node && node.getAttribute && node.getAttribute(nom)) || '';
   }
@@ -269,6 +271,105 @@
       });
 
     return sessions.sort(ordenarSessions);
+  }
+
+  function parseUntisHorari(gpu001Text, {
+    gpu002Text = '',
+    referencia = null,
+    professoratUntis = null,
+    hores = HORES_UNTIS_PER_DEFECTE,
+  } = {}) {
+    const guardCodes = codisGuardiaUntis(gpu002Text);
+    const sessions = [];
+
+    textNet(gpu001Text)
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .forEach((line, index) => {
+        const fields = parseCsvLine(line);
+        const grupUntis = fields[1] || '';
+        const codiProfessor = fields[2] || '';
+        const codiMateriaActivitat = fields[3] || '';
+        const aulaUntis = fields[4] || '';
+        const dia = fields[5] || '';
+        const horaIndex = Number(fields[6]) || 0;
+        if (!codiProfessor || codiProfessor === '?' || !dia || !horaIndex) return;
+
+        const grup = resoldreGrup(referencia, grupUntis, '');
+        const materia = grupUntis ? resoldreMateria(referencia, codiMateriaActivitat) : null;
+        const activitat = !grupUntis ? resoldreActivitat(referencia, codiMateriaActivitat) : null;
+        const aula = resoldreAula(referencia, aulaUntis);
+        const placa = placaPerCodiProfessor(referencia, codiProfessor);
+        const professor = resoldreProfessorUntis(professoratUntis, codiProfessor);
+        const hora = hores[horaIndex - 1] || String(horaIndex);
+        const esGuardia = guardCodes.has(codiMateriaActivitat);
+        const esConvivencia = codiMateriaActivitat === 'GC' || codiMateriaActivitat === 'GCONV';
+        const teClasse = Boolean(grupUntis);
+        const teActivitat = !teClasse && Boolean(codiMateriaActivitat);
+
+        const sessio = {
+          index: `gpu001-${index}`,
+          origenGuardia: esGuardia ? 'GPU001' : '',
+          placa,
+          curs: grup?.curs || '',
+          grup: grup?.codi || grupUntis,
+          dia,
+          hora,
+          durada: 0,
+          aula: aula?.codi || aulaUntis,
+          materia: teClasse ? (materia?.codi || codiMateriaActivitat) : '',
+          activitat: teActivitat ? codiMateriaActivitat : '',
+          franja: franjaKey(dia, hora),
+          diaLabel: diaLabel(dia),
+          teClasse,
+          teActivitat,
+          tipus: teActivitat ? 'activitat' : teClasse ? 'classe' : 'altres',
+          professorCurta: professor?.codi || codiProfessor,
+          professorNom: professor?.label || '',
+          grupVisible: grup?.visible || grupUntis,
+          cursVisible: grup?.cursVisible || '',
+          materiaCurta: materia?.curta || (teClasse ? codiMateriaActivitat : ''),
+          materiaNom: materia?.descripcio || '',
+          activitatCurta: activitat?.curta || (teActivitat ? codiMateriaActivitat : ''),
+          activitatNom: activitat?.descripcio || '',
+          activitatEsGuardia: esGuardia,
+          activitatEsGuardiaGeneral: esGuardia && codiMateriaActivitat !== 'GP' && !esConvivencia,
+          aulaNom: aula?.descripcio || aulaUntis,
+        };
+        sessio.key = sessioKey(sessio);
+
+        const enriquida = enriquirSessio(sessio, referencia, professoratUntis);
+        sessions.push({
+          ...enriquida,
+          origenGuardia: sessio.origenGuardia,
+          professorCurta: enriquida.professorCurta || sessio.professorCurta,
+          professorNom: enriquida.professorNom || sessio.professorNom,
+          grupVisible: enriquida.grupVisible || sessio.grupVisible,
+          cursVisible: enriquida.cursVisible || sessio.cursVisible,
+          materiaCurta: enriquida.materiaCurta || sessio.materiaCurta,
+          materiaNom: enriquida.materiaNom || sessio.materiaNom,
+          activitatCurta: enriquida.activitatCurta || sessio.activitatCurta,
+          activitatNom: enriquida.activitatNom || sessio.activitatNom,
+          activitatEsGuardia: sessio.activitatEsGuardia || enriquida.activitatEsGuardia,
+          activitatEsGuardiaGeneral: sessio.activitatEsGuardiaGeneral || enriquida.activitatEsGuardiaGeneral,
+          aulaNom: enriquida.aulaNom || sessio.aulaNom,
+        });
+      });
+
+    if (!sessions.length) {
+      throw new Error('No s\'han trobat sessions dins del GPU001.');
+    }
+
+    const ordenades = sessions.sort(ordenarSessions);
+    return {
+      format: 'untis-gpu001',
+      sessions: ordenades,
+      resum: resumSessions(ordenades),
+      defaultGuardiaCodes: Array.from(new Set(
+        ordenades.filter((session) => session.activitatEsGuardiaGeneral).map((session) => session.activitat),
+      )),
+    };
   }
 
   function parseXmlRobust(text) {
@@ -776,6 +877,7 @@
     diaLabel,
     franjaKey,
     parseHorariXml,
+    parseUntisHorari,
     parseGestibReference,
     parseUntisProfessorat,
     parseUntisGuardies,
@@ -794,6 +896,7 @@ export {
   ocupacioFranja,
   parseGestibReference,
   parseHorariXml,
+  parseUntisHorari,
   parseUntisGuardies,
   parseUntisProfessorat,
   professorsOrdenats,

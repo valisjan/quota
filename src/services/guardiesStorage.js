@@ -14,7 +14,8 @@ import { auth, db } from '../firebase';
 import { E2E_AUTH_BYPASS, E2E_CURS_ID } from './e2e';
 import { normalizePatioConfig } from '../modules/guardies/domain/patio';
 
-const FILE_KINDS = new Set(['reference', 'untis', 'duties', 'schedule']);
+const FILE_KINDS = new Set(['reference', 'untis', 'duties']);
+const DELETABLE_FILE_KINDS = new Set([...FILE_KINDS, 'schedule']);
 const MAX_FILE_BYTES = 850 * 1024;
 const E2E_PREFIX = 'quota-e2e-guardies:';
 
@@ -165,18 +166,16 @@ export async function loadGuardiesData(cursId) {
         reference: data.files.reference || null,
         untis: data.files.untis || null,
         duties: data.files.duties || null,
-        schedule: data.files.schedule || null,
       },
       convivencia: data.convivencia || {},
       pati: normalizePati(data.pati),
     };
   }
 
-  const [reference, untis, duties, schedule, convivencia, pati] = await withNetworkRetry(() => Promise.all([
+  const [reference, untis, duties, convivencia, pati] = await withNetworkRetry(() => Promise.all([
     getDoc(guardiesRef(cursId, 'reference')),
     getDoc(guardiesRef(cursId, 'untis')),
     getDoc(guardiesRef(cursId, 'duties')),
-    getDoc(guardiesRef(cursId, 'schedule')),
     getDoc(guardiesRef(cursId, 'convivencia')),
     getDoc(guardiesRef(cursId, 'pati')),
   ]));
@@ -185,7 +184,6 @@ export async function loadGuardiesData(cursId) {
       reference: reference.exists() ? await loadStoredFile(reference.data()) : null,
       untis: untis.exists() ? await loadStoredFile(untis.data()) : null,
       duties: duties.exists() ? await loadStoredFile(duties.data()) : null,
-      schedule: schedule.exists() ? await loadStoredFile(schedule.data()) : null,
     },
     convivencia: convivencia.exists() ? normalizeConvivencia(convivencia.data()) : {},
     pati: pati.exists() ? normalizePati(pati.data()) : null,
@@ -220,7 +218,7 @@ export async function saveGuardiesFile(cursId, kind, text, name) {
 }
 
 export async function deleteGuardiesFile(cursId, kind) {
-  if (!FILE_KINDS.has(kind)) return;
+  if (!DELETABLE_FILE_KINDS.has(kind)) return;
   if (E2E_AUTH_BYPASS) {
     const data = getE2EData(cursId);
     delete data.files[kind];

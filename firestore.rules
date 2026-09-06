@@ -236,7 +236,7 @@ service cloud.firestore {
         allow create, update: if esAdmin()
           && (
             (
-              id in ['reference', 'untis', 'duties', 'schedule']
+              id in ['reference', 'untis', 'duties']
               && request.resource.data.keys().hasOnly([
                 'kind',
                 'name',
