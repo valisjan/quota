@@ -81,6 +81,11 @@ watch(() => state.date, (value) => {
 
 const official = computed(() => officialSchoolCalendar(draft.value.startYear));
 const selectedRoster = computed(() => draft.value.weekdayTeachers[activeDay.value] || []);
+function isActiveTeacher(teacherId) {
+  return state.professorOptions.some((teacher) => teacher.placa === teacherId);
+}
+const visibleRoster = computed(() => selectedRoster.value
+  .filter((teacher) => isActiveTeacher(teacher.teacherId)));
 const selectableTeachers = computed(() => {
   const selected = new Set(selectedRoster.value.map((item) => item.teacherId));
   return state.professorOptions
@@ -96,7 +101,8 @@ const teacherResults = computed(() => {
 });
 const previewDates = computed(() => weekDates(weekAnchor.value));
 const configuredTeacherCount = computed(() => WEEKDAYS.reduce(
-  (total, day) => total + draft.value.weekdayTeachers[day.id].length,
+  (total, day) => total + draft.value.weekdayTeachers[day.id]
+    .filter((teacher) => isActiveTeacher(teacher.teacherId)).length,
   0,
 ));
 
@@ -284,7 +290,7 @@ async function saveAutomatically() {
             :class="{ active: activeDay === day.id }"
             @click="activeDay = day.id; selectedTeacher = ''; teacherQuery = ''; showTeacherResults = false"
           >
-            {{ day.short }} <span>{{ draft.weekdayTeachers[day.id].length }}</span>
+            {{ day.short }} <span>{{ draft.weekdayTeachers[day.id].filter((teacher) => isActiveTeacher(teacher.teacherId)).length }}</span>
           </button>
         </div>
         <div v-if="state.canWrite" class="pati-add-teacher">
@@ -316,8 +322,8 @@ async function saveAutomatically() {
           </div>
           <button id="add-pati-teacher" type="button" :disabled="!selectedTeacher" @click="addTeacher">Afegeix</button>
         </div>
-        <div v-if="selectedRoster.length" class="pati-roster-list">
-          <div v-for="teacher in selectedRoster" :key="teacher.teacherId" class="pati-roster-row">
+        <div v-if="visibleRoster.length" class="pati-roster-list">
+          <div v-for="teacher in visibleRoster" :key="teacher.teacherId" class="pati-roster-row">
             <div>
               <strong>{{ teacherLabel(teacher.teacherId) }}</strong>
             </div>

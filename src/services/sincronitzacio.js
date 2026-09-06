@@ -1191,6 +1191,7 @@ export async function sincronitzar(cursId, options = {}) {
       departaments,
       jornada: prof.jornada,
       codiUntis: prof.codiUntis,
+      email: prof.email || '',
       comentariFull: prof.comentariFull || '',
       eliminatDelFull: false,
       updatedAt: new Date(),
@@ -1362,6 +1363,8 @@ export async function sincronitzar(cursId, options = {}) {
     for (const p of preautoritzats) {
       await setDoc(doc(db, 'preautoritzats', p.email), {
         email: p.email,
+        nom: p.nom,
+        codiUntis: p.codiUntis || '',
         rol: p.rol,
         departament: p.departament || null,
         departaments: departamentsProfessor(p),

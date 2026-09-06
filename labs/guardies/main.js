@@ -19,6 +19,7 @@ import {
   loadGuardiesData,
   loadGuardiesDay,
   loadGuardiesStats,
+  loadGuardiesTeacherDirectory,
   mergeGuardiesDayPlan,
   saveGuardiesDay,
   saveGuardiesConvivencia,
@@ -48,6 +49,7 @@ import {
   let unsubscribeGuardiesDay = () => {};
   let watchedDate = '';
   let pendingRemoteDay = null;
+  let teacherAliasesById = new Map();
 
   const el = {
     error: document.getElementById('error-box'),
@@ -83,6 +85,11 @@ import {
   });
   window.addEventListener('guardies:clear-files', clearPersistentFiles);
   window.addEventListener('guardies:pati-updated', () => renderCoverage());
+  window.addEventListener('guardies:exclusions-updated', async () => {
+    parseStoredData({ resetSelection: false });
+    await activateGuardiesDay(state.date);
+    render();
+  });
   window.addEventListener('guardies:day-action', (event) => changeDayStatus(event.detail?.action));
   window.addEventListener('guardies:auto-assign', autoAssignCoverage);
   window.addEventListener('guardies:apply-absence-range', (event) => applyAbsenceRange(event.detail));
@@ -159,6 +166,9 @@ import {
       let remoteData = await loadGuardiesData(state.courseId);
       remoteData = await migrateLegacyData(remoteData);
       applyRemoteData(remoteData);
+      state.teacherDirectory = state.isAdmin
+        ? await loadGuardiesTeacherDirectory(state.courseId).catch(() => [])
+        : [];
       const stats = await loadGuardiesStats(state.courseId);
       state.guardCounts = new Map(Object.entries(stats.counts || {}));
       lastRemoteDataSignature = remoteDataSignature({ ...remoteData, stats });
@@ -267,6 +277,7 @@ import {
     state.dutiesName = remoteData.files.duties?.name || '';
     state.convivencia = convivenciaFromObject(remoteData.convivencia);
     state.patiConfig = remoteData.pati || null;
+    state.excludedTeacherIds = new Set(remoteData.excludedTeacherIds || []);
   }
 
   function remoteDataSignature(remoteData) {
@@ -274,6 +285,7 @@ import {
       files: remoteData.files || {},
       convivencia: remoteData.convivencia || {},
       pati: remoteData.pati || null,
+      excludedTeacherIds: remoteData.excludedTeacherIds || [],
       counts: remoteData.stats?.counts || {},
     });
   }
@@ -364,7 +376,7 @@ import {
       const source = typeof assignment === 'object' && ['released', 'guard'].includes(assignment?.source)
         ? assignment.source
         : 'other';
-      if (state.absencies.has(id) && teacherId) {
+      if (state.absencies.has(id) && teacherId && !isExcludedTeacher(teacherId)) {
         state.assignacions.set(id, teacherId);
         state.assignmentSources.set(id, source);
       }
@@ -835,7 +847,22 @@ import {
           referencia: state.referencia,
           professoratUntis: state.professoratUntis,
         });
-        state.sessions = mergeSessions(result.sessions, []);
+        state.allSessions = mergeSessions(result.sessions, []);
+        teacherAliasesById = new Map();
+        state.allSessions.forEach((session) => {
+          if (!session.placa) return;
+          const aliases = teacherAliasesById.get(session.placa) || new Set([session.placa]);
+          if (session.professorCurta) aliases.add(session.professorCurta);
+          teacherAliasesById.set(session.placa, aliases);
+        });
+        state.referencia?.places?.forEach((place) => {
+          if (!place.codi) return;
+          const aliases = teacherAliasesById.get(place.codi) || new Set([place.codi]);
+          if (place.curta) aliases.add(place.curta);
+          teacherAliasesById.set(place.codi, aliases);
+        });
+        state.sessions = state.allSessions.filter((session) => !isExcludedTeacher(session.placa));
+        state.allProfessorOptions = professorsOrdenatsAmbLabel(state.allSessions);
         state.resum = {
           ...result.resum,
           sessions: state.sessions.length,
@@ -864,6 +891,9 @@ import {
         renderInitialData();
       } else {
         state.sessions = [];
+        state.allSessions = [];
+        state.allProfessorOptions = [];
+        teacherAliasesById = new Map();
         state.resum = null;
       }
 
@@ -873,6 +903,9 @@ import {
       showError(warnings.join(' '));
     } catch (error) {
       state.sessions = [];
+      state.allSessions = [];
+      state.allProfessorOptions = [];
+      teacherAliasesById = new Map();
       state.resum = null;
       state.professor = '';
       state.absencies.clear();
@@ -921,6 +954,9 @@ import {
       state.referencia = null;
       state.professoratUntis = null;
       state.sessions = [];
+      state.allSessions = [];
+      state.allProfessorOptions = [];
+      teacherAliasesById = new Map();
       state.resum = null;
       state.professor = '';
       state.absencies.clear();
@@ -1051,8 +1087,8 @@ import {
     render();
   }
 
-  function professorsOrdenatsAmbLabel() {
-    return parser.professorsOrdenats(state.sessions)
+  function professorsOrdenatsAmbLabel(sessions = state.sessions) {
+    return parser.professorsOrdenats(sessions)
       .map((professor) => ({
         ...professor,
         short: professorShort(professor.placa),
@@ -1855,7 +1891,8 @@ import {
         </div>
       `;
     }
-    const assignments = patioAssignmentsForDate(state.date, state.patiConfig);
+    const assignments = patioAssignmentsForDate(state.date, state.patiConfig)
+      .filter((assignment) => !isExcludedTeacher(assignment.teacherId));
     if (!assignments.length) {
       return '<div class="pati-info-strip empty"><span>Zones de pati</span><p>Sense professorat de GP configurat per a aquest dia.</p></div>';
     }
@@ -2108,7 +2145,7 @@ import {
       ? Array.from(professors || [])
       : detectedConvivenciaProfessors(dia, hora);
     return effective
-      .filter(Boolean)
+      .filter((teacherId) => teacherId && !isExcludedTeacher(teacherId))
       .sort((a, b) => labelProfessor(a).localeCompare(labelProfessor(b), 'ca', { numeric: true }));
   }
 
@@ -2234,9 +2271,9 @@ import {
     state.professoratUntis?.professors?.forEach((professor) => {
       const normalized = normalizeSearch(professor.codi);
       const placa = sessionsByShort.get(normalized) || placesByShort.get(normalized) || professor.codi;
-      if (placa) ids.add(placa);
+      if (placa && !isExcludedTeacher(placa)) ids.add(placa);
     });
-    return Array.from(ids);
+    return Array.from(ids).filter((teacherId) => !isExcludedTeacher(teacherId));
   }
 
   function isProfessorAbsentAtHour(dia, hora, placa) {
@@ -2578,7 +2615,8 @@ import {
   }
 
   function professorInfo(placa) {
-    const sessio = state.sessions.find((item) => item.placa === placa && (item.professorCurta || item.professorNom));
+    const sessio = (state.allSessions.length ? state.allSessions : state.sessions)
+      .find((item) => item.placa === placa && (item.professorCurta || item.professorNom));
     const place = state.referencia?.places?.get(placa);
     const short = sessio?.professorCurta || place?.curta || placa;
     const untis = state.professoratUntis?.professors?.get(short)
@@ -2599,6 +2637,13 @@ import {
     if (info.name && info.short && info.name !== info.short) return `${info.name} · ${info.short}`;
     if (info.name) return info.name;
     return info.short || 'Professor sense nom';
+  }
+
+  function isExcludedTeacher(teacherId) {
+    const id = String(teacherId || '');
+    if (!id) return false;
+    const aliases = teacherAliasesById.get(id) || new Set([id]);
+    return Array.from(aliases).some((alias) => state.excludedTeacherIds.has(alias));
   }
 
   function activityInfo(code) {

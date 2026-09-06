@@ -136,14 +136,15 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('#date-input')).toHaveValue('2026-09-07');
     await page.getByRole('link', { name: 'Professorat', exact: true }).click();
     await expect(page.locator('#date-input')).toHaveValue('2026-09-07');
-    await expect(page.getByRole('heading', { name: 'Jornada encara no publicada' })).toBeVisible();
+    await expect(page.locator('#workspace')).toBeVisible();
+    await expect(page.locator('#coverage-list')).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Guàrdies del dia' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('.teacher-stats-panel')).toBeHidden();
     await page.getByRole('tab', { name: 'Guàrdies realitzades' }).click();
     await expect(page.locator('.teacher-stats-panel')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Jornada encara no publicada' })).toBeHidden();
     await page.getByRole('tab', { name: 'Guàrdies del dia' }).click();
-    await expect(page.locator('#workspace')).toBeHidden();
+    await expect(page.locator('#workspace')).toBeVisible();
     await expect(page.locator('.day-state, #coverage-count, #print-coverage')).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Professorat', exact: true })).toHaveAttribute('aria-current', 'page');
   });
@@ -169,6 +170,35 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(row.locator('[data-count-released]')).toHaveText('4');
     await expect(row.locator('[data-count-guard]')).toHaveText('7');
     await expect(row.locator('[data-count-total]')).toHaveText('11');
+  });
+
+  test('exclou el professorat d\'Agrària de tot el mòdul de guàrdies', async ({ page }) => {
+    await openGuardies(page);
+    await uploadConfiguration(page);
+    await page.getByRole('tab', { name: 'Configuració' }).click();
+    await page.locator('#teacher-exclusions-panel summary').click();
+    await page.locator('#teacher-exclusions-search').fill('Adell');
+    const row = page.locator('.teacher-exclusions-row').filter({ hasText: 'Adell Domènech' });
+    await expect(row).toContainText('marina.adell@iesjosepsuredaiblanes.com');
+    const checkbox = row.getByRole('checkbox');
+    await checkbox.check();
+    await expect(checkbox).toBeChecked();
+    await expect(checkbox).toBeEnabled();
+
+    await page.getByRole('tab', { name: 'Gestió diària' }).click();
+    await page.locator('#professor-search').fill('Adell');
+    await expect(page.locator('#professor-results')).toHaveText('Sense resultats');
+
+    await page.getByRole('tab', { name: 'Configuració' }).click();
+    await page.locator('#guard-counts-panel summary').click();
+    await page.locator('#guard-count-search').fill('Adell');
+    await expect(page.locator('.guard-count-row').filter({ hasText: 'Adell Domènech' })).toHaveCount(0);
+
+    await page.reload();
+    await page.getByRole('tab', { name: 'Configuració' }).click();
+    await page.locator('#teacher-exclusions-panel summary').click();
+    await page.locator('#teacher-exclusions-search').fill('Adell');
+    await expect(page.getByRole('checkbox', { name: 'Adell Domènech, Marina és d’Agrària' })).toBeChecked();
   });
 
   test('sincronitza la jornada entre dues sessions sense recarregar', async ({ page, context }) => {

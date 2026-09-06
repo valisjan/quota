@@ -1188,6 +1188,80 @@ h3 {
   font-weight: 900;
 }
 
+.teacher-exclusions-panel .admin-icon {
+  color: var(--amber);
+  font-weight: 900;
+}
+
+.teacher-exclusions-toolbar {
+  display: grid;
+  grid-template-columns: minmax(110px, 170px) minmax(220px, 420px);
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.teacher-exclusions-toolbar label {
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.teacher-exclusions-table {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.teacher-exclusions-row {
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) minmax(260px, 1fr) 90px;
+  align-items: center;
+  min-height: 46px;
+  border-top: 1px solid var(--border-soft);
+  cursor: pointer;
+}
+
+.teacher-exclusions-row:first-child {
+  border-top: 0;
+}
+
+.teacher-exclusions-row > * {
+  min-width: 0;
+  padding: 7px 10px;
+}
+
+.teacher-exclusions-row strong,
+.teacher-exclusions-row small {
+  display: block;
+}
+
+.teacher-exclusions-row small,
+.teacher-email {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.teacher-exclusions-columns {
+  min-height: 32px;
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: default;
+  font-size: 0.67rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.teacher-exclusion-check {
+  display: grid;
+  place-items: center;
+}
+
+.teacher-exclusion-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--coral);
+}
+
 .guard-count-toolbar {
   display: grid;
   grid-template-columns: minmax(110px, 170px) minmax(220px, 420px);
@@ -2873,6 +2947,32 @@ h3 {
 
   .guard-count-toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .teacher-exclusions-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-exclusions-columns {
+    display: none;
+  }
+
+  .teacher-exclusions-row {
+    grid-template-columns: minmax(0, 1fr) 48px;
+  }
+
+  .teacher-exclusions-row > :first-child {
+    grid-column: 1;
+  }
+
+  .teacher-exclusions-row .teacher-email {
+    grid-column: 1;
+    padding-top: 0;
+  }
+
+  .teacher-exclusion-check {
+    grid-column: 2;
+    grid-row: 1 / span 2;
   }
 
   .guard-count-row {

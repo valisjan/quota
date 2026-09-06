@@ -20,7 +20,7 @@ import {
   signInWithRedirect,
 } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { E2E_AUTH_BYPASS, E2E_CURS_ID } from './e2e';
+import { E2E_AUTH_BYPASS, E2E_CURS_ID, getE2ECollection } from './e2e';
 import { normalizePatioConfig } from '../modules/guardies/domain/patio';
 import {
   normalizeGuardCount,
@@ -73,6 +73,11 @@ function guardiesStatsRef(cursId) {
   return guardiesRef(cursId, 'stats');
 }
 
+function guardiesExclusionsRef(cursId) {
+  if (!cursId) throw new Error('No hi ha cap curs acadèmic disponible.');
+  return doc(db, 'cursos', cursId, 'config', 'guardies-exclusions');
+}
+
 async function normalizeFile(data) {
   if (!data?.text) return null;
   return {
@@ -113,6 +118,26 @@ function normalizeConvivencia(data) {
 function normalizePati(data) {
   if (!data || typeof data !== 'object') return null;
   return normalizePatioConfig(data, { startYear: data.startYear });
+}
+
+function normalizeExcludedTeacherIds(data) {
+  return Array.from(new Set((Array.isArray(data?.teacherIds) ? data.teacherIds : [])
+    .map((teacherId) => String(teacherId || '').trim())
+    .filter(Boolean)))
+    .slice(0, 500);
+}
+
+function personNameKey(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort()
+    .join('|');
 }
 
 function validateFile(kind, text, name) {
@@ -224,15 +249,17 @@ export async function loadGuardiesData(cursId) {
       },
       convivencia: data.convivencia || {},
       pati: normalizePati(data.pati),
+      excludedTeacherIds: normalizeExcludedTeacherIds({ teacherIds: data.excludedTeacherIds }),
     };
   }
 
-  const [reference, untis, duties, convivencia, pati] = await withNetworkRetry(() => Promise.all([
+  const [reference, untis, duties, convivencia, pati, exclusions] = await withNetworkRetry(() => Promise.all([
     getDoc(guardiesRef(cursId, 'reference')),
     getDoc(guardiesRef(cursId, 'untis')),
     getDoc(guardiesRef(cursId, 'duties')),
     getDoc(guardiesRef(cursId, 'convivencia')),
     getDoc(guardiesRef(cursId, 'pati')),
+    getDoc(guardiesExclusionsRef(cursId)),
   ]));
   return {
     files: {
@@ -242,6 +269,7 @@ export async function loadGuardiesData(cursId) {
     },
     convivencia: convivencia.exists() ? normalizeConvivencia(convivencia.data()) : {},
     pati: pati.exists() ? normalizePati(pati.data()) : null,
+    excludedTeacherIds: exclusions.exists() ? normalizeExcludedTeacherIds({ teacherIds: exclusions.data().excludedTeacherIds }) : [],
   };
 }
 
@@ -256,14 +284,19 @@ export function subscribeGuardiesData(cursId, onChange, onError = () => {}) {
         },
         convivencia: data.convivencia || {},
         pati: normalizePati(data.pati),
+        excludedTeacherIds: normalizeExcludedTeacherIds({ teacherIds: data.excludedTeacherIds }),
         stats: data.stats || { counts: {} },
       })).catch(onError);
     });
   }
 
-  return onSnapshot(collection(db, 'cursos', cursId, 'guardies'), async (snapshot) => {
+  let guardiesReady = false;
+  let exclusionsReady = false;
+  let documents = new Map();
+  let excludedTeacherIds = [];
+  const emit = async () => {
+    if (!guardiesReady || !exclusionsReady) return;
     try {
-      const documents = new Map(snapshot.docs.map((item) => [item.id, item.data()]));
       await onChange({
         files: {
           reference: await loadStoredFile(documents.get('reference')),
@@ -272,12 +305,91 @@ export function subscribeGuardiesData(cursId, onChange, onError = () => {}) {
         },
         convivencia: normalizeConvivencia(documents.get('convivencia')),
         pati: normalizePati(documents.get('pati')),
+        excludedTeacherIds,
         stats: documents.get('stats') || { counts: {} },
       });
     } catch (error) {
       onError(error);
     }
+  };
+  const unsubscribeGuardies = onSnapshot(collection(db, 'cursos', cursId, 'guardies'), (snapshot) => {
+    documents = new Map(snapshot.docs.map((item) => [item.id, item.data()]));
+    guardiesReady = true;
+    emit();
   }, onError);
+  const unsubscribeExclusions = onSnapshot(guardiesExclusionsRef(cursId), (snapshot) => {
+    excludedTeacherIds = snapshot.exists()
+      ? normalizeExcludedTeacherIds({ teacherIds: snapshot.data().excludedTeacherIds })
+      : [];
+    exclusionsReady = true;
+    emit();
+  }, onError);
+  return () => {
+    unsubscribeGuardies();
+    unsubscribeExclusions();
+  };
+}
+
+export async function loadGuardiesTeacherDirectory(cursId) {
+  if (E2E_AUTH_BYPASS) {
+    return [
+      { id: 'ADEL', codiUntis: 'ADEL', name: 'Adell Domènech, Marina', email: 'marina.adell@iesjosepsuredaiblanes.com' },
+      { id: 'FUEN', codiUntis: 'FUEN', name: 'Fuentes Serra, Gabriel', email: 'gabriel.fuentes@iesjosepsuredaiblanes.com' },
+      { id: 'SANZ', codiUntis: 'SANZ', name: 'Sanz Vidal, Clara', email: 'clara.sanz@iesjosepsuredaiblanes.com' },
+      ...getE2ECollection('professors').map((teacher) => ({
+        id: teacher.id,
+        codiUntis: teacher.codiUntis || teacher.id,
+        name: teacher.nom || '',
+        email: teacher.email || '',
+      })),
+    ];
+  }
+
+  const [courseSnapshot, usersSnapshot, preauthorizedSnapshot] = await withNetworkRetry(() => Promise.all([
+    getDocs(collection(db, 'cursos', cursId, 'professors')),
+    getDocs(collection(db, 'usuaris')),
+    getDocs(collection(db, 'preautoritzats')),
+  ]));
+  const profiles = [...usersSnapshot.docs, ...preauthorizedSnapshot.docs].map((item) => ({
+    ...item.data(),
+    id: item.id,
+  }));
+  const emailByCode = new Map();
+  const emailByName = new Map();
+  profiles.forEach((profile) => {
+    const email = String(profile.email || (String(profile.id).includes('@') ? profile.id : '')).trim();
+    if (!email) return;
+    const code = String(profile.codiUntis || '').trim();
+    const nameKey = personNameKey(profile.nom || profile.name || profile.displayName);
+    if (code) emailByCode.set(code.toLowerCase(), email);
+    if (nameKey) emailByName.set(nameKey, email);
+  });
+  return courseSnapshot.docs.map((item) => {
+    const data = item.data();
+    const codiUntis = String(data.codiUntis || item.id).trim();
+    const name = String(data.nom || '').trim();
+    return {
+      id: item.id,
+      codiUntis,
+      name,
+      email: String(data.email || emailByCode.get(codiUntis.toLowerCase()) || emailByName.get(personNameKey(name)) || '').trim(),
+    };
+  });
+}
+
+export async function saveGuardiesExcludedTeachers(cursId, teacherIds) {
+  const clean = normalizeExcludedTeacherIds({ teacherIds });
+  if (E2E_AUTH_BYPASS) {
+    const data = getE2EData(cursId);
+    data.excludedTeacherIds = clean;
+    setE2EData(cursId, data);
+    return clean;
+  }
+  await setDoc(guardiesExclusionsRef(cursId), {
+    excludedTeacherIds: clean,
+    updatedAt: serverTimestamp(),
+  });
+  return clean;
 }
 
 export async function loadGuardiesStats(cursId) {

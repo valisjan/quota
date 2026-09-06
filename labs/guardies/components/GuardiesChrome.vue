@@ -9,6 +9,7 @@ import GuardiesConvivenciaPanel from './GuardiesConvivenciaPanel.vue';
 import GuardiesWorkspace from './GuardiesWorkspace.vue';
 import GuardiesTeacherStats from './GuardiesTeacherStats.vue';
 import GuardiesGuardCountPanel from './GuardiesGuardCountPanel.vue';
+import GuardiesTeacherExclusionsPanel from './GuardiesTeacherExclusionsPanel.vue';
 import { signInGuardies } from '../../../src/services/guardiesStorage.js';
 import { useGuardiesStore } from '../stores/guardies.js';
 
@@ -42,6 +43,7 @@ async function signIn() {
   </Teleport>
   <Teleport to="#guardies-setup-root">
     <GuardiesSetupPanel v-show="canWrite && adminSection === 'config'" />
+    <GuardiesTeacherExclusionsPanel v-show="canWrite && adminSection === 'config'" />
     <GuardiesGuardCountPanel v-show="canWrite && adminSection === 'config'" />
   </Teleport>
   <Teleport to="#guardies-convivencia-root">
