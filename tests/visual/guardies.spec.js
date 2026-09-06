@@ -148,12 +148,16 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.getByRole('link', { name: 'Professorat', exact: true })).toHaveAttribute('aria-current', 'page');
   });
 
-  test('permet corregir manualment el recompte de G i el mostra al professorat', async ({ page }) => {
+  test('permet corregir manualment els recomptes de G i alliberat', async ({ page }) => {
     await openGuardies(page);
     await uploadConfiguration(page);
     await page.getByRole('tab', { name: 'Configuració' }).click();
     await page.locator('#guard-counts-panel summary').click();
     await page.locator('#guard-count-search').fill('Fuentes');
+    const releasedInput = page.getByLabel('Guàrdies com a alliberat de Fuentes Serra, Gabriel');
+    await releasedInput.fill('4');
+    await releasedInput.press('Tab');
+    await expect(page.locator('#guard-counts-panel')).toContainText('Desat');
     const input = page.getByLabel('Guàrdies G de Fuentes Serra, Gabriel');
     await input.fill('7');
     await input.press('Tab');
@@ -162,9 +166,9 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.goto('/labs/guardies/?vista=professor');
     await page.getByRole('tab', { name: 'Guàrdies realitzades' }).click();
     const row = page.locator('.teacher-stats-row').filter({ hasText: 'Fuentes Serra' });
-    await expect(row.locator('[data-count-released]')).toHaveText('0');
+    await expect(row.locator('[data-count-released]')).toHaveText('4');
     await expect(row.locator('[data-count-guard]')).toHaveText('7');
-    await expect(row.locator('[data-count-total]')).toHaveText('7');
+    await expect(row.locator('[data-count-total]')).toHaveText('11');
   });
 
   test('sincronitza la jornada entre dues sessions sense recarregar', async ({ page, context }) => {

@@ -262,9 +262,10 @@ export async function loadGuardiesStats(cursId) {
   return snapshot.exists() ? snapshot.data() : { counts: {} };
 }
 
-export async function setGuardiesTeacherGuardCount(cursId, teacherId, value) {
+export async function setGuardiesTeacherCount(cursId, teacherId, source, value) {
   const cleanTeacherId = String(teacherId || '').trim();
-  const guard = Math.max(0, Math.trunc(Number(value) || 0));
+  if (!['released', 'guard'].includes(source)) throw new Error('Tipus de recompte no vàlid.');
+  const count = Math.max(0, Math.trunc(Number(value) || 0));
   if (!cleanTeacherId) throw new Error('Professor no vàlid.');
 
   if (E2E_AUTH_BYPASS) {
@@ -274,8 +275,10 @@ export async function setGuardiesTeacherGuardCount(cursId, teacherId, value) {
     data.stats.counts ||= {};
     data.stats.counts[cleanTeacherId] = {
       ...current,
-      guard,
-      total: current.released + guard + current.other,
+      [source]: count,
+      total: (source === 'released' ? count : current.released)
+        + (source === 'guard' ? count : current.guard)
+        + current.other,
     };
     setE2EData(cursId, data);
     return data.stats;
@@ -289,12 +292,18 @@ export async function setGuardiesTeacherGuardCount(cursId, teacherId, value) {
     const current = normalizeGuardCount(counts[cleanTeacherId]);
     counts[cleanTeacherId] = {
       ...current,
-      guard,
-      total: current.released + guard + current.other,
+      [source]: count,
+      total: (source === 'released' ? count : current.released)
+        + (source === 'guard' ? count : current.guard)
+        + current.other,
     };
     transaction.set(reference, { counts, updatedAt: serverTimestamp() });
     return { counts };
   });
+}
+
+export function setGuardiesTeacherGuardCount(cursId, teacherId, value) {
+  return setGuardiesTeacherCount(cursId, teacherId, 'guard', value);
 }
 
 export async function saveGuardiesFile(cursId, kind, text, name) {
