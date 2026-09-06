@@ -17,6 +17,7 @@ import { auth, db } from '../firebase';
 import { E2E_AUTH_BYPASS, E2E_CURS_ID } from './e2e';
 import { normalizePatioConfig } from '../modules/guardies/domain/patio';
 import {
+  normalizeGuardCount,
   normalizeCountedAssignment,
   updateGuardCounts,
 } from '../modules/guardies/domain/workflow';
@@ -259,6 +260,41 @@ export async function loadGuardiesStats(cursId) {
   }
   const snapshot = await withNetworkRetry(() => getDoc(guardiesStatsRef(cursId)));
   return snapshot.exists() ? snapshot.data() : { counts: {} };
+}
+
+export async function setGuardiesTeacherGuardCount(cursId, teacherId, value) {
+  const cleanTeacherId = String(teacherId || '').trim();
+  const guard = Math.max(0, Math.trunc(Number(value) || 0));
+  if (!cleanTeacherId) throw new Error('Professor no vàlid.');
+
+  if (E2E_AUTH_BYPASS) {
+    const data = getE2EData(cursId);
+    data.stats ||= { counts: {} };
+    const current = normalizeGuardCount(data.stats.counts?.[cleanTeacherId]);
+    data.stats.counts ||= {};
+    data.stats.counts[cleanTeacherId] = {
+      ...current,
+      guard,
+      total: current.released + guard + current.other,
+    };
+    setE2EData(cursId, data);
+    return data.stats;
+  }
+
+  return runTransaction(db, async (transaction) => {
+    const reference = guardiesStatsRef(cursId);
+    const snapshot = await transaction.get(reference);
+    const stats = snapshot.exists() ? snapshot.data() : { counts: {} };
+    const counts = { ...(stats.counts || {}) };
+    const current = normalizeGuardCount(counts[cleanTeacherId]);
+    counts[cleanTeacherId] = {
+      ...current,
+      guard,
+      total: current.released + guard + current.other,
+    };
+    transaction.set(reference, { counts, updatedAt: serverTimestamp() });
+    return { counts };
+  });
 }
 
 export async function saveGuardiesFile(cursId, kind, text, name) {

@@ -21,7 +21,7 @@ const referenceXml = `<?xml version="1.0" encoding="UTF-8"?>
     <ACTIVITAT codi="200" descripcio="Guàrdia" curta="G" />
   </ACTIVITATS>
   <AULES>
-    <AULA codi="300" descripcio="Aula 1" />
+    <AULA codi="300" descripcio="Aula 14" />
   </AULES>
 </CENTRE>`;
 
@@ -29,17 +29,17 @@ const teachersText = `ADEL,"Adell Domènech, Marina"
 FUEN,"Fuentes Serra, Gabriel"
 SANZ,"Sanz Vidal, Clara"`;
 
-const dutiesText = `10,"1ESO-A","ADEL","MAT","Aula 1",1,1,,
-11,"1ESO-A","ADEL","MAT","Aula 1",1,2,,
-12,"1ESO-A","MAT1","MAT","Aula 1",1,1,,
-12,"1ESO-B","MAT1","MAT","Aula 1",1,1,,
+const dutiesText = `10,"1ESO-A","ADEL","MAT","AUL14",1,1,,
+11,"1ESO-A","ADEL","MAT","AUL14",1,2,,
+12,"1ESO-A","MAT1","MAT","AUL14",1,1,,
+12,"1ESO-B","MAT1","MAT","AUL14",1,1,,
 1,,"ADEL","G",,1,3,,
 2,,"FUEN","G",,1,1,,
 3,,"SANZ","G",,1,2,,
 5,,"SANZ","G",,1,1,,
 4,,"FUEN","GP",,1,4,,
-13,"1ESO-B","MAT1","MAT","Aula 1",1,3,,
-20,"1ESO-A","ADEL","MAT","Aula 1",2,5,,`;
+13,"1ESO-B","MAT1","MAT","AUL14",1,3,,
+20,"1ESO-A","ADEL","MAT","AUL14",2,5,,`;
 
 const referenceFile = {
   name: 'gestib-e2e.xml',
@@ -65,6 +65,7 @@ async function openGuardies(page) {
 }
 
 async function uploadConfiguration(page) {
+  await page.getByRole('tab', { name: 'Configuració' }).click();
   await page.locator('#reference-file').setInputFiles(referenceFile);
   await expect(page.locator('[data-upload-status="reference"]')).toHaveText('OK');
 
@@ -73,6 +74,7 @@ async function uploadConfiguration(page) {
 
   await page.locator('#duties-file').setInputFiles(dutiesFile);
   await expect(page.locator('[data-upload-status="duties"]')).toHaveText('OK');
+  await page.getByRole('tab', { name: 'Gestió diària' }).click();
   await expect(page.locator('#workspace')).toBeVisible();
 }
 
@@ -81,6 +83,12 @@ test.describe('Guàrdies: comportament existent', () => {
     await openGuardies(page);
 
     await expect(page.locator('#empty-state')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Guàrdies', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByRole('link', { name: 'Professorat', exact: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Gestió diària' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#admin-panel')).toBeHidden();
+    await page.getByRole('tab', { name: 'Configuració' }).click();
+    await expect(page.locator('#empty-state')).toBeHidden();
     await expect(page.locator('#reference-file')).toBeEnabled();
     await expect(page.locator('#untis-file')).toBeDisabled();
     await expect(page.locator('#duties-file')).toBeDisabled();
@@ -100,13 +108,20 @@ test.describe('Guàrdies: comportament existent', () => {
 
     await page.reload();
     await expect(page.locator('#workspace')).toBeVisible();
+    await page.getByRole('tab', { name: 'Configuració' }).click();
     await expect(page.locator('[data-upload-name="reference"]')).toHaveText('gestib-e2e.xml');
     await expect(page.locator('[data-upload-name="untis"]')).toHaveText('GPU004.TXT');
     await expect(page.locator('[data-upload-name="duties"]')).toHaveText('GPU001.TXT');
     await expect(page.locator('[data-upload-name="schedule"]')).toHaveCount(0);
+    await page.getByRole('tab', { name: 'Gestió diària' }).click();
 
     await page.locator('#date-input').fill('2026-09-07');
     await page.locator('#date-input').press('Tab');
+    await page.locator('#professor-search').fill('ADELL');
+    await page.locator('#professor-results [data-professor]').first().click();
+    await expect(page.locator('#schedule-grid')).toContainText('Aula 14');
+    await expect(page.locator('#schedule-grid')).not.toContainText('AUL14');
+
     await page.getByRole('button', { name: 'Dia següent' }).click();
     await expect(page.locator('#date-input')).toHaveValue('2026-09-08');
     await page.getByRole('button', { name: 'Dia anterior' }).click();
@@ -122,6 +137,26 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.getByRole('tab', { name: 'Guàrdies del dia' }).click();
     await expect(page.locator('#workspace')).toBeHidden();
     await expect(page.locator('.day-state')).toContainText('No publicada');
+    await expect(page.getByRole('link', { name: 'Professorat', exact: true })).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('permet corregir manualment el recompte de G i el mostra al professorat', async ({ page }) => {
+    await openGuardies(page);
+    await uploadConfiguration(page);
+    await page.getByRole('tab', { name: 'Configuració' }).click();
+    await page.locator('#guard-counts-panel summary').click();
+    await page.locator('#guard-count-search').fill('Fuentes');
+    const input = page.getByLabel('Guàrdies G de Fuentes Serra, Gabriel');
+    await input.fill('7');
+    await input.press('Tab');
+    await expect(page.locator('#guard-counts-panel')).toContainText('Desat');
+
+    await page.goto('/labs/guardies/?vista=professor');
+    await page.getByRole('tab', { name: 'Guàrdies realitzades' }).click();
+    const row = page.locator('.teacher-stats-row').filter({ hasText: 'Fuentes Serra' });
+    await expect(row.locator('[data-count-released]')).toHaveText('0');
+    await expect(row.locator('[data-count-guard]')).toHaveText('7');
+    await expect(row.locator('[data-count-total]')).toHaveText('7');
   });
 
   test('sincronitza la jornada entre dues sessions sense recarregar', async ({ page, context }) => {
@@ -278,6 +313,7 @@ test.describe('Guàrdies: comportament existent', () => {
     await openGuardies(page);
     await uploadConfiguration(page);
 
+    await page.getByRole('tab', { name: 'Configuració' }).click();
     await page.locator('#convivencia-panel summary').click();
     const firstSlot = page.locator('[data-convivencia-slot="1|8:00"]');
     await expect(firstSlot).toBeVisible();
@@ -287,6 +323,7 @@ test.describe('Guàrdies: comportament existent', () => {
 
     await expect(page.locator('#cache-info')).toContainText('3/3 fitxers compartits');
     await page.reload();
+    await page.getByRole('tab', { name: 'Configuració' }).click();
     await page.locator('#convivencia-panel summary').click();
     await expect(page.locator('[data-convivencia-slot="1|8:00"]')).toHaveValue(selected);
   });
@@ -297,6 +334,7 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#date-input').fill('2026-09-14');
     await page.locator('#date-input').press('Tab');
 
+    await page.getByRole('tab', { name: 'Configuració' }).click();
     await page.locator('#pati-panel summary').click();
     await expect(page.locator('.pati-roster-row')).toHaveCount(0);
     await page.locator('#new-pati-zone').fill('Pista');
@@ -313,6 +351,8 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('.pati-roster-row')).toHaveCount(2);
     await expect(page.locator('.pati-roster-row').first()).toContainText('Fuentes Serra');
     await expect(page.getByText("Les activitats GP d'Untis no s'importen.")).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Gestió diària' }).click();
 
     const patioCards = page.locator('#coverage-list .pati-zone-card');
     await expect(patioCards).toHaveCount(2);
@@ -344,11 +384,13 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('.pati-zone-card.absent .pati-absence-badge')).toHaveText('Absent');
     await expect(page.locator('.coverage-session.pati-session .coverage-session-list')).toHaveCount(0);
 
+    await page.getByRole('tab', { name: 'Configuració' }).click();
     await page.locator('#pati-holiday-date').fill('2026-09-21');
     await page.locator('#pati-holiday-label').fill('Festa del centre');
     await page.locator('#add-pati-holiday').click();
     await expect(page.getByText('Desat automàticament')).toBeVisible();
     await expect(page.locator('#save-pati-config')).toHaveCount(0);
+    await page.getByRole('tab', { name: 'Gestió diària' }).click();
     await expect(page.locator('#coverage-list .pati-info-strip')).toContainText('Pista');
 
     await page.reload();
@@ -366,6 +408,7 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#date-input').fill('2026-09-28');
     await page.locator('#date-input').press('Tab');
     await expect(page.locator('#coverage-list .pati-info-strip')).toContainText('Porxada');
+    await page.getByRole('tab', { name: 'Configuració' }).click();
     await page.locator('#pati-panel summary').click();
     await expect(page.getByLabel('Nom de la zona 1')).toHaveValue('Pista');
     await expect(page.getByLabel('Nom de la zona 2')).toHaveValue('Porxada');

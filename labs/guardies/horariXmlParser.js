@@ -614,7 +614,11 @@
         descripcio: atribut(node, 'descripcio'),
       };
       aules.set(codi, aula);
-      [aula.codi, aula.descripcio].forEach((alias) => addIndex(aulesIndex, alias, aula));
+      const nomNormalitzat = normalitzarClau(aula.descripcio);
+      const aliasUntis = nomNormalitzat.startsWith('aula')
+        ? `aul${nomNormalitzat.slice(4)}`
+        : '';
+      [aula.codi, aula.descripcio, aliasUntis].forEach((alias) => addIndex(aulesIndex, alias, aula));
     });
 
     return {
