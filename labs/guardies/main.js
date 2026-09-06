@@ -84,6 +84,7 @@ import {
     removeUploadedFile(event.detail?.kind);
   });
   window.addEventListener('guardies:clear-files', clearPersistentFiles);
+  window.addEventListener('guardies:auth-changed', bootstrap);
   window.addEventListener('guardies:pati-updated', () => renderCoverage());
   window.addEventListener('guardies:exclusions-updated', async () => {
     parseStoredData({ resetSelection: false });
@@ -145,6 +146,11 @@ import {
   bootstrap();
 
   async function bootstrap() {
+    unsubscribeGuardiesData();
+    unsubscribeGuardiesDay();
+    state.contextReady = false;
+    state.authRequired = false;
+    state.persistenceStatus = 'loading';
     const search = new URLSearchParams(window.location.search);
     state.teacherView = search.get('vista') === 'professor';
     render();
@@ -180,12 +186,14 @@ import {
       subscribeToRemoteData();
       state.contextReady = true;
       render();
+      window.dispatchEvent(new CustomEvent('guardies:auth-ready'));
     } catch (error) {
       state.persistenceStatus = 'error';
       state.contextReady = true;
       state.authRequired = String(error?.message || error).includes('Inicia sessió');
       showError(state.authRequired ? '' : error.message || String(error));
       render();
+      window.dispatchEvent(new CustomEvent('guardies:auth-ready'));
     }
   }
 

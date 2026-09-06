@@ -23,13 +23,17 @@ async function signIn() {
   signInError.value = '';
   try {
     const signedIn = await signInGuardies();
-    if (signedIn) window.location.reload();
+    if (signedIn) window.dispatchEvent(new CustomEvent('guardies:auth-changed'));
     else signingIn.value = false;
   } catch (error) {
     signInError.value = error?.message || String(error);
     signingIn.value = false;
   }
 }
+
+window.addEventListener('guardies:auth-ready', () => {
+  signingIn.value = false;
+});
 </script>
 
 <template>

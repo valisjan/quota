@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
-import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, getRedirectResult } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useCursStore } from './curs';
@@ -41,8 +41,6 @@ export const useAuthStore = defineStore('auth', () => {
     resolveAuthReady?.();
     queueMicrotask(() => useCursStore().inicialitzar());
   } else {
-  getRedirectResult(auth).catch(() => {});
-
   onAuthStateChanged(auth, async (firebaseUser) => {
     try {
       if (firebaseUser) {
@@ -218,9 +216,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await signInWithPopup(auth, provider);
     } catch (err) {
-      if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
-        await signInWithRedirect(auth, provider);
-      } else if (err.code !== 'auth/popup-closed-by-user') {
+      if (err.code === 'auth/popup-blocked') {
+        throw new Error("Safari ha bloquejat l'inici de sessió. Permet les finestres emergents i torna-ho a provar.");
+      }
+      if (!['auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(err.code)) {
         throw err;
       }
     }
