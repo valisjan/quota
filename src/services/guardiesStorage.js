@@ -6,9 +6,11 @@ import {
   getDoc,
   getDocs,
   onSnapshot,
+  query,
   runTransaction,
   serverTimestamp,
   setDoc,
+  where,
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../firebase';
@@ -316,12 +318,26 @@ export async function loadGuardiesDay(cursId, date) {
   }
 }
 
-export function subscribeGuardiesDay(cursId, date, onChange, onError = () => {}) {
+export function subscribeGuardiesDay(cursId, date, onChange, onError = () => {}, { publishedOnly = false } = {}) {
   if (E2E_AUTH_BYPASS) {
     return subscribeE2E(cursId, (data) => onChange(data.days?.[date] || null, {
       fromCache: false,
       hasPendingWrites: false,
     }));
+  }
+
+  if (publishedOnly) {
+    const publishedDays = query(
+      collection(db, 'cursos', cursId, 'guardiesDays'),
+      where('status', 'in', ['published', 'closed']),
+    );
+    return onSnapshot(publishedDays, (snapshot) => {
+      const selected = snapshot.docs.find((item) => item.id === date);
+      onChange(selected?.data() || null, {
+        fromCache: snapshot.metadata.fromCache,
+        hasPendingWrites: snapshot.metadata.hasPendingWrites,
+      });
+    }, onError);
   }
 
   return onSnapshot(guardiesDayRef(cursId, date), (snapshot) => {

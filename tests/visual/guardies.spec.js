@@ -225,7 +225,8 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#professor-results [data-professor]').first().click();
     await page.locator('#schedule-grid .schedule-item').filter({ hasText: 'PATI' }).locator('[data-absence]').check();
     await expect(page.locator('.pati-zone-card.absent')).toHaveCount(1);
-    await expect(page.locator('.pati-zone-card.absent .pati-absence-badge')).toContainText('Absent');
+    await expect(page.locator('.pati-zone-card.absent .pati-absence-badge')).toHaveText('Absent');
+    await expect(page.locator('.coverage-session.pati-session .coverage-session-list')).toHaveCount(0);
 
     await page.locator('#pati-holiday-date').fill('2026-09-21');
     await page.locator('#pati-holiday-label').fill('Festa del centre');

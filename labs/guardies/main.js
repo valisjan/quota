@@ -411,7 +411,7 @@ import {
     }, (error) => {
       if (error?.code === 'permission-denied') return;
       showError(`No s'ha pogut sincronitzar la jornada. ${error.message || error}`);
-    });
+    }, { publishedOnly: !state.canWrite });
   }
 
   function flushPendingRemoteDay() {
@@ -1561,14 +1561,17 @@ import {
     const dayHours = hoursForSelectedDay();
     el.coverageList.innerHTML = warning + dayHours.map((hora) => {
       const items = selectedByHour.get(hora) || [];
+      const visibleItems = hora === 'PATI'
+        ? items.filter((item) => !item.sessions?.some(isPatiGuardiaSession))
+        : items;
       return `
-      <section class="coverage-session">
+      <section class="coverage-session ${hora === 'PATI' ? 'pati-session' : ''}">
         <div class="coverage-session-head">
           <h3>${escapeHtml(horaLabel(hora))}</h3>
           <span>${items.length ? `${items.length} ${items.length === 1 ? 'absència' : 'absències'}` : 'Sense absències'}</span>
         </div>
         ${hora === 'PATI' ? renderPatiForDate() : ''}
-        ${items.length ? `
+        ${visibleItems.length ? `
           <div class="coverage-session-list">
             <div class="coverage-table">
               <div class="coverage-row coverage-row-head">
@@ -1577,7 +1580,7 @@ import {
                 <span>Professor preassignat</span>
                 <span>Observacions</span>
               </div>
-              ${items.map(renderCoverageRow).join('')}
+              ${visibleItems.map(renderCoverageRow).join('')}
             </div>
           </div>
         ` : ''}

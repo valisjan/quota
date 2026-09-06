@@ -1687,6 +1687,32 @@ h3 {
   overflow: hidden;
 }
 
+.coverage-session.pati-session {
+  border: 2px solid var(--amber-border);
+  background: var(--amber-soft);
+  box-shadow: inset 4px 0 0 var(--amber);
+}
+
+.pati-session .coverage-session-head {
+  min-height: 38px;
+  border-bottom-color: var(--amber-border);
+  background: color-mix(in srgb, var(--amber-soft) 72%, var(--surface));
+  padding-left: 12px;
+}
+
+.pati-session .coverage-session-head h3 {
+  color: var(--amber);
+  font-size: 0.88rem;
+  font-weight: 950;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.pati-session .coverage-session-head span {
+  color: var(--amber);
+  font-weight: 850;
+}
+
 .coverage-session-head {
   display: flex;
   min-height: 32px;
