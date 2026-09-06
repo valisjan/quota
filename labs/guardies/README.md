@@ -27,6 +27,7 @@ Els fitxers i la configuració setmanal queden guardats a Firestore dins el curs
 - Llistat diari amb les hores apilades per anar afegint absències.
 - Comentari per cada absència.
 - Candidats jerarquitzats per origen i menor nombre de cobertures anuals.
+- Preassignació automàtica de tota la jornada: primer alliberats i després G, ordenats pel recompte anual.
 - Cerca del professorat que té guàrdia a la mateixa franja.
 - Sortides amb decisió completa o parcial independent per a cada grup i selecció dels acompanyants.
 - Detecció del professorat que queda alliberat perquè tenia classe amb aquests grups.

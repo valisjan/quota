@@ -1875,11 +1875,21 @@ h3 {
   padding: 8px 10px;
 }
 
-.day-panel-hint {
-  color: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 650;
+.day-panel-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
+
+.auto-assignment-feedback {
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.auto-assignment-feedback.is-success { color: var(--green); }
+.auto-assignment-feedback.is-error { color: var(--coral); }
 
 .coverage-list {
   display: grid;

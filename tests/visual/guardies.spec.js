@@ -36,7 +36,9 @@ const dutiesText = `10,"1ESO-A","ADEL","MAT","Aula 1",1,1,,
 1,,"ADEL","G",,1,3,,
 2,,"FUEN","G",,1,1,,
 3,,"SANZ","G",,1,2,,
+5,,"SANZ","G",,1,1,,
 4,,"FUEN","GP",,1,4,,
+13,"1ESO-B","MAT1","MAT","Aula 1",1,3,,
 20,"1ESO-A","ADEL","MAT","Aula 1",2,5,,`;
 
 const referenceFile = {
@@ -158,6 +160,51 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#date-input').press('Tab');
     await expect(page.locator('#coverage-count')).toContainText('1 sessió');
     await expect(page.locator('#coverage-list')).toContainText('Adell Domènech');
+  });
+
+  test('assigna automàticament primer alliberats i després professorat de G', async ({ page }) => {
+    await openGuardies(page);
+    await uploadConfiguration(page);
+    await page.evaluate(() => {
+      const key = 'quota-e2e-guardies:e2e-2026';
+      const data = JSON.parse(localStorage.getItem(key));
+      data.stats = { counts: {
+        2: { total: 5, released: 0, guard: 5, other: 0 },
+        3: { total: 0, released: 0, guard: 0, other: 0 },
+      } };
+      localStorage.setItem(key, JSON.stringify(data));
+    });
+    await page.reload();
+    await expect(page.locator('#workspace')).toBeVisible();
+    await page.locator('#date-input').fill('2026-09-07');
+    await page.locator('#date-input').press('Tab');
+
+    await page.getByRole('tab', { name: 'Grup de sortida' }).click();
+    await page.locator('#group-search').selectOption('10');
+    await page.getByRole('tab', { name: 'Professor', exact: true }).click();
+    await page.locator('#professor-search').fill('MAT1');
+    await page.locator('#professor-results [data-professor]').first().click();
+    await page.locator('#add-all-hours').click();
+
+    await page.locator('#auto-assign-guards').click();
+    await expect(page.locator('.auto-assignment-feedback')).toHaveText('2 assignades');
+    await expect(page.locator('#coverage-list [data-assignacio]')).toHaveCount(2);
+    await expect(page.locator('#coverage-list [data-assignacio]').first()).toHaveValue('1');
+    await expect(page.locator('#coverage-list [data-assignacio]').nth(1)).toHaveValue('1');
+
+    await page.waitForTimeout(500);
+    const sources = await page.evaluate(() => Object.values(
+      JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).days['2026-09-07'].assignments,
+    ).map((assignment) => assignment.source).sort());
+    expect(sources).toEqual(['guard', 'released']);
+
+    await page.locator('#date-input').fill('2026-09-14');
+    await page.locator('#date-input').press('Tab');
+    await page.locator('#professor-search').fill('ADELL');
+    await page.locator('#professor-results [data-professor]').first().click();
+    await page.locator('#schedule-grid [data-absence]:not(:disabled)').first().check();
+    await page.locator('#auto-assign-guards').click();
+    await expect(page.locator('#coverage-list [data-assignacio]')).toHaveValue('3');
   });
 
   test('selecciona un professor absent, crea cobertures i conserva la jornada', async ({ page }) => {

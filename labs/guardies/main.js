@@ -84,6 +84,7 @@ import {
   window.addEventListener('guardies:clear-files', clearPersistentFiles);
   window.addEventListener('guardies:pati-updated', () => renderCoverage());
   window.addEventListener('guardies:day-action', (event) => changeDayStatus(event.detail?.action));
+  window.addEventListener('guardies:auto-assign', autoAssignCoverage);
   window.addEventListener('guardies:apply-absence-range', (event) => applyAbsenceRange(event.detail));
   window.addEventListener('guardies:apply-outing-range', (event) => applyOutingRange(event.detail));
   el.professorSelect.addEventListener('change', () => {
@@ -1759,6 +1760,59 @@ import {
       });
     });
     scheduleDaySave();
+  }
+
+  function autoAssignCoverage() {
+    const reportResult = (ok, message) => {
+      window.dispatchEvent(new CustomEvent('guardies:auto-assign-result', { detail: { ok, message } }));
+    };
+    if (!state.canWrite || state.dayStatus === 'closed') {
+      reportResult(false, 'La jornada no es pot modificar.');
+      return;
+    }
+
+    const pending = selectedAbsenceItems().filter((item) => (
+      !item.sessions?.some(isPatiGuardiaSession) && !state.assignacions.has(item.id)
+    ));
+    if (!pending.length) {
+      reportResult(false, 'No hi ha guàrdies pendents.');
+      return;
+    }
+
+    const projectedCounts = new Map();
+    state.assignacions.forEach((teacherId) => {
+      projectedCounts.set(teacherId, (projectedCounts.get(teacherId) || 0) + 1);
+    });
+
+    let assigned = 0;
+    pending.forEach((item) => {
+      const candidates = guardiesPerFranja(item.dia, item.hora, item.placa, item.id)
+        .map((candidate) => ({
+          ...candidate,
+          source: candidate.alliberaments?.length ? 'released' : candidate.guardies?.length ? 'guard' : '',
+        }))
+        .filter((candidate) => candidate.source && !candidate.unavailable && !candidate.convivencia && !candidate.outsideDuty)
+        .sort((a, b) => {
+          const sourceRank = (a.source === 'released' ? 0 : 1) - (b.source === 'released' ? 0 : 1);
+          if (sourceRank) return sourceRank;
+          const countRank = (guardCount(a.placa) + (projectedCounts.get(a.placa) || 0))
+            - (guardCount(b.placa) + (projectedCounts.get(b.placa) || 0));
+          if (countRank) return countRank;
+          return labelProfessor(a.placa).localeCompare(labelProfessor(b.placa), 'ca', { numeric: true });
+        });
+      const selected = candidates[0];
+      if (!selected) return;
+      state.assignacions.set(item.id, selected.placa);
+      state.assignmentSources.set(item.id, selected.source);
+      state.cancelledAssignments.delete(item.id);
+      projectedCounts.set(selected.placa, (projectedCounts.get(selected.placa) || 0) + 1);
+      assigned += 1;
+    });
+
+    renderCoverage();
+    const uncovered = pending.length - assigned;
+    const message = `${assigned} ${assigned === 1 ? 'assignada' : 'assignades'}${uncovered ? ` · ${uncovered} sense cobrir` : ''}`;
+    reportResult(assigned > 0, message);
   }
 
   function renderConvivenciaForHour(dia, hora) {
