@@ -38,6 +38,7 @@ export function normalizeGuardCount(value) {
 export function normalizeCountedAssignment(value) {
   const teacherId = typeof value === 'string' ? value : value?.teacherId;
   if (!teacherId) return null;
+  if (value?.source === 'co-teacher') return null;
   const source = ['released', 'guard'].includes(value?.source) ? value.source : 'other';
   return { teacherId, source };
 }

@@ -40,6 +40,7 @@ export const useGuardiesStore = defineStore('guardies', {
     date: localDateString(new Date()),
     guardiaCodes: loadGuardCodes(),
     convivencia: new Map(),
+    observationPresets: [],
     absencies: new Map(),
     assignacions: new Map(),
     assignmentSources: new Map(),

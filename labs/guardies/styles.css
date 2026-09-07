@@ -1174,6 +1174,48 @@ h3 {
   font-weight: 900;
 }
 
+.observation-presets-panel .admin-icon {
+  color: var(--primary-strong);
+  font-weight: 900;
+}
+
+.observation-preset-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 8px;
+}
+
+.observation-preset-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.observation-preset-list > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--primary-border);
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--text);
+  padding: 4px 5px 4px 9px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.observation-preset-list button {
+  width: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  border: 0;
+  background: transparent;
+  color: var(--coral);
+  padding: 0;
+  box-shadow: none;
+}
+
 .teacher-exclusions-toolbar {
   display: grid;
   grid-template-columns: minmax(110px, 170px) minmax(220px, 420px);
@@ -2315,8 +2357,21 @@ h3 {
   border-color: var(--coral-border);
 }
 
+.co-teacher-badge {
+  color: var(--primary-strong);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
 .coverage-comment-cell {
-  display: block;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+
+.coverage-comment-cell select {
+  min-height: 28px;
+  font-size: 0.65rem;
 }
 
 .coverage-comment-cell textarea {
@@ -2927,6 +2982,10 @@ h3 {
   }
 
   .guard-count-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .observation-preset-form {
     grid-template-columns: 1fr;
   }
 

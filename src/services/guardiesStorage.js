@@ -164,6 +164,17 @@ function normalizeExcludedTeacherIds(data) {
     .slice(0, 500);
 }
 
+export function normalizeGuardiesObservationPresets(data) {
+  const values = Array.isArray(data) ? data : data?.phrases;
+  const unique = new Map();
+  (Array.isArray(values) ? values : []).forEach((value) => {
+    const phrase = String(value || '').trim().replace(/\s+/g, ' ').slice(0, 180);
+    const key = phrase.toLocaleLowerCase('ca');
+    if (phrase && !unique.has(key)) unique.set(key, phrase);
+  });
+  return Array.from(unique.values()).slice(0, 50);
+}
+
 function personNameKey(value) {
   return String(value || '')
     .normalize('NFD')
@@ -283,16 +294,18 @@ export async function loadGuardiesData(cursId) {
       },
       convivencia: data.convivencia || {},
       pati: normalizePati(data.pati),
+      observationPresets: normalizeGuardiesObservationPresets(data.observationPresets),
       excludedTeacherIds: normalizeExcludedTeacherIds({ teacherIds: data.excludedTeacherIds }),
     };
   }
 
-  const [reference, untis, duties, convivencia, pati, exclusions] = await withNetworkRetry(() => Promise.all([
+  const [reference, untis, duties, convivencia, pati, observations, exclusions] = await withNetworkRetry(() => Promise.all([
     readDoc(guardiesRef(cursId, 'reference')),
     readDoc(guardiesRef(cursId, 'untis')),
     readDoc(guardiesRef(cursId, 'duties')),
     readDoc(guardiesRef(cursId, 'convivencia')),
     readDoc(guardiesRef(cursId, 'pati')),
+    readDoc(guardiesRef(cursId, 'observations')),
     readDoc(guardiesExclusionsRef(cursId)),
   ]));
   return {
@@ -303,6 +316,7 @@ export async function loadGuardiesData(cursId) {
     },
     convivencia: convivencia.exists() ? normalizeConvivencia(convivencia.data()) : {},
     pati: pati.exists() ? normalizePati(pati.data()) : null,
+    observationPresets: observations.exists() ? normalizeGuardiesObservationPresets(observations.data()) : [],
     excludedTeacherIds: exclusions.exists() ? normalizeExcludedTeacherIds({ teacherIds: exclusions.data().excludedTeacherIds }) : [],
   };
 }
@@ -318,6 +332,7 @@ export function subscribeGuardiesData(cursId, onChange, onError = () => {}) {
         },
         convivencia: data.convivencia || {},
         pati: normalizePati(data.pati),
+        observationPresets: normalizeGuardiesObservationPresets(data.observationPresets),
         excludedTeacherIds: normalizeExcludedTeacherIds({ teacherIds: data.excludedTeacherIds }),
         stats: data.stats || { counts: {} },
       })).catch(onError);
@@ -349,6 +364,7 @@ export function subscribeGuardiesData(cursId, onChange, onError = () => {}) {
         },
         convivencia: normalizeConvivencia(documents.get('convivencia')),
         pati: normalizePati(documents.get('pati')),
+        observationPresets: normalizeGuardiesObservationPresets(documents.get('observations')),
         excludedTeacherIds,
         stats: documents.get('stats') || { counts: {} },
       });
@@ -542,6 +558,21 @@ export async function saveGuardiesPati(cursId, config) {
   }
   await setDoc(guardiesRef(cursId, 'pati'), {
     ...clean,
+    updatedAt: serverTimestamp(),
+  });
+  return clean;
+}
+
+export async function saveGuardiesObservationPresets(cursId, phrases) {
+  const clean = normalizeGuardiesObservationPresets(phrases);
+  if (E2E_AUTH_BYPASS) {
+    const data = getE2EData(cursId);
+    data.observationPresets = clean;
+    setE2EData(cursId, data);
+    return clean;
+  }
+  await setDoc(guardiesRef(cursId, 'observations'), {
+    phrases: clean,
     updatedAt: serverTimestamp(),
   });
   return clean;

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  classroomPartnerForAbsence,
   completeGuardDutyHours,
   dateForXmlDayInSameWeek,
   groupTeachingBlocks,
@@ -87,4 +88,37 @@ test('un professor de grup flexible només queda lliure quan surten els dos grup
     enabledTeachersByGroup: selections,
   }).map((block) => block.placa).sort();
   assert.deepEqual(bothGroups, ['ANITA', 'JUAN', 'JUANITA', 'PEP', 'SUTANITA']);
+});
+
+test('detecta el professor que queda dins la mateixa aula amb el mateix grup', () => {
+  const sessions = [
+    { placa: 'P1', dia: '1', hora: '8:00', grup: '1A', aula: 'A12', teClasse: true },
+    { placa: 'P2', dia: '1', hora: '8:00', grup: '1A', aula: 'A12', teClasse: true },
+  ];
+  const absence = { id: 'P1|1|8:00', placa: 'P1', dia: '1', hora: '8:00' };
+  const absences = new Map([[absence.id, absence]]);
+
+  assert.equal(classroomPartnerForAbsence({ sessions, absence, absences }), 'P2');
+});
+
+test('no considera docència compartida els blocs flexibles ni dues absències', () => {
+  const flexibleSessions = [
+    { placa: 'P1', dia: '1', hora: '8:00', grup: '1A', aula: 'A12', teClasse: true },
+    { placa: 'P1', dia: '1', hora: '8:00', grup: '1B', aula: 'A12', teClasse: true },
+    { placa: 'P2', dia: '1', hora: '8:00', grup: '1A', aula: 'A12', teClasse: true },
+  ];
+  const absence = { id: 'P1|1|8:00', placa: 'P1', dia: '1', hora: '8:00' };
+  assert.equal(classroomPartnerForAbsence({
+    sessions: flexibleSessions,
+    absence,
+    absences: new Map([[absence.id, absence]]),
+  }), '');
+
+  const sharedSessions = flexibleSessions.filter((session) => session.grup === '1A');
+  const secondAbsence = { id: 'P2|1|8:00', placa: 'P2', dia: '1', hora: '8:00' };
+  assert.equal(classroomPartnerForAbsence({
+    sessions: sharedSessions,
+    absence,
+    absences: new Map([[absence.id, absence], [secondAbsence.id, secondAbsence]]),
+  }), '');
 });

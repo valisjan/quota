@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   guardCountDelta,
   normalizeGuardCount,
+  normalizeCountedAssignment,
   sortCoverageCandidates,
   teachingDatesBetween,
   updateGuardCounts,
@@ -56,4 +57,11 @@ test('conserva separats els recomptes com a alliberat i com a guàrdia', () => {
     { teacherId: 'A', source: 'guard' },
   ]);
   assert.deepEqual(corrected.A, { total: 1, released: 0, guard: 1, other: 0 });
+});
+
+test('no compta el professor que ja queda dins l’aula', () => {
+  assert.equal(normalizeCountedAssignment({ teacherId: 'P2', source: 'co-teacher' }), null);
+  assert.deepEqual(updateGuardCounts({}, [], [
+    { teacherId: 'P2', source: 'co-teacher' },
+  ]), {});
 });

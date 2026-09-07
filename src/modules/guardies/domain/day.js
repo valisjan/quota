@@ -30,6 +30,47 @@ export function isTeacherAbsentAtSlot(absences, day, hour, teacherId) {
     .some((item) => item.dia === day && item.hora === hour && item.placa === teacherId);
 }
 
+function singleValue(values) {
+  const unique = Array.from(new Set(values.filter(Boolean)));
+  return unique.length === 1 ? unique[0] : '';
+}
+
+export function classroomPartnerForAbsence({ sessions = [], absence, absences } = {}) {
+  if (!absence?.placa || !absence?.dia || !absence?.hora) return '';
+  const targetSessions = sessions.filter((session) => (
+    session.teClasse
+    && session.placa === absence.placa
+    && session.dia === absence.dia
+    && session.hora === absence.hora
+  ));
+  const groupId = singleValue(targetSessions.map((session) => session.grup));
+  const roomId = singleValue(targetSessions.map((session) => session.aula));
+  if (!groupId || !roomId) return '';
+
+  const teachersAtSlot = new Map();
+  sessions.filter((session) => (
+    session.teClasse && session.dia === absence.dia && session.hora === absence.hora
+  )).forEach((session) => {
+    if (!teachersAtSlot.has(session.placa)) teachersAtSlot.set(session.placa, []);
+    teachersAtSlot.get(session.placa).push(session);
+  });
+
+  const classroomTeachers = Array.from(teachersAtSlot.entries())
+    .filter(([, teacherSessions]) => (
+      singleValue(teacherSessions.map((session) => session.grup)) === groupId
+      && singleValue(teacherSessions.map((session) => session.aula)) === roomId
+    ))
+    .map(([teacherId]) => teacherId);
+  if (classroomTeachers.length !== 2 || !classroomTeachers.includes(absence.placa)) return '';
+
+  const presentTeachers = classroomTeachers.filter((teacherId) => (
+    !isTeacherAbsentAtSlot(absences, absence.dia, absence.hora, teacherId)
+  ));
+  return presentTeachers.length === 1 && presentTeachers[0] !== absence.placa
+    ? presentTeachers[0]
+    : '';
+}
+
 const STANDARD_TEACHING_STARTS = [480, 535, 590, 675, 730, 785, 840];
 
 function minutesFromHour(value) {

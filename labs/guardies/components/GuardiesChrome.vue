@@ -10,6 +10,7 @@ import GuardiesWorkspace from './GuardiesWorkspace.vue';
 import GuardiesTeacherStats from './GuardiesTeacherStats.vue';
 import GuardiesGuardCountPanel from './GuardiesGuardCountPanel.vue';
 import GuardiesTeacherExclusionsPanel from './GuardiesTeacherExclusionsPanel.vue';
+import GuardiesObservationPresetsPanel from './GuardiesObservationPresetsPanel.vue';
 import { signInGuardies } from '../../../src/services/guardiesStorage.js';
 import { useGuardiesStore } from '../stores/guardies.js';
 
@@ -49,6 +50,7 @@ window.addEventListener('guardies:auth-ready', () => {
     <GuardiesSetupPanel v-show="canWrite && adminSection === 'config'" />
     <GuardiesTeacherExclusionsPanel v-show="canWrite && adminSection === 'config'" />
     <GuardiesGuardCountPanel v-show="canWrite && adminSection === 'config'" />
+    <GuardiesObservationPresetsPanel v-show="canWrite && adminSection === 'config'" />
   </Teleport>
   <Teleport to="#guardies-convivencia-root">
     <GuardiesConvivenciaPanel v-show="canWrite && adminSection === 'config'" />

@@ -59,6 +59,12 @@ const dutiesFile = {
   buffer: Buffer.from(dutiesText),
 };
 
+const sharedDutiesFile = {
+  name: 'GPU001.TXT',
+  mimeType: 'text/plain',
+  buffer: Buffer.from(`${dutiesText}\n14,"1ESO-A","FUEN","MAT","AUL14",1,2,,`),
+};
+
 async function openGuardies(page) {
   await page.goto('/labs/guardies/');
   await expect(page.locator('#cache-info')).toContainText('E2E 2026-27');
@@ -170,6 +176,75 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(row.locator('[data-count-released]')).toHaveText('4');
     await expect(row.locator('[data-count-guard]')).toHaveText('7');
     await expect(row.locator('[data-count-total]')).toHaveText('11');
+  });
+
+  test('configura observacions preestablertes i permet text lliure', async ({ page }) => {
+    await openGuardies(page);
+    await uploadConfiguration(page);
+    await page.getByRole('tab', { name: 'Configuració' }).click();
+    await page.locator('#observation-presets-panel summary').click();
+    const newPhrase = page.getByLabel('Nova observació preestablerta');
+    await newPhrase.fill('Feina a Classroom');
+    await newPhrase.press('Enter');
+    await expect(page.locator('#observation-presets-panel')).toContainText('Feina a Classroom');
+
+    await page.getByRole('tab', { name: 'Gestió diària' }).click();
+    await page.locator('#date-input').fill('2026-09-07');
+    await page.locator('#date-input').press('Tab');
+    await page.locator('#professor-search').fill('ADELL');
+    await page.locator('#professor-results [data-professor]').first().click();
+    await page.locator('#schedule-grid [data-absence]:not(:disabled)').first().check();
+    const row = page.locator('#coverage-list .coverage-row').filter({ has: page.locator('[data-comment]') }).first();
+    await row.locator('[data-comment-preset]').selectOption({ label: 'Feina a Classroom' });
+    await expect(row.locator('[data-comment]')).toHaveValue('Feina a Classroom');
+    await row.locator('[data-comment]').fill('Material excepcional al calaix');
+    await expect(row.locator('[data-comment-preset]')).toHaveValue('');
+
+    await page.waitForTimeout(500);
+    await page.reload();
+    await expect(page.locator('[data-comment]')).toHaveValue('Material excepcional al calaix');
+    await page.getByRole('tab', { name: 'Configuració' }).click();
+    await page.locator('#observation-presets-panel summary').click();
+    await expect(page.locator('#observation-presets-panel')).toContainText('Feina a Classroom');
+  });
+
+  test('deixa el company de la mateixa aula sense comptar-li cap guàrdia', async ({ page }) => {
+    await openGuardies(page);
+    await uploadConfiguration(page);
+    await page.getByRole('tab', { name: 'Configuració' }).click();
+    await page.locator('#duties-file').setInputFiles(sharedDutiesFile);
+    await expect(page.locator('[data-upload-status="duties"]')).toHaveText('OK');
+    await page.getByRole('tab', { name: 'Gestió diària' }).click();
+    await page.locator('#date-input').fill('2026-09-07');
+    await page.locator('#date-input').press('Tab');
+    await page.locator('#professor-search').fill('ADELL');
+    await page.locator('#professor-results [data-professor]').first().click();
+
+    const flexible = page.locator('#schedule-grid .schedule-item').filter({ hasText: '8:00' });
+    await flexible.locator('[data-absence]').check();
+    await expect(page.locator('#coverage-list [data-assignacio]')).toHaveCount(1);
+    await flexible.locator('[data-absence]').uncheck();
+
+    const shared = page.locator('#schedule-grid .schedule-item').filter({ hasText: '8:55' });
+    await shared.locator('[data-absence]').check();
+    const coverage = page.locator('#coverage-list .coverage-item').first();
+    await expect(coverage).toContainText('Fuentes Serra, Gabriel');
+    await expect(coverage.locator('.co-teacher-badge')).toHaveText('Queda amb el grup');
+    await expect(coverage.locator('[data-assignacio]')).toHaveCount(0);
+
+    await page.waitForTimeout(500);
+    const assignment = await page.evaluate(() => {
+      const day = JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).days['2026-09-07'];
+      return Object.values(day.assignments)[0];
+    });
+    expect(assignment).toEqual({ teacherId: '2', source: 'co-teacher' });
+
+    await page.getByRole('button', { name: 'Publica' }).click();
+    await page.getByRole('button', { name: 'Tanca jornada' }).click();
+    const count = await page.evaluate(() => (
+      JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).stats?.counts?.['2']
+    ));
+    expect(count).toBeUndefined();
   });
 
   test('exclou el professorat d\'Agrària de tot el mòdul de guàrdies', async ({ page }) => {

@@ -1,6 +1,7 @@
 import * as parser from './horariXmlParser.js';
 import { GUARD_CODES_STORAGE, useGuardiesStore } from './stores/guardies.js';
 import {
+  classroomPartnerForAbsence,
   completeGuardDutyHours,
   dateForXmlDayInSameWeek,
   groupTeachingBlocks,
@@ -285,6 +286,7 @@ import {
     state.dutiesName = remoteData.files.duties?.name || '';
     state.convivencia = convivenciaFromObject(remoteData.convivencia);
     state.patiConfig = remoteData.pati || null;
+    state.observationPresets = remoteData.observationPresets || [];
     state.excludedTeacherIds = new Set(remoteData.excludedTeacherIds || []);
   }
 
@@ -293,6 +295,7 @@ import {
       files: remoteData.files || {},
       convivencia: remoteData.convivencia || {},
       pati: remoteData.pati || null,
+      observationPresets: remoteData.observationPresets || [],
       excludedTeacherIds: remoteData.excludedTeacherIds || [],
       counts: remoteData.stats?.counts || {},
     });
@@ -381,7 +384,7 @@ import {
     });
     Object.entries(saved?.assignments || {}).forEach(([id, assignment]) => {
       const teacherId = typeof assignment === 'string' ? assignment : assignment?.teacherId;
-      const source = typeof assignment === 'object' && ['released', 'guard'].includes(assignment?.source)
+      const source = typeof assignment === 'object' && ['released', 'guard', 'co-teacher'].includes(assignment?.source)
         ? assignment.source
         : 'other';
       if (state.absencies.has(id) && teacherId && !isExcludedTeacher(teacherId)) {
@@ -1674,6 +1677,21 @@ import {
   function renderCoverage() {
     const selected = selectedAbsenceItems();
     selected.forEach((item) => {
+      const classroomPartner = classroomPartnerForAbsence({
+        sessions: state.sessions,
+        absence: item,
+        absences: state.absencies,
+      });
+      if (classroomPartner) {
+        state.assignacions.set(item.id, classroomPartner);
+        state.assignmentSources.set(item.id, 'co-teacher');
+        state.cancelledAssignments.delete(item.id);
+        return;
+      }
+      if (state.assignmentSources.get(item.id) === 'co-teacher') {
+        state.assignacions.delete(item.id);
+        state.assignmentSources.delete(item.id);
+      }
       const assignat = state.assignacions.get(item.id);
       if (!assignat) return;
       const candidate = guardiesPerFranja(item.dia, item.hora, item.placa, item.id)
@@ -1757,16 +1775,20 @@ import {
     el.coverageList.querySelectorAll('[data-comment]').forEach((input) => {
       input.addEventListener('input', () => {
         if (state.dayStatus === 'closed') return;
-        const value = input.value.trim();
-        if (value) state.comentaris.set(input.dataset.comment, value);
-        else state.comentaris.delete(input.dataset.comment);
-        const printComment = Array.from(el.coverageList.querySelectorAll('[data-comment-print]'))
-          .find((node) => node.dataset.commentPrint === input.dataset.comment);
-        if (printComment) {
-          const prefix = input.dataset.comment === PATI_COMMENT_KEY ? 'Observacions del pati' : 'Comentari';
-          printComment.textContent = value ? `${prefix}: ${value}` : '';
-        }
-        scheduleDaySave();
+        updateComment(input.dataset.comment, input.value);
+        const preset = Array.from(el.coverageList.querySelectorAll('[data-comment-preset]'))
+          .find((node) => node.dataset.commentPreset === input.dataset.comment);
+        if (preset) preset.value = state.observationPresets.includes(input.value.trim()) ? input.value.trim() : '';
+      });
+    });
+
+    el.coverageList.querySelectorAll('[data-comment-preset]').forEach((select) => {
+      select.addEventListener('change', () => {
+        if (state.dayStatus === 'closed' || !select.value) return;
+        const input = Array.from(el.coverageList.querySelectorAll('[data-comment]'))
+          .find((node) => node.dataset.comment === select.dataset.commentPreset);
+        if (input) input.value = select.value;
+        updateComment(select.dataset.commentPreset, select.value);
       });
     });
 
@@ -1797,6 +1819,19 @@ import {
     scheduleDaySave();
   }
 
+  function updateComment(id, rawValue) {
+    const value = String(rawValue || '').trim();
+    if (value) state.comentaris.set(id, value);
+    else state.comentaris.delete(id);
+    const printComment = Array.from(el.coverageList.querySelectorAll('[data-comment-print]'))
+      .find((node) => node.dataset.commentPrint === id);
+    if (printComment) {
+      const prefix = id === PATI_COMMENT_KEY ? 'Observacions del pati' : 'Comentari';
+      printComment.textContent = value ? `${prefix}: ${value}` : '';
+    }
+    scheduleDaySave();
+  }
+
   function autoAssignCoverage() {
     const reportResult = (ok, message) => {
       window.dispatchEvent(new CustomEvent('guardies:auto-assign-result', { detail: { ok, message } }));
@@ -1815,7 +1850,8 @@ import {
     }
 
     const projectedCounts = new Map();
-    state.assignacions.forEach((teacherId) => {
+    state.assignacions.forEach((teacherId, absenceId) => {
+      if (state.assignmentSources.get(absenceId) === 'co-teacher') return;
       projectedCounts.set(teacherId, (projectedCounts.get(teacherId) || 0) + 1);
     });
 
@@ -2463,6 +2499,7 @@ import {
     const isPati = item.sessions?.some(isPatiGuardiaSession);
     const candidates = isPati ? [] : guardiesPerFranja(item.dia, item.hora, item.placa, item.id);
     const assignat = state.assignacions.get(item.id) || '';
+    const coTeacher = state.assignmentSources.get(item.id) === 'co-teacher' ? assignat : '';
     const hasCandidates = candidates.length > 0;
     const hasAvailableCandidates = candidates.some((candidate) => !candidate.unavailable);
     const hasReleasedCandidates = candidates.some((candidate) => (
@@ -2478,7 +2515,9 @@ import {
     const locked = state.dayStatus === 'closed' || !state.canWrite;
     const assignmentControl = isPati
       ? '<span class="info-only-label">Informatiu · no se substitueix</span>'
-      : state.canWrite
+      : coTeacher
+        ? `<strong class="readonly-assignment assigned">${escapeHtml(labelProfessor(coTeacher))}</strong><span class="co-teacher-badge">Queda amb el grup</span>`
+        : state.canWrite
         ? `<select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates && !locked ? '' : 'disabled'}>
             <option value="">Sense preassignar</option>
             ${candidates.map((candidate) => `
@@ -2494,7 +2533,11 @@ import {
           </select>`
         : `<strong class="readonly-assignment ${assignat ? 'assigned' : 'pending'}">${escapeHtml(assignat ? labelProfessor(assignat) : 'Sense cobrir')}</strong>`;
     const commentControl = state.canWrite
-      ? `<textarea data-comment="${escapeHtml(item.id)}" rows="2" placeholder="Observacions" ${locked ? 'disabled' : ''}>${escapeHtml(comentari)}</textarea>`
+      ? `<select data-comment-preset="${escapeHtml(item.id)}" aria-label="Observació preestablerta" ${locked || !state.observationPresets.length ? 'disabled' : ''}>
+          <option value="">Frase preestablerta…</option>
+          ${state.observationPresets.map((phrase) => `<option value="${escapeHtml(phrase)}" ${phrase === comentari ? 'selected' : ''}>${escapeHtml(phrase)}</option>`).join('')}
+        </select>
+        <textarea data-comment="${escapeHtml(item.id)}" rows="2" placeholder="Observació lliure" ${locked ? 'disabled' : ''}>${escapeHtml(comentari)}</textarea>`
       : `<span class="readonly-comment">${escapeHtml(comentari || 'Sense observacions')}</span>`;
 
     return `
@@ -2513,8 +2556,8 @@ import {
         <div class="coverage-assignment-cell ${hasReleasedCandidates ? 'has-released-candidates' : ''} ${hasCandidates && !hasAvailableCandidates ? 'only-unavailable' : ''}">
           ${assignmentControl}
           ${assignatIsConvivencia ? '<span class="convivencia-badge">Convivència · ús excepcional</span>' : ''}
-          <span class="print-only print-assignment">${escapeHtml(assignat ? labelProfessor(assignat) : '')}</span>
-          ${state.canWrite && assignat && !isPati ? `<label class="completion-toggle no-print"><input type="checkbox" data-cancel-assignment="${escapeHtml(item.id)}" ${cancelled ? 'checked' : ''} ${locked ? 'disabled' : ''} /> No realitzada</label>` : ''}
+          <span class="print-only print-assignment">${escapeHtml(assignat ? `${labelProfessor(assignat)}${coTeacher ? ' · Queda amb el grup' : ''}` : '')}</span>
+          ${state.canWrite && assignat && !isPati && !coTeacher ? `<label class="completion-toggle no-print"><input type="checkbox" data-cancel-assignment="${escapeHtml(item.id)}" ${cancelled ? 'checked' : ''} ${locked ? 'disabled' : ''} /> No realitzada</label>` : ''}
         </div>
         <div class="coverage-comment-cell">
           ${commentControl}
