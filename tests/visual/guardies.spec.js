@@ -142,16 +142,14 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('#date-input')).toHaveValue('2026-09-07');
     await page.getByRole('link', { name: 'Professorat', exact: true }).click();
     await expect(page.locator('#date-input')).toHaveValue('2026-09-07');
-    await expect(page.locator('#workspace')).toBeVisible();
-    await expect(page.locator('#coverage-list')).toBeVisible();
+    await expect(page.locator('#workspace')).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'Jornada encara no publicada' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Guàrdies del dia' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('.teacher-stats-panel')).toBeHidden();
     await page.getByRole('tab', { name: 'Guàrdies realitzades' }).click();
     await expect(page.locator('.teacher-stats-panel')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Jornada encara no publicada' })).toBeHidden();
     await page.getByRole('tab', { name: 'Guàrdies del dia' }).click();
-    await expect(page.locator('#workspace')).toBeVisible();
-    await expect(page.locator('.day-state, #coverage-count, #print-coverage')).toHaveCount(0);
+    await expect(page.locator('#workspace')).toBeHidden();
     await expect(page.getByRole('link', { name: 'Professorat', exact: true })).toHaveAttribute('aria-current', 'page');
   });
 
@@ -468,6 +466,14 @@ test.describe('Guàrdies: comportament existent', () => {
     const cellTops = await readonlyRow.locator(':scope > .coverage-professor-cell, :scope > .coverage-detail-cell, :scope > .coverage-assignment-cell, :scope > .coverage-comment-cell')
       .evaluateAll((nodes) => nodes.map((node) => Math.round(node.getBoundingClientRect().top)));
     expect(new Set(cellTops).size).toBe(1);
+
+    await page.getByRole('link', { name: 'Guàrdies', exact: true }).click();
+    await page.getByRole('button', { name: 'Reobre' }).click();
+    await page.getByRole('button', { name: 'Despublica' }).click();
+    await page.getByRole('link', { name: 'Professorat', exact: true }).click();
+    await expect(page.locator('#date-input')).toHaveValue('2026-09-07');
+    await expect(page.locator('#workspace')).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'Jornada encara no publicada' })).toBeVisible();
   });
 
   test('guarda una assignació setmanal de convivència', async ({ page }) => {
