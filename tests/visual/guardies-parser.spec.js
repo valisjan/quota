@@ -112,6 +112,36 @@ test('usa GPU001 com a horari complet i conserva els noms de GPU004', async ({ p
   ]);
 });
 
+test('resol els codis especials d aula amb el nom complet del catàleg', async ({ page }) => {
+  const result = await runParser(page, (parser, { reference, duties }) => {
+    const parsedReference = parser.parseGestibReference(reference);
+    return parser.parseUntisHorari(duties, { referencia: parsedReference }).sessions
+      .map((session) => session.aulaNom);
+  }, {
+    reference: `
+      <CENTRE codi="E2E" any="2026">
+        <CURSOS><CURS codi="1" descripcio="1r ESO"><GRUP codi="10" nom="A" /></CURS></CURSOS>
+        <PLACES><PLACA codi="101" curta="PROF1" /></PLACES>
+        <MATERIES><MATERIA codi="20" curs="1" descripcio="Matemàtiques" curta="MAT" /></MATERIES>
+        <ACTIVITATS />
+        <AULES>
+          <AULA codi="40" descripcio="AULA DE MÚSICA" />
+          <AULA codi="41" descripcio="GIMNÀS1" />
+          <AULA codi="42" descripcio="TALL.2" />
+          <AULA codi="43" descripcio="Sala d'actes B" />
+        </AULES>
+      </CENTRE>`,
+    duties: [
+      '1,"1ESO-A","PROF1","MAT","AULDEMÚS",1,1,,',
+      '2,"1ESO-A","PROF1","MAT","GIM1",1,2,,',
+      '3,"1ESO-A","PROF1","MAT","TAL2",1,3,,',
+      '4,"1ESO-A","PROF1","MAT","Sald\'aB",1,4,,',
+    ].join('\n'),
+  });
+
+  expect(result).toEqual(['AULA DE MÚSICA', 'GIMNÀS1', 'TALL.2', "Sala d'actes B"]);
+});
+
 test('agrupa sessions simultànies del mateix bloc de cobertura', async ({ page }) => {
   const result = await runParser(page, (parser) => {
     const base = {

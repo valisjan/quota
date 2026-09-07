@@ -39,6 +39,41 @@
     return index?.get(normalitzarClau(clau))?.[0] || null;
   }
 
+  function paraulesNormalitzades(valor) {
+    return textNet(valor)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean);
+  }
+
+  function aliasesAula(descripcio) {
+    const normal = normalitzarClau(descripcio);
+    const paraules = paraulesNormalitzades(descripcio);
+    const aliases = [normal];
+    if (normal.startsWith('aula')) aliases.push(`aul${normal.slice(4)}`);
+    if (paraules.length > 1) {
+      aliases.push(`${paraules[0].slice(0, 3)}${paraules.slice(1).map((part) => part[0]).join('')}`);
+    } else {
+      const numerada = normal.match(/^([a-z]+)(\d.*)$/);
+      if (numerada) aliases.push(`${numerada[1].slice(0, 3)}${numerada[2]}`);
+    }
+    aliases.push(normal.replace(/(.)\1+/g, '$1'));
+    return Array.from(new Set(aliases.filter(Boolean)));
+  }
+
+  function aulaPerPrefixUnic(index, clau) {
+    const normal = normalitzarClau(clau);
+    if (normal.length < 6) return null;
+    const candidats = new Map();
+    index?.forEach((items, alias) => {
+      if (!alias.startsWith(normal)) return;
+      items.forEach((item) => candidats.set(item.codi, item));
+    });
+    return candidats.size === 1 ? Array.from(candidats.values())[0] : null;
+  }
+
   function parseCsvLine(line) {
     const values = [];
     let current = '';
@@ -614,11 +649,7 @@
         descripcio: atribut(node, 'descripcio'),
       };
       aules.set(codi, aula);
-      const nomNormalitzat = normalitzarClau(aula.descripcio);
-      const aliasUntis = nomNormalitzat.startsWith('aula')
-        ? `aul${nomNormalitzat.slice(4)}`
-        : '';
-      [aula.codi, aula.descripcio, aliasUntis].forEach((alias) => addIndex(aulesIndex, alias, aula));
+      [aula.codi, ...aliasesAula(aula.descripcio)].forEach((alias) => addIndex(aulesIndex, alias, aula));
     });
 
     return {
@@ -669,7 +700,9 @@
 
   function resoldreAula(referencia, codi) {
     if (!referencia || !codi) return null;
-    return referencia.aules?.get(codi) || primerIndex(referencia.aulesIndex, codi);
+    return referencia.aules?.get(codi)
+      || primerIndex(referencia.aulesIndex, codi)
+      || aulaPerPrefixUnic(referencia.aulesIndex, codi);
   }
 
   function resoldrePlaca(referencia, codi) {
