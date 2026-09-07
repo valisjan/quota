@@ -424,12 +424,25 @@ test.describe('Guàrdies: comportament existent', () => {
     expect(sessionHeaderStyle.boxShadow).not.toBe('none');
     await page.getByRole('button', { name: 'Publica' }).click();
     await expect(page.getByText('Publicada', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Despublica' }).click();
+    await expect(page.getByText('Esborrany', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Publica' })).toBeVisible();
+    await page.getByRole('button', { name: 'Publica' }).click();
+    await expect(page.getByText('Publicada', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Tanca jornada' }).click();
     await expect(page.getByText('Tancada', { exact: true })).toBeVisible();
     const guardCount = await page.evaluate(() => (
       JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).stats.counts['2']
     ));
     expect(guardCount).toEqual({ total: 1, released: 0, guard: 1, other: 0 });
+    await page.getByRole('button', { name: 'Reobre' }).click();
+    await page.getByRole('button', { name: 'Despublica' }).click();
+    const revertedGuardCount = await page.evaluate(() => (
+      JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).stats.counts['2']
+    ));
+    expect(revertedGuardCount).toEqual({ total: 0, released: 0, guard: 0, other: 0 });
+    await page.getByRole('button', { name: 'Publica' }).click();
+    await page.getByRole('button', { name: 'Tanca jornada' }).click();
 
     await page.setViewportSize({ width: 1000, height: 800 });
     await page.goto('/labs/guardies/?vista=professor');

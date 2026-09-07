@@ -136,6 +136,7 @@ function changeStatus(action) {
       </div>
       <span id="coverage-count" class="pill">{{ coverageLabel }}</span>
       <button v-if="canWrite && dayStatus === 'draft'" type="button" :disabled="dayPersistenceStatus === 'saving' || !selectedAbsences.length" @click="changeStatus('publish')">Publica</button>
+      <button v-if="canWrite && dayStatus === 'published'" type="button" class="ghost" :disabled="dayPersistenceStatus === 'saving'" @click="changeStatus('unpublish')">Despublica</button>
       <button v-if="canWrite && dayStatus === 'published'" type="button" class="close-day" :disabled="dayPersistenceStatus === 'saving'" @click="changeStatus('close')">Tanca jornada</button>
       <button v-if="canWrite && dayStatus === 'closed'" type="button" class="ghost" :disabled="dayPersistenceStatus === 'saving'" @click="changeStatus('reopen')">Reobre</button>
       <button id="print-coverage" type="button" class="ghost" :disabled="!selectedAbsences.length" @click="printCoverage">Imprimeix A3</button>

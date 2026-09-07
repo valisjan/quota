@@ -704,7 +704,7 @@ function countedAssignmentsForDay(day) {
 }
 
 export async function transitionGuardiesDay(cursId, date, action) {
-  if (!['publish', 'close', 'reopen'].includes(action)) throw new Error('Acció de jornada no reconeguda.');
+  if (!['publish', 'unpublish', 'close', 'reopen'].includes(action)) throw new Error('Acció de jornada no reconeguda.');
   const now = new Date().toISOString();
   if (E2E_AUTH_BYPASS) {
     const data = getE2EData(cursId);
@@ -713,6 +713,11 @@ export async function transitionGuardiesDay(cursId, date, action) {
     if (!day) throw new Error('La jornada encara no existeix.');
     const previousCounted = day.countedAssignments || [];
     if (action === 'publish') Object.assign(day, { status: 'published', publishedAt: day.publishedAt || now, closedAt: '' });
+    if (action === 'unpublish') {
+      data.stats ||= { counts: {} };
+      data.stats.counts = updateGuardCounts(data.stats.counts, previousCounted, []);
+      Object.assign(day, { status: 'draft', publishedAt: '', closedAt: '', countedAssignments: [] });
+    }
     if (action === 'reopen') Object.assign(day, { status: 'published', closedAt: '' });
     if (action === 'close') {
       const countedAssignments = countedAssignmentsForDay(day);
@@ -742,6 +747,12 @@ export async function transitionGuardiesDay(cursId, date, action) {
     };
     let stats = statsSnapshot.exists() ? statsSnapshot.data() : { counts: {} };
     if (action === 'publish') Object.assign(update, { status: 'published', publishedAt: day.publishedAt || now, closedAt: '' });
+    if (action === 'unpublish') {
+      const counts = updateGuardCounts(stats.counts, day.countedAssignments || [], []);
+      Object.assign(update, { status: 'draft', publishedAt: '', closedAt: '', countedAssignments: [] });
+      stats = { counts, updatedAt: serverTimestamp() };
+      transaction.set(statsReference, stats);
+    }
     if (action === 'reopen') Object.assign(update, { status: 'published', closedAt: '' });
     if (action === 'close') {
       const countedAssignments = countedAssignmentsForDay(day);

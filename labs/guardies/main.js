@@ -540,17 +540,19 @@ import {
   }
 
   async function changeDayStatus(action) {
-    if (!state.canWrite || !['publish', 'close', 'reopen'].includes(action)) return;
+    if (!state.canWrite || !['publish', 'unpublish', 'close', 'reopen'].includes(action)) return;
     try {
       state.dayPersistenceStatus = 'saving';
       await persistDayNow();
       const result = await transitionGuardiesDay(state.courseId, state.date, action);
       state.dayStatus = result.day.status;
-      state.publishedAt = result.day.publishedAt || state.publishedAt;
+      state.publishedAt = result.day.publishedAt || '';
       state.closedAt = result.day.closedAt || '';
       state.updatedAt = result.day.clientUpdatedAt || new Date().toISOString();
       state.dayRevision = Number(result.day.revision) || state.dayRevision + 1;
-      state.countedAssignments = result.day.countedAssignments || state.countedAssignments;
+      state.countedAssignments = Array.isArray(result.day.countedAssignments)
+        ? result.day.countedAssignments
+        : state.countedAssignments;
       state.guardCounts = new Map(Object.entries(result.stats?.counts || Object.fromEntries(state.guardCounts)));
       lastDaySignature = daySignature();
       state.dayPersistenceStatus = 'ready';
