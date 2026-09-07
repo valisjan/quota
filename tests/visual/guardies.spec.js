@@ -398,6 +398,17 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#date-input').press('Tab');
     await expect(page.locator('#coverage-count')).toContainText('3 sessions');
     await expect(page.locator('#coverage-list [data-assignacio]')).toHaveCount(3);
+    const sessionHeaderStyle = await page.locator('.coverage-session:not(.pati-session) .coverage-session-head').first().evaluate((node) => {
+      const style = getComputedStyle(node);
+      return {
+        minHeight: Number.parseFloat(style.minHeight),
+        backgroundImage: style.backgroundImage,
+        boxShadow: style.boxShadow,
+      };
+    });
+    expect(sessionHeaderStyle.minHeight).toBeGreaterThanOrEqual(40);
+    expect(sessionHeaderStyle.backgroundImage).not.toBe('none');
+    expect(sessionHeaderStyle.boxShadow).not.toBe('none');
     await page.getByRole('button', { name: 'Publica' }).click();
     await expect(page.getByText('Publicada', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Tanca jornada' }).click();
@@ -407,6 +418,7 @@ test.describe('Guàrdies: comportament existent', () => {
     ));
     expect(guardCount).toEqual({ total: 1, released: 0, guard: 1, other: 0 });
 
+    await page.setViewportSize({ width: 1000, height: 800 });
     await page.goto('/labs/guardies/?vista=professor');
     await expect(page.locator('.teacher-date-header')).toBeVisible();
     await expect(page.locator('.teacher-date-header #date-input')).toBeVisible();
@@ -426,6 +438,10 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#date-input').press('Tab');
     await expect(page.locator('.readonly-assignment').filter({ hasText: 'Fuentes Serra' })).toHaveCount(1);
     await expect(page.locator('[data-assignacio], [data-remove-absence]')).toHaveCount(0);
+    const readonlyRow = page.locator('.coverage-item.coverage-row').filter({ has: page.locator('.readonly-assignment') }).first();
+    const cellTops = await readonlyRow.locator(':scope > .coverage-professor-cell, :scope > .coverage-detail-cell, :scope > .coverage-assignment-cell, :scope > .coverage-comment-cell')
+      .evaluateAll((nodes) => nodes.map((node) => Math.round(node.getBoundingClientRect().top)));
+    expect(new Set(cellTops).size).toBe(1);
   });
 
   test('guarda una assignació setmanal de convivència', async ({ page }) => {

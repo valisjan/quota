@@ -77,6 +77,11 @@ function guardiesExclusionsRef(cursId) {
   return doc(db, 'cursos', cursId, 'config', 'guardies-exclusions');
 }
 
+function guardiesObservationsRef(cursId) {
+  if (!cursId) throw new Error('No hi ha cap curs acadèmic disponible.');
+  return doc(db, 'cursos', cursId, 'config', 'guardies-observations');
+}
+
 async function normalizeFile(data) {
   if (!data?.text) return null;
   return {
@@ -305,7 +310,7 @@ export async function loadGuardiesData(cursId) {
     readDoc(guardiesRef(cursId, 'duties')),
     readDoc(guardiesRef(cursId, 'convivencia')),
     readDoc(guardiesRef(cursId, 'pati')),
-    readDoc(guardiesRef(cursId, 'observations')),
+    readDoc(guardiesObservationsRef(cursId)),
     readDoc(guardiesExclusionsRef(cursId)),
   ]));
   return {
@@ -351,10 +356,12 @@ export function subscribeGuardiesData(cursId, onChange, onError = () => {}) {
 
   let guardiesReady = false;
   let exclusionsReady = false;
+  let observationsReady = false;
   let documents = new Map();
   let excludedTeacherIds = [];
+  let observationPresets = [];
   const emit = async () => {
-    if (!guardiesReady || !exclusionsReady) return;
+    if (!guardiesReady || !exclusionsReady || !observationsReady) return;
     try {
       await onChange({
         files: {
@@ -364,7 +371,7 @@ export function subscribeGuardiesData(cursId, onChange, onError = () => {}) {
         },
         convivencia: normalizeConvivencia(documents.get('convivencia')),
         pati: normalizePati(documents.get('pati')),
-        observationPresets: normalizeGuardiesObservationPresets(documents.get('observations')),
+        observationPresets,
         excludedTeacherIds,
         stats: documents.get('stats') || { counts: {} },
       });
@@ -384,9 +391,17 @@ export function subscribeGuardiesData(cursId, onChange, onError = () => {}) {
     exclusionsReady = true;
     emit();
   }, onError);
+  const unsubscribeObservations = onSnapshot(guardiesObservationsRef(cursId), (snapshot) => {
+    observationPresets = snapshot.exists()
+      ? normalizeGuardiesObservationPresets(snapshot.data())
+      : [];
+    observationsReady = true;
+    emit();
+  }, onError);
   return () => {
     unsubscribeGuardies();
     unsubscribeExclusions();
+    unsubscribeObservations();
   };
 }
 
@@ -571,7 +586,7 @@ export async function saveGuardiesObservationPresets(cursId, phrases) {
     setE2EData(cursId, data);
     return clean;
   }
-  await setDoc(guardiesRef(cursId, 'observations'), {
+  await setDoc(guardiesObservationsRef(cursId), {
     phrases: clean,
     updatedAt: serverTimestamp(),
   });

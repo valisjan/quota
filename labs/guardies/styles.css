@@ -2144,7 +2144,7 @@ h3 {
 }
 
 .pati-session .coverage-session-head {
-  min-height: 38px;
+  min-height: 42px;
   border-bottom-color: var(--amber-border);
   background: color-mix(in srgb, var(--amber-soft) 72%, var(--surface));
   padding-left: 12px;
@@ -2165,24 +2165,41 @@ h3 {
 
 .coverage-session-head {
   display: flex;
-  min-height: 32px;
+  min-height: 40px;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-subtle);
-  padding: 4px 8px;
+  border-bottom: 1px solid var(--primary-border);
+  background: linear-gradient(90deg, var(--primary-soft), var(--surface-subtle) 72%);
+  padding: 6px 10px 6px 13px;
+  box-shadow: inset 4px 0 0 var(--primary);
 }
 
 .coverage-session-head h3 {
   margin: 0;
-  font-size: 0.76rem;
+  color: var(--primary-strong);
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.015em;
 }
 
 .coverage-session-head span {
-  color: var(--muted);
+  border: 1px solid var(--primary-border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-soft);
+  padding: 3px 7px;
   font-size: 0.64rem;
-  font-weight: 750;
+  font-weight: 850;
+}
+
+.pati-session .coverage-session-head {
+  box-shadow: inset 4px 0 0 var(--amber);
+}
+
+.pati-session .coverage-session-head span {
+  border-color: var(--amber-border);
+  background: color-mix(in srgb, var(--amber-soft) 60%, var(--surface));
 }
 
 .coverage-session-list {
@@ -2862,6 +2879,18 @@ h3 {
   .coverage-comment-cell {
     grid-column: 1 / -1;
   }
+
+  .guard-layout.is-readonly .coverage-row {
+    grid-template-columns: minmax(135px, 0.9fr) minmax(165px, 1.1fr) minmax(155px, 1fr) minmax(135px, 0.9fr);
+  }
+
+  .guard-layout.is-readonly .coverage-row-head span:last-child {
+    display: block;
+  }
+
+  .guard-layout.is-readonly .coverage-comment-cell {
+    grid-column: auto;
+  }
 }
 
 @media (max-width: 820px) {
@@ -3139,6 +3168,14 @@ h3 {
 
   .coverage-comment-cell {
     grid-column: auto;
+  }
+
+  .guard-layout.is-readonly .coverage-session-list {
+    overflow-x: auto;
+  }
+
+  .guard-layout.is-readonly .coverage-table {
+    min-width: 640px;
   }
 
   .coverage-professor-cell,
