@@ -102,10 +102,19 @@ onBeforeUnmount(() => {
     <section id="professor-mode" class="mode-panel" role="tabpanel" data-mode-panel="professor">
       <div class="teacher-search">
         <label for="professor-search">Professor absent</label>
-        <input id="professor-search" type="search" autocomplete="off" placeholder="Cerca professor..." />
+        <input
+          id="professor-search"
+          type="search"
+          autocomplete="off"
+          placeholder="Escriu i prem Enter..."
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls="professor-results"
+          aria-expanded="false"
+        />
         <select id="professor-select" class="hidden"></select>
         <strong id="selected-professor-label" class="hidden">Cap professor</strong>
-        <div id="professor-results" class="search-results" aria-label="Resultats de professorat"></div>
+        <div id="professor-results" class="search-results" role="listbox" aria-label="Resultats de professorat"></div>
       </div>
 
       <div class="mode-panel-head">

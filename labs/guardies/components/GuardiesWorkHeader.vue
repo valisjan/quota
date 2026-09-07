@@ -2,10 +2,11 @@
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useGuardiesStore } from '../stores/guardies.js';
+import { mergeSharedClassroomAbsences } from '../../../src/modules/guardies/domain/day.js';
 
 const store = useGuardiesStore();
 const {
-  date, absencies, assignacions, dayStatus, dayPersistenceStatus,
+  date, absencies, assignacions, sessions, dayStatus, dayPersistenceStatus,
   publishedAt, updatedAt, closedAt, canWrite, teacherView,
 } = storeToRefs(store);
 
@@ -19,8 +20,13 @@ const selectedAbsences = computed(() => (
   Array.from(absencies.value.values()).filter((item) => item.dia === xmlDay.value)
 ));
 
+const coverageItems = computed(() => mergeSharedClassroomAbsences({
+  sessions: sessions.value,
+  absences: selectedAbsences.value,
+}));
+
 const coverageLabel = computed(() => {
-  const selected = selectedAbsences.value;
+  const selected = coverageItems.value;
   const slots = new Set(selected.map((item) => item.hora)).size;
   const pending = selected.filter((item) => (
     !item.sessions?.some((session) => session.activitat === 'GP') && !assignacions.value.get(item.id)

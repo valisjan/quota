@@ -6,6 +6,7 @@ import {
   dateForXmlDayInSameWeek,
   groupTeachingBlocks,
   isTeacherAbsentAtSlot,
+  mergeSharedClassroomAbsences,
   releasedTeachingBlocks,
   selectedAbsencesForDate,
   xmlDayForDate,
@@ -121,4 +122,21 @@ test('no considera docència compartida els blocs flexibles ni dues absències',
     absence,
     absences: new Map([[absence.id, absence], [secondAbsence.id, secondAbsence]]),
   }), '');
+});
+
+test('agrupa en una sola cobertura els dos professors absents del mateix grup i aula', () => {
+  const sessions = [
+    { placa: 'P1', dia: '1', hora: '8:55', grup: '1A', aula: 'A12', teClasse: true },
+    { placa: 'P2', dia: '1', hora: '8:55', grup: '1A', aula: 'A12', teClasse: true },
+  ];
+  const absences = [
+    { id: 'P1|1|8:55', placa: 'P1', dia: '1', hora: '8:55', grups: ['1A'], grupsVisibles: ['1ESO-A'] },
+    { id: 'P2|1|8:55', placa: 'P2', dia: '1', hora: '8:55', grups: ['1A'], grupsVisibles: ['1ESO-A'] },
+  ];
+
+  const result = mergeSharedClassroomAbsences({ sessions, absences });
+  assert.equal(result.length, 1);
+  assert.deepEqual(result[0].absenceIds, ['P1|1|8:55', 'P2|1|8:55']);
+  assert.deepEqual(result[0].absentTeacherIds, ['P1', 'P2']);
+  assert.deepEqual(result[0].grupsVisibles, ['1ESO-A']);
 });

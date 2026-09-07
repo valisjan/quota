@@ -2,14 +2,18 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useGuardiesStore } from '../stores/guardies.js';
+import { mergeSharedClassroomAbsences } from '../../../src/modules/guardies/domain/day.js';
 
 const store = useGuardiesStore();
-const { absencies, assignacions, canWrite, dayStatus, updatedAt } = storeToRefs(store);
+const { absencies, assignacions, sessions, canWrite, dayStatus, updatedAt } = storeToRefs(store);
 const autoAssignmentFeedback = ref('');
 const autoAssignmentFeedbackKind = ref('');
 const statusLabel = computed(() => ({ draft: 'ESBORRANY', published: 'PUBLICADA', closed: 'TANCADA' }[dayStatus.value] || 'ESBORRANY'));
 const printedAt = computed(() => new Intl.DateTimeFormat('ca-ES', { dateStyle: 'short', timeStyle: 'short' }).format(new Date()));
-const canAutoAssign = computed(() => canWrite.value && dayStatus.value !== 'closed' && Array.from(absencies.value.values()).some((item) => (
+const canAutoAssign = computed(() => canWrite.value && dayStatus.value !== 'closed' && mergeSharedClassroomAbsences({
+  sessions: sessions.value,
+  absences: absencies.value,
+}).some((item) => (
   !item.sessions?.some((session) => session.activitat === 'GP') && !assignacions.value.has(item.id)
 )));
 

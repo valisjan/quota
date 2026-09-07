@@ -239,6 +239,19 @@ test.describe('Guàrdies: comportament existent', () => {
     });
     expect(assignment).toEqual({ teacherId: '2', source: 'co-teacher' });
 
+    await page.locator('#professor-search').fill('FUEN');
+    await expect(page.locator('#professor-results [data-professor]').first()).toHaveClass(/suggested/);
+    await page.locator('#professor-search').press('Enter');
+    await expect(page.locator('#schedule-title')).toContainText('Fuentes Serra, Gabriel');
+    await page.locator('#schedule-grid .schedule-item').filter({ hasText: '8:55' }).locator('[data-absence]').check();
+    await expect(page.locator('#coverage-list .coverage-item')).toHaveCount(1);
+    await expect(coverage).toContainText('Adell Domènech, Marina');
+    await expect(coverage).toContainText('Fuentes Serra, Gabriel');
+    await expect(coverage.locator('.coverage-detail-cell > strong')).toHaveText('1ESO-A');
+    await expect(coverage.locator('.co-teacher-badge')).toHaveCount(0);
+    await expect(coverage.locator('[data-assignacio]')).toHaveCount(1);
+    await expect(page.locator('#coverage-count')).toContainText('1 sessió · 1 franja · 1 pendent');
+
     await page.getByRole('button', { name: 'Publica' }).click();
     await page.getByRole('button', { name: 'Tanca jornada' }).click();
     const count = await page.evaluate(() => (

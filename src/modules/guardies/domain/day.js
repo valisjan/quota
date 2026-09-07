@@ -35,8 +35,8 @@ function singleValue(values) {
   return unique.length === 1 ? unique[0] : '';
 }
 
-export function classroomPartnerForAbsence({ sessions = [], absence, absences } = {}) {
-  if (!absence?.placa || !absence?.dia || !absence?.hora) return '';
+function sharedClassroomContext(sessions, absence) {
+  if (!absence?.placa || !absence?.dia || !absence?.hora) return null;
   const targetSessions = sessions.filter((session) => (
     session.teClasse
     && session.placa === absence.placa
@@ -45,7 +45,7 @@ export function classroomPartnerForAbsence({ sessions = [], absence, absences } 
   ));
   const groupId = singleValue(targetSessions.map((session) => session.grup));
   const roomId = singleValue(targetSessions.map((session) => session.aula));
-  if (!groupId || !roomId) return '';
+  if (!groupId || !roomId) return null;
 
   const teachersAtSlot = new Map();
   sessions.filter((session) => (
@@ -55,20 +55,77 @@ export function classroomPartnerForAbsence({ sessions = [], absence, absences } 
     teachersAtSlot.get(session.placa).push(session);
   });
 
-  const classroomTeachers = Array.from(teachersAtSlot.entries())
+  const teacherIds = Array.from(teachersAtSlot.entries())
     .filter(([, teacherSessions]) => (
       singleValue(teacherSessions.map((session) => session.grup)) === groupId
       && singleValue(teacherSessions.map((session) => session.aula)) === roomId
     ))
-    .map(([teacherId]) => teacherId);
-  if (classroomTeachers.length !== 2 || !classroomTeachers.includes(absence.placa)) return '';
+    .map(([teacherId]) => teacherId)
+    .sort((a, b) => String(a).localeCompare(String(b), 'ca', { numeric: true }));
+  if (teacherIds.length !== 2 || !teacherIds.includes(absence.placa)) return null;
+  return {
+    key: [absence.dia, absence.hora, groupId, roomId].join('|'),
+    teacherIds,
+  };
+}
 
-  const presentTeachers = classroomTeachers.filter((teacherId) => (
+export function classroomPartnerForAbsence({ sessions = [], absence, absences } = {}) {
+  const context = sharedClassroomContext(sessions, absence);
+  if (!context) return '';
+  const presentTeachers = context.teacherIds.filter((teacherId) => (
     !isTeacherAbsentAtSlot(absences, absence.dia, absence.hora, teacherId)
   ));
   return presentTeachers.length === 1 && presentTeachers[0] !== absence.placa
     ? presentTeachers[0]
     : '';
+}
+
+function mergedValues(items, field) {
+  return Array.from(new Set(items.flatMap((item) => (
+    Array.isArray(item[field]) ? item[field] : [item[field]]
+  )).filter(Boolean)));
+}
+
+export function mergeSharedClassroomAbsences({ sessions = [], absences = [] } = {}) {
+  const items = Array.from(absences?.values?.() || absences || []);
+  const contexts = new Map(items.map((item) => [item.id, sharedClassroomContext(sessions, item)]));
+  const emitted = new Set();
+  const result = [];
+
+  items.forEach((item) => {
+    const context = contexts.get(item.id);
+    if (!context || emitted.has(context.key)) {
+      if (!context) result.push(item);
+      return;
+    }
+    const members = items.filter((candidate) => contexts.get(candidate.id)?.key === context.key);
+    const absentTeacherIds = Array.from(new Set(members.map((member) => member.placa))).sort((a, b) => (
+      String(a).localeCompare(String(b), 'ca', { numeric: true })
+    ));
+    if (absentTeacherIds.length !== 2 || !context.teacherIds.every((teacherId) => absentTeacherIds.includes(teacherId))) {
+      result.push(item);
+      return;
+    }
+
+    emitted.add(context.key);
+    const orderedMembers = [...members].sort((a, b) => String(a.id).localeCompare(String(b.id), 'ca', { numeric: true }));
+    const primary = orderedMembers[0];
+    result.push({
+      ...primary,
+      absenceIds: orderedMembers.map((member) => member.id),
+      absentTeacherIds,
+      sessions: orderedMembers.flatMap((member) => member.sessions || []),
+      cursos: mergedValues(orderedMembers, 'cursos'),
+      cursosVisibles: mergedValues(orderedMembers, 'cursosVisibles'),
+      grups: mergedValues(orderedMembers, 'grups'),
+      grupsVisibles: mergedValues(orderedMembers, 'grupsVisibles'),
+      materiaCurta: mergedValues(orderedMembers, 'materiaCurta').join(' + '),
+      materiaNom: mergedValues(orderedMembers, 'materiaNom').join(' + '),
+      aulaNom: mergedValues(orderedMembers, 'aulaNom').join(' + '),
+    });
+  });
+
+  return result;
 }
 
 const STANDARD_TEACHING_STARTS = [480, 535, 590, 675, 730, 785, 840];
