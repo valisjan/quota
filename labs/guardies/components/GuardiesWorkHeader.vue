@@ -2,13 +2,9 @@
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useGuardiesStore } from '../stores/guardies.js';
-import { mergeSharedClassroomAbsences } from '../../../src/modules/guardies/domain/day.js';
 
 const store = useGuardiesStore();
-const {
-  date, absencies, assignacions, sessions, dayStatus, dayPersistenceStatus,
-  publishedAt, updatedAt, closedAt, canWrite, teacherView,
-} = storeToRefs(store);
+const { date, absencies, dayStatus, dayPersistenceStatus, canWrite, teacherView } = storeToRefs(store);
 
 const xmlDay = computed(() => {
   if (!date.value) return '';
@@ -20,25 +16,6 @@ const selectedAbsences = computed(() => (
   Array.from(absencies.value.values()).filter((item) => item.dia === xmlDay.value)
 ));
 
-const coverageItems = computed(() => mergeSharedClassroomAbsences({
-  sessions: sessions.value,
-  absences: selectedAbsences.value,
-}));
-
-const coverageLabel = computed(() => {
-  const selected = coverageItems.value;
-  const slots = new Set(selected.map((item) => item.hora)).size;
-  const pending = selected.filter((item) => (
-    !item.sessions?.some((session) => session.activitat === 'GP') && !assignacions.value.get(item.id)
-  )).length;
-  const plural = (value, singular, multiple) => `${value} ${value === 1 ? singular : multiple}`;
-  return [
-    plural(selected.length, 'sessió', 'sessions'),
-    plural(slots, 'franja', 'franges'),
-    plural(pending, 'pendent', 'pendents'),
-  ].join(' · ');
-});
-
 function formatDate(value) {
   if (!value) return 'Sense data';
   const parsed = new Date(`${value}T12:00:00`);
@@ -46,13 +23,6 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('ca-ES', {
     weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
   }).format(parsed);
-}
-
-function formatTimestamp(value) {
-  if (!value) return '';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat('ca-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(parsed);
 }
 
 function localDateString(value) {
@@ -110,15 +80,16 @@ function clearDay() {
   window.dispatchEvent(new CustomEvent('guardies:legacy-render'));
 }
 
-const statusLabel = computed(() => ({ draft: 'Esborrany', unpublished: 'No publicada', published: 'Publicada', closed: 'Tancada' }[dayStatus.value] || 'No publicada'));
-const saveLabel = computed(() => {
-  if (teacherView.value) return ({
-    loading: 'Carregant…', error: 'Error de lectura', ready: 'Sincronitzat', idle: 'Sincronitzat',
-  }[dayPersistenceStatus.value] || 'Sincronitzat');
-  return ({
-    loading: 'Carregant…', saving: 'Desant…', error: 'Error en desar', ready: 'Desat', idle: 'Desat',
-  }[dayPersistenceStatus.value] || 'Desat');
+const statusAction = computed(() => {
+  if (dayStatus.value === 'closed') return { action: 'reopen', label: 'Reobre', className: 'ghost' };
+  if (dayStatus.value === 'published') return { action: 'close', label: 'Tanca jornada', className: 'close-day' };
+  return { action: 'publish', label: 'Publica', className: '' };
 });
+
+const statusActionDisabled = computed(() => (
+  dayPersistenceStatus.value === 'saving'
+  || (statusAction.value.action === 'publish' && !selectedAbsences.value.length)
+));
 
 function changeStatus(action) {
   window.dispatchEvent(new CustomEvent('guardies:day-action', { detail: { action } }));
@@ -153,23 +124,16 @@ function changeStatus(action) {
     </div>
 
     <div v-if="!teacherView" class="day-command-bar">
-      <div class="day-state" :class="`is-${dayStatus}`">
-        <span class="day-state-dot" aria-hidden="true"></span>
-        <strong>{{ statusLabel }}</strong>
-        <small>{{ saveLabel }}</small>
-      </div>
-      <span id="coverage-count" class="pill">{{ coverageLabel }}</span>
-      <button v-if="canWrite && dayStatus === 'draft'" type="button" :disabled="dayPersistenceStatus === 'saving' || !selectedAbsences.length" @click="changeStatus('publish')">Publica</button>
-      <button v-if="canWrite && dayStatus === 'published'" type="button" class="ghost" :disabled="dayPersistenceStatus === 'saving'" @click="changeStatus('unpublish')">Despublica</button>
-      <button v-if="canWrite && dayStatus === 'published'" type="button" class="close-day" :disabled="dayPersistenceStatus === 'saving'" @click="changeStatus('close')">Tanca jornada</button>
-      <button v-if="canWrite && dayStatus === 'closed'" type="button" class="ghost" :disabled="dayPersistenceStatus === 'saving'" @click="changeStatus('reopen')">Reobre</button>
       <button id="print-coverage" type="button" class="ghost" :disabled="!selectedAbsences.length" @click="printCoverage">Imprimeix A3</button>
+      <button
+        v-if="canWrite"
+        id="day-status-action"
+        type="button"
+        :class="statusAction.className"
+        :disabled="statusActionDisabled"
+        @click="changeStatus(statusAction.action)"
+      >{{ statusAction.label }}</button>
       <button v-if="canWrite" id="clear-day-list" type="button" class="ghost" :disabled="dayStatus === 'closed' || !selectedAbsences.length" @click="clearDay">Neteja dia</button>
     </div>
-    <p v-if="!teacherView && (publishedAt || updatedAt || closedAt)" class="day-audit">
-      <span v-if="publishedAt">Publicada {{ formatTimestamp(publishedAt) }}</span>
-      <span v-if="dayStatus === 'published' && updatedAt">Actualitzada {{ formatTimestamp(updatedAt) }}</span>
-      <span v-if="closedAt">Tancada {{ formatTimestamp(closedAt) }}</span>
-    </p>
   </header>
 </template>

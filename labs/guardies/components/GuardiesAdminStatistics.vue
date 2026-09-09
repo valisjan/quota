@@ -16,7 +16,7 @@ const teacherRows = computed(() => professorOptions.value.map((teacher) => {
     label: teacher.label,
     guard: count.guard,
     released: count.released,
-    total: count.guard + count.released,
+    total: count.guard,
   };
 }));
 
@@ -89,7 +89,7 @@ const quietestSlots = computed(() => sortSlots(1));
 
     <div class="guard-statistics-totals">
       <article>
-        <span>Cobertures totals</span>
+        <span>Guàrdies G totals</span>
         <strong data-stat-total>{{ totals.total }}</strong>
       </article>
       <article>
@@ -110,7 +110,7 @@ const quietestSlots = computed(() => sortSlots(1));
             <b>{{ index + 1 }}</b>
             <strong>{{ teacher.label }}</strong>
             <span class="guard-ranking-breakdown"><em>{{ teacher.guard }} G</em><em>{{ teacher.released }} allib.</em></span>
-            <mark>{{ teacher.total }}</mark>
+            <mark>{{ teacher.guard }}</mark>
           </li>
         </ol>
       </section>
@@ -122,7 +122,7 @@ const quietestSlots = computed(() => sortSlots(1));
             <b>{{ index + 1 }}</b>
             <strong>{{ teacher.label }}</strong>
             <span class="guard-ranking-breakdown"><em>{{ teacher.guard }} G</em><em>{{ teacher.released }} allib.</em></span>
-            <mark>{{ teacher.total }}</mark>
+            <mark>{{ teacher.guard }}</mark>
           </li>
         </ol>
       </section>

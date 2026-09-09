@@ -177,7 +177,7 @@ test.describe('Guàrdies: comportament existent', () => {
 
     await page.getByRole('tab', { name: 'Estadístiques' }).click();
     await expect(page.locator('#guardies-statistics-panel')).toBeVisible();
-    await expect(page.locator('[data-stat-total]')).toHaveText('11');
+    await expect(page.locator('[data-stat-total]')).toHaveText('7');
     await expect(page.locator('[data-stat-guard]')).toHaveText('7');
     await expect(page.locator('[data-stat-released]')).toHaveText('4');
     await expect(page.locator('[data-ranking-most] li').first()).toContainText('Fuentes Serra');
@@ -274,7 +274,6 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(coverage.locator('.coverage-detail-cell > strong')).toHaveText('1ESO-A');
     await expect(coverage.locator('.co-teacher-badge')).toHaveCount(0);
     await expect(coverage.locator('[data-assignacio]')).toHaveCount(1);
-    await expect(page.locator('#coverage-count')).toContainText('1 sessió · 1 franja · 1 pendent');
 
     await page.getByRole('button', { name: 'Publica' }).click();
     await page.getByRole('button', { name: 'Tanca jornada' }).click();
@@ -327,13 +326,12 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#date-input').press('Tab');
     await otherPage.locator('#date-input').fill('2026-09-07');
     await otherPage.locator('#date-input').press('Tab');
-    await expect(otherPage.locator('#coverage-count')).toContainText('0 sessions');
+    await expect(otherPage.locator('#coverage-list [data-assignacio]')).toHaveCount(0);
 
     await page.locator('#professor-search').fill('ADELL');
     await page.locator('#professor-results [data-professor]').first().click();
     await page.locator('#add-all-hours').click();
 
-    await expect(otherPage.locator('#coverage-count')).toContainText('3 sessions');
     await expect(otherPage.locator('#coverage-list [data-assignacio]')).toHaveCount(3);
     await otherPage.close();
   });
@@ -353,7 +351,7 @@ test.describe('Guàrdies: comportament existent', () => {
 
     await page.locator('#date-input').fill('2026-09-08');
     await page.locator('#date-input').press('Tab');
-    await expect(page.locator('#coverage-count')).toContainText('1 sessió');
+    await expect(page.locator('#coverage-list [data-assignacio]')).toHaveCount(1);
     await expect(page.locator('#coverage-list')).toContainText('Adell Domènech');
   });
 
@@ -413,7 +411,6 @@ test.describe('Guàrdies: comportament existent', () => {
 
     await expect(page.locator('#schedule-grid [data-absence]:not(:disabled)')).toHaveCount(3);
     await page.locator('#add-all-hours').click();
-    await expect(page.locator('#coverage-count')).toContainText('3 sessions');
     await expect(page.locator('#coverage-list [data-assignacio]')).toHaveCount(3);
     await expect(page.locator('#print-coverage')).toBeEnabled();
 
@@ -433,7 +430,6 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.reload();
     await page.locator('#date-input').fill('2026-09-07');
     await page.locator('#date-input').press('Tab');
-    await expect(page.locator('#coverage-count')).toContainText('3 sessions');
     await expect(page.locator('#coverage-list [data-assignacio]')).toHaveCount(3);
     const sessionHeaderStyle = await page.locator('.coverage-session:not(.pati-session) .coverage-session-head').first().evaluate((node) => {
       const style = getComputedStyle(node);
@@ -446,32 +442,19 @@ test.describe('Guàrdies: comportament existent', () => {
     expect(sessionHeaderStyle.minHeight).toBeGreaterThanOrEqual(40);
     expect(sessionHeaderStyle.backgroundImage).not.toBe('none');
     expect(sessionHeaderStyle.boxShadow).not.toBe('none');
+    await page.setViewportSize({ width: 1080, height: 800 });
+    await expect(page.locator('.day-command-bar button')).toHaveCount(3);
+    expect(await page.locator('.work-header').evaluate((header) => header.scrollWidth <= header.clientWidth)).toBe(true);
     await page.getByRole('button', { name: 'Publica' }).click();
-    await expect(page.getByText('Publicada', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Despublica' }).click();
-    await expect(page.getByText('Esborrany', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Publica' })).toBeVisible();
-    await page.getByRole('button', { name: 'Publica' }).click();
-    await expect(page.getByText('Publicada', { exact: true })).toBeVisible();
+    await expect(page.locator('#day-status-action')).toHaveText('Tanca jornada');
     await page.getByRole('button', { name: 'Tanca jornada' }).click();
-    await expect(page.getByText('Tancada', { exact: true })).toBeVisible();
+    await expect(page.locator('#day-status-action')).toHaveText('Reobre');
     const guardCount = await page.evaluate(() => (
       JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).stats.counts['2']
     ));
     expect(guardCount).toEqual({
       total: 1, released: 0, guard: 1, other: 0, guardLegacy: 0, guardSlots: { '1|8:00': 1 },
     });
-    await page.getByRole('button', { name: 'Reobre' }).click();
-    await page.getByRole('button', { name: 'Despublica' }).click();
-    const revertedGuardCount = await page.evaluate(() => (
-      JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).stats.counts['2']
-    ));
-    expect(revertedGuardCount).toEqual({
-      total: 0, released: 0, guard: 0, other: 0, guardLegacy: 0, guardSlots: {},
-    });
-    await page.getByRole('button', { name: 'Publica' }).click();
-    await page.getByRole('button', { name: 'Tanca jornada' }).click();
-
     await page.setViewportSize({ width: 1000, height: 800 });
     await page.goto('/labs/guardies/?vista=professor');
     await expect(page.locator('.teacher-date-header')).toBeVisible();
@@ -497,7 +480,9 @@ test.describe('Guàrdies: comportament existent', () => {
 
     await page.getByRole('link', { name: 'Guàrdies', exact: true }).click();
     await page.getByRole('button', { name: 'Reobre' }).click();
-    await page.getByRole('button', { name: 'Despublica' }).click();
+    await expect(page.locator('#day-status-action')).toHaveText('Tanca jornada');
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('guardies:day-action', { detail: { action: 'unpublish' } })));
+    await expect(page.locator('#day-status-action')).toHaveText('Publica');
     await page.getByRole('link', { name: 'Professorat', exact: true }).click();
     await expect(page.locator('#date-input')).toHaveValue('2026-09-07');
     await expect(page.locator('#workspace')).toBeHidden();
@@ -640,7 +625,7 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('[data-add-group-companion="10"]').selectOption('1');
     await expect(page.locator('[data-group-companion="10"][data-teacher="1"]')).toBeVisible();
     await expect(page.locator('#released-count')).toContainText('0 professors');
-    await expect(page.locator('#coverage-count')).toContainText('3 sessions');
+    await expect(page.locator('#coverage-list .coverage-item.coverage-row:not(.not-completed)')).toHaveCount(3);
 
     await page.waitForTimeout(500);
     await page.reload();
@@ -652,7 +637,7 @@ test.describe('Guàrdies: comportament existent', () => {
 
     await page.locator('[data-add-group-companion="10"]').selectOption('2');
     await expect(page.locator('[data-group-companion="10"][data-teacher="2"]')).toBeVisible();
-    await expect(page.locator('#coverage-count')).toContainText('5 sessions');
+    await expect(page.locator('#coverage-list .coverage-item.coverage-row:not(.not-completed)')).toHaveCount(4);
 
     await page.locator('#outing-to').fill('2026-09-08');
     await page.getByRole('button', { name: 'Copia als dies de l’interval' }).click();

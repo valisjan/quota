@@ -1604,16 +1604,6 @@ import {
     const teDades = hasSchedule && hasVisibleDay;
     el.workspace.classList.toggle('hidden', !teDades);
     el.empty.classList.toggle('hidden', teDades);
-    if (!teDades) {
-      const title = el.empty.querySelector('h2');
-      if (state.persistenceStatus === 'loading') {
-        if (title) title.textContent = 'Carregant dades compartides';
-      } else if (hasSchedule && state.teacherView) {
-        if (title) title.textContent = 'Jornada encara no publicada';
-      } else {
-        if (title) title.textContent = state.canWrite ? 'Carrega l’horari per començar' : 'Encara no hi ha cap full de guàrdies disponible';
-      }
-    }
     if (!teDades) return;
 
     renderInitialData();

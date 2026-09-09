@@ -1,17 +1,25 @@
 <script setup>
+import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import GuardiesCoveragePanel from './GuardiesCoveragePanel.vue';
 import GuardiesIncidentPanel from './GuardiesIncidentPanel.vue';
 import { useGuardiesStore } from '../stores/guardies.js';
 
-const { canWrite, authRequired, adminSection, teacherSection } = storeToRefs(useGuardiesStore());
+const { canWrite, authRequired, adminSection, teacherSection, persistenceStatus, dayPersistenceStatus, sessions, dayStatus } = storeToRefs(useGuardiesStore());
 const visible = () => (canWrite.value && adminSection.value === 'daily')
   || (!canWrite.value && !authRequired.value && teacherSection.value === 'daily');
+const isLoading = computed(() => persistenceStatus.value === 'loading' || dayPersistenceStatus.value === 'loading');
+const emptyTitle = computed(() => {
+  if (isLoading.value) return 'Carregant dades…';
+  if (sessions.value.length && !canWrite.value && !['published', 'closed'].includes(dayStatus.value)) return 'Jornada encara no publicada';
+  return canWrite.value ? "Carrega l'horari per començar" : 'Encara no hi ha cap full de guàrdies disponible';
+});
 </script>
 
 <template>
-  <section v-show="visible()" id="empty-state" class="empty">
-    <h2>{{ canWrite ? "Carrega l'horari per començar" : 'Encara no hi ha cap full de guàrdies disponible' }}</h2>
+  <section v-show="visible()" id="empty-state" class="empty" :class="{ 'is-loading': isLoading }" role="status" aria-live="polite">
+    <span v-if="isLoading" class="loading-spinner" aria-hidden="true"></span>
+    <h2>{{ emptyTitle }}</h2>
   </section>
 
   <section v-show="visible()" id="workspace" class="workspace hidden">
