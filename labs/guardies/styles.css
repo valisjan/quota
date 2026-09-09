@@ -743,9 +743,6 @@ h3 {
 }
 
 .pati-add-teacher {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px;
   margin-bottom: 8px;
 }
 
@@ -785,7 +782,8 @@ h3 {
 }
 
 .pati-teacher-results button:hover,
-.pati-teacher-results button:focus-visible {
+.pati-teacher-results button:focus-visible,
+.pati-teacher-results button.suggested {
   background: var(--primary-soft);
   color: var(--primary-strong);
 }

@@ -22,6 +22,7 @@ const holidayLabel = ref('');
 const selectedTeacher = ref('');
 const teacherQuery = ref('');
 const showTeacherResults = ref(false);
+const activeTeacherResult = ref(0);
 const newZoneName = ref('');
 const weekAnchor = ref(state.date);
 const draggingZoneId = ref('');
@@ -179,8 +180,7 @@ function moveZonePointer(event) {
   moveZone(draggingZoneId.value, Number(target.dataset.patiZoneIndex));
 }
 
-function addTeacher() {
-  const teacherId = selectedTeacher.value;
+function addTeacher(teacherId = selectedTeacher.value) {
   if (!teacherId || selectedRoster.value.some((teacher) => teacher.teacherId === teacherId)) return;
   selectedRoster.value.push({
     teacherId,
@@ -189,6 +189,7 @@ function addTeacher() {
   selectedTeacher.value = '';
   teacherQuery.value = '';
   showTeacherResults.value = false;
+  activeTeacherResult.value = 0;
 }
 
 function removeTeacher(teacherId) {
@@ -208,12 +209,35 @@ function onTeacherInput() {
   const current = state.professorOptions.find((teacher) => teacher.placa === selectedTeacher.value);
   if (!current || teacherQuery.value !== current.label) selectedTeacher.value = '';
   showTeacherResults.value = true;
+  activeTeacherResult.value = 0;
 }
 
 function chooseTeacher(teacher) {
   selectedTeacher.value = teacher.placa;
   teacherQuery.value = teacher.label;
   showTeacherResults.value = false;
+  addTeacher(teacher.placa);
+}
+
+function onTeacherKeydown(event) {
+  if (event.key === 'ArrowDown' && teacherResults.value.length) {
+    event.preventDefault();
+    showTeacherResults.value = true;
+    activeTeacherResult.value = (activeTeacherResult.value + 1) % teacherResults.value.length;
+    return;
+  }
+  if (event.key === 'ArrowUp' && teacherResults.value.length) {
+    event.preventDefault();
+    showTeacherResults.value = true;
+    activeTeacherResult.value = (activeTeacherResult.value - 1 + teacherResults.value.length) % teacherResults.value.length;
+    return;
+  }
+  if (event.key === 'Enter') {
+    const teacher = teacherResults.value[activeTeacherResult.value];
+    if (!teacher) return;
+    event.preventDefault();
+    chooseTeacher(teacher);
+  }
 }
 
 function addHoliday() {
@@ -371,23 +395,27 @@ async function saveAutomatically() {
               aria-label="Professor que fa guàrdia de pati"
               aria-autocomplete="list"
               :aria-expanded="showTeacherResults && teacherResults.length > 0"
+              :aria-activedescendant="showTeacherResults && teacherResults.length ? `pati-teacher-result-${activeTeacherResult}` : undefined"
               @input="onTeacherInput"
               @focus="showTeacherResults = true"
               @keydown.escape="showTeacherResults = false"
+              @keydown="onTeacherKeydown"
             />
             <div v-if="showTeacherResults && teacherResults.length" class="pati-teacher-results" role="listbox">
               <button
-                v-for="teacher in teacherResults"
+                v-for="(teacher, index) in teacherResults"
                 :key="teacher.placa"
+                :id="`pati-teacher-result-${index}`"
                 type="button"
                 role="option"
+                :aria-selected="index === activeTeacherResult"
+                :class="{ suggested: index === activeTeacherResult }"
                 @mousedown.prevent="chooseTeacher(teacher)"
               >
                 <strong>{{ teacher.label }}</strong>
               </button>
             </div>
           </div>
-          <button id="add-pati-teacher" type="button" :disabled="!selectedTeacher" @click="addTeacher">Afegeix</button>
         </div>
         <div v-if="visibleRoster.length" class="pati-roster-list">
           <div v-for="teacher in visibleRoster" :key="teacher.teacherId" class="pati-roster-row">

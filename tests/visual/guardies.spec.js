@@ -532,10 +532,8 @@ test.describe('Guàrdies: comportament existent', () => {
 
     await page.locator('#pati-teacher-search').fill('Fuentes');
     await page.locator('.pati-teacher-results [role="option"]').first().click();
-    await page.locator('#add-pati-teacher').click();
     await page.locator('#pati-teacher-search').fill('Sanz');
-    await page.locator('.pati-teacher-results [role="option"]').first().click();
-    await page.locator('#add-pati-teacher').click();
+    await page.locator('#pati-teacher-search').press('Enter');
     await expect(page.locator('.pati-roster-row')).toHaveCount(2);
     await expect(page.locator('.pati-roster-row').first()).toContainText('Fuentes Serra');
     const zoneRows = page.locator('.pati-zone-row');
