@@ -2610,7 +2610,7 @@ import {
       ? '<span class="info-only-label">Informatiu · no se substitueix</span>'
       : coTeacher
         ? `<strong class="readonly-assignment assigned">${escapeHtml(labelProfessor(coTeacher))}</strong><span class="co-teacher-badge">Queda amb el grup</span>`
-        : state.canWrite
+      : state.canWrite
         ? `<select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates && !locked ? '' : 'disabled'}>
             <option value="">Sense preassignar</option>
             ${candidates.map((candidate) => `
