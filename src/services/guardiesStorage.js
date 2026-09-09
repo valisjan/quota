@@ -533,7 +533,27 @@ export async function resetGuardiesCourseData(cursId) {
 
   const days = await getDocs(collection(db, 'cursos', cursId, 'guardiesDays'));
   const batch = new BatchSplit();
-  days.docs.forEach((snapshot) => batch.delete(snapshot.ref));
+  const clientUpdatedAt = new Date().toISOString();
+  days.docs.forEach((snapshot) => batch.set(snapshot.ref, {
+    schemaVersion: 1,
+    date: snapshot.id,
+    status: 'draft',
+    absenceIds: [],
+    assignments: {},
+    comments: {},
+    groupsOut: [],
+    groupTeachers: {},
+    groupReleasedTeachers: {},
+    partialGroups: [],
+    outingAbsenceIds: [],
+    cancelledAssignments: [],
+    publishedAt: '',
+    closedAt: '',
+    countedAssignments: [],
+    clientUpdatedAt,
+    revision: Math.max(0, Number(snapshot.data()?.revision) || 0) + 1,
+    updatedAt: serverTimestamp(),
+  }));
   batch.set(guardiesStatsRef(cursId), { counts: {}, updatedAt: serverTimestamp() });
   await batch.commit();
   return { deletedDays: days.size };

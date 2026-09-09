@@ -13,6 +13,7 @@ const saving = ref(new Set());
 const saved = ref('');
 const error = ref('');
 const resetting = ref(false);
+const confirmingReset = ref(false);
 
 function normalize(value) {
   return String(value || '')
@@ -92,7 +93,10 @@ async function updateCount(teacherId, source, rawValue) {
 }
 
 async function resetCourse() {
-  if (!window.confirm(`S'eliminaran totes les jornades i tots els recomptes del curs ${courseId.value}. Els fitxers i la configuració es conservaran.`)) return;
+  if (!confirmingReset.value) {
+    confirmingReset.value = true;
+    return;
+  }
   resetting.value = true;
   error.value = '';
   try {
@@ -162,7 +166,7 @@ async function resetCourse() {
         </div>
         <p v-if="error" class="guard-count-error" role="alert">{{ error }}</p>
         <button id="reset-guardies-course" type="button" class="guard-reset-button" :disabled="resetting" @click="resetCourse">
-          {{ resetting ? 'Reiniciant…' : 'Reinicia jornades i recomptes' }}
+          {{ resetting ? 'Reiniciant…' : confirmingReset ? `Confirma el reinici de ${courseId}` : 'Reinicia jornades i recomptes' }}
         </button>
       </section>
     </div>
