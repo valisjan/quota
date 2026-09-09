@@ -34,8 +34,8 @@ Els fitxers de configuració es poden substituir per curs; cada jornada conserva
 10. Les escriptures operatives incrementen `revision` dins una transacció; un client obsolet no pot sobreescriure canvis nous.
 11. La jornada conserva les dates de publicació, darrera actualització i tancament; no es manté un historial complet de canvis.
 12. A una mateixa franja, un professor només pot tenir una cobertura; a franges diferents es pot tornar a assignar.
-13. Els candidats s'ordenen: alliberats, guàrdia ordinària i convivència; dins cada grup, menor recompte anual i ordre alfabètic.
-14. Només les cobertures no anul·lades es compten en tancar la jornada. Reobrir i tancar aplica només el delta.
+13. Els candidats s'ordenen: alliberats, guàrdia ordinària i convivència. Els alliberats usen l'acumulat del curs; les G, només el recompte del mateix dia i hora setmanals.
+14. Només les cobertures no anul·lades es compten en tancar la jornada. Reobrir i tancar aplica només el delta i conserva la franja de les G.
 15. Una sortida parcial no allibera professorat, però els acompanyants continuen generant absències.
 
 ## Estats de jornada
@@ -57,6 +57,8 @@ cursos/{courseId}
 ├─ guardies/stats
 └─ guardiesDays/{yyyy-mm-dd}
 ```
+
+`guardies/stats` manté el recompte global dels alliberaments i un mapa de G per professor i franja (`dia|hora`).
 
 Storage:
 

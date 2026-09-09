@@ -1287,7 +1287,7 @@ h3 {
 
 .guard-count-toolbar {
   display: grid;
-  grid-template-columns: minmax(110px, 170px) minmax(220px, 420px);
+  grid-template-columns: auto minmax(180px, 1fr) auto minmax(220px, 1fr);
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
@@ -1306,7 +1306,7 @@ h3 {
 
 .guard-count-row {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) 90px 120px 90px;
+  grid-template-columns: minmax(240px, 1fr) 130px 150px;
   align-items: center;
   min-height: 42px;
   border-top: 1px solid var(--border-soft);
@@ -1443,7 +1443,7 @@ h3 {
 
 .teacher-stats-toolbar {
   display: grid;
-  grid-template-columns: auto minmax(180px, 320px);
+  grid-template-columns: auto minmax(220px, 1fr) auto minmax(180px, 1fr);
   align-items: center;
   justify-content: end;
   gap: 7px;
@@ -1473,7 +1473,7 @@ h3 {
 
 .teacher-stats-row {
   display: grid;
-  grid-template-columns: minmax(230px, 1fr) repeat(4, minmax(65px, 0.16fr));
+  grid-template-columns: minmax(230px, 1fr) repeat(3, minmax(80px, 0.2fr));
   align-items: center;
   min-height: 34px;
   border-bottom: 1px solid var(--border);
@@ -3046,7 +3046,7 @@ h3 {
   }
 
   .guard-count-row {
-    grid-template-columns: minmax(135px, 1fr) 58px 96px 58px;
+    grid-template-columns: minmax(135px, 1fr) 82px 96px;
   }
 
   .guard-count-row > * {
@@ -3064,7 +3064,7 @@ h3 {
   }
 
   .teacher-stats-row {
-    grid-template-columns: minmax(140px, 1fr) repeat(4, 44px);
+    grid-template-columns: minmax(140px, 1fr) repeat(3, 54px);
   }
 
   .teacher-stats-row > * {
@@ -3194,7 +3194,7 @@ h3 {
 }
 
 @media print {
-  @page { size: A3 portrait; margin: 8mm; }
+  @page { size: A3 portrait; margin: 6mm; }
   :root {
     --surface: #fff;
     --surface-subtle: #f4f4f4;
@@ -3245,7 +3245,7 @@ h3 {
   }
 
   .coverage-list {
-    gap: 3px;
+    gap: 1.2mm;
     background: #fff;
     padding: 0;
     break-inside: avoid-page;
@@ -3254,8 +3254,8 @@ h3 {
 
   .print-header {
     border-bottom: 2px solid #000;
-    margin-bottom: 5mm;
-    padding-bottom: 2mm;
+    margin-bottom: 2.5mm;
+    padding-bottom: 1.5mm;
   }
 
   .print-header h1 { display: inline; font-size: 16pt; }
@@ -3265,16 +3265,52 @@ h3 {
   .coverage-session {
     break-inside: avoid;
     border-color: #333;
+    min-height: 0;
   }
 
   .coverage-row {
     grid-template-columns: 1fr 1.15fr 1fr 1fr;
   }
 
-  .coverage-session { min-height: 22mm; }
-  .coverage-session-head { background: #eee !important; }
-  .coverage-session-head h3 { font-size: 9pt; }
-  .coverage-row { min-height: 8mm; font-size: 8pt; }
+  .coverage-session-head {
+    min-height: 5.5mm;
+    background: #eee !important;
+    padding: 0.8mm 2mm;
+  }
+  .coverage-session-head h3 { font-size: 8pt; }
+  .coverage-session-head span { padding: 0.4mm 1.4mm; font-size: 6pt; }
+  .coverage-session-list { padding: 1mm; }
+  .coverage-table { gap: 0.7mm; }
+  .coverage-row-head { padding-bottom: 0; font-size: 5.5pt; }
+  .coverage-row { min-height: 6mm; gap: 0.7mm; font-size: 7pt; }
+  .coverage-professor-cell,
+  .coverage-detail-cell,
+  .coverage-assignment-cell,
+  .coverage-comment-cell {
+    border-radius: 1px;
+    padding: 0.7mm 1mm;
+  }
+  .coverage-professor-cell strong,
+  .coverage-detail-cell strong,
+  .coverage-detail-cell span,
+  .print-assignment,
+  .coverage-comment-cell .print-only {
+    font-size: 7pt;
+    line-height: 1.08;
+  }
+  .cell-kicker { display: none !important; }
+  .pati-info-strip { grid-template-columns: 22mm minmax(0, 1fr); padding: 1mm; }
+  .pati-content { gap: 1mm; }
+  .pati-zone-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1mm; }
+  .pati-zone-card {
+    height: 15mm;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 0.4mm;
+    padding: 1mm;
+    font-size: 6pt;
+  }
+  .pati-zone-name { font-size: 7pt; }
+  .pati-teacher-name { font-size: 6pt; line-height: 1.05; }
   .coverage-item.not-completed { display: none; }
 
   .coverage-comment-cell {
@@ -3282,7 +3318,60 @@ h3 {
   }
 
   .coverage-comment-cell textarea,
+  .coverage-comment-cell select,
   .coverage-assignment-cell select {
     display: none;
   }
+
+  html[data-guardies-print-density="compact"] .print-header {
+    margin-bottom: 1.5mm;
+  }
+
+  html[data-guardies-print-density="compact"] .print-header h1 { font-size: 13pt; }
+  html[data-guardies-print-density="compact"] .print-header p { font-size: 8pt; }
+  html[data-guardies-print-density="compact"] .print-meta { padding-top: 1mm; font-size: 6pt; }
+  html[data-guardies-print-density="compact"] .coverage-list { gap: 0.7mm; }
+  html[data-guardies-print-density="compact"] .coverage-session-head { min-height: 4.5mm; padding-block: 0.4mm; }
+  html[data-guardies-print-density="compact"] .coverage-session-head h3 { font-size: 7pt; }
+  html[data-guardies-print-density="compact"] .coverage-session-list { padding: 0.6mm; }
+  html[data-guardies-print-density="compact"] .coverage-row-head { display: none; }
+  html[data-guardies-print-density="compact"] .coverage-row { min-height: 4.8mm; }
+  html[data-guardies-print-density="compact"] .coverage-professor-cell,
+  html[data-guardies-print-density="compact"] .coverage-detail-cell,
+  html[data-guardies-print-density="compact"] .coverage-assignment-cell,
+  html[data-guardies-print-density="compact"] .coverage-comment-cell { padding: 0.45mm 0.7mm; }
+  html[data-guardies-print-density="compact"] .coverage-professor-cell strong,
+  html[data-guardies-print-density="compact"] .coverage-detail-cell strong,
+  html[data-guardies-print-density="compact"] .coverage-detail-cell span,
+  html[data-guardies-print-density="compact"] .print-assignment,
+  html[data-guardies-print-density="compact"] .coverage-comment-cell .print-only { font-size: 6pt; }
+
+  html[data-guardies-print-density="maximum"] .print-header {
+    margin-bottom: 1mm;
+    padding-bottom: 0.8mm;
+  }
+  html[data-guardies-print-density="maximum"] .print-header h1 { font-size: 11pt; }
+  html[data-guardies-print-density="maximum"] .print-header p { font-size: 7pt; }
+  html[data-guardies-print-density="maximum"] .print-meta { padding-top: 0.7mm; font-size: 5pt; }
+  html[data-guardies-print-density="maximum"] .coverage-list { gap: 0.45mm; }
+  html[data-guardies-print-density="maximum"] .coverage-session-head { min-height: 3.8mm; padding: 0.2mm 1.2mm; }
+  html[data-guardies-print-density="maximum"] .coverage-session-head h3 { font-size: 6pt; }
+  html[data-guardies-print-density="maximum"] .coverage-session-head span { display: none; }
+  html[data-guardies-print-density="maximum"] .coverage-session-list { padding: 0.4mm; }
+  html[data-guardies-print-density="maximum"] .coverage-row-head { display: none; }
+  html[data-guardies-print-density="maximum"] .coverage-table { gap: 0.35mm; }
+  html[data-guardies-print-density="maximum"] .coverage-row { min-height: 3.7mm; gap: 0.35mm; }
+  html[data-guardies-print-density="maximum"] .coverage-professor-cell,
+  html[data-guardies-print-density="maximum"] .coverage-detail-cell,
+  html[data-guardies-print-density="maximum"] .coverage-assignment-cell,
+  html[data-guardies-print-density="maximum"] .coverage-comment-cell { padding: 0.25mm 0.5mm; }
+  html[data-guardies-print-density="maximum"] .coverage-professor-cell strong,
+  html[data-guardies-print-density="maximum"] .coverage-detail-cell strong,
+  html[data-guardies-print-density="maximum"] .coverage-detail-cell span,
+  html[data-guardies-print-density="maximum"] .print-assignment,
+  html[data-guardies-print-density="maximum"] .coverage-comment-cell .print-only { font-size: 5pt; line-height: 1; }
+  html[data-guardies-print-density="maximum"] .pati-info-strip { padding: 0.6mm; }
+  html[data-guardies-print-density="maximum"] .pati-zone-card { height: 11mm; padding: 0.6mm; }
+  html[data-guardies-print-density="maximum"] .pati-zone-name,
+  html[data-guardies-print-density="maximum"] .pati-teacher-name { font-size: 5pt; }
 }

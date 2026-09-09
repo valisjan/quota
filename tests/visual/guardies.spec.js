@@ -163,17 +163,22 @@ test.describe('Guàrdies: comportament existent', () => {
     await releasedInput.fill('4');
     await releasedInput.press('Tab');
     await expect(page.locator('#guard-counts-panel')).toContainText('Desat');
-    const input = page.getByLabel('Guàrdies G de Fuentes Serra, Gabriel');
+    await expect(page.locator('#guard-count-slot')).toHaveValue('1|8:00');
+    const countRow = page.locator('.guard-count-row').filter({ hasText: 'Fuentes Serra' });
+    const input = countRow.getByRole('spinbutton').nth(1);
     await input.fill('7');
     await input.press('Tab');
     await expect(page.locator('#guard-counts-panel')).toContainText('Desat');
+    await page.locator('#guard-count-slot').selectOption('1|8:55');
+    await expect(countRow.getByRole('spinbutton').nth(1)).toHaveValue('0');
+    await page.locator('#guard-count-slot').selectOption('1|8:00');
+    await expect(input).toHaveValue('7');
 
     await page.goto('/labs/guardies/?vista=professor');
     await page.getByRole('tab', { name: 'Guàrdies realitzades' }).click();
     const row = page.locator('.teacher-stats-row').filter({ hasText: 'Fuentes Serra' });
     await expect(row.locator('[data-count-released]')).toHaveText('4');
     await expect(row.locator('[data-count-guard]')).toHaveText('7');
-    await expect(row.locator('[data-count-total]')).toHaveText('11');
   });
 
   test('configura observacions preestablertes i permet text lliure', async ({ page }) => {
@@ -338,8 +343,8 @@ test.describe('Guàrdies: comportament existent', () => {
       const key = 'quota-e2e-guardies:e2e-2026';
       const data = JSON.parse(localStorage.getItem(key));
       data.stats = { counts: {
-        2: { total: 5, released: 0, guard: 5, other: 0 },
-        3: { total: 0, released: 0, guard: 0, other: 0 },
+        2: { total: 5, released: 0, guard: 5, other: 0, guardSlots: { '1|8:00': 5 } },
+        3: { total: 0, released: 0, guard: 0, other: 0, guardSlots: {} },
       } };
       localStorage.setItem(key, JSON.stringify(data));
     });
@@ -432,13 +437,17 @@ test.describe('Guàrdies: comportament existent', () => {
     const guardCount = await page.evaluate(() => (
       JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).stats.counts['2']
     ));
-    expect(guardCount).toEqual({ total: 1, released: 0, guard: 1, other: 0 });
+    expect(guardCount).toEqual({
+      total: 1, released: 0, guard: 1, other: 0, guardLegacy: 0, guardSlots: { '1|8:00': 1 },
+    });
     await page.getByRole('button', { name: 'Reobre' }).click();
     await page.getByRole('button', { name: 'Despublica' }).click();
     const revertedGuardCount = await page.evaluate(() => (
       JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).stats.counts['2']
     ));
-    expect(revertedGuardCount).toEqual({ total: 0, released: 0, guard: 0, other: 0 });
+    expect(revertedGuardCount).toEqual({
+      total: 0, released: 0, guard: 0, other: 0, guardLegacy: 0, guardSlots: {},
+    });
     await page.getByRole('button', { name: 'Publica' }).click();
     await page.getByRole('button', { name: 'Tanca jornada' }).click();
 
@@ -456,7 +465,6 @@ test.describe('Guàrdies: comportament existent', () => {
     }
     const teacherCount = page.locator('.teacher-stats-row').filter({ hasText: 'Fuentes Serra' });
     await expect(teacherCount.locator('[data-count-guard]')).toHaveText('1');
-    await expect(teacherCount.locator('[data-count-total]')).toHaveText('1');
     await page.getByRole('tab', { name: 'Guàrdies del dia' }).click();
     await page.locator('#date-input').fill('2026-09-07');
     await page.locator('#date-input').press('Tab');
@@ -677,6 +685,16 @@ test.describe('Guàrdies: comportament existent', () => {
       await page.locator('#professor-search').fill(professor);
       await page.locator('#professor-results [data-professor]').first().click();
       await page.locator('#add-all-hours').click();
+    }
+    if (testInfo.project.name === 'chromium-desktop') {
+      await page.evaluate(() => {
+        const target = document.querySelector('#coverage-list .coverage-table');
+        const source = target?.querySelector('.coverage-item');
+        if (!target || !source) return;
+        for (let index = 0; index < 28; index += 1) target.append(source.cloneNode(true));
+        window.dispatchEvent(new Event('beforeprint'));
+      });
+      await expect(page.locator('html')).toHaveAttribute('data-guardies-print-density', 'compact');
     }
     await page.emulateMedia({ media: 'print' });
     await expect(page.locator('.print-header')).toBeVisible();

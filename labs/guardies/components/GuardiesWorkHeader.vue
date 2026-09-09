@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useGuardiesStore } from '../stores/guardies.js';
 import { mergeSharedClassroomAbsences } from '../../../src/modules/guardies/domain/day.js';
@@ -76,7 +76,31 @@ function shiftDate(days) {
   window.dispatchEvent(new CustomEvent('guardies:legacy-render', { detail: { reloadDay: true } }));
 }
 
+function preparePrintDensity() {
+  const rows = document.querySelectorAll('#coverage-list .coverage-item:not(.not-completed)').length;
+  const patioCards = document.querySelectorAll('#coverage-list .pati-zone-card').length;
+  const comments = Array.from(document.querySelectorAll('#coverage-list [data-comment-print]'))
+    .reduce((total, node) => total + String(node.textContent || '').length, 0);
+  const load = rows + Math.ceil(patioCards / 4) + Math.ceil(comments / 180);
+  document.documentElement.dataset.guardiesPrintDensity = load > 50 ? 'maximum' : load > 32 ? 'compact' : 'normal';
+}
+
+function clearPrintDensity() {
+  delete document.documentElement.dataset.guardiesPrintDensity;
+}
+
+onMounted(() => {
+  window.addEventListener('beforeprint', preparePrintDensity);
+  window.addEventListener('afterprint', clearPrintDensity);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeprint', preparePrintDensity);
+  window.removeEventListener('afterprint', clearPrintDensity);
+});
+
 function printCoverage() {
+  preparePrintDensity();
   window.print();
 }
 

@@ -10,7 +10,7 @@ import {
   releasedTeachingBlocks,
   xmlDayForDate,
 } from '../../src/modules/guardies/domain/day.js';
-import { normalizeGuardCount, teachingDatesBetween } from '../../src/modules/guardies/domain/workflow.js';
+import { guardCountForSlot, normalizeGuardCount, teachingDatesBetween } from '../../src/modules/guardies/domain/workflow.js';
 import {
   nonTeachingReason,
   patioAssignmentsForDate,
@@ -1912,8 +1912,11 @@ import {
 
     const projectedCounts = new Map();
     state.assignacions.forEach((teacherId, absenceId) => {
-      if (state.assignmentSources.get(absenceId) === 'co-teacher') return;
-      projectedCounts.set(teacherId, (projectedCounts.get(teacherId) || 0) + 1);
+      const source = state.assignmentSources.get(absenceId);
+      const absence = state.absencies.get(absenceId);
+      const key = projectedGuardCountKey(teacherId, source, absence?.dia, absence?.hora);
+      if (!key) return;
+      projectedCounts.set(key, (projectedCounts.get(key) || 0) + 1);
     });
 
     let assigned = 0;
@@ -1927,8 +1930,10 @@ import {
         .sort((a, b) => {
           const sourceRank = (a.source === 'released' ? 0 : 1) - (b.source === 'released' ? 0 : 1);
           if (sourceRank) return sourceRank;
-          const countRank = (guardCount(a.placa) + (projectedCounts.get(a.placa) || 0))
-            - (guardCount(b.placa) + (projectedCounts.get(b.placa) || 0));
+          const keyA = projectedGuardCountKey(a.placa, a.source, item.dia, item.hora);
+          const keyB = projectedGuardCountKey(b.placa, b.source, item.dia, item.hora);
+          const countRank = (guardCount(a.placa, a.source, item.dia, item.hora) + (projectedCounts.get(keyA) || 0))
+            - (guardCount(b.placa, b.source, item.dia, item.hora) + (projectedCounts.get(keyB) || 0));
           if (countRank) return countRank;
           return labelProfessor(a.placa).localeCompare(labelProfessor(b.placa), 'ca', { numeric: true });
         });
@@ -1937,7 +1942,8 @@ import {
       state.assignacions.set(item.id, selected.placa);
       state.assignmentSources.set(item.id, selected.source);
       state.cancelledAssignments.delete(item.id);
-      projectedCounts.set(selected.placa, (projectedCounts.get(selected.placa) || 0) + 1);
+      const projectedKey = projectedGuardCountKey(selected.placa, selected.source, item.dia, item.hora);
+      projectedCounts.set(projectedKey, (projectedCounts.get(projectedKey) || 0) + 1);
       assigned += 1;
     });
 
@@ -2357,11 +2363,14 @@ import {
     });
 
     return Array.from(candidates.values())
+      .map((candidate) => ({ ...candidate, dia, hora }))
       .sort((a, b) => {
         const rankA = a.unavailable ? 4 : a.convivencia ? 2 : a.alliberaments.length ? 0 : a.outsideDuty ? 3 : 1;
         const rankB = b.unavailable ? 4 : b.convivencia ? 2 : b.alliberaments.length ? 0 : b.outsideDuty ? 3 : 1;
         if (rankA !== rankB) return rankA - rankB;
-        const countDifference = guardCount(a.placa) - guardCount(b.placa);
+        const sourceA = a.alliberaments.length ? 'released' : a.outsideDuty ? 'other' : 'guard';
+        const sourceB = b.alliberaments.length ? 'released' : b.outsideDuty ? 'other' : 'guard';
+        const countDifference = guardCount(a.placa, sourceA, dia, hora) - guardCount(b.placa, sourceB, dia, hora);
         if (countDifference) return countDifference;
         return (professorShort(a.placa) || a.placa)
           .localeCompare(professorShort(b.placa) || b.placa, 'ca', { numeric: true });
@@ -2392,15 +2401,23 @@ import {
     return isTeacherAbsentAtSlot(state.absencies, dia, hora, placa);
   }
 
-  function guardCount(placa) {
-    return normalizeGuardCount(state.guardCounts.get(placa)).total;
+  function guardCount(placa, source = 'other', dia = '', hora = '') {
+    const count = normalizeGuardCount(state.guardCounts.get(placa));
+    if (source === 'released') return count.released;
+    if (source === 'guard') return guardCountForSlot(count, dia, hora);
+    return count.other;
   }
 
-  function guardCountLabel(placa) {
+  function projectedGuardCountKey(placa, source, dia, hora) {
+    if (!placa || !['released', 'guard'].includes(source)) return '';
+    return source === 'released' ? `released|${placa}` : `guard|${dia}|${hora}|${placa}`;
+  }
+
+  function guardCountLabel(placa, source, dia, hora) {
     const count = normalizeGuardCount(state.guardCounts.get(placa));
-    const parts = [`${count.released} allib.`, `${count.guard} G`];
-    if (count.other) parts.push(`${count.other} extra`);
-    return parts.join(' · ');
+    if (source === 'released') return `${count.released} allib.`;
+    if (source === 'guard') return `${guardCountForSlot(count, dia, hora)} G en aquesta franja`;
+    return count.other ? `${count.other} extra` : '0 extra';
   }
 
   function isAssignedElsewhere(dia, hora, placa, currentAbsenceId) {
@@ -2821,7 +2838,8 @@ import {
   }
 
   function candidateSelectLabel(candidate) {
-    const count = guardCountLabel(candidate.placa);
+    const source = candidate.alliberaments?.length ? 'released' : candidate.outsideDuty ? 'other' : 'guard';
+    const count = guardCountLabel(candidate.placa, source, candidate.dia, candidate.hora);
     if (candidate.unavailable) {
       const reason = candidate.outsideDuty ? ' · ni G ni alliberat' : '';
       return `No disponible${reason} - ${labelProfessor(candidate.placa)}`;

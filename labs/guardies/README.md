@@ -26,18 +26,18 @@ Els fitxers i la configuració setmanal queden guardats a Firestore dins el curs
 - Acció ràpida per afegir tot el dia i replicació en un interval de dies lectius.
 - Llistat diari amb les hores apilades per anar afegint absències.
 - Comentari per cada absència.
-- Candidats jerarquitzats per origen i menor nombre de cobertures anuals.
-- Preassignació automàtica de tota la jornada: primer alliberats i després G, ordenats pel recompte anual.
+- Candidats jerarquitzats per origen: els alliberats pel seu acumulat del curs i els de G pel recompte de la mateixa franja setmanal.
+- Preassignació automàtica de tota la jornada: primer alliberats i després G, respectant el recompte propi de cada franja.
 - Cerca del professorat que té guàrdia a la mateixa franja.
 - Sortides amb decisió completa o parcial independent per a cada grup i selecció dels acompanyants.
 - Detecció del professorat que queda alliberat perquè tenia classe amb aquests grups.
 - Ús del professorat alliberat com a candidat de cobertura a la mateixa franja.
 - Autoguardat, publicació, actualització i tancament de la jornada.
 - Implicació automàtica dels acompanyants en totes les seves classes i guàrdies.
-- Impressió A3 en una sola pàgina amb set sessions i pati.
+- Impressió A3 en una sola pàgina amb compactació adaptativa per a jornades carregades.
 - Rotació setmanal de zones de pati, festius, canvis de zona puntuals i observacions diàries.
-- Còmput anual de cobertures efectivament realitzades, separat entre professorat alliberat, G i assignacions extraordinàries.
-- Vista de professorat en mode lectura amb les jornades publicades, cercador i recompte anual de guàrdies realitzades.
+- Còmput de cobertures efectivament realitzades: alliberaments acumulats durant el curs i G separades per dia i hora setmanals.
+- Vista de professorat en mode lectura amb les jornades publicades, cercador i recompte de guàrdies per franja.
 
 ## Fases posteriors
 

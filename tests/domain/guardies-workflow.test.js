@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   guardCountDelta,
+  guardCountForSlot,
   normalizeGuardCount,
   normalizeCountedAssignment,
   sortCoverageCandidates,
@@ -15,15 +16,22 @@ test('genera només dies lectius dins un interval', () => {
   ]);
 });
 
-test('ordena alliberats, guàrdies i convivència pel recompte anual', () => {
+test('ordena alliberats pel total i professorat de G per la franja setmanal', () => {
   const candidates = [
     { teacherId: 'conv', convivencia: true },
     { teacherId: 'g2' },
     { teacherId: 'rel', released: true },
     { teacherId: 'g1' },
   ];
-  const counts = new Map([['g1', 8], ['g2', 2], ['rel', 20], ['conv', 0]]);
-  assert.deepEqual(sortCoverageCandidates(candidates, counts).map((item) => item.teacherId), ['rel', 'g2', 'g1', 'conv']);
+  const counts = new Map([
+    ['g1', { guard: 8, guardSlots: { '1|8:00': 8 } }],
+    ['g2', { guard: 12, guardSlots: { '1|8:00': 2, '2|8:00': 10 } }],
+    ['rel', { released: 20 }],
+  ]);
+  assert.deepEqual(
+    sortCoverageCandidates(candidates, counts, undefined, { day: '1', hour: '8:00' }).map((item) => item.teacherId),
+    ['rel', 'g2', 'g1', 'conv'],
+  );
 });
 
 test('calcula el delta en reobrir i tornar a tancar una jornada', () => {
@@ -36,27 +44,37 @@ test('conserva separats els recomptes com a alliberat i com a guàrdia', () => {
     released: 2,
     guard: 3,
     other: 0,
+    guardLegacy: 3,
+    guardSlots: {},
   });
   assert.deepEqual(normalizeGuardCount(4), {
     total: 4,
     released: 0,
     guard: 0,
     other: 4,
+    guardLegacy: 0,
+    guardSlots: {},
   });
 
   const closed = updateGuardCounts({}, [], [
     { teacherId: 'A', source: 'released' },
-    { teacherId: 'A', source: 'guard' },
+    { teacherId: 'A', source: 'guard', day: '1', hour: '8:00' },
   ]);
-  assert.deepEqual(closed.A, { total: 2, released: 1, guard: 1, other: 0 });
+  assert.deepEqual(closed.A, {
+    total: 2, released: 1, guard: 1, other: 0, guardLegacy: 0, guardSlots: { '1|8:00': 1 },
+  });
+  assert.equal(guardCountForSlot(closed.A, '1', '8:00'), 1);
+  assert.equal(guardCountForSlot(closed.A, '2', '8:00'), 0);
 
   const corrected = updateGuardCounts(closed, [
     { teacherId: 'A', source: 'released' },
-    { teacherId: 'A', source: 'guard' },
+    { teacherId: 'A', source: 'guard', day: '1', hour: '8:00' },
   ], [
-    { teacherId: 'A', source: 'guard' },
+    { teacherId: 'A', source: 'guard', day: '1', hour: '8:00' },
   ]);
-  assert.deepEqual(corrected.A, { total: 1, released: 0, guard: 1, other: 0 });
+  assert.deepEqual(corrected.A, {
+    total: 1, released: 0, guard: 1, other: 0, guardLegacy: 0, guardSlots: { '1|8:00': 1 },
+  });
 });
 
 test('no compta el professor que ja queda dins l’aula', () => {
