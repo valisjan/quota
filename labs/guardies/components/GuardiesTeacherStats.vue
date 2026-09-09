@@ -20,6 +20,18 @@ function nameSignature(value) {
   return normalize(value).split(' ').filter((token) => token.length > 1).sort().join('|');
 }
 
+function publicTeacherName(teacher) {
+  const name = String(teacher.name || '').trim();
+  const short = String(teacher.short || '').trim();
+  if (name && normalize(name) !== normalize(short || teacher.placa)) return name;
+
+  const label = String(teacher.label || '').trim();
+  const suffix = short ? ` · ${short}` : '';
+  if (suffix && label.endsWith(suffix)) return label.slice(0, -suffix.length).trim();
+  if (label && normalize(label) !== normalize(short || teacher.placa)) return label;
+  return `(${short || label || teacher.placa})`;
+}
+
 const days = [
   { key: '1', label: 'Dilluns' },
   { key: '2', label: 'Dimarts' },
@@ -29,7 +41,7 @@ const days = [
 ];
 
 const guardMatrix = computed(() => {
-  const teachers = new Map(professorOptions.value.map((teacher) => [teacher.placa, teacher.label]));
+  const teachers = new Map(professorOptions.value.map((teacher) => [teacher.placa, publicTeacherName(teacher)]));
   const viewer = nameSignature(viewerName.value);
   const hours = Array.from(new Set(sessions.value
     .map((session) => session.hora)

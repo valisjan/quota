@@ -165,6 +165,7 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('#guard-counts-panel')).toContainText('Desat');
     await expect(page.locator('#guard-count-slot')).toHaveValue('1|8:00');
     const countRow = page.locator('.guard-count-row').filter({ hasText: 'Fuentes Serra' });
+    await expect(countRow).toContainText('FUEN');
     const input = countRow.getByRole('spinbutton').nth(1);
     await input.fill('7');
     await input.press('Tab');
@@ -178,7 +179,10 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.getByRole('tab', { name: 'Recompte de G' }).click();
     await expect(page.getByRole('columnheader', { name: 'Dilluns' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Divendres' })).toBeVisible();
-    await expect(page.locator('[data-roster-slot="1|8:00"] [data-roster-teacher="2"] [data-roster-count]')).toHaveText('7 G');
+    const publicTeacher = page.locator('[data-roster-slot="1|8:00"] [data-roster-teacher="2"]');
+    await expect(publicTeacher.locator('span')).toHaveText('Fuentes Serra, Gabriel');
+    await expect(publicTeacher).not.toContainText('FUEN');
+    await expect(publicTeacher.locator('[data-roster-count]')).toHaveText('7 G');
     await expect(page.locator('[data-roster-slot="1|8:55"] [data-roster-teacher="3"] [data-roster-count]')).toHaveText('0 G');
     await expect(page.locator('.teacher-stats-table')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
