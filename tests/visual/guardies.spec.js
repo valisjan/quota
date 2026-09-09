@@ -175,7 +175,21 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#guard-count-slot').selectOption('1|8:00');
     await expect(input).toHaveValue('7');
 
+    await page.getByRole('tab', { name: 'Estadístiques' }).click();
+    await expect(page.locator('#guardies-statistics-panel')).toBeVisible();
+    await expect(page.locator('[data-stat-total]')).toHaveText('11');
+    await expect(page.locator('[data-stat-guard]')).toHaveText('7');
+    await expect(page.locator('[data-stat-released]')).toHaveText('4');
+    await expect(page.locator('[data-ranking-most] li').first()).toContainText('Fuentes Serra');
+    await expect(page.locator('[data-ranking-most] li').first()).toContainText('7 G');
+    await expect(page.locator('[data-ranking-most] li').first()).toContainText('4 allib.');
+    await expect(page.locator('[data-slot-most] li').first()).toContainText('Dilluns · 1a · 8:00');
+    await expect(page.locator('[data-slot-most] li').first()).toContainText('7');
+    await expect(page.locator('[data-ranking-least] li')).toHaveCount(4);
+    await expect(page.locator('[data-slot-least] li')).toHaveCount(3);
+
     await page.goto('/labs/guardies/?vista=professor');
+    await expect(page.getByRole('tab', { name: 'Estadístiques' })).toHaveCount(0);
     await page.getByRole('tab', { name: 'Recompte de G' }).click();
     await expect(page.getByRole('columnheader', { name: 'Dilluns' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Divendres' })).toBeVisible();

@@ -11,6 +11,7 @@ import GuardiesTeacherStats from './GuardiesTeacherStats.vue';
 import GuardiesGuardCountPanel from './GuardiesGuardCountPanel.vue';
 import GuardiesTeacherExclusionsPanel from './GuardiesTeacherExclusionsPanel.vue';
 import GuardiesObservationPresetsPanel from './GuardiesObservationPresetsPanel.vue';
+import GuardiesAdminStatistics from './GuardiesAdminStatistics.vue';
 import { signInGuardies } from '../../../src/services/guardiesStorage.js';
 import { useGuardiesStore } from '../stores/guardies.js';
 
@@ -43,10 +44,12 @@ window.addEventListener('guardies:auth-ready', () => {
     <nav v-if="contextReady && canWrite" class="admin-view-tabs no-print" aria-label="Seccions de guàrdies" role="tablist">
       <button type="button" role="tab" :aria-selected="adminSection === 'daily'" :class="{ active: adminSection === 'daily' }" @click="store.adminSection = 'daily'">Gestió diària</button>
       <button type="button" role="tab" :aria-selected="adminSection === 'config'" :class="{ active: adminSection === 'config' }" @click="store.adminSection = 'config'">Configuració</button>
+      <button type="button" role="tab" :aria-selected="adminSection === 'statistics'" :class="{ active: adminSection === 'statistics' }" @click="store.adminSection = 'statistics'">Estadístiques</button>
     </nav>
     <GuardiesWorkHeader v-show="(canWrite && adminSection === 'daily') || (!canWrite && teacherSection === 'daily')" />
   </Teleport>
   <Teleport to="#guardies-setup-root">
+    <GuardiesAdminStatistics v-show="canWrite && adminSection === 'statistics'" />
     <GuardiesSetupPanel v-show="canWrite && adminSection === 'config'" />
     <GuardiesTeacherExclusionsPanel v-show="canWrite && adminSection === 'config'" />
     <GuardiesGuardCountPanel v-show="canWrite && adminSection === 'config'" />

@@ -38,6 +38,7 @@ Els fitxers i la configuració setmanal queden guardats a Firestore dins el curs
 - Rotació setmanal i reordenació directa de zones de pati, festius, canvis de zona puntuals i observacions diàries.
 - Còmput de cobertures efectivament realitzades: alliberaments acumulats durant el curs i G separades per dia i hora setmanals.
 - Vista de professorat en mode lectura amb les jornades publicades i una matriu setmanal del professorat de G amb el recompte propi de cada franja.
+- Estadístiques de cap d’estudis amb totals separats, rànquings de professorat i franges setmanals amb més i menys cobertures de G.
 
 ## Fases posteriors
 
