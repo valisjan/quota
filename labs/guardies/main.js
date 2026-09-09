@@ -2406,7 +2406,10 @@ import {
   function guardCountLabel(placa, source, dia, hora) {
     const count = normalizeGuardCount(state.guardCounts.get(placa));
     if (source === 'released') return `${count.released} allib.`;
-    if (source === 'guard') return `${guardCountForSlot(count, dia, hora)} G en aquesta franja`;
+    if (source === 'guard') {
+      const slotCount = guardCountForSlot(count, dia, hora);
+      return slotCount ? `${slotCount} G en aquesta franja` : '0 G';
+    }
     return count.other ? `${count.other} extra` : '0 extra';
   }
 
