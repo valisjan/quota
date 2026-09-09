@@ -133,6 +133,14 @@ function changeStatus(action) {
         :disabled="statusActionDisabled"
         @click="changeStatus(statusAction.action)"
       >{{ statusAction.label }}</button>
+      <button
+        v-if="canWrite && dayStatus === 'published'"
+        id="day-unpublish-action"
+        type="button"
+        class="ghost"
+        :disabled="statusActionDisabled"
+        @click="changeStatus('unpublish')"
+      >Despublica</button>
       <button v-if="canWrite" id="clear-day-list" type="button" class="ghost" :disabled="dayStatus === 'closed' || !selectedAbsences.length" @click="clearDay">Neteja dia</button>
     </div>
   </header>
