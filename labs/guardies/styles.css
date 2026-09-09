@@ -1531,6 +1531,136 @@ h3 {
   margin: 0;
 }
 
+.guard-roster-panel {
+  display: grid;
+  gap: 7px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.guard-roster-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.guard-roster-head h3 {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.guard-roster-head > span {
+  border: 1px solid var(--primary-border);
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  padding: 3px 7px;
+  font-size: 0.58rem;
+  font-weight: 850;
+}
+
+.guard-roster-table {
+  max-height: 520px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+
+.guard-roster-row {
+  display: grid;
+  grid-template-columns: 155px minmax(0, 1fr);
+  min-height: 42px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.guard-roster-row:first-child {
+  border-top: 0;
+}
+
+.guard-roster-row.starts-day {
+  border-top: 2px solid var(--primary-border);
+}
+
+.guard-roster-row > * {
+  min-width: 0;
+  padding: 6px 8px;
+}
+
+.guard-roster-columns {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  min-height: 30px;
+  background: var(--surface-strong);
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.guard-roster-slot {
+  display: grid;
+  align-content: center;
+  border-right: 1px solid var(--border);
+  background: var(--surface-subtle);
+}
+
+.guard-roster-slot strong {
+  color: var(--primary-strong);
+  font-size: 0.68rem;
+}
+
+.guard-roster-slot small {
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 750;
+}
+
+.guard-roster-teachers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  align-content: center;
+  gap: 4px;
+}
+
+.guard-roster-teacher {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  background: var(--surface);
+  padding: 4px 5px 4px 7px;
+}
+
+.guard-roster-teacher.is-mine {
+  border-color: var(--green-border);
+  background: var(--green-soft);
+}
+
+.guard-roster-teacher span {
+  overflow: hidden;
+  color: var(--text-soft);
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guard-roster-teacher b {
+  display: grid;
+  flex: 0 0 24px;
+  min-height: 22px;
+  place-items: center;
+  border-radius: 4px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-size: 0.72rem;
+}
+
 .entry-panel {
   position: sticky;
   top: 66px;
@@ -3070,6 +3200,22 @@ h3 {
   .teacher-stats-row > * {
     padding-inline: 4px;
     font-size: 0.59rem;
+  }
+
+  .guard-roster-row {
+    grid-template-columns: 100px minmax(0, 1fr);
+  }
+
+  .guard-roster-row > * {
+    padding: 5px;
+  }
+
+  .guard-roster-teachers {
+    grid-template-columns: 1fr;
+  }
+
+  .guard-roster-teacher span {
+    white-space: normal;
   }
 
   .my-guard-count {

@@ -38,6 +38,7 @@ const slotOptions = computed(() => {
       key,
       day: session.dia,
       hour: session.hora,
+      period: `${hourNumber.get(session.hora)}a`,
       label: `${dayLabels[session.dia]} · ${hourNumber.get(session.hora)}a · ${session.hora}`,
     });
   });
@@ -80,6 +81,32 @@ const totals = computed(() => recordedRows.value.reduce((result, row) => ({
   guardInSlot: result.guardInSlot + row.guardInSlot,
   other: result.other + row.other,
 }), { released: 0, guardInSlot: 0, other: 0 }));
+
+const guardRoster = computed(() => {
+  const teachers = new Map(professorOptions.value.map((teacher) => [teacher.placa, teacher.label]));
+  const viewer = nameSignature(viewerName.value);
+  let previousDay = '';
+  return slotOptions.value.map((slot) => {
+    const teacherIds = new Set(sessions.value.filter((session) => (
+      session.dia === slot.day
+      && session.hora === slot.hour
+      && (session.activitatEsGuardiaGeneral || guardiaCodes.value.has(session.activitat))
+      && teachers.has(session.placa)
+    )).map((session) => session.placa));
+    const row = {
+      ...slot,
+      startsDay: previousDay !== slot.day,
+      teachers: Array.from(teacherIds, (teacherId) => ({
+        teacherId,
+        label: teachers.get(teacherId) || teacherId,
+        count: guardCountForSlot(guardCounts.value.get(teacherId), slot.key),
+        mine: Boolean(viewer && viewer === nameSignature(teachers.get(teacherId) || teacherId)),
+      })).sort((a, b) => a.label.localeCompare(b.label, 'ca', { numeric: true })),
+    };
+    previousDay = slot.day;
+    return row;
+  });
+});
 </script>
 
 <template>
@@ -127,5 +154,43 @@ const totals = computed(() => recordedRows.value.reduce((result, row) => ({
     <div v-else class="empty-small teacher-stats-empty">
       {{ recordedRows.length ? 'No hi ha resultats per a aquesta cerca.' : 'Encara no s’ha tancat cap jornada amb cobertures realitzades.' }}
     </div>
+
+    <section class="guard-roster-panel" aria-labelledby="guard-roster-title">
+      <header class="guard-roster-head">
+        <h3 id="guard-roster-title">Recompte complet per franges</h3>
+        <span>{{ guardRoster.length }} franges</span>
+      </header>
+      <div v-if="guardRoster.length" class="guard-roster-table" role="table" aria-label="Professorat de guàrdia i cobertures per franja">
+        <div class="guard-roster-row guard-roster-columns" role="row">
+          <span role="columnheader">Franja</span>
+          <span role="columnheader">Professorat de G</span>
+        </div>
+        <div
+          v-for="slot in guardRoster"
+          :key="slot.key"
+          class="guard-roster-row"
+          :class="{ 'starts-day': slot.startsDay }"
+          :data-roster-slot="slot.key"
+          role="row"
+        >
+          <div class="guard-roster-slot" role="cell">
+            <strong>{{ dayLabels[slot.day] }} · {{ slot.period }}</strong>
+            <small>{{ slot.hour }}</small>
+          </div>
+          <div class="guard-roster-teachers" role="cell">
+            <article
+              v-for="teacher in slot.teachers"
+              :key="teacher.teacherId"
+              class="guard-roster-teacher"
+              :class="{ 'is-mine': teacher.mine }"
+              :data-roster-teacher="teacher.teacherId"
+            >
+              <span>{{ teacher.label }}</span>
+              <b data-roster-count :aria-label="`${teacher.count} guàrdies realitzades`">{{ teacher.count }}</b>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
   </section>
 </template>

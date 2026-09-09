@@ -37,7 +37,7 @@ Els fitxers i la configuració setmanal queden guardats a Firestore dins el curs
 - Impressió A3 en una sola pàgina amb compactació adaptativa per a jornades carregades.
 - Rotació setmanal de zones de pati, festius, canvis de zona puntuals i observacions diàries.
 - Còmput de cobertures efectivament realitzades: alliberaments acumulats durant el curs i G separades per dia i hora setmanals.
-- Vista de professorat en mode lectura amb les jornades publicades, cercador i recompte de guàrdies per franja.
+- Vista de professorat en mode lectura amb les jornades publicades, cercador, recompte individual per franja i taula setmanal completa del professorat de G.
 
 ## Fases posteriors
 

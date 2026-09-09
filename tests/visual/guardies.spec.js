@@ -179,6 +179,10 @@ test.describe('Guàrdies: comportament existent', () => {
     const row = page.locator('.teacher-stats-row').filter({ hasText: 'Fuentes Serra' });
     await expect(row.locator('[data-count-released]')).toHaveText('4');
     await expect(row.locator('[data-count-guard]')).toHaveText('7');
+    await expect(page.locator('[data-roster-slot="1|8:00"] [data-roster-teacher="2"] [data-roster-count]')).toHaveText('7');
+    await expect(page.locator('[data-roster-slot="1|8:55"] [data-roster-teacher="3"] [data-roster-count]')).toHaveText('0');
+    await expect(page.locator('.guard-roster-panel')).toContainText('Recompte complet per franges');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 
   test('configura observacions preestablertes i permet text lliure', async ({ page }) => {
