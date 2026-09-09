@@ -18,6 +18,7 @@ import {
   signInWithPopup,
 } from 'firebase/auth';
 import { auth, db, isIOSWebKit } from '../firebase';
+import { BatchSplit } from '../utils/firestoreBatch';
 import { getRestCollection, getRestDocument } from './firestoreRest';
 import { E2E_AUTH_BYPASS, E2E_CURS_ID, getE2ECollection } from './e2e';
 import { selectDefaultAcademicCourse } from '../utils/academicCourse';
@@ -517,6 +518,25 @@ export async function setGuardiesTeacherCount(cursId, teacherId, source, value, 
 
 export function setGuardiesTeacherGuardCount(cursId, teacherId, value, slot) {
   return setGuardiesTeacherCount(cursId, teacherId, 'guard', value, slot);
+}
+
+export async function resetGuardiesCourseData(cursId) {
+  if (!cursId) throw new Error('No hi ha cap curs acadèmic disponible.');
+  if (E2E_AUTH_BYPASS) {
+    const data = getE2EData(cursId);
+    const deletedDays = Object.keys(data.days || {}).length;
+    data.days = {};
+    data.stats = { counts: {} };
+    setE2EData(cursId, data);
+    return { deletedDays };
+  }
+
+  const days = await getDocs(collection(db, 'cursos', cursId, 'guardiesDays'));
+  const batch = new BatchSplit();
+  days.docs.forEach((snapshot) => batch.delete(snapshot.ref));
+  batch.set(guardiesStatsRef(cursId), { counts: {}, updatedAt: serverTimestamp() });
+  await batch.commit();
+  return { deletedDays: days.size };
 }
 
 export async function saveGuardiesFile(cursId, kind, text, name) {

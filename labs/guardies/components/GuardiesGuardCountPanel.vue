@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { guardCountForSlot, guardSlotKey, normalizeGuardCount } from '../../../src/modules/guardies/domain/workflow.js';
-import { setGuardiesTeacherCount } from '../../../src/services/guardiesStorage.js';
+import { resetGuardiesCourseData, setGuardiesTeacherCount } from '../../../src/services/guardiesStorage.js';
 import { useGuardiesStore } from '../stores/guardies.js';
 
 const store = useGuardiesStore();
@@ -12,6 +12,7 @@ const selectedSlot = ref('');
 const saving = ref(new Set());
 const saved = ref('');
 const error = ref('');
+const resetting = ref(false);
 
 function normalize(value) {
   return String(value || '')
@@ -89,6 +90,19 @@ async function updateCount(teacherId, source, rawValue) {
     saving.value = nextSaving;
   }
 }
+
+async function resetCourse() {
+  if (!window.confirm(`S'eliminaran totes les jornades i tots els recomptes del curs ${courseId.value}. Els fitxers i la configuració es conservaran.`)) return;
+  resetting.value = true;
+  error.value = '';
+  try {
+    await resetGuardiesCourseData(courseId.value);
+    window.location.reload();
+  } catch (cause) {
+    error.value = cause?.message || String(cause);
+    resetting.value = false;
+  }
+}
 </script>
 
 <template>
@@ -147,6 +161,9 @@ async function updateCount(teacherId, source, rawValue) {
           </div>
         </div>
         <p v-if="error" class="guard-count-error" role="alert">{{ error }}</p>
+        <button id="reset-guardies-course" type="button" class="guard-reset-button" :disabled="resetting" @click="resetCourse">
+          {{ resetting ? 'Reiniciant…' : 'Reinicia jornades i recomptes' }}
+        </button>
       </section>
     </div>
   </details>

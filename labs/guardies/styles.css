@@ -1421,6 +1421,17 @@ h3 {
   font-weight: 750;
 }
 
+.guard-reset-button {
+  margin-top: 12px;
+  border-color: var(--coral-border);
+  background: var(--coral-soft);
+  color: var(--coral);
+}
+
+.guard-reset-button:hover:not(:disabled) {
+  border-color: var(--coral);
+}
+
 .guard-statistics-panel {
   display: grid;
   gap: 12px;
