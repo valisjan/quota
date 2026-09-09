@@ -1391,237 +1391,110 @@ h3 {
   font-size: 0.67rem;
 }
 
-.teacher-stats-totals {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 5px;
-}
-
-.teacher-stats-totals span {
-  border: 1px solid var(--primary-border);
-  border-radius: 5px;
-  background: var(--primary-soft);
-  color: var(--text-soft);
-  padding: 5px 7px;
-  font-size: 0.61rem;
-  font-weight: 700;
-}
-
-.teacher-stats-totals strong {
-  color: var(--primary-strong);
-  font-size: 0.78rem;
-}
-
-.my-guard-count {
-  display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--green-border);
+.guard-matrix-frame {
+  max-height: 680px;
+  overflow: auto;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--green-soft);
-  padding: 7px 9px;
+  background: var(--surface);
 }
 
-.my-guard-count > span {
-  color: var(--green);
-  font-size: 0.62rem;
-  font-weight: 900;
-  text-transform: uppercase;
+.guard-matrix {
+  min-width: 1040px;
 }
 
-.my-guard-count > strong {
-  color: var(--green);
-  font-size: 1.1rem;
-}
-
-.my-guard-count > small {
-  color: var(--text-soft);
-  font-weight: 650;
-}
-
-.teacher-stats-toolbar {
+.guard-matrix-row {
   display: grid;
-  grid-template-columns: auto minmax(220px, 1fr) auto minmax(180px, 1fr);
-  align-items: center;
-  justify-content: end;
-  gap: 7px;
-}
-
-.teacher-stats-toolbar label {
-  color: var(--muted);
-  font-size: 0.62rem;
-  font-weight: 800;
-}
-
-.teacher-stats-toolbar input {
-  min-height: 32px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  background: var(--surface-subtle);
-  color: var(--text);
-  padding: 5px 8px;
-}
-
-.teacher-stats-table {
-  max-height: 330px;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-}
-
-.teacher-stats-row {
-  display: grid;
-  grid-template-columns: minmax(230px, 1fr) repeat(3, minmax(80px, 0.2fr));
-  align-items: center;
-  min-height: 34px;
-  border-bottom: 1px solid var(--border);
-}
-
-.teacher-stats-row:last-child {
-  border-bottom: 0;
-}
-
-.teacher-stats-row > * {
-  min-width: 0;
-  padding: 5px 8px;
-  text-align: center;
-  font-size: 0.67rem;
-}
-
-.teacher-stats-row > :first-child {
-  overflow: hidden;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.teacher-stats-columns {
-  position: sticky;
-  z-index: 1;
-  top: 0;
-  background: var(--surface-strong);
-  color: var(--muted);
-  font-size: 0.58rem;
-  font-weight: 850;
-  text-transform: uppercase;
-}
-
-.teacher-stats-row.is-mine {
-  background: var(--green-soft);
-}
-
-.teacher-stats-row em {
-  border-radius: 999px;
-  background: var(--green);
-  color: #fff;
-  margin-left: 4px;
-  padding: 1px 5px;
-  font-size: 0.52rem;
-  font-style: normal;
-}
-
-.teacher-stats-row b[data-count-total] {
-  color: var(--primary-strong);
-  font-size: 0.78rem;
-}
-
-.teacher-stats-empty {
-  margin: 0;
-}
-
-.guard-roster-panel {
-  display: grid;
-  gap: 7px;
+  grid-template-columns: 92px repeat(5, minmax(180px, 1fr));
+  min-height: 86px;
   border-top: 1px solid var(--border);
-  padding-top: 10px;
 }
 
-.guard-roster-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.guard-roster-head h3 {
-  margin: 0;
-  font-size: 0.82rem;
-}
-
-.guard-roster-head > span {
-  border: 1px solid var(--primary-border);
-  border-radius: 999px;
-  background: var(--primary-soft);
-  color: var(--primary-strong);
-  padding: 3px 7px;
-  font-size: 0.58rem;
-  font-weight: 850;
-}
-
-.guard-roster-table {
-  max-height: 520px;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-}
-
-.guard-roster-row {
-  display: grid;
-  grid-template-columns: 155px minmax(0, 1fr);
-  min-height: 42px;
-  border-top: 1px solid var(--border-soft);
-}
-
-.guard-roster-row:first-child {
+.guard-matrix-row:first-child {
   border-top: 0;
 }
 
-.guard-roster-row.starts-day {
-  border-top: 2px solid var(--primary-border);
-}
-
-.guard-roster-row > * {
-  min-width: 0;
-  padding: 6px 8px;
-}
-
-.guard-roster-columns {
+.guard-matrix-columns {
   position: sticky;
-  z-index: 2;
+  z-index: 3;
   top: 0;
-  min-height: 30px;
+  min-height: 34px;
   background: var(--surface-strong);
-  color: var(--muted);
-  font-size: 0.58rem;
-  font-weight: 850;
+}
+
+.guard-matrix-columns > * {
+  display: grid;
+  place-items: center;
+  border-left: 1px solid var(--border);
+  color: var(--primary-strong);
+  padding: 7px;
+  font-size: 0.66rem;
   text-transform: uppercase;
 }
 
-.guard-roster-slot {
+.guard-matrix-columns > :first-child {
+  border-left: 0;
+}
+
+.guard-matrix-corner,
+.guard-matrix-hour {
+  position: sticky;
+  z-index: 2;
+  left: 0;
+  background: var(--surface-strong);
+}
+
+.guard-matrix-corner {
+  z-index: 4;
+}
+
+.guard-matrix-hour {
   display: grid;
   align-content: center;
+  justify-items: center;
   border-right: 1px solid var(--border);
-  background: var(--surface-subtle);
-}
-
-.guard-roster-slot strong {
   color: var(--primary-strong);
-  font-size: 0.68rem;
 }
 
-.guard-roster-slot small {
+.guard-matrix-hour strong {
+  font-size: 0.78rem;
+}
+
+.guard-matrix-hour small {
   color: var(--muted);
   font-size: 0.58rem;
   font-weight: 750;
 }
 
-.guard-roster-teachers {
+.guard-matrix-cell {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  align-content: center;
+  min-width: 0;
+  align-content: start;
   gap: 4px;
+  border-left: 1px solid var(--border);
+  padding: 6px;
+}
+
+.guard-matrix-cell .guard-roster-teacher {
+  min-height: 29px;
+}
+
+.guard-matrix-cell .guard-roster-teacher span {
+  font-size: 0.61rem;
+  white-space: normal;
+}
+
+.guard-matrix-cell .guard-roster-teacher b {
+  flex-basis: auto;
+  min-width: 34px;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+.guard-matrix-empty {
+  align-self: center;
+  color: var(--muted);
+  text-align: center;
 }
 
 .guard-roster-teacher {
@@ -3184,46 +3057,12 @@ h3 {
     font-size: 0.62rem;
   }
 
-  .teacher-stats-totals {
-    justify-content: flex-start;
+  .guard-matrix {
+    min-width: 900px;
   }
 
-  .teacher-stats-toolbar {
-    grid-template-columns: 1fr;
-    justify-content: stretch;
-  }
-
-  .teacher-stats-row {
-    grid-template-columns: minmax(140px, 1fr) repeat(3, 54px);
-  }
-
-  .teacher-stats-row > * {
-    padding-inline: 4px;
-    font-size: 0.59rem;
-  }
-
-  .guard-roster-row {
-    grid-template-columns: 100px minmax(0, 1fr);
-  }
-
-  .guard-roster-row > * {
-    padding: 5px;
-  }
-
-  .guard-roster-teachers {
-    grid-template-columns: 1fr;
-  }
-
-  .guard-roster-teacher span {
-    white-space: normal;
-  }
-
-  .my-guard-count {
-    grid-template-columns: auto auto;
-  }
-
-  .my-guard-count > small {
-    grid-column: 1 / -1;
+  .guard-matrix-row {
+    grid-template-columns: 74px repeat(5, minmax(160px, 1fr));
   }
 
   .range-builder,

@@ -146,7 +146,7 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.getByRole('heading', { name: 'Jornada encara no publicada' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Guàrdies del dia' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('.teacher-stats-panel')).toBeHidden();
-    await page.getByRole('tab', { name: 'Guàrdies realitzades' }).click();
+    await page.getByRole('tab', { name: 'Recompte de G' }).click();
     await expect(page.locator('.teacher-stats-panel')).toBeVisible();
     await page.getByRole('tab', { name: 'Guàrdies del dia' }).click();
     await expect(page.locator('#workspace')).toBeHidden();
@@ -175,13 +175,12 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(input).toHaveValue('7');
 
     await page.goto('/labs/guardies/?vista=professor');
-    await page.getByRole('tab', { name: 'Guàrdies realitzades' }).click();
-    const row = page.locator('.teacher-stats-row').filter({ hasText: 'Fuentes Serra' });
-    await expect(row.locator('[data-count-released]')).toHaveText('4');
-    await expect(row.locator('[data-count-guard]')).toHaveText('7');
-    await expect(page.locator('[data-roster-slot="1|8:00"] [data-roster-teacher="2"] [data-roster-count]')).toHaveText('7');
-    await expect(page.locator('[data-roster-slot="1|8:55"] [data-roster-teacher="3"] [data-roster-count]')).toHaveText('0');
-    await expect(page.locator('.guard-roster-panel')).toContainText('Recompte complet per franges');
+    await page.getByRole('tab', { name: 'Recompte de G' }).click();
+    await expect(page.getByRole('columnheader', { name: 'Dilluns' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Divendres' })).toBeVisible();
+    await expect(page.locator('[data-roster-slot="1|8:00"] [data-roster-teacher="2"] [data-roster-count]')).toHaveText('7 G');
+    await expect(page.locator('[data-roster-slot="1|8:55"] [data-roster-teacher="3"] [data-roster-count]')).toHaveText('0 G');
+    await expect(page.locator('.teacher-stats-table')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 
@@ -461,14 +460,13 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('.teacher-date-header #date-input')).toBeVisible();
     await expect(page.locator('.teacher-date-header .work-title, .teacher-date-header .date-summary-card, .teacher-date-header .day-command-bar')).toHaveCount(0);
     await expect(page.locator('.teacher-stats-panel')).toBeHidden();
-    await page.getByRole('tab', { name: 'Guàrdies realitzades' }).click();
+    await page.getByRole('tab', { name: 'Recompte de G' }).click();
     await expect(page.locator('.teacher-stats-panel')).toBeVisible();
     await expect(page.locator('.teacher-date-header')).toBeHidden();
     for (const selector of ['#admin-panel', '#pati-panel', '#convivencia-panel']) {
       await expect(page.locator(selector)).toBeHidden();
     }
-    const teacherCount = page.locator('.teacher-stats-row').filter({ hasText: 'Fuentes Serra' });
-    await expect(teacherCount.locator('[data-count-guard]')).toHaveText('1');
+    await expect(page.locator('[data-roster-slot="1|8:00"] [data-roster-teacher="2"] [data-roster-count]')).toHaveText('1 G');
     await page.getByRole('tab', { name: 'Guàrdies del dia' }).click();
     await page.locator('#date-input').fill('2026-09-07');
     await page.locator('#date-input').press('Tab');
