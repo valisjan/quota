@@ -726,7 +726,11 @@ export async function transitionGuardiesDay(cursId, date, action) {
       data.stats.counts = updateGuardCounts(data.stats.counts, previousCounted, []);
       Object.assign(day, { status: 'draft', publishedAt: '', closedAt: '', countedAssignments: [] });
     }
-    if (action === 'reopen') Object.assign(day, { status: 'published', closedAt: '' });
+    if (action === 'reopen') {
+      data.stats ||= { counts: {} };
+      data.stats.counts = updateGuardCounts(data.stats.counts, previousCounted, []);
+      Object.assign(day, { status: 'published', closedAt: '', countedAssignments: [] });
+    }
     if (action === 'close') {
       const countedAssignments = countedAssignmentsForDay(day);
       data.stats ||= { counts: {} };
@@ -761,7 +765,12 @@ export async function transitionGuardiesDay(cursId, date, action) {
       stats = { counts, updatedAt: serverTimestamp() };
       transaction.set(statsReference, stats);
     }
-    if (action === 'reopen') Object.assign(update, { status: 'published', closedAt: '' });
+    if (action === 'reopen') {
+      const counts = updateGuardCounts(stats.counts, day.countedAssignments || [], []);
+      Object.assign(update, { status: 'published', closedAt: '', countedAssignments: [] });
+      stats = { counts, updatedAt: serverTimestamp() };
+      transaction.set(statsReference, stats);
+    }
     if (action === 'close') {
       const countedAssignments = countedAssignmentsForDay(day);
       const counts = updateGuardCounts(stats.counts, day.countedAssignments || [], countedAssignments);

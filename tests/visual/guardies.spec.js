@@ -481,6 +481,10 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.getByRole('link', { name: 'Guàrdies', exact: true }).click();
     await page.getByRole('button', { name: 'Reobre' }).click();
     await expect(page.locator('#day-status-action')).toHaveText('Tanca jornada');
+    const reopenedCount = await page.evaluate(() => (
+      JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).stats.counts['2']
+    ));
+    expect(reopenedCount).toEqual({ total: 0, released: 0, guard: 0, other: 0, guardLegacy: 0, guardSlots: {} });
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('guardies:day-action', { detail: { action: 'unpublish' } })));
     await expect(page.locator('#day-status-action')).toHaveText('Publica');
     await page.getByRole('link', { name: 'Professorat', exact: true }).click();
