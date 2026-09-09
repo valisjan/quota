@@ -2410,7 +2410,7 @@ import {
       const slotCount = guardCountForSlot(count, dia, hora);
       return slotCount ? `${slotCount} G en aquesta franja` : '0 G';
     }
-    return count.other ? `${count.other} extra` : '0 extra';
+    return 'No té G';
   }
 
   function isAssignedElsewhere(dia, hora, placa, currentAbsenceId) {
