@@ -35,7 +35,7 @@ Els fitxers i la configuració setmanal queden guardats a Firestore dins el curs
 - Autoguardat, publicació, actualització i tancament de la jornada.
 - Implicació automàtica dels acompanyants en totes les seves classes i guàrdies.
 - Impressió A3 en una sola pàgina amb compactació adaptativa per a jornades carregades.
-- Rotació setmanal de zones de pati, festius, canvis de zona puntuals i observacions diàries.
+- Rotació setmanal i reordenació directa de zones de pati, festius, canvis de zona puntuals i observacions diàries.
 - Còmput de cobertures efectivament realitzades: alliberaments acumulats durant el curs i G separades per dia i hora setmanals.
 - Vista de professorat en mode lectura amb les jornades publicades i una matriu setmanal del professorat de G amb el recompte propi de cada franja.
 

@@ -24,6 +24,8 @@ const teacherQuery = ref('');
 const showTeacherResults = ref(false);
 const newZoneName = ref('');
 const weekAnchor = ref(state.date);
+const draggingZoneId = ref('');
+const dragTargetZoneId = ref('');
 let saveTimer = null;
 let lastSavedSignature = '';
 let replacingDraft = false;
@@ -134,6 +136,47 @@ function removeZone(zoneId) {
       }
     });
   });
+}
+
+function moveZone(zoneId, targetIndex) {
+  const fromIndex = draft.value.zones.findIndex((zone) => zone.id === zoneId);
+  if (fromIndex < 0 || targetIndex < 0 || targetIndex >= draft.value.zones.length || fromIndex === targetIndex) return;
+  const [zone] = draft.value.zones.splice(fromIndex, 1);
+  draft.value.zones.splice(targetIndex, 0, zone);
+}
+
+function startZoneDrag(event, zoneId) {
+  draggingZoneId.value = zoneId;
+  dragTargetZoneId.value = '';
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', zoneId);
+}
+
+function dropZone(event, targetIndex) {
+  const zoneId = draggingZoneId.value || event.dataTransfer.getData('text/plain');
+  moveZone(zoneId, targetIndex);
+  finishZoneDrag();
+}
+
+function finishZoneDrag() {
+  draggingZoneId.value = '';
+  dragTargetZoneId.value = '';
+}
+
+function startZonePointerDrag(event, zoneId) {
+  if (event.pointerType === 'mouse') return;
+  draggingZoneId.value = zoneId;
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+}
+
+function moveZonePointer(event) {
+  if (!draggingZoneId.value || event.pointerType === 'mouse') return;
+  const target = document.elementFromPoint(event.clientX, event.clientY)?.closest?.('[data-pati-zone-index]');
+  if (!target) return;
+  const targetZoneId = target.dataset.patiZoneId;
+  if (!targetZoneId || targetZoneId === dragTargetZoneId.value) return;
+  dragTargetZoneId.value = targetZoneId;
+  moveZone(draggingZoneId.value, Number(target.dataset.patiZoneIndex));
 }
 
 function addTeacher() {
@@ -262,7 +305,33 @@ async function saveAutomatically() {
           <button id="add-pati-zone" type="submit" :disabled="!newZoneName.trim()">Afegeix</button>
         </form>
         <div v-if="draft.zones.length" class="pati-zone-list">
-          <div v-for="(zone, index) in draft.zones" :key="zone.id" class="pati-zone-row">
+          <div
+            v-for="(zone, index) in draft.zones"
+            :key="zone.id"
+            class="pati-zone-row"
+            :class="{ 'is-dragging': draggingZoneId === zone.id, 'is-drop-target': dragTargetZoneId === zone.id }"
+            :data-pati-zone-id="zone.id"
+            :data-pati-zone-index="index"
+            @dragenter.prevent="dragTargetZoneId = zone.id"
+            @dragover.prevent
+            @drop.prevent="dropZone($event, index)"
+          >
+            <button
+              v-if="state.canWrite"
+              type="button"
+              class="pati-zone-drag"
+              draggable="true"
+              :aria-label="`Arrossega ${zone.name}`"
+              aria-keyshortcuts="ArrowUp ArrowDown"
+              @dragstart="startZoneDrag($event, zone.id)"
+              @dragend="finishZoneDrag"
+              @pointerdown="startZonePointerDrag($event, zone.id)"
+              @pointermove.prevent="moveZonePointer"
+              @pointerup="finishZoneDrag"
+              @pointercancel="finishZoneDrag"
+              @keydown.up.prevent="moveZone(zone.id, index - 1)"
+              @keydown.down.prevent="moveZone(zone.id, index + 1)"
+            ><span aria-hidden="true">✥</span></button>
             <span>{{ index + 1 }}</span>
             <input v-model.trim="zone.name" :aria-label="`Nom de la zona ${index + 1}`" :disabled="!state.canWrite" maxlength="80" />
             <button v-if="state.canWrite" type="button" class="icon-remove" :aria-label="`Elimina ${zone.name}`" @click="removeZone(zone.id)">×</button>

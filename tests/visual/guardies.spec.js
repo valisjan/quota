@@ -531,6 +531,10 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#add-pati-teacher').click();
     await expect(page.locator('.pati-roster-row')).toHaveCount(2);
     await expect(page.locator('.pati-roster-row').first()).toContainText('Fuentes Serra');
+    const zoneRows = page.locator('.pati-zone-row');
+    await zoneRows.nth(1).getByRole('button', { name: 'Arrossega Porxada' }).dragTo(zoneRows.nth(0));
+    await expect(page.getByLabel('Nom de la zona 1')).toHaveValue('Porxada');
+    await expect(page.getByLabel('Nom de la zona 2')).toHaveValue('Pista');
 
     await page.getByRole('tab', { name: 'Gestió diària' }).click();
 
@@ -589,8 +593,8 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('#coverage-list .pati-info-strip')).toContainText('Porxada');
     await page.getByRole('tab', { name: 'Configuració' }).click();
     await page.locator('#pati-panel summary').click();
-    await expect(page.getByLabel('Nom de la zona 1')).toHaveValue('Pista');
-    await expect(page.getByLabel('Nom de la zona 2')).toHaveValue('Porxada');
+    await expect(page.getByLabel('Nom de la zona 1')).toHaveValue('Porxada');
+    await expect(page.getByLabel('Nom de la zona 2')).toHaveValue('Pista');
     await expect(page.getByText('Festa del centre')).toBeVisible();
   });
 

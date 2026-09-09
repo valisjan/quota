@@ -638,9 +638,52 @@ h3 {
 
 .pati-zone-row {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) 30px;
+  grid-template-columns: 30px 24px minmax(0, 1fr) 30px;
   align-items: center;
   gap: 6px;
+  border-radius: 5px;
+  transition: background 120ms ease, opacity 120ms ease, outline-color 120ms ease;
+}
+
+.pati-zone-row.is-dragging {
+  opacity: 0.45;
+}
+
+.pati-zone-row.is-drop-target:not(.is-dragging) {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  background: var(--amber-soft);
+}
+
+.pati-zone-drag {
+  display: grid;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface-subtle);
+  color: var(--muted);
+  padding: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.pati-zone-drag:hover,
+.pati-zone-drag:focus-visible {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.pati-zone-drag:active {
+  cursor: grabbing;
+}
+
+.pati-zone-drag span {
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .pati-zone-row > span {
