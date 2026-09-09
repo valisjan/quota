@@ -447,6 +447,10 @@ test.describe('Guàrdies: comportament existent', () => {
     expect(await page.locator('.work-header').evaluate((header) => header.scrollWidth <= header.clientWidth)).toBe(true);
     await page.getByRole('button', { name: 'Publica' }).click();
     await expect(page.locator('#day-status-action')).toHaveText('Tanca jornada');
+    await page.getByRole('button', { name: 'Despublica' }).click();
+    await expect(page.locator('#day-status-action')).toHaveText('Publica');
+    await page.getByRole('button', { name: 'Publica' }).click();
+    await expect(page.locator('#day-status-action')).toHaveText('Tanca jornada');
     await page.getByRole('button', { name: 'Tanca jornada' }).click();
     await expect(page.locator('#day-status-action')).toHaveText('Reobre');
     const guardCount = await page.evaluate(() => (

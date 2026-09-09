@@ -88,7 +88,6 @@ const statusAction = computed(() => {
 
 const statusActionDisabled = computed(() => (
   dayPersistenceStatus.value === 'saving'
-  || (statusAction.value.action === 'publish' && !selectedAbsences.value.length)
 ));
 
 function changeStatus(action) {
