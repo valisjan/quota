@@ -199,9 +199,7 @@ import {
       let remoteData = await loadGuardiesData(state.courseId);
       remoteData = await migrateLegacyData(remoteData);
       applyRemoteData(remoteData);
-      state.teacherDirectory = state.isAdmin
-        ? await loadGuardiesTeacherDirectory(state.courseId).catch(() => [])
-        : [];
+      state.teacherDirectory = await loadGuardiesTeacherDirectory(state.courseId).catch(() => []);
       const stats = await loadGuardiesStats(state.courseId);
       state.guardCounts = new Map(Object.entries(stats.counts || {}));
       lastRemoteDataSignature = remoteDataSignature({ ...remoteData, stats });
@@ -2749,12 +2747,22 @@ import {
       .find((item) => item.placa === placa && (item.professorCurta || item.professorNom));
     const place = state.referencia?.places?.get(placa);
     const short = sessio?.professorCurta || place?.curta || placa;
+    const aliases = new Set([placa, short, place?.curta]
+      .map(normalizeSearch)
+      .filter(Boolean));
+    const directory = state.teacherDirectory.find((teacher) => (
+      [teacher.id, teacher.codiUntis].some((alias) => aliases.has(normalizeSearch(alias)))
+    ));
     const untis = state.professoratUntis?.professors?.get(short)
       || Array.from(state.professoratUntis?.professors?.values?.() || [])
         .find((professor) => normalizeSearch(professor.codi) === normalizeSearch(short));
+    const directoryName = String(directory?.name || '').trim();
+    const parsedName = sessio?.professorNom || untis?.label || place?.descripcio || '';
     return {
       short,
-      name: sessio?.professorNom || untis?.label || place?.descripcio || '',
+      name: directoryName && !aliases.has(normalizeSearch(directoryName))
+        ? directoryName
+        : parsedName,
     };
   }
 

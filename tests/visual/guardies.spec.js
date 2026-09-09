@@ -376,6 +376,7 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#group-search').selectOption('10');
     await page.getByRole('tab', { name: 'Professor', exact: true }).click();
     await page.locator('#professor-search').fill('MAT1');
+    await expect(page.locator('#professor-results [data-professor]').first()).toContainText('Professor Matemàtiques');
     await page.locator('#professor-results [data-professor]').first().click();
     await page.locator('#add-all-hours').click();
 

@@ -412,6 +412,7 @@ export async function loadGuardiesTeacherDirectory(cursId) {
       { id: 'ADEL', codiUntis: 'ADEL', name: 'Adell Domènech, Marina', email: 'marina.adell@iesjosepsuredaiblanes.com' },
       { id: 'FUEN', codiUntis: 'FUEN', name: 'Fuentes Serra, Gabriel', email: 'gabriel.fuentes@iesjosepsuredaiblanes.com' },
       { id: 'SANZ', codiUntis: 'SANZ', name: 'Sanz Vidal, Clara', email: 'clara.sanz@iesjosepsuredaiblanes.com' },
+      { id: 'MAT1', codiUntis: 'MAT1', name: 'Professor Matemàtiques', email: 'matematiques@iesjosepsuredaiblanes.com' },
       ...getE2ECollection('professors').map((teacher) => ({
         id: teacher.id,
         codiUntis: teacher.codiUntis || teacher.id,
@@ -421,12 +422,16 @@ export async function loadGuardiesTeacherDirectory(cursId) {
     ];
   }
 
-  const [courseSnapshot, usersSnapshot, preauthorizedSnapshot] = await withNetworkRetry(() => Promise.all([
-    readCollection(collection(db, 'cursos', cursId, 'professors')),
-    readCollection(collection(db, 'usuaris')),
-    readCollection(collection(db, 'preautoritzats')),
-  ]));
-  const profiles = [...usersSnapshot.docs, ...preauthorizedSnapshot.docs].map((item) => ({
+  const courseSnapshot = await withNetworkRetry(() => (
+    readCollection(collection(db, 'cursos', cursId, 'professors'))
+  ));
+  const profileSnapshots = await Promise.all([
+    collection(db, 'usuaris'),
+    collection(db, 'preautoritzats'),
+  ].map((reference) => withNetworkRetry(() => readCollection(reference)).catch(() => null)));
+  const profiles = profileSnapshots
+    .flatMap((snapshot) => snapshot?.docs || [])
+    .map((item) => ({
     ...item.data(),
     id: item.id,
   }));
