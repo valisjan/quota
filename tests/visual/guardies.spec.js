@@ -217,6 +217,9 @@ test.describe('Guàrdies: comportament existent', () => {
     await newPhrase.fill('Feina a Classroom');
     await newPhrase.press('Enter');
     await expect(page.locator('#observation-presets-panel')).toContainText('Feina a Classroom');
+    await newPhrase.fill('Material al calaix');
+    await newPhrase.press('Enter');
+    await expect(page.locator('#observation-presets-panel')).toContainText('Material al calaix');
 
     await page.getByRole('tab', { name: 'Gestió diària' }).click();
     await page.locator('#date-input').fill('2026-09-07');
@@ -227,12 +230,16 @@ test.describe('Guàrdies: comportament existent', () => {
     const row = page.locator('#coverage-list .coverage-row').filter({ has: page.locator('[data-comment]') }).first();
     await row.locator('[data-comment-preset]').selectOption({ label: 'Feina a Classroom' });
     await expect(row.locator('[data-comment]')).toHaveValue('Feina a Classroom');
-    await row.locator('[data-comment]').fill('Material excepcional al calaix');
+    await row.locator('[data-comment-preset]').selectOption({ label: 'Material al calaix' });
+    await expect(row.locator('[data-comment]')).toHaveValue('Feina a Classroom · Material al calaix');
+    await row.locator('[data-comment-preset]').selectOption({ label: 'Feina a Classroom' });
+    await expect(row.locator('[data-comment]')).toHaveValue('Feina a Classroom · Material al calaix');
+    await row.locator('[data-comment]').fill('Feina a Classroom · Material al calaix · Indicació excepcional');
     await expect(row.locator('[data-comment-preset]')).toHaveValue('');
 
     await page.waitForTimeout(500);
     await page.reload();
-    await expect(page.locator('[data-comment]')).toHaveValue('Material excepcional al calaix');
+    await expect(page.locator('[data-comment]')).toHaveValue('Feina a Classroom · Material al calaix · Indicació excepcional');
     await page.getByRole('tab', { name: 'Configuració' }).click();
     await page.locator('#observation-presets-panel summary').click();
     await expect(page.locator('#observation-presets-panel')).toContainText('Feina a Classroom');

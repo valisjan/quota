@@ -3563,9 +3563,12 @@ h3 {
 
   .coverage-session-head {
     min-height: 5.5mm;
-    background: #d2d2d2 !important;
+    background: #e6e6e6 !important;
     border-bottom: 1px solid #444;
     padding: 0.8mm 2mm;
+  }
+  .pati-session .coverage-session-head {
+    background: #d6d6d6 !important;
   }
   .coverage-session-head h3 { font-size: 8pt; }
   .coverage-session-head span { padding: 0.4mm 1.4mm; font-size: 6pt; }

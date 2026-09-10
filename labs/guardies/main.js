@@ -1826,7 +1826,7 @@ import {
         updateComment(input.dataset.comment, input.value);
         const preset = Array.from(el.coverageList.querySelectorAll('[data-comment-preset]'))
           .find((node) => node.dataset.commentPreset === input.dataset.comment);
-        if (preset) preset.value = state.observationPresets.includes(input.value.trim()) ? input.value.trim() : '';
+        if (preset) preset.value = '';
       });
     });
 
@@ -1835,8 +1835,14 @@ import {
         if (state.dayStatus === 'closed' || !select.value) return;
         const input = Array.from(el.coverageList.querySelectorAll('[data-comment]'))
           .find((node) => node.dataset.comment === select.dataset.commentPreset);
-        if (input) input.value = select.value;
-        updateComment(select.dataset.commentPreset, select.value);
+        const phrase = select.value.trim();
+        const current = input?.value.trim() || '';
+        const alreadyIncluded = current.split(/\s+·\s+/)
+          .some((part) => normalizeSearch(part) === normalizeSearch(phrase));
+        const next = alreadyIncluded ? current : [current, phrase].filter(Boolean).join(' · ');
+        if (input) input.value = next;
+        select.value = '';
+        updateComment(select.dataset.commentPreset, next);
       });
     });
 
@@ -2631,8 +2637,8 @@ import {
         : `<strong class="readonly-assignment ${assignat ? 'assigned' : 'pending'}">${escapeHtml(assignat ? labelProfessor(assignat) : 'Sense cobrir')}</strong>`;
     const commentControl = state.canWrite
       ? `<select data-comment-preset="${escapeHtml(item.id)}" aria-label="Observació preestablerta" ${locked || !state.observationPresets.length ? 'disabled' : ''}>
-          <option value="">Frase preestablerta…</option>
-          ${state.observationPresets.map((phrase) => `<option value="${escapeHtml(phrase)}" ${phrase === comentari ? 'selected' : ''}>${escapeHtml(phrase)}</option>`).join('')}
+          <option value="">Afegeix una frase…</option>
+          ${state.observationPresets.map((phrase) => `<option value="${escapeHtml(phrase)}">${escapeHtml(phrase)}</option>`).join('')}
         </select>
         <textarea data-comment="${escapeHtml(item.id)}" rows="2" placeholder="Observació lliure" ${locked ? 'disabled' : ''}>${escapeHtml(comentari)}</textarea>`
       : `<span class="readonly-comment">${escapeHtml(comentari || 'Sense observacions')}</span>`;
