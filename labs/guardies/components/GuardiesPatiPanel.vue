@@ -44,7 +44,7 @@ function cloneConfig(value) {
 function teacherLabel(teacherId) {
   return state.professorOptions.find((teacher) => teacher.placa === teacherId)?.label
     || teacherId
-    || 'Professor sense nom';
+    || 'Professor/a sense nom';
 }
 
 function signature(value) {
@@ -392,7 +392,7 @@ async function saveAutomatically() {
               type="search"
               autocomplete="off"
               placeholder="Escriu nom o codi del professor..."
-              aria-label="Professor que fa guàrdia de pati"
+              aria-label="Professor/a que fa guàrdia de pati"
               aria-autocomplete="list"
               :aria-expanded="showTeacherResults && teacherResults.length > 0"
               :aria-activedescendant="showTeacherResults && teacherResults.length ? `pati-teacher-result-${activeTeacherResult}` : undefined"

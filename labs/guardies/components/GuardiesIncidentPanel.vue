@@ -84,7 +84,7 @@ onBeforeUnmount(() => {
           aria-controls="professor-mode"
           data-intake-mode="professor"
         >
-          Professor
+          Professor/a
         </button>
         <button
           type="button"
@@ -101,7 +101,7 @@ onBeforeUnmount(() => {
 
     <section id="professor-mode" class="mode-panel" role="tabpanel" data-mode-panel="professor">
       <div class="teacher-search">
-        <label for="professor-search">Professor absent</label>
+        <label for="professor-search">Professor/a absent</label>
         <input
           id="professor-search"
           type="search"

@@ -1103,7 +1103,7 @@ import {
         role="option"
         aria-selected="false"
       >
-        <strong>${escapeHtml(professor.name || professor.short || 'Professor sense nom')}</strong>
+        <strong>${escapeHtml(professor.name || professor.short || 'Professor/a sense nom')}</strong>
         ${professor.name && professor.short ? `<span>${escapeHtml(professor.short)}</span>` : ''}
       </button>
     `).join('');
@@ -1760,11 +1760,13 @@ import {
     const selectedByHour = new Map(groupBySession(coverageItems).map((group) => [group.hora, group.items]));
 
     const dayHours = hoursForSelectedDay();
+    const teachingHours = dayHours.filter((hora) => hora !== 'PATI');
+    const seventhHour = teachingHours.length >= 7 ? teachingHours[6] : '';
     el.coverageList.innerHTML = warning + dayHours.map((hora) => {
       const items = selectedByHour.get(hora) || [];
       const visibleItems = hora === 'PATI' ? [] : items;
       return `
-      <section class="coverage-session ${hora === 'PATI' ? 'pati-session' : ''}">
+      <section class="coverage-session ${hora === 'PATI' ? 'pati-session' : ''} ${hora === seventhHour ? 'seventh-session' : ''}">
         <div class="coverage-session-head">
           <h3>${escapeHtml(horaLabel(hora))}</h3>
           <span>${items.length ? `${items.length} ${items.length === 1 ? 'absència' : 'absències'}` : 'Sense absències'}</span>
@@ -1774,9 +1776,9 @@ import {
           <div class="coverage-session-list">
             <div class="coverage-table">
               <div class="coverage-row coverage-row-head">
-                <span>Professor</span>
+                <span>Professor/a</span>
                 <span>Grup, matèria i aula</span>
-                <span>Professor preassignat</span>
+                <span>Professor/a preassignat/ada</span>
                 <span>Observacions</span>
               </div>
               ${visibleItems.map(renderCoverageRow).join('')}
@@ -2603,6 +2605,10 @@ import {
     const assignatIsConvivencia = assignat && isConvivenciaProfessor(item.dia, item.hora, assignat);
     const cancelled = state.cancelledAssignments.has(item.id);
     const taskLabel = isPati ? 'Pati · GP' : isGuardiaItem(item) ? formatMateria(item) : group;
+    const printSessionDetail = (isGuardiaItem(item)
+      ? [taskLabel]
+      : [group, subject, room]
+    ).filter(Boolean).join(' · ');
     const locked = state.dayStatus === 'closed' || !state.canWrite;
     const assignmentControl = isPati
       ? '<span class="info-only-label">Informatiu · no se substitueix</span>'
@@ -2634,15 +2640,16 @@ import {
     return `
       <article class="coverage-item coverage-row ${assignat ? 'covered' : ''} ${cancelled ? 'not-completed' : ''} ${isPati ? 'informational' : ''}">
         <div class="coverage-professor-cell">
-          <span class="cell-kicker">Falta</span>
+          <span class="cell-kicker">Absència</span>
           <strong>${escapeHtml(absentTeacherIds.map(labelProfessor).join(' · '))}</strong>
           ${state.canWrite ? `<button type="button" class="icon-remove no-print" aria-label="Elimina aquesta absència" data-remove-absence="${escapeHtml(item.id)}" data-remove-absences="${escapeHtml((item.absenceIds || [item.id]).join(','))}" ${locked ? 'disabled' : ''}>X</button>` : ''}
         </div>
         <div class="coverage-detail-cell">
           <span class="cell-kicker">Sessió</span>
-          <strong>${escapeHtml(taskLabel)}</strong>
-          <span>${escapeHtml(isGuardiaItem(item) ? 'Torn sense cobrir' : subject)}</span>
-          ${room ? `<span>${escapeHtml(room)}</span>` : ''}
+          <strong class="no-print">${escapeHtml(taskLabel)}</strong>
+          ${isGuardiaItem(item) ? '' : `<span class="no-print">${escapeHtml(subject)}</span>`}
+          ${room ? `<span class="no-print">${escapeHtml(room)}</span>` : ''}
+          <span class="print-only print-session-detail">${escapeHtml(printSessionDetail)}</span>
         </div>
         <div class="coverage-assignment-cell ${hasReleasedCandidates ? 'has-released-candidates' : ''} ${hasCandidates && !hasAvailableCandidates ? 'only-unavailable' : ''}">
           ${assignmentControl}
@@ -2677,7 +2684,7 @@ import {
         </div>
         <div class="assignment">
           <select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates ? '' : 'disabled'}>
-            <option value="">Professor preassignat</option>
+            <option value="">Professor/a preassignat/ada</option>
             ${candidates.map((candidate) => `
               <option
                 class="candidate-option ${candidateOptionClass(candidate)}"
@@ -2777,7 +2784,7 @@ import {
     const info = professorInfo(placa);
     if (info.name && info.short && info.name !== info.short) return `${info.name} · ${info.short}`;
     if (info.name) return info.name;
-    return info.short || 'Professor sense nom';
+    return info.short || 'Professor/a sense nom';
   }
 
   function isExcludedTeacher(teacherId) {

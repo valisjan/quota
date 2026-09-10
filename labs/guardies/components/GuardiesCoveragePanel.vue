@@ -5,11 +5,9 @@ import { useGuardiesStore } from '../stores/guardies.js';
 import { mergeSharedClassroomAbsences } from '../../../src/modules/guardies/domain/day.js';
 
 const store = useGuardiesStore();
-const { absencies, assignacions, sessions, canWrite, dayStatus, updatedAt } = storeToRefs(store);
+const { absencies, assignacions, sessions, canWrite, dayStatus } = storeToRefs(store);
 const autoAssignmentFeedback = ref('');
 const autoAssignmentFeedbackKind = ref('');
-const statusLabel = computed(() => ({ draft: 'ESBORRANY', published: 'PUBLICADA', closed: 'TANCADA' }[dayStatus.value] || 'ESBORRANY'));
-const printedAt = computed(() => new Intl.DateTimeFormat('ca-ES', { dateStyle: 'short', timeStyle: 'short' }).format(new Date()));
 const canAutoAssign = computed(() => canWrite.value && dayStatus.value !== 'closed' && mergeSharedClassroomAbsences({
   sessions: sessions.value,
   absences: absencies.value,
@@ -35,9 +33,12 @@ onBeforeUnmount(() => window.removeEventListener('guardies:auto-assign-result', 
 <template>
   <section class="day-panel">
     <div class="print-header">
-      <h1>Guàrdies del dia</h1>
+      <img src="/logo_IESJSB_nav.png" alt="" />
+      <div class="print-title-copy">
+        <span>IES Josep Sureda i Blanes</span>
+        <h1>Guàrdies del dia</h1>
+      </div>
       <p id="print-date-label"></p>
-      <div class="print-meta"><strong>{{ statusLabel }}</strong> · Impressió {{ printedAt }}<span v-if="updatedAt"> · Versió actualitzada</span></div>
     </div>
     <div class="day-panel-head no-print">
       <div>

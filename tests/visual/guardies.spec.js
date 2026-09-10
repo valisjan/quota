@@ -65,6 +65,12 @@ const sharedDutiesFile = {
   buffer: Buffer.from(`${dutiesText}\n14,"1ESO-A","FUEN","MAT","AUL14",1,2,,`),
 };
 
+const sevenSessionsDutiesFile = {
+  name: 'GPU001.TXT',
+  mimeType: 'text/plain',
+  buffer: Buffer.from(`${dutiesText}\n21,"1ESO-A","ADEL","MAT","AUL14",1,6,,\n22,"1ESO-A","ADEL","MAT","AUL14",1,7,,`),
+};
+
 async function openGuardies(page) {
   await page.goto('/labs/guardies/');
   await expect(page.locator('#cache-info')).toContainText('E2E 2026-27');
@@ -374,7 +380,7 @@ test.describe('Guàrdies: comportament existent', () => {
 
     await page.getByRole('tab', { name: 'Grup de sortida' }).click();
     await page.locator('#group-search').selectOption('10');
-    await page.getByRole('tab', { name: 'Professor', exact: true }).click();
+    await page.getByRole('tab', { name: 'Professor/a', exact: true }).click();
     await page.locator('#professor-search').fill('MAT1');
     await expect(page.locator('#professor-results [data-professor]').first()).toContainText('Professor Matemàtiques');
     await page.locator('#professor-results [data-professor]').first().click();
@@ -414,6 +420,9 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#add-all-hours').click();
     await expect(page.locator('#coverage-list [data-assignacio]')).toHaveCount(3);
     await expect(page.locator('#print-coverage')).toBeEnabled();
+    const guardDutyDetail = page.locator('.coverage-detail-cell').filter({ hasText: 'Guàrdia' }).first();
+    await expect(guardDutyDetail).not.toContainText('Torn sense cobrir');
+    await expect(page.locator('.coverage-professor-cell .cell-kicker').first()).toHaveText('Absència');
 
     const firstAssignment = page.locator('#coverage-list [data-assignacio]').first();
     const candidateLabels = await firstAssignment.locator('option').allTextContents();
@@ -714,8 +723,14 @@ test.describe('Guàrdies: comportament existent', () => {
     }
     await page.emulateMedia({ media: 'print' });
     await expect(page.locator('.print-header')).toBeVisible();
+    await expect(page.locator('.print-header > img')).toBeVisible();
+    await expect(page.locator('.print-header')).not.toContainText('ESBORRANY');
     await expect(page.locator('.entry-panel')).toBeHidden();
     expect(await page.locator('.coverage-session').count()).toBeGreaterThan(0);
+    const printedSession = page.locator('.print-session-detail').first();
+    await expect(printedSession).toBeVisible();
+    await expect(printedSession).toContainText('1ESO-A · MAT · Aula 14');
+    await expect(page.locator('.coverage-detail-cell > strong.no-print').first()).toBeHidden();
     if (testInfo.project.name === 'chromium-desktop') {
       const pdf = await page.pdf({ printBackground: true, preferCSSPageSize: true });
       const raw = pdf.toString('latin1');
@@ -731,6 +746,10 @@ test.describe('Guàrdies: comportament existent', () => {
     test.skip(testInfo.project.name !== 'chromium-desktop');
     await openGuardies(page);
     await uploadConfiguration(page);
+    await page.getByRole('tab', { name: 'Configuració' }).click();
+    await page.locator('#duties-file').setInputFiles(sevenSessionsDutiesFile);
+    await expect(page.locator('[data-upload-status="duties"]')).toHaveText('OK');
+    await page.getByRole('tab', { name: 'Gestió diària' }).click();
     await page.locator('#date-input').fill('2026-09-07');
     await page.locator('#date-input').press('Tab');
     await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
@@ -739,13 +758,15 @@ test.describe('Guàrdies: comportament existent', () => {
     const layout = await page.evaluate(() => {
       const panel = document.querySelector('.day-panel').getBoundingClientRect();
       const list = document.querySelector('#coverage-list').getBoundingClientRect();
-      const sessions = Array.from(document.querySelectorAll('.coverage-session:not(.pati-session)'))
+      const sessions = Array.from(document.querySelectorAll('.coverage-session:not(.pati-session):not(.seventh-session)'))
         .map((node) => node.getBoundingClientRect());
       const patio = document.querySelector('.coverage-session.pati-session').getBoundingClientRect();
+      const seventh = document.querySelector('.coverage-session.seventh-session').getBoundingClientRect();
       return {
         panelHeight: panel.height,
         sessionHeights: sessions.map((box) => box.height),
         patioHeight: patio.height,
+        seventhHeight: seventh.height,
         bottomGap: Math.abs(panel.bottom - list.bottom),
       };
     });
@@ -753,6 +774,8 @@ test.describe('Guàrdies: comportament existent', () => {
     expect(layout.panelHeight).toBeGreaterThan(1500);
     expect(Math.max(...layout.sessionHeights) - Math.min(...layout.sessionHeights)).toBeLessThan(2);
     expect(layout.patioHeight).toBeLessThan(Math.min(...layout.sessionHeights));
+    expect(layout.seventhHeight).toBeLessThan(Math.min(...layout.sessionHeights));
+    expect(layout.seventhHeight).toBeGreaterThan(25);
     expect(layout.bottomGap).toBeLessThan(2);
   });
 });
