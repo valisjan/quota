@@ -87,7 +87,7 @@ const guardMatrix = computed(() => {
     <header class="teacher-stats-head">
       <div>
         <p class="kicker">Curs {{ courseName }}</p>
-        <h2 id="teacher-stats-title">Recompte de G per franja</h2>
+        <h2 id="teacher-stats-title">Recompte de guàrdies per hores</h2>
       </div>
     </header>
 
@@ -118,13 +118,13 @@ const guardMatrix = computed(() => {
               :data-roster-teacher="teacher.teacherId"
             >
               <span>{{ teacher.label }}</span>
-              <b data-roster-count :aria-label="`${teacher.count} G realitzades en aquesta franja`">{{ teacher.count }} G</b>
+              <b data-roster-count :aria-label="`${teacher.count} guàrdies realitzades en aquesta hora`">{{ teacher.count }}</b>
             </article>
             <span v-if="!cell.teachers.length" class="guard-matrix-empty">—</span>
           </div>
         </div>
       </div>
     </div>
-    <div v-else class="empty-small">No hi ha franges de G configurades.</div>
+    <div v-else class="empty-small">No hi ha hores de guàrdia configurades.</div>
   </section>
 </template>

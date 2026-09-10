@@ -3516,10 +3516,10 @@ h3 {
   }
 
   .print-header {
-    display: grid;
-    grid-template-columns: 27mm minmax(0, 1fr) auto;
+    display: grid !important;
+    grid-template-columns: 20mm minmax(0, 1fr) auto;
     align-items: center;
-    gap: 3mm;
+    gap: 2mm;
     border: 1.5px solid #333;
     border-left-width: 4mm;
     background: #ededed !important;
@@ -3528,26 +3528,29 @@ h3 {
   }
 
   .print-header > img {
-    width: 27mm;
-    height: 10mm;
+    width: 20mm;
+    height: 7mm;
     object-fit: contain;
     object-position: left center;
     filter: grayscale(1) contrast(1.2);
   }
-  .print-title-copy span {
-    display: block;
-    color: #444;
-    font-size: 6.5pt;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+  .print-title-copy {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    gap: 3mm;
+    white-space: nowrap;
   }
-  .print-header h1 { margin: 0.3mm 0 0; font-size: 15pt; line-height: 1; }
+  .print-title-copy span {
+    display: none !important;
+    color: #444;
+  }
+  .print-header h1 { margin: 0; font-size: 12pt; line-height: 1; }
   .print-header p {
     margin: 0;
     border-left: 1px solid #777;
-    padding-left: 3mm;
-    font-size: 15pt;
+    padding-left: 2mm;
+    font-size: 12pt;
     font-weight: 850;
     white-space: nowrap;
   }
@@ -3709,7 +3712,7 @@ h3 {
     padding-block: 1mm;
   }
 
-  html[data-guardies-print-density="compact"] .print-header > img { height: 8mm; }
+  html[data-guardies-print-density="compact"] .print-header > img { height: 7mm; }
   html[data-guardies-print-density="compact"] .print-header h1 { font-size: 12pt; }
   html[data-guardies-print-density="compact"] .print-header p { font-size: 12pt; }
   html[data-guardies-print-density="compact"] .coverage-list { gap: 0.7mm; }

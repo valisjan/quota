@@ -68,7 +68,7 @@ window.addEventListener('guardies:auth-ready', () => {
     </section>
     <nav v-if="!authRequired" class="teacher-view-tabs no-print" aria-label="Vista del professorat" role="tablist">
       <button type="button" role="tab" :aria-selected="teacherSection === 'daily'" :class="{ active: teacherSection === 'daily' }" @click="store.teacherSection = 'daily'">Guàrdies del dia</button>
-      <button type="button" role="tab" :aria-selected="teacherSection === 'stats'" :class="{ active: teacherSection === 'stats' }" @click="store.teacherSection = 'stats'">Recompte de G</button>
+      <button type="button" role="tab" :aria-selected="teacherSection === 'stats'" :class="{ active: teacherSection === 'stats' }" @click="store.teacherSection = 'stats'">Recompte de guàrdies</button>
     </nav>
     <GuardiesTeacherStats v-show="!authRequired && teacherSection === 'stats'" />
   </Teleport>
