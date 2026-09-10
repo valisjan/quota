@@ -2536,6 +2536,16 @@ h3 {
   font-size: 0.71rem;
 }
 
+.coverage-detail-cell .coverage-group-label,
+.coverage-detail-cell .coverage-room-label {
+  font-weight: 900;
+}
+
+.coverage-detail-cell .coverage-room-label {
+  margin-top: 2px;
+  font-size: 0.68rem;
+}
+
 .coverage-detail-cell span:not(.cell-kicker) {
   margin-top: 1px;
   color: var(--text-soft);
@@ -3068,7 +3078,7 @@ h3 {
 
 .print-header,
 .print-only {
-  display: none;
+  display: none !important;
 }
 
 @media (max-width: 1120px) {
@@ -3482,7 +3492,7 @@ h3 {
 
   .print-header,
   .print-only {
-    display: block;
+    display: block !important;
   }
 
   .coverage-list {
@@ -3566,6 +3576,13 @@ h3 {
     background: #e6e6e6 !important;
     border-bottom: 1px solid #444;
     padding: 0.8mm 2mm;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .coverage-session:not(.pati-session) .coverage-session-head span {
+    border-color: #999;
+    background: transparent !important;
+    color: #000;
   }
   .pati-session .coverage-session-head {
     background: #d6d6d6 !important;
@@ -3596,6 +3613,11 @@ h3 {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .print-session-detail .print-detail-highlight {
+    display: inline;
+    font-size: inherit;
+    font-weight: 900;
   }
   .cell-kicker { display: none !important; }
   .pati-info-strip { grid-template-columns: 22mm minmax(0, 1fr); padding: 1mm; }

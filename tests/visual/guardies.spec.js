@@ -448,6 +448,9 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#date-input').fill('2026-09-07');
     await page.locator('#date-input').press('Tab');
     await expect(page.locator('#coverage-list [data-assignacio]')).toHaveCount(3);
+    await expect(page.locator('.print-session-detail').first()).toBeHidden();
+    await expect(page.locator('.coverage-group-label').first()).toHaveCSS('font-weight', '900');
+    await expect(page.locator('.coverage-room-label').first()).toHaveCSS('font-weight', '900');
     const sessionHeaderStyle = await page.locator('.coverage-session:not(.pati-session) .coverage-session-head').first().evaluate((node) => {
       const style = getComputedStyle(node);
       return {
@@ -492,7 +495,11 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.getByRole('tab', { name: 'Guàrdies del dia' }).click();
     await page.locator('#date-input').fill('2026-09-07');
     await page.locator('#date-input').press('Tab');
+    const publicAbsentTeacher = page.locator('.coverage-professor-cell strong.no-print').first();
+    await expect(publicAbsentTeacher).toHaveText('Adell Domènech, Marina');
+    await expect(publicAbsentTeacher).not.toContainText('ADEL');
     await expect(page.locator('.readonly-assignment').filter({ hasText: 'Fuentes Serra' })).toHaveCount(1);
+    await expect(page.locator('.readonly-assignment').filter({ hasText: 'Fuentes Serra' })).not.toContainText('·');
     await expect(page.locator('[data-assignacio], [data-remove-absence]')).toHaveCount(0);
     const readonlyRow = page.locator('.coverage-item.coverage-row').filter({ has: page.locator('.readonly-assignment') }).first();
     const cellTops = await readonlyRow.locator(':scope > .coverage-professor-cell, :scope > .coverage-detail-cell, :scope > .coverage-assignment-cell, :scope > .coverage-comment-cell')
@@ -737,7 +744,16 @@ test.describe('Guàrdies: comportament existent', () => {
     const printedSession = page.locator('.print-session-detail').first();
     await expect(printedSession).toBeVisible();
     await expect(printedSession).toContainText('1ESO-A · MAT · Aula 14');
+    await expect(printedSession.locator('.print-detail-highlight')).toHaveCount(2);
+    await expect(printedSession.locator('.print-detail-highlight').first()).toHaveText('1ESO-A');
+    await expect(printedSession.locator('.print-detail-highlight').last()).toHaveText('Aula 14');
+    const printedAbsentTeacher = page.locator('.coverage-professor-cell .print-only').first();
+    await expect(printedAbsentTeacher).toHaveText('Adell Domènech, Marina');
+    await expect(printedAbsentTeacher).not.toContainText('ADEL');
     await expect(page.locator('.coverage-detail-cell > strong.no-print').first()).toBeHidden();
+    const printedHourHeader = page.locator('.coverage-session:not(.pati-session) .coverage-session-head').first();
+    await expect(printedHourHeader).toHaveCSS('background-color', 'rgb(230, 230, 230)');
+    await expect(printedHourHeader.locator('span')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     if (testInfo.project.name === 'chromium-desktop') {
       const pdf = await page.pdf({ printBackground: true, preferCSSPageSize: true });
       const raw = pdf.toString('latin1');

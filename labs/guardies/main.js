@@ -2030,7 +2030,8 @@ import {
                 aria-label="${escapeHtml(`${assignment.zoneName}: ${labelProfessor(assignment.teacherId)}${absent ? ', absent' : ''}`)}"
               >
                 ${zoneControl}
-                <span class="pati-teacher-name">${escapeHtml(labelProfessor(assignment.teacherId))}</span>
+                <span class="pati-teacher-name no-print">${escapeHtml(labelProfessor(assignment.teacherId))}</span>
+                <span class="pati-teacher-name print-only">${escapeHtml(labelProfessor(assignment.teacherId, true))}</span>
                 ${absent
                   ? '<small class="pati-absence-badge">Absent</small>'
                   : assignment.overridden
@@ -2611,15 +2612,18 @@ import {
     const assignatIsConvivencia = assignat && isConvivenciaProfessor(item.dia, item.hora, assignat);
     const cancelled = state.cancelledAssignments.has(item.id);
     const taskLabel = isPati ? 'Pati · GP' : isGuardiaItem(item) ? formatMateria(item) : group;
-    const printSessionDetail = (isGuardiaItem(item)
-      ? [taskLabel]
-      : [group, subject, room]
-    ).filter(Boolean).join(' · ');
+    const printSessionDetail = isGuardiaItem(item)
+      ? escapeHtml(taskLabel)
+      : [
+          `<strong class="print-detail-highlight">${escapeHtml(group)}</strong>`,
+          escapeHtml(subject),
+          room ? `<strong class="print-detail-highlight">${escapeHtml(room)}</strong>` : '',
+        ].filter(Boolean).join(' · ');
     const locked = state.dayStatus === 'closed' || !state.canWrite;
     const assignmentControl = isPati
       ? '<span class="info-only-label">Informatiu · no se substitueix</span>'
       : coTeacher
-        ? `<strong class="readonly-assignment assigned">${escapeHtml(labelProfessor(coTeacher))}</strong><span class="co-teacher-badge">Queda amb el grup</span>`
+        ? `<strong class="readonly-assignment assigned no-print">${escapeHtml(labelProfessor(coTeacher))}</strong><span class="co-teacher-badge no-print">Queda amb el grup</span>`
       : state.canWrite
         ? `<select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates && !locked ? '' : 'disabled'}>
             <option value="">Sense preassignar</option>
@@ -2634,7 +2638,7 @@ import {
               </option>
             `).join('')}
           </select>`
-        : `<strong class="readonly-assignment ${assignat ? 'assigned' : 'pending'}">${escapeHtml(assignat ? labelProfessor(assignat) : 'Sense cobrir')}</strong>`;
+        : `<strong class="readonly-assignment no-print ${assignat ? 'assigned' : 'pending'}">${escapeHtml(assignat ? labelProfessor(assignat) : 'Sense cobrir')}</strong>`;
     const commentControl = state.canWrite
       ? `<select data-comment-preset="${escapeHtml(item.id)}" aria-label="Observació preestablerta" ${locked || !state.observationPresets.length ? 'disabled' : ''}>
           <option value="">Afegeix una frase…</option>
@@ -2647,20 +2651,21 @@ import {
       <article class="coverage-item coverage-row ${assignat ? 'covered' : ''} ${cancelled ? 'not-completed' : ''} ${isPati ? 'informational' : ''}">
         <div class="coverage-professor-cell">
           <span class="cell-kicker">Absència</span>
-          <strong>${escapeHtml(absentTeacherIds.map(labelProfessor).join(' · '))}</strong>
+          <strong class="no-print">${escapeHtml(absentTeacherIds.map((teacherId) => labelProfessor(teacherId)).join(' · '))}</strong>
+          <strong class="print-only">${escapeHtml(absentTeacherIds.map((teacherId) => labelProfessor(teacherId, true)).join(' · '))}</strong>
           ${state.canWrite ? `<button type="button" class="icon-remove no-print" aria-label="Elimina aquesta absència" data-remove-absence="${escapeHtml(item.id)}" data-remove-absences="${escapeHtml((item.absenceIds || [item.id]).join(','))}" ${locked ? 'disabled' : ''}>X</button>` : ''}
         </div>
         <div class="coverage-detail-cell">
           <span class="cell-kicker">Sessió</span>
-          <strong class="no-print">${escapeHtml(taskLabel)}</strong>
+          <strong class="no-print coverage-group-label">${escapeHtml(taskLabel)}</strong>
           ${isGuardiaItem(item) ? '' : `<span class="no-print">${escapeHtml(subject)}</span>`}
-          ${room ? `<span class="no-print">${escapeHtml(room)}</span>` : ''}
-          <span class="print-only print-session-detail">${escapeHtml(printSessionDetail)}</span>
+          ${room ? `<strong class="no-print coverage-room-label">${escapeHtml(room)}</strong>` : ''}
+          <span class="print-only print-session-detail">${printSessionDetail}</span>
         </div>
         <div class="coverage-assignment-cell ${hasReleasedCandidates ? 'has-released-candidates' : ''} ${hasCandidates && !hasAvailableCandidates ? 'only-unavailable' : ''}">
           ${assignmentControl}
           ${assignatIsConvivencia ? '<span class="convivencia-badge">Convivència · ús excepcional</span>' : ''}
-          <span class="print-only print-assignment">${escapeHtml(assignat ? `${labelProfessor(assignat)}${coTeacher ? ' · Queda amb el grup' : ''}` : '')}</span>
+          <span class="print-only print-assignment">${escapeHtml(assignat ? `${labelProfessor(assignat, true)}${coTeacher ? ' · Queda amb el grup' : ''}` : '')}</span>
           ${state.canWrite && assignat && !isPati && !coTeacher ? `<label class="completion-toggle no-print"><input type="checkbox" data-cancel-assignment="${escapeHtml(item.id)}" ${cancelled ? 'checked' : ''} ${locked ? 'disabled' : ''} /> No realitzada</label>` : ''}
         </div>
         <div class="coverage-comment-cell">
@@ -2786,8 +2791,13 @@ import {
     return professorInfo(placa).short || '';
   }
 
-  function labelProfessor(placa) {
+  function labelProfessor(placa, forcePublic = false) {
     const info = professorInfo(placa);
+    const publicView = forcePublic || state.teacherView;
+    if (publicView) {
+      if (info.name && normalizeSearch(info.name) !== normalizeSearch(info.short || placa)) return info.name;
+      return `(${info.short || info.name || placa || 'Professor/a sense nom'})`;
+    }
     if (info.name && info.short && info.name !== info.short) return `${info.name} · ${info.short}`;
     if (info.name) return info.name;
     return info.short || 'Professor/a sense nom';
