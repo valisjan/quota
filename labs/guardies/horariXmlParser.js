@@ -140,12 +140,11 @@
         const codi = fields[0] || '';
         if (!codi) return;
         const cognoms = fields[1] || '';
-        const nom = semblaNom(fields[28]) ? fields[28] : '';
         addProfessorUntis(professorat, {
           codi,
           cognoms,
-          nom,
-          label: nomProfessor(cognoms, nom, codi),
+          nom: '',
+          label: cognoms || codi,
         });
       });
 

@@ -726,4 +726,33 @@ test.describe('Guàrdies: comportament existent', () => {
       expect(Number(mediaBox?.[2])).toBeGreaterThan(1190);
     }
   });
+
+  test('la versió impresa reparteix el buit entre les sessions i omple l A3', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium-desktop');
+    await openGuardies(page);
+    await uploadConfiguration(page);
+    await page.locator('#date-input').fill('2026-09-07');
+    await page.locator('#date-input').press('Tab');
+    await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+    await page.emulateMedia({ media: 'print' });
+
+    const layout = await page.evaluate(() => {
+      const panel = document.querySelector('.day-panel').getBoundingClientRect();
+      const list = document.querySelector('#coverage-list').getBoundingClientRect();
+      const sessions = Array.from(document.querySelectorAll('.coverage-session:not(.pati-session)'))
+        .map((node) => node.getBoundingClientRect());
+      const patio = document.querySelector('.coverage-session.pati-session').getBoundingClientRect();
+      return {
+        panelHeight: panel.height,
+        sessionHeights: sessions.map((box) => box.height),
+        patioHeight: patio.height,
+        bottomGap: Math.abs(panel.bottom - list.bottom),
+      };
+    });
+
+    expect(layout.panelHeight).toBeGreaterThan(1500);
+    expect(Math.max(...layout.sessionHeights) - Math.min(...layout.sessionHeights)).toBeLessThan(2);
+    expect(layout.patioHeight).toBeLessThan(Math.min(...layout.sessionHeights));
+    expect(layout.bottomGap).toBeLessThan(2);
+  });
 });

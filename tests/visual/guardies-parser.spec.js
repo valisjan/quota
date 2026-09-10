@@ -38,6 +38,22 @@ test('interpreta GPU004 respectant camps CSV entre cometes', async ({ page }) =>
   expect(result[0]).toMatchObject({ codi: 'PROF1', cognoms: 'Llinatges, Nom' });
 });
 
+test('prioritza el substitut de la posició 1 de GPU004 sobre el titular', async ({ page }) => {
+  const fields = Array(40).fill('');
+  fields[0] = 'PROF1';
+  fields[1] = 'SUBSTITUT, PRIMER';
+  fields[35] = 'TITULAR; SEGON';
+  const result = await runParser(page, (parser, { text }) => {
+    const parsed = parser.parseUntisProfessorat(text);
+    return parsed.professors.get('PROF1');
+  }, { text: fields.map((field) => field.includes(',') ? `"${field}"` : field).join(',') });
+
+  expect(result).toMatchObject({
+    codi: 'PROF1',
+    label: 'SUBSTITUT, PRIMER',
+  });
+});
+
 test('enriqueix les sessions de l horari amb la referència GestIB', async ({ page }) => {
   const result = await runParser(page, (parser, { reference, schedule, teachers }) => {
     const parsedReference = parser.parseGestibReference(reference);

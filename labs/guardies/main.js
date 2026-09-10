@@ -2757,12 +2757,15 @@ import {
       || Array.from(state.professoratUntis?.professors?.values?.() || [])
         .find((professor) => normalizeSearch(professor.codi) === normalizeSearch(short));
     const directoryName = String(directory?.name || '').trim();
-    const parsedName = sessio?.professorNom || untis?.label || place?.descripcio || '';
+    const parsedName = [sessio?.professorNom, untis?.label]
+      .map((name) => String(name || '').trim())
+      .find((name) => name && !aliases.has(normalizeSearch(name))) || '';
+    const referenceName = String(place?.descripcio || '').trim();
     return {
       short,
-      name: directoryName && !aliases.has(normalizeSearch(directoryName))
-        ? directoryName
-        : parsedName,
+      name: parsedName
+        || (directoryName && !aliases.has(normalizeSearch(directoryName)) ? directoryName : '')
+        || referenceName,
     };
   }
 
