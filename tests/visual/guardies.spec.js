@@ -754,6 +754,23 @@ test.describe('Guàrdies: comportament existent', () => {
     const printedHourHeader = page.locator('.coverage-session:not(.pati-session) .coverage-session-head').first();
     await expect(printedHourHeader).toHaveCSS('background-color', 'rgb(230, 230, 230)');
     await expect(printedHourHeader.locator('span')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    const nonGrayPrintColors = await page.locator('.day-panel').evaluate((panel) => {
+      const properties = ['color', 'backgroundColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor'];
+      const failures = [];
+      for (const node of [panel, ...panel.querySelectorAll('*')]) {
+        const style = getComputedStyle(node);
+        if (style.display === 'none' || style.visibility === 'hidden' || node.getClientRects().length === 0) continue;
+        for (const property of properties) {
+          const value = style[property];
+          const match = value.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/);
+          if (!match || Number(match[4] || 1) === 0) continue;
+          const [, red, green, blue] = match.map(Number);
+          if (red !== green || green !== blue) failures.push(`${node.className || node.tagName}:${property}:${value}`);
+        }
+      }
+      return failures;
+    });
+    expect(nonGrayPrintColors).toEqual([]);
     if (testInfo.project.name === 'chromium-desktop') {
       const pdf = await page.pdf({ printBackground: true, preferCSSPageSize: true });
       const raw = pdf.toString('latin1');

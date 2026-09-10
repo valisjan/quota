@@ -3459,6 +3459,14 @@ h3 {
     overflow: visible;
   }
 
+  .day-panel,
+  .day-panel * {
+    border-color: #666 !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
   .no-print,
   .app-nav,
   .admin-panel,
@@ -3550,11 +3558,12 @@ h3 {
     flex-direction: column;
     min-height: 0;
     break-inside: avoid;
-    border: 1.5px solid #333;
+    border: 1.5px solid #333 !important;
   }
 
   .coverage-session.pati-session {
     flex: 0 0 auto;
+    background: #fff !important;
   }
 
   .coverage-session.seventh-session {
@@ -3574,7 +3583,7 @@ h3 {
   .coverage-session-head {
     min-height: 5.5mm;
     background: #e6e6e6 !important;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid #444 !important;
     padding: 0.8mm 2mm;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -3587,7 +3596,7 @@ h3 {
   .pati-session .coverage-session-head {
     background: #d6d6d6 !important;
   }
-  .coverage-session-head h3 { font-size: 8pt; }
+  .coverage-session-head h3 { color: #000 !important; font-size: 8pt; }
   .coverage-session-head span { padding: 0.4mm 1.4mm; font-size: 6pt; }
   .coverage-session-list { flex: 1 1 auto; padding: 1mm; }
   .coverage-table { gap: 0.7mm; }
