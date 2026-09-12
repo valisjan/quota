@@ -84,9 +84,13 @@ test('administració crea i configura una segona vista', async ({ page }) => {
   await seedScreen(page);
   await page.goto('/labs/pantalles/?gestio=1&pantalla=sala-professorat');
 
-  await page.getByRole('button', { name: '+ Afegeix' }).click();
+  await expect(page.getByLabel('Reproducció')).toHaveCount(0);
+  await expect(page.getByLabel('Durada')).toHaveCount(0);
+  await page.getByRole('button', { name: '+ Nova vista' }).click();
+  await expect(page.getByLabel('Reproducció')).toBeVisible();
+  await expect(page.getByLabel('Durada')).toBeVisible();
   await page.getByLabel('Nom de la vista').fill('Només pati');
-  await page.getByLabel('Temps en pantalla').selectOption('30');
+  await page.getByLabel('Durada').selectOption('30');
 
   await expect.poll(async () => page.evaluate(() => {
     const value = JSON.parse(localStorage.getItem('quota-e2e-pantalla:sala-professorat'));

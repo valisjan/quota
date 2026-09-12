@@ -167,6 +167,11 @@ function addView() {
   scheduleConfigSave();
 }
 
+function changePlaybackMode(event) {
+  config.forcedViewId = event.target.value === 'fixed' ? (editingView.value?.id || config.views[0]?.id || '') : '';
+  scheduleConfigSave();
+}
+
 function removeView(id) {
   if (config.views.length <= 1) return;
   const index = config.views.findIndex((view) => view.id === id);
@@ -334,37 +339,41 @@ onBeforeUnmount(() => {
 
         <section class="view-manager">
           <div class="view-manager-heading">
-            <div>
-              <span>Vistes</span>
-              <strong>{{ config.views.length }} {{ config.views.length === 1 ? 'vista' : 'vistes' }}</strong>
-            </div>
-            <button type="button" @click="addView">+ Afegeix</button>
+            <h2>Vistes</h2>
+            <button type="button" @click="addView">+ Nova vista</button>
           </div>
 
-          <label>Què mostra la pantalla
-            <select v-model="config.forcedViewId" @change="scheduleConfigSave">
-              <option value="">Rotació automàtica</option>
-              <option v-for="view in config.views" :key="view.id" :value="view.id">Només {{ view.name }}</option>
-            </select>
-          </label>
+          <div v-if="config.views.length > 1" class="playback-settings">
+            <label>Reproducció
+              <select :value="config.forcedViewId ? 'fixed' : 'automatic'" @change="changePlaybackMode">
+                <option value="automatic">Canvia automàticament</option>
+                <option value="fixed">Vista fixa</option>
+              </select>
+            </label>
+            <label v-if="config.forcedViewId">Vista visible
+              <select v-model="config.forcedViewId" @change="scheduleConfigSave">
+                <option v-for="view in config.views" :key="view.id" :value="view.id">{{ view.name }}</option>
+              </select>
+            </label>
+          </div>
 
-          <div class="view-list" role="tablist" aria-label="Vistes de la pantalla">
+          <div v-if="config.views.length > 1" class="view-list" role="tablist" aria-label="Vistes de la pantalla">
             <div v-for="(view, index) in config.views" :key="view.id" class="view-list-row" :class="{ selected: editingView?.id === view.id }">
               <button type="button" class="view-select" role="tab" :aria-selected="editingView?.id === view.id" @click="editingViewId = view.id">
                 <strong>{{ view.name }}</strong>
-                <span>{{ view.duration }} s</span>
+                <span v-if="!config.forcedViewId">{{ view.duration }} s</span>
               </button>
               <button type="button" class="icon-button" aria-label="Mou la vista cap amunt" :disabled="index === 0" @click="moveView(index, -1)">↑</button>
               <button type="button" class="icon-button" aria-label="Mou la vista cap avall" :disabled="index === config.views.length - 1" @click="moveView(index, 1)">↓</button>
             </div>
           </div>
 
-          <div v-if="editingView" class="view-editor">
-            <div class="management-grid">
+          <div v-if="editingView" class="view-editor" :class="{ single: config.views.length === 1 }">
+            <div :class="{ 'management-grid': config.views.length > 1 && !config.forcedViewId }">
               <label>Nom de la vista
                 <input v-model="editingView.name" maxlength="60" @input="scheduleConfigSave" />
               </label>
-              <label>Temps en pantalla
+              <label v-if="config.views.length > 1 && !config.forcedViewId">Durada
                 <select v-model.number="editingView.duration" @change="scheduleConfigSave">
                   <option :value="10">10 segons</option>
                   <option :value="15">15 segons</option>
@@ -376,7 +385,7 @@ onBeforeUnmount(() => {
               </label>
             </div>
 
-            <button v-if="config.views.length > 1" type="button" class="delete-view" @click="removeView(editingView.id)">Elimina aquesta vista</button>
+            <button v-if="config.views.length > 1" type="button" class="delete-view" @click="removeView(editingView.id)">Elimina la vista</button>
           </div>
         </section>
 

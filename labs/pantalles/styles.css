@@ -253,10 +253,9 @@ button { touch-action: manipulation; }
   background: #f5f7fa;
 }
 .view-manager-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
-.view-manager-heading > div { display: grid; gap: .08rem; }
-.view-manager-heading span { color: #647182; font-size: .68rem; font-weight: 850; text-transform: uppercase; letter-spacing: .06em; }
-.view-manager-heading strong { font-size: 1rem; }
+.view-manager-heading h2 { margin: 0; font-size: 1rem; }
 .view-manager-heading button { min-height: 2.35rem; }
+.playback-settings { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
 .view-list { display: grid; gap: .35rem; }
 .view-list-row {
   display: grid;
@@ -283,6 +282,7 @@ button { touch-action: manipulation; }
 .view-select strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .view-select span { color: #647182; font-size: .72rem; white-space: nowrap; }
 .view-editor { display: grid; gap: .65rem; padding-top: .75rem; border-top: 2px solid #c4ccd6; }
+.view-editor.single { padding-top: .65rem; border-top-width: 1px; }
 .management-panel .delete-view { min-height: 2.25rem; background: transparent; color: #923b31; border: 1px solid #cda59f; }
 
 @media (orientation: portrait) {
@@ -306,4 +306,5 @@ button { touch-action: manipulation; }
   .guard-row { grid-template-columns: 1fr 1fr; }
   .assigned-person { grid-column: 1 / -1; border-left: 0 !important; border-top: 1px solid var(--line); }
   .patio-grid, .outings-card > div { grid-template-columns: 1fr; }
+  .playback-settings { grid-template-columns: 1fr; }
 }
