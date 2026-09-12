@@ -7,13 +7,7 @@ import {
   setDoc,
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import {
-  deleteObject,
-  getDownloadURL,
-  ref as storageRef,
-  uploadBytesResumable,
-} from 'firebase/storage';
-import { auth, db, storage } from '../firebase';
+import { auth, db } from '../firebase';
 import { E2E_AUTH_BYPASS, E2E_CURS_ID } from './e2e';
 
 export const DEFAULT_SCREEN_ID = 'sala-professorat';
@@ -36,18 +30,15 @@ export const DEFAULT_SCREEN_CONFIG = Object.freeze({
     duration: 20,
     modules: ['guardies', 'pati', 'sortides'],
     type: 'guardies',
-    assetUrl: '',
-    assetPath: '',
-    assetName: '',
+    driveUrl: '',
     canvaUrl: '',
-    fit: 'contain',
   }],
   forcedViewId: '',
   message: '',
 });
 
 const AVAILABLE_MODULES = ['guardies', 'pati', 'sortides'];
-const VIEW_TYPES = ['guardies', 'image', 'pdf', 'canva'];
+const VIEW_TYPES = ['guardies', 'drive', 'canva'];
 
 function normalizeModules(modules) {
   return Array.from(new Set(Array.isArray(modules) ? modules : []))
@@ -70,17 +61,15 @@ function normalizeViews(data = {}) {
     let id = String(view?.id || fallbackId).trim().replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 40) || fallbackId;
     while (usedIds.has(id)) id = `${id}-${index + 1}`.slice(0, 40);
     usedIds.add(id);
+    const legacyType = ['image', 'pdf'].includes(view?.type) ? 'drive' : view?.type;
     return {
       id,
       name: String(view?.name || `Vista ${index + 1}`).trim().slice(0, 60) || `Vista ${index + 1}`,
       duration: Math.min(300, Math.max(5, Math.round(Number(view?.duration) || 20))),
       modules: [...AVAILABLE_MODULES],
-      type: VIEW_TYPES.includes(view?.type) ? view.type : 'guardies',
-      assetUrl: String(view?.assetUrl || '').slice(0, 2000),
-      assetPath: String(view?.assetPath || '').slice(0, 500),
-      assetName: String(view?.assetName || '').slice(0, 160),
+      type: VIEW_TYPES.includes(legacyType) ? legacyType : 'guardies',
+      driveUrl: String(view?.driveUrl || view?.assetUrl || '').slice(0, 2000),
       canvaUrl: String(view?.canvaUrl || '').slice(0, 2000),
-      fit: view?.fit === 'cover' ? 'cover' : 'contain',
     };
   });
 }
@@ -211,35 +200,4 @@ export async function isPantallesAdmin() {
   if (!user) return false;
   const snapshot = await getDoc(doc(db, 'usuaris', user.uid));
   return snapshot.exists() && snapshot.data()?.rol === 'admin';
-}
-
-function safePathPart(value, fallback) {
-  return String(value || fallback).trim().replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 80) || fallback;
-}
-
-export function uploadScreenAsset(screenId, viewId, file, onProgress = () => {}) {
-  const extension = String(file?.name || '').split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
-  const path = `pantalles/${safePathPart(screenId, 'pantalla')}/${safePathPart(viewId, 'vista')}/contingut.${extension}`;
-  const task = uploadBytesResumable(storageRef(storage, path), file, {
-    contentType: file.type,
-    cacheControl: 'public,max-age=300',
-  });
-  return new Promise((resolve, reject) => {
-    task.on('state_changed', (snapshot) => {
-      onProgress(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100));
-    }, reject, async () => {
-      resolve({
-        path,
-        url: await getDownloadURL(task.snapshot.ref),
-        name: String(file.name || 'Arxiu').slice(0, 160),
-      });
-    });
-  });
-}
-
-export async function deleteScreenAsset(path) {
-  if (!path) return;
-  await deleteObject(storageRef(storage, path)).catch((error) => {
-    if (error?.code !== 'storage/object-not-found') throw error;
-  });
 }

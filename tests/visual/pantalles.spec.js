@@ -52,7 +52,7 @@ async function seedScreen(page) {
 test('pantalla de sala mostra la jornada publicada en vertical', async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 1400 });
   await seedScreen(page);
-  await page.goto('/labs/pantalles/?pantalla=sala-professorat');
+  await page.goto('/labs/pantalles/?pantalla=sala-professorat&data=2026-09-11');
 
   await expect(page.getByRole('heading', { name: 'Guàrdies del dia' })).toBeVisible();
   await expect(page.getByText(/divendres, 11 de setembre del? 2026/i)).toBeVisible();
@@ -74,7 +74,8 @@ test('administració de pantalla desa els canvis sense botó', async ({ page }) 
   await seedScreen(page);
   await page.goto('/labs/pantalles/?gestio=1&pantalla=sala-professorat');
 
-  const name = page.getByLabel('Nom', { exact: true });
+  await page.getByRole('button', { name: 'Aparença' }).click();
+  const name = page.getByLabel('Nom de la pantalla');
   await expect(name).toHaveValue('Sala de professorat');
   await name.fill('Sala gran');
   await expect(page.getByText('Desant…')).toBeVisible();
@@ -116,4 +117,20 @@ test('administració accepta el codi d’inserció de Canva', async ({ page }) =
     const value = JSON.parse(localStorage.getItem('quota-e2e-pantalla:sala-professorat'));
     return value.views?.find((view) => view.type === 'canva')?.canvaUrl || '';
   })).toContain('canva.com/design/ABC/view?embed=');
+});
+
+test('administració converteix un enllaç compartit de Drive en una vista', async ({ page }) => {
+  await seedScreen(page);
+  await page.goto('/labs/pantalles/?gestio=1&pantalla=sala-professorat');
+
+  await page.getByRole('button', { name: '+ Nova vista' }).click();
+  await page.locator('.view-type-picker').getByRole('button', { name: /Google Drive/ }).click();
+  const input = page.getByLabel('Enllaç de Drive');
+  await input.fill('https://drive.google.com/file/d/1AbCdEfGhIjKlMn/view?usp=sharing');
+  await input.press('Tab');
+
+  await expect.poll(async () => page.evaluate(() => {
+    const value = JSON.parse(localStorage.getItem('quota-e2e-pantalla:sala-professorat'));
+    return value.views?.find((view) => view.type === 'drive')?.driveUrl || '';
+  })).toBe('https://drive.google.com/file/d/1AbCdEfGhIjKlMn/preview');
 });

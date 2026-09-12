@@ -4,12 +4,10 @@ import { signInGuardies } from '../../src/services/guardiesStorage.js';
 import {
   DEFAULT_SCREEN_CONFIG,
   DEFAULT_SCREEN_ID,
-  deleteScreenAsset,
   isPantallesAdmin,
   saveScreenConfig,
   subscribePublicGuardiesDay,
   subscribeScreenConfig,
-  uploadScreenAsset,
 } from '../../src/services/pantallesStorage.js';
 
 const params = new URLSearchParams(window.location.search);
@@ -17,7 +15,6 @@ const screenId = params.get('pantalla') || DEFAULT_SCREEN_ID;
 const managementMode = params.get('gestio') === '1';
 const queryCourse = params.get('curs') || '';
 const queryDate = /^\d{4}-\d{2}-\d{2}$/.test(params.get('data') || '') ? params.get('data') : '';
-const assetUploadsEnabled = false;
 
 const config = reactive({ ...DEFAULT_SCREEN_CONFIG });
 const day = ref(null);
@@ -36,8 +33,8 @@ const activeViewIndex = ref(0);
 const editingViewId = ref('');
 const clock = ref(new Date());
 const showViewTypePicker = ref(false);
-const uploadProgress = ref(0);
-const uploading = ref(false);
+const adminTab = ref('views');
+const managementDark = ref(localStorage.getItem('quota_theme') === 'dark' || document.documentElement.classList.contains('dark'));
 let unsubscribeConfig = () => {};
 let unsubscribeDay = () => {};
 let saveTimer = null;
@@ -60,11 +57,7 @@ function shiftIsoDate(value, amount) {
 
 function configuredDate() {
   if (queryDate) return queryDate;
-  if (config.dateMode === 'specific' && /^\d{4}-\d{2}-\d{2}$/.test(config.selectedDate || '')) {
-    return config.selectedDate;
-  }
-  const today = localDateString();
-  return config.dateMode === 'tomorrow' ? shiftIsoDate(today, 1) : today;
+  return localDateString();
 }
 
 const selectedDate = computed(() => localDate.value || configuredDate());
@@ -169,10 +162,10 @@ function uniqueViewId() {
 
 function addView(type = 'guardies') {
   const id = uniqueViewId();
-  const names = { guardies: 'Guàrdies del dia', image: 'Imatge', pdf: 'Document PDF', canva: 'Presentació Canva' };
+  const names = { guardies: 'Guàrdies del dia', drive: 'Contingut de Drive', canva: 'Presentació Canva' };
   config.views.push({
     id, name: names[type], duration: 20, modules: ['guardies', 'pati', 'sortides'], type,
-    assetUrl: '', assetPath: '', assetName: '', canvaUrl: '', fit: 'contain',
+    driveUrl: '', canvaUrl: '',
   });
   editingViewId.value = id;
   showViewTypePicker.value = false;
@@ -184,17 +177,49 @@ function changePlaybackMode(event) {
   scheduleConfigSave();
 }
 
-async function removeView(id) {
+function removeView(id) {
   if (config.views.length <= 1) return;
   const index = config.views.findIndex((view) => view.id === id);
   if (index < 0) return;
-  const assetPath = config.views[index].assetPath;
   config.views.splice(index, 1);
   if (config.forcedViewId === id) config.forcedViewId = '';
   editingViewId.value = config.views[Math.min(index, config.views.length - 1)].id;
   config.modules = [...(config.views[0]?.modules || [])];
   scheduleConfigSave();
-  if (assetPath) await deleteScreenAsset(assetPath).catch(() => {});
+}
+
+function normalizeDriveUrl(value) {
+  const raw = String(value || '').trim();
+  const iframeSource = raw.match(/src=["']([^"']+)["']/i)?.[1];
+  const candidate = (iframeSource || raw).replaceAll('&amp;', '&');
+  try {
+    const url = new URL(candidate);
+    const host = url.hostname.toLowerCase();
+    if (!['drive.google.com', 'docs.google.com'].includes(host)) return '';
+    const fileId = url.pathname.match(/\/file\/d\/([^/]+)/)?.[1] || url.searchParams.get('id');
+    if (fileId) return `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/preview`;
+    const documentMatch = url.pathname.match(/^\/(document|spreadsheets|presentation)\/d\/([^/]+)/);
+    if (!documentMatch) return '';
+    const [, kind, id] = documentMatch;
+    if (kind === 'presentation') {
+      return `https://docs.google.com/presentation/d/${encodeURIComponent(id)}/embed?start=true&loop=true&delayms=10000`;
+    }
+    return `https://docs.google.com/${kind}/d/${encodeURIComponent(id)}/preview`;
+  } catch {
+    return '';
+  }
+}
+
+function saveDriveLink() {
+  if (!editingView.value) return;
+  const normalized = normalizeDriveUrl(editingView.value.driveUrl);
+  if (!normalized && editingView.value.driveUrl.trim()) {
+    errorMessage.value = 'Enganxa un enllaç compartit de Google Drive vàlid.';
+    return;
+  }
+  editingView.value.driveUrl = normalized;
+  errorMessage.value = '';
+  scheduleConfigSave();
 }
 
 function normalizeCanvaUrl(value) {
@@ -223,40 +248,6 @@ function saveCanvaLink() {
   scheduleConfigSave();
 }
 
-async function uploadAsset(event) {
-  const file = event.target.files?.[0];
-  event.target.value = '';
-  const view = editingView.value;
-  if (!file || !view) return;
-  const valid = view.type === 'image'
-    ? ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)
-    : file.type === 'application/pdf';
-  if (!valid) {
-    errorMessage.value = view.type === 'image' ? 'Selecciona una imatge JPG, PNG, WebP o GIF.' : 'Selecciona un arxiu PDF.';
-    return;
-  }
-  if (file.size > 25 * 1024 * 1024) {
-    errorMessage.value = 'L’arxiu supera el límit de 25 MB.';
-    return;
-  }
-  const oldPath = view.assetPath;
-  uploading.value = true;
-  uploadProgress.value = 0;
-  errorMessage.value = '';
-  try {
-    const uploaded = await uploadScreenAsset(screenId, view.id, file, (progress) => { uploadProgress.value = progress; });
-    view.assetUrl = uploaded.url;
-    view.assetPath = uploaded.path;
-    view.assetName = uploaded.name;
-    scheduleConfigSave();
-    if (oldPath && oldPath !== uploaded.path) await deleteScreenAsset(oldPath).catch(() => {});
-  } catch (error) {
-    errorMessage.value = error?.message || String(error);
-  } finally {
-    uploading.value = false;
-  }
-}
-
 function moveView(index, direction) {
   const target = index + direction;
   if (target < 0 || target >= config.views.length) return;
@@ -279,6 +270,13 @@ async function copyKioskUrl() {
   await navigator.clipboard.writeText(kioskUrl.value);
   saveState.value = 'copied';
   window.setTimeout(() => { if (saveState.value === 'copied') saveState.value = 'saved'; }, 1500);
+}
+
+function toggleManagementTheme() {
+  managementDark.value = !managementDark.value;
+  document.documentElement.classList.toggle('dark', managementDark.value);
+  localStorage.setItem('quota_theme', managementDark.value ? 'dark' : 'light');
+  localStorage.setItem('darkMode', managementDark.value ? 'true' : 'false');
 }
 
 async function signIn() {
@@ -348,9 +346,28 @@ onBeforeUnmount(() => {
 <template>
   <main
     class="display-shell"
-    :class="[`theme-${config.theme}`, { 'management-mode': managementMode }]"
+    :class="[`theme-${config.theme}`, { 'management-mode': managementMode, 'management-dark': managementMode && managementDark }]"
     :style="{ '--display-scale': activeScale / 100, '--display-height': `${10000 / activeScale}vh` }"
   >
+    <nav v-if="managementMode" class="management-nav" aria-label="Navegació principal">
+      <div class="management-nav-inner">
+        <a class="management-brand" href="/">
+          <img src="/logo_IESJSB_nav.png" alt="IES Josep Sureda i Blanes" />
+          <span><strong>QUOTA</strong><small>IES Josep Sureda i Blanes</small></span>
+        </a>
+        <div class="management-nav-tabs" aria-label="Seccions">
+          <a href="/">Quota</a>
+          <a href="/labs/guardies/">Guàrdies</a>
+          <a href="/labs/guardies/?vista=professor">Professorat</a>
+          <a class="active" href="/labs/pantalles/?gestio=1&pantalla=sala-professorat" aria-current="page">Pantalles</a>
+        </div>
+        <button type="button" class="management-theme-toggle" aria-label="Canvia el tema" @click="toggleManagementTheme">
+          <span aria-hidden="true">◐</span> {{ managementDark ? 'Clar' : 'Fosc' }}
+        </button>
+      </div>
+      <div class="management-brand-strip" aria-hidden="true"><span></span><span></span><span></span></div>
+    </nav>
+
     <aside v-if="managementMode" class="management-panel">
       <template v-if="!adminReady">
         <div class="panel-loading"><span class="spinner"></span></div>
@@ -366,52 +383,27 @@ onBeforeUnmount(() => {
       <template v-else>
         <div class="management-heading">
           <div>
-            <span>Pantalla</span>
+            <span>Gestió de pantalles</span>
             <h1>{{ config.name }}</h1>
           </div>
           <span class="save-status">{{ saveState === 'saving' ? 'Desant…' : saveState === 'copied' ? 'URL copiada' : 'Desat' }}</span>
         </div>
 
-        <label>Nom
-          <input v-model="config.name" maxlength="80" @input="scheduleConfigSave" />
-        </label>
-        <label>Curs
-          <input v-model="config.courseId" maxlength="20" @input="scheduleConfigSave" />
-        </label>
-        <div class="management-grid">
-          <label>Dia mostrat
-            <select v-model="config.dateMode" @change="scheduleConfigSave">
-              <option value="today">Avui</option>
-              <option value="tomorrow">Demà</option>
-              <option value="specific">Data concreta</option>
-            </select>
+        <div class="screen-actions">
+          <label class="active-toggle">
+            <input v-model="config.active" type="checkbox" @change="scheduleConfigSave" />
+            Pantalla activa
           </label>
-          <label v-if="config.dateMode === 'specific'">Data
-            <input v-model="config.selectedDate" type="date" @change="scheduleConfigSave" />
-          </label>
+          <button type="button" class="secondary-button" @click="copyKioskUrl">Copia la URL del quiosc</button>
         </div>
-        <div class="management-grid">
-          <label>Tema
-            <select v-model="config.theme" @change="scheduleConfigSave">
-              <option value="light">Clar</option>
-              <option value="dark">Fosc</option>
-            </select>
-          </label>
-          <label>Escala
-            <select v-model.number="config.scale" @change="scheduleConfigSave">
-              <option :value="90">90%</option>
-              <option :value="100">100%</option>
-              <option :value="110">110%</option>
-              <option :value="120">120%</option>
-              <option :value="130">130%</option>
-            </select>
-          </label>
-        </div>
-        <label>Avís temporal
-          <textarea v-model="config.message" rows="3" maxlength="240" @input="scheduleConfigSave"></textarea>
-        </label>
 
-        <section class="view-manager">
+        <nav class="management-tabs" aria-label="Configuració de la pantalla">
+          <button type="button" :class="{ active: adminTab === 'views' }" @click="adminTab = 'views'">Vistes</button>
+          <button type="button" :class="{ active: adminTab === 'notice' }" @click="adminTab = 'notice'">Avís</button>
+          <button type="button" :class="{ active: adminTab === 'appearance' }" @click="adminTab = 'appearance'">Aparença</button>
+        </nav>
+
+        <section v-show="adminTab === 'views'" class="view-manager">
           <div class="view-manager-heading">
             <h2>Vistes</h2>
             <button type="button" @click="showViewTypePicker = !showViewTypePicker">{{ showViewTypePicker ? '× Tanca' : '+ Nova vista' }}</button>
@@ -419,8 +411,7 @@ onBeforeUnmount(() => {
 
           <div v-if="showViewTypePicker" class="view-type-picker">
             <button type="button" @click="addView('guardies')"><strong>Guàrdies</strong><span>Full, pati i sortides</span></button>
-            <button v-if="assetUploadsEnabled" type="button" @click="addView('image')"><strong>Imatge</strong><span>JPG, PNG, WebP o GIF</span></button>
-            <button v-if="assetUploadsEnabled" type="button" @click="addView('pdf')"><strong>PDF</strong><span>Documents i presentacions</span></button>
+            <button type="button" @click="addView('drive')"><strong>Google Drive</strong><span>Imatge, PDF o presentació</span></button>
             <button type="button" @click="addView('canva')"><strong>Canva</strong><span>Presentació sempre actualitzada</span></button>
           </div>
 
@@ -472,29 +463,13 @@ onBeforeUnmount(() => {
                 <span>Mostra el full publicat, les zones de pati i els grups de sortida.</span>
               </div>
 
-              <template v-else-if="editingView.type === 'image'">
+              <template v-else-if="editingView.type === 'drive'">
                 <div class="type-help">
-                  <strong>Imatge</strong>
-                  <span>Desa la imatge com a JPG, PNG, WebP o GIF i selecciona-la aquí. Màxim 25 MB.</span>
+                  <strong>Google Drive</strong>
+                  <span>A Drive, prem Compartir › Accés general › Qualsevol persona amb l’enllaç › Lector. Copia l’enllaç i enganxa’l aquí.</span>
                 </div>
-                <label class="file-picker">{{ uploading ? `Pujant… ${uploadProgress}%` : (editingView.assetName || 'Selecciona una imatge') }}
-                  <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" :disabled="uploading" @change="uploadAsset" />
-                </label>
-                <label>Ajust de la imatge
-                  <select v-model="editingView.fit" @change="scheduleConfigSave">
-                    <option value="contain">Completa, sense retallar</option>
-                    <option value="cover">Omple la pantalla</option>
-                  </select>
-                </label>
-              </template>
-
-              <template v-else-if="editingView.type === 'pdf'">
-                <div class="type-help">
-                  <strong>PDF</strong>
-                  <span>Exporta el document o la presentació com a PDF i selecciona l’arxiu. Màxim 25 MB.</span>
-                </div>
-                <label class="file-picker">{{ uploading ? `Pujant… ${uploadProgress}%` : (editingView.assetName || 'Selecciona un PDF') }}
-                  <input type="file" accept="application/pdf" :disabled="uploading" @change="uploadAsset" />
+                <label>Enllaç de Drive
+                  <textarea v-model="editingView.driveUrl" rows="3" placeholder="Enganxa aquí l’enllaç compartit" @change="saveDriveLink"></textarea>
                 </label>
               </template>
 
@@ -513,12 +488,35 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <label class="active-toggle">
-          <input v-model="config.active" type="checkbox" @change="scheduleConfigSave" />
-          Pantalla activa
-        </label>
-        <button type="button" class="secondary-button" @click="copyKioskUrl">Copia la URL del quiosc</button>
-        <a class="management-back" href="/labs/guardies/">Torna a Guàrdies</a>
+        <section v-show="adminTab === 'notice'" class="settings-card">
+          <label>Avís a la pantalla
+            <textarea v-model="config.message" rows="5" maxlength="240" placeholder="Escriu un avís temporal" @input="scheduleConfigSave"></textarea>
+          </label>
+        </section>
+
+        <section v-show="adminTab === 'appearance'" class="settings-card">
+          <label>Nom de la pantalla
+            <input v-model="config.name" maxlength="80" @input="scheduleConfigSave" />
+          </label>
+          <div class="management-grid">
+            <label>Tema del quiosc
+              <select v-model="config.theme" @change="scheduleConfigSave">
+                <option value="light">Clar</option>
+                <option value="dark">Fosc</option>
+              </select>
+            </label>
+            <label>Mida del contingut
+              <select v-model.number="config.scale" @change="scheduleConfigSave">
+                <option :value="90">90%</option>
+                <option :value="100">100%</option>
+                <option :value="110">110%</option>
+                <option :value="120">120%</option>
+                <option :value="130">130%</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
         <p v-if="errorMessage" class="form-error">{{ errorMessage }}</p>
       </template>
     </aside>
@@ -562,14 +560,9 @@ onBeforeUnmount(() => {
 
         <p v-if="config.message" class="screen-message">{{ config.message }}</p>
 
-        <section v-if="activeViewType === 'image'" class="media-view">
-          <img v-if="activeView?.assetUrl" :src="activeView.assetUrl" :alt="activeView.name" :style="{ objectFit: activeView.fit || 'contain' }" />
-          <strong v-else>Selecciona una imatge des de la gestió de la pantalla</strong>
-        </section>
-
-        <section v-else-if="activeViewType === 'pdf'" class="media-view document-view">
-          <iframe v-if="activeView?.assetUrl" :src="`${activeView.assetUrl}#toolbar=0&navpanes=0&view=FitH`" :title="activeView.name"></iframe>
-          <strong v-else>Selecciona un PDF des de la gestió de la pantalla</strong>
+        <section v-if="activeViewType === 'drive'" class="media-view drive-view">
+          <iframe v-if="activeView?.driveUrl" :src="activeView.driveUrl" :title="activeView.name" allowfullscreen></iframe>
+          <strong v-else>Enganxa l’enllaç compartit de Drive des de la gestió de la pantalla</strong>
         </section>
 
         <section v-else-if="activeViewType === 'canva'" class="media-view canva-view">
