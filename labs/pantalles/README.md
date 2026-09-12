@@ -22,6 +22,6 @@ s'elimina en despublicar-la o reiniciar les dades del curs.
 ## Vistes
 
 Cada pantalla pot tenir fins a dotze vistes. La gestió permet crear-les,
-ordenar-les, triar-ne els continguts i indicar quant de temps es mostra
-cadascuna. El quiosc les alterna automàticament, llevat que des de gestió se
-seleccioni una vista concreta.
+ordenar-les i indicar quant de temps es mostra cadascuna. La vista de guàrdies
+sempre inclou guàrdies, pati i grups de sortida. El quiosc les alterna
+automàticament, llevat que des de gestió se seleccioni una vista concreta.

@@ -31,11 +31,13 @@ const saveState = ref('idle');
 const errorMessage = ref('');
 const activeViewIndex = ref(0);
 const editingViewId = ref('');
+const clock = ref(new Date());
 let unsubscribeConfig = () => {};
 let unsubscribeDay = () => {};
 let saveTimer = null;
 let idleTimer = null;
 let rotationTimer = null;
+let clockTimer = null;
 
 function localDateString(date = new Date()) {
   const year = date.getFullYear();
@@ -69,7 +71,7 @@ const activeView = computed(() => {
   const forced = views.value.find((view) => view.id === config.forcedViewId);
   return forced || views.value[activeViewIndex.value % Math.max(views.value.length, 1)] || null;
 });
-const enabledModules = computed(() => new Set(activeView.value?.modules || []));
+const enabledModules = computed(() => new Set(['guardies', 'pati', 'sortides']));
 const isReady = computed(() => !loadingConfig.value && !loadingDay.value);
 const hours = computed(() => Array.isArray(day.value?.hours) ? day.value.hours : []);
 const outings = computed(() => Array.isArray(day.value?.groupsOut) ? day.value.groupsOut : []);
@@ -78,6 +80,20 @@ const formattedDate = computed(() => {
   return new Intl.DateTimeFormat('ca-ES', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   }).format(new Date(year, month - 1, date, 12));
+});
+const formattedTime = computed(() => new Intl.DateTimeFormat('ca-ES', {
+  hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+}).format(clock.value));
+const currentSession = computed(() => {
+  const now = clock.value;
+  if (now.getDay() === 0 || now.getDay() === 6) return 'Fora d’horari';
+  const minutes = now.getHours() * 60 + now.getMinutes();
+  const slots = [
+    [480, 535, '1a hora'], [535, 590, '2a hora'], [590, 645, '3a hora'],
+    [645, 675, 'Pati'], [675, 730, '4a hora'], [730, 785, '5a hora'],
+    [785, 840, '6a hora'], [840, 895, '7a hora'],
+  ];
+  return slots.find(([start, end]) => minutes >= start && minutes < end)?.[2] || 'Fora d’horari';
 });
 const kioskUrl = computed(() => {
   const url = new URL('/labs/pantalles/', window.location.origin);
@@ -137,27 +153,6 @@ function scheduleConfigSave() {
   }, 350);
 }
 
-function toggleModule(module) {
-  if (!editingView.value) return;
-  const values = [...editingView.value.modules];
-  const index = values.indexOf(module);
-  if (index >= 0) values.splice(index, 1);
-  else values.push(module);
-  editingView.value.modules = values;
-  config.modules = [...(views.value[0]?.modules || [])];
-  scheduleConfigSave();
-}
-
-function moveModule(index, direction) {
-  const target = index + direction;
-  if (!editingView.value || target < 0 || target >= editingView.value.modules.length) return;
-  const values = [...editingView.value.modules];
-  [values[index], values[target]] = [values[target], values[index]];
-  editingView.value.modules = values;
-  config.modules = [...(views.value[0]?.modules || [])];
-  scheduleConfigSave();
-}
-
 function uniqueViewId() {
   let number = views.value.length + 1;
   let id = `vista-${number}`;
@@ -167,7 +162,7 @@ function uniqueViewId() {
 
 function addView() {
   const id = uniqueViewId();
-  config.views.push({ id, name: `Vista ${config.views.length + 1}`, duration: 20, modules: ['guardies'] });
+  config.views.push({ id, name: `Vista ${config.views.length + 1}`, duration: 20, modules: ['guardies', 'pati', 'sortides'] });
   editingViewId.value = id;
   scheduleConfigSave();
 }
@@ -258,6 +253,7 @@ onMounted(async () => {
   });
   window.addEventListener('online', () => { connected.value = true; });
   window.addEventListener('offline', () => { connected.value = false; });
+  clockTimer = window.setInterval(() => { clock.value = new Date(); }, 1000);
 });
 
 onBeforeUnmount(() => {
@@ -266,6 +262,7 @@ onBeforeUnmount(() => {
   window.clearTimeout(saveTimer);
   window.clearTimeout(idleTimer);
   window.clearTimeout(rotationTimer);
+  window.clearInterval(clockTimer);
 });
 </script>
 
@@ -379,25 +376,6 @@ onBeforeUnmount(() => {
               </label>
             </div>
 
-            <fieldset>
-              <legend>Continguts d'aquesta vista</legend>
-              <div v-for="(module, index) in editingView.modules" :key="module" class="module-row">
-                <span class="drag-mark" aria-hidden="true">✥</span>
-                <strong>{{ { guardies: 'Guàrdies', pati: 'Pati', sortides: 'Grups de sortida' }[module] }}</strong>
-                <button type="button" class="icon-button" :disabled="index === 0" @click="moveModule(index, -1)">↑</button>
-                <button type="button" class="icon-button" :disabled="index === editingView.modules.length - 1" @click="moveModule(index, 1)">↓</button>
-                <button type="button" class="remove-button" @click="toggleModule(module)">Oculta</button>
-              </div>
-              <div class="hidden-modules">
-                <button
-                  v-for="module in ['guardies', 'pati', 'sortides'].filter((item) => !editingView.modules.includes(item))"
-                  :key="module"
-                  type="button"
-                  @click="toggleModule(module)"
-                >+ {{ { guardies: 'Guàrdies', pati: 'Pati', sortides: 'Grups de sortida' }[module] }}</button>
-              </div>
-            </fieldset>
-
             <button v-if="config.views.length > 1" type="button" class="delete-view" @click="removeView(editingView.id)">Elimina aquesta vista</button>
           </div>
         </section>
@@ -432,6 +410,10 @@ onBeforeUnmount(() => {
           <div class="display-date">
             <span>{{ config.name }}</span>
             <strong>{{ formattedDate }}</strong>
+            <div class="live-clock">
+              <strong>{{ formattedTime }}</strong>
+              <span>{{ currentSession }}</span>
+            </div>
           </div>
         </header>
 

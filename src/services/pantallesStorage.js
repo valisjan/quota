@@ -57,12 +57,11 @@ function normalizeViews(data = {}) {
     let id = String(view?.id || fallbackId).trim().replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 40) || fallbackId;
     while (usedIds.has(id)) id = `${id}-${index + 1}`.slice(0, 40);
     usedIds.add(id);
-    const modules = normalizeModules(view?.modules);
     return {
       id,
       name: String(view?.name || `Vista ${index + 1}`).trim().slice(0, 60) || `Vista ${index + 1}`,
       duration: Math.min(300, Math.max(5, Math.round(Number(view?.duration) || 20))),
-      modules,
+      modules: [...AVAILABLE_MODULES],
     };
   });
 }

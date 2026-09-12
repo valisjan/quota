@@ -61,6 +61,7 @@ test('pantalla de sala mostra la jornada publicada en vertical', async ({ page }
   await expect(page.getByText('Banys', { exact: true })).toBeVisible();
   await expect(page.getByText('2ESO-A')).toBeVisible();
   await expect(page.getByText('Claustre a les 14.00 h')).toBeVisible();
+  await expect(page.locator('.live-clock')).toContainText(/\d{2}:\d{2}:\d{2}/);
 
   await page.getByRole('button', { name: 'Augmenta el text' }).click();
   await expect(page.getByRole('button', { name: '110%' })).toBeVisible();
@@ -86,11 +87,9 @@ test('administració crea i configura una segona vista', async ({ page }) => {
   await page.getByRole('button', { name: '+ Afegeix' }).click();
   await page.getByLabel('Nom de la vista').fill('Només pati');
   await page.getByLabel('Temps en pantalla').selectOption('30');
-  await page.getByRole('button', { name: '+ Pati' }).click();
-  await page.getByRole('button', { name: 'Oculta' }).first().click();
 
   await expect.poll(async () => page.evaluate(() => {
     const value = JSON.parse(localStorage.getItem('quota-e2e-pantalla:sala-professorat'));
     return value.views?.find((view) => view.name === 'Només pati') || null;
-  })).toMatchObject({ duration: 30, modules: ['pati'] });
+  })).toMatchObject({ duration: 30, modules: ['guardies', 'pati', 'sortides'] });
 });

@@ -127,7 +127,7 @@ function changeStatus(action) {
       <div v-if="!teacherView" id="date-label" class="date-summary-card">
         <span>Dia preparat</span>
         <strong>{{ formatDate(date) }}</strong>
-        <em v-if="!['1', '2', '3', '4', '5'].includes(xmlDay)">Sense horari lectiu al GPU001</em>
+        <em v-if="!['1', '2', '3', '4', '5'].includes(xmlDay)">Dia no lectiu</em>
       </div>
       <div v-if="!teacherView" id="today-info" class="date-summary-card today-info">
         <span>Avui</span>

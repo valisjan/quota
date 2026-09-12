@@ -67,6 +67,9 @@ button { touch-action: manipulation; }
 .display-brand h1 { margin: 0; font-size: 1.55rem; line-height: 1; }
 .display-date { text-align: right; }
 .display-date strong { font-size: 1.2rem; text-transform: capitalize; }
+.live-clock { display: flex; align-items: baseline; justify-content: flex-end; gap: .55rem; margin-top: .22rem; }
+.live-clock strong { color: var(--text); font-size: 1.35rem; font-variant-numeric: tabular-nums; letter-spacing: .025em; }
+.live-clock span { color: var(--accent); font-size: .76rem; font-weight: 900; text-transform: uppercase; }
 
 .touch-toolbar {
   position: sticky;
@@ -285,6 +288,7 @@ button { touch-action: manipulation; }
 @media (max-width: 620px) {
   .display-header { align-items: stretch; flex-direction: column; }
   .display-date { text-align: left; }
+  .live-clock { justify-content: flex-start; }
   .touch-toolbar { justify-content: center; }
   .guard-row { grid-template-columns: 1fr 1fr; }
   .assigned-person { grid-column: 1 / -1; border-left: 0 !important; border-top: 1px solid var(--line); }
