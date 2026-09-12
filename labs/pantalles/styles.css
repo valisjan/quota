@@ -173,11 +173,32 @@ button { touch-action: manipulation; }
   border-bottom: 1px solid var(--line-strong);
   background: var(--surface-strong);
 }
+.session-meta { display: flex; align-items: center; gap: .55rem; }
+.session-meta strong {
+  padding: .28rem .62rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: .72rem;
+  font-weight: 950;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
 .hour-card:not(.patio-card) > header { border-left: .3rem solid #5274c8; background: var(--guard-header); }
 .outings-card > header { border-left: .3rem solid #8456a7; background: var(--outing-header); }
 .hour-card h2, .outings-card h2 { margin: 0; font-size: 1.05rem; }
 .hour-card > header span { color: var(--muted); font-size: .78rem; font-weight: 750; }
 .hour-card.empty > header { border-bottom: 0; }
+.hour-card.current-session {
+  scroll-margin-block: 22vh;
+  border: 3px solid var(--accent);
+  box-shadow: 0 8px 24px rgb(24 46 88 / .28);
+}
+.hour-card.current-session > header { min-height: 3.35rem; padding: .72rem .9rem; }
+.hour-card.current-session > header h2 { font-size: 1.32rem; }
+.hour-card.current-session .guard-row > div { padding-top: .9rem; padding-bottom: .9rem; }
+.hour-card.current-session.patio-card { border-color: #287561; }
+.hour-card.current-session.patio-card .session-meta strong { background: #287561; color: #fff; }
 
 .guard-list { display: grid; }
 .guard-row {

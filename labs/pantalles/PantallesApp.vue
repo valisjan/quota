@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { signInGuardies } from '../../src/services/guardiesStorage.js';
 import {
   DEFAULT_SCREEN_CONFIG,
@@ -84,17 +84,18 @@ const formattedDate = computed(() => {
 const formattedTime = computed(() => new Intl.DateTimeFormat('ca-ES', {
   hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
 }).format(clock.value));
-const currentSession = computed(() => {
+const currentSlot = computed(() => {
   const now = clock.value;
-  if (now.getDay() === 0 || now.getDay() === 6) return 'Fora de l’horari lectiu';
+  if (now.getDay() === 0 || now.getDay() === 6) return null;
   const minutes = now.getHours() * 60 + now.getMinutes();
   const slots = [
     [480, 535, '1a hora'], [535, 590, '2a hora'], [590, 645, '3a hora'],
     [645, 675, 'Pati'], [675, 730, '4a hora'], [730, 785, '5a hora'],
-    [785, 840, '6a hora'], [840, 900, '7a hora'],
+    [785, 840, '6a hora'], [855, 900, '7a hora'],
   ];
-  return slots.find(([start, end]) => minutes >= start && minutes < end)?.[2] || 'Fora de l’horari lectiu';
+  return slots.find(([start, end]) => minutes >= start && minutes < end)?.[2] || null;
 });
+const currentSession = computed(() => currentSlot.value || 'Fora de l’horari lectiu');
 const kioskUrl = computed(() => {
   const url = new URL('/labs/pantalles/', window.location.origin);
   url.searchParams.set('pantalla', screenId);
@@ -107,6 +108,21 @@ function isPatio(hour) {
 
 function hourVisible(hour) {
   return isPatio(hour) ? enabledModules.value.has('pati') : enabledModules.value.has('guardies');
+}
+
+function isCurrentHour(hour) {
+  if (!currentSlot.value || selectedDate.value !== localDateString(clock.value)) return false;
+  if (currentSlot.value === 'Pati') return isPatio(hour);
+  return String(hour?.label || '').startsWith(currentSlot.value);
+}
+
+function centerCurrentHour() {
+  if (managementMode || activeViewType.value !== 'guardies' || !currentSlot.value) return;
+  nextTick(() => {
+    document.querySelector('.kiosk-preview .hour-card.current-session')?.scrollIntoView({
+      behavior: 'smooth', block: 'center', inline: 'nearest',
+    });
+  });
 }
 
 function resetLocalViewSoon() {
@@ -310,6 +326,7 @@ watch([selectedCourse, selectedDate], ([courseId, date]) => {
 }, { immediate: true });
 
 watch([views, () => config.forcedViewId, activeViewIndex], scheduleRotation, { deep: true });
+watch([currentSlot, selectedDate, activeViewType, day], centerCurrentHour);
 
 onMounted(async () => {
   if (managementMode) {
@@ -582,10 +599,17 @@ onBeforeUnmount(() => {
 
         <div v-else class="day-content">
           <template v-for="hour in hours" :key="hour.key">
-            <section v-if="hourVisible(hour)" class="hour-card" :class="{ 'patio-card': isPatio(hour), empty: !hour.rows?.length && !isPatio(hour) }">
+            <section
+              v-if="hourVisible(hour)"
+              class="hour-card"
+              :class="{ 'patio-card': isPatio(hour), 'current-session': isCurrentHour(hour), empty: !hour.rows?.length && !isPatio(hour) }"
+            >
               <header>
                 <h2>{{ hour.label }}</h2>
-                <span v-if="!isPatio(hour)">{{ hour.rows?.length ? `${hour.rows.length} ${hour.rows.length === 1 ? 'absència' : 'absències'}` : 'Sense absències' }}</span>
+                <div class="session-meta">
+                  <strong v-if="isCurrentHour(hour)">Ara</strong>
+                  <span v-if="!isPatio(hour)">{{ hour.rows?.length ? `${hour.rows.length} ${hour.rows.length === 1 ? 'absència' : 'absències'}` : 'Sense absències' }}</span>
+                </div>
               </header>
 
               <div v-if="isPatio(hour)" class="patio-grid">

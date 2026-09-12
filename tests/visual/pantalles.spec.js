@@ -70,6 +70,19 @@ test('pantalla de sala mostra la jornada publicada en vertical', async ({ page }
   expect(sizeAfter.height).toBeGreaterThan(sizeBefore.height * 1.05);
 });
 
+test('la pantalla destaca i actualitza la sessió actual', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-09-11T08:30:00+02:00'));
+  await seedScreen(page);
+  await page.goto('/labs/pantalles/?pantalla=sala-professorat');
+
+  await expect(page.locator('.hour-card.current-session')).toContainText('1a hora');
+  await expect(page.locator('.hour-card.current-session')).toContainText('Ara');
+
+  await page.clock.setFixedTime(new Date('2026-09-11T08:56:00+02:00'));
+  await page.waitForTimeout(1_100);
+  await expect(page.locator('.hour-card.current-session')).toContainText('2a hora');
+});
+
 test('administració de pantalla desa els canvis sense botó', async ({ page }) => {
   await seedScreen(page);
   await page.goto('/labs/pantalles/?gestio=1&pantalla=sala-professorat');
