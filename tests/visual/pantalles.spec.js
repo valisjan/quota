@@ -62,6 +62,8 @@ test('pantalla de sala mostra la jornada publicada en vertical', async ({ page }
   await expect(page.getByText('2ESO-A')).toBeVisible();
   await expect(page.getByText('Claustre a les 14.00 h')).toBeVisible();
   await expect(page.locator('.live-clock')).toContainText(/\d{2}:\d{2}:\d{2}/);
+  await expect(page.getByRole('button', { name: '1a: 1 guàrdia' })).toHaveClass(/busy/);
+  await expect(page.getByRole('button', { name: '2a: 0 guàrdies' })).toHaveClass(/clear/);
 
   const sizeBefore = await page.getByRole('heading', { name: 'Guàrdies del dia' }).boundingBox();
   await page.getByRole('button', { name: 'Augmenta el text' }).click();
@@ -81,6 +83,14 @@ test('la pantalla destaca i actualitza la sessió actual', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-09-11T08:56:00+02:00'));
   await page.waitForTimeout(1_100);
   await expect(page.locator('.hour-card.current-session')).toContainText('2a hora');
+});
+
+test('la pantalla identifica el cap de setmana com a dia no lectiu', async ({ page }) => {
+  await seedScreen(page);
+  await page.goto('/labs/pantalles/?pantalla=sala-professorat&data=2026-09-12');
+
+  await expect(page.getByText('Dia no lectiu', { exact: true })).toBeVisible();
+  await expect(page.getByText(/encara no té accés/i)).toHaveCount(0);
 });
 
 test('administració de pantalla desa els canvis sense botó', async ({ page }) => {

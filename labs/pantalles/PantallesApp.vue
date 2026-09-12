@@ -75,11 +75,26 @@ const enabledModules = computed(() => new Set(['guardies', 'pati', 'sortides']))
 const isReady = computed(() => !loadingConfig.value && !loadingDay.value);
 const hours = computed(() => Array.isArray(day.value?.hours) ? day.value.hours : []);
 const outings = computed(() => Array.isArray(day.value?.groupsOut) ? day.value.groupsOut : []);
+const guardSessionCounters = computed(() => hours.value
+  .filter((hour) => !isPatio(hour) && hourVisible(hour))
+  .map((hour, index) => ({
+    key: hour.key,
+    label: String(hour.label || '').match(/^\d+a/)?.[0] || `${index + 1}a`,
+    count: (hour.rows || []).filter((row) => (
+      !row.cancelled && !row.coTeacher && row.group !== 'Guàrdia'
+    )).length,
+    current: isCurrentHour(hour),
+  })));
 const formattedDate = computed(() => {
   const [year, month, date] = selectedDate.value.split('-').map(Number);
   return new Intl.DateTimeFormat('ca-ES', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   }).format(new Date(year, month - 1, date, 12));
+});
+const selectedDayIsWeekend = computed(() => {
+  const [year, month, date] = selectedDate.value.split('-').map(Number);
+  const weekday = new Date(year, month - 1, date, 12).getDay();
+  return weekday === 0 || weekday === 6;
 });
 const formattedTime = computed(() => new Intl.DateTimeFormat('ca-ES', {
   hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
@@ -122,6 +137,14 @@ function centerCurrentHour() {
     document.querySelector('.kiosk-preview .hour-card.current-session')?.scrollIntoView({
       behavior: 'smooth', block: 'center', inline: 'nearest',
     });
+  });
+}
+
+function centerHour(key) {
+  nextTick(() => {
+    const card = Array.from(document.querySelectorAll('.kiosk-preview .hour-card'))
+      .find((element) => element.dataset.hourKey === String(key));
+    card?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
   });
 }
 
@@ -320,7 +343,7 @@ watch([selectedCourse, selectedDate], ([courseId, date]) => {
   }, (error) => {
     loadingDay.value = false;
     errorMessage.value = error?.code === 'permission-denied'
-      ? 'La pantalla encara no té accés a les jornades publicades.'
+      ? 'No s’ha pogut carregar la jornada.'
       : (error?.message || String(error));
   });
 }, { immediate: true });
@@ -566,13 +589,29 @@ onBeforeUnmount(() => {
         </header>
 
         <nav v-if="activeViewType === 'guardies'" class="touch-toolbar" aria-label="Navegació del dia">
-          <button type="button" aria-label="Dia anterior" @click="shiftDay(-1)">←</button>
-          <button type="button" class="today-button" @click="returnToday">Avui</button>
-          <button type="button" aria-label="Dia següent" @click="shiftDay(1)">→</button>
-          <span class="toolbar-separator"></span>
-          <button type="button" aria-label="Redueix el text" @click="changeScale(-10)">−</button>
-          <button type="button" class="scale-button" @click="resetScale">{{ activeScale }}%</button>
-          <button type="button" aria-label="Augmenta el text" @click="changeScale(10)">+</button>
+          <div v-if="isReady && day" class="session-counters" aria-label="Guàrdies per sessió">
+            <button
+              v-for="counter in guardSessionCounters"
+              :key="counter.key"
+              type="button"
+              class="session-counter"
+              :class="{ clear: counter.count === 0, busy: counter.count > 0, current: counter.current }"
+              :aria-label="`${counter.label}: ${counter.count} ${counter.count === 1 ? 'guàrdia' : 'guàrdies'}`"
+              @click="centerHour(counter.key)"
+            >
+              <span>{{ counter.label }}</span>
+              <strong>{{ counter.count }} G</strong>
+            </button>
+          </div>
+          <div class="touch-actions">
+            <button type="button" aria-label="Dia anterior" @click="shiftDay(-1)">←</button>
+            <button type="button" class="today-button" @click="returnToday">Avui</button>
+            <button type="button" aria-label="Dia següent" @click="shiftDay(1)">→</button>
+            <span class="toolbar-separator"></span>
+            <button type="button" aria-label="Redueix el text" @click="changeScale(-10)">−</button>
+            <button type="button" class="scale-button" @click="resetScale">{{ activeScale }}%</button>
+            <button type="button" aria-label="Augmenta el text" @click="changeScale(10)">+</button>
+          </div>
         </nav>
 
         <p v-if="config.message" class="screen-message">{{ config.message }}</p>
@@ -594,7 +633,7 @@ onBeforeUnmount(() => {
 
         <section v-else-if="!day" class="no-day">
           <div class="no-day-date">{{ formattedDate }}</div>
-          <strong>No s'ha publicat el full de guàrdies d'aquest dia</strong>
+          <strong>{{ selectedDayIsWeekend ? 'Dia no lectiu' : "No s'ha publicat el full de guàrdies d'aquest dia" }}</strong>
         </section>
 
         <div v-else class="day-content">
@@ -602,6 +641,7 @@ onBeforeUnmount(() => {
             <section
               v-if="hourVisible(hour)"
               class="hour-card"
+              :data-hour-key="hour.key"
               :class="{ 'patio-card': isPatio(hour), 'current-session': isCurrentHour(hour), empty: !hour.rows?.length && !isPatio(hour) }"
             >
               <header>

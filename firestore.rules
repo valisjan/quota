@@ -329,7 +329,10 @@ service cloud.firestore {
       // Projecció mínima per a pantalles en mode quiosc. No conté fitxers
       // d'Untis, recomptes ni configuració interna de Guàrdies.
       match /guardiesPublicDays/{date} {
-        allow read: if resource.data.status in ['published', 'closed'];
+        // Les escriptures només admeten projeccions publicades o tancades.
+        // Permetre el get d'una data inexistent evita convertir "no publicada"
+        // en un error de permisos al quiosc.
+        allow read: if true;
         allow create, update: if esAdmin()
           && request.resource.data.keys().hasOnly([
             'schemaVersion', 'courseId', 'date', 'status', 'revision',
