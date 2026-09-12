@@ -15,6 +15,7 @@ export default defineConfig({
       input: {
         quota: resolve(__dirname, 'index.html'),
         guardies: resolve(__dirname, 'labs/guardies/index.html'),
+        pantalles: resolve(__dirname, 'labs/pantalles/index.html'),
       },
       output: {
         manualChunks(id) {

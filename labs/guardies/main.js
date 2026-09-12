@@ -32,6 +32,7 @@ import {
   subscribeGuardiesDay,
   transitionGuardiesDay,
 } from '../../src/services/guardiesStorage';
+import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
 
 (function initGuardiesLab() {
   const PATI_COMMENT_KEY = '__pati_observation__';
@@ -399,6 +400,86 @@ import {
     };
   }
 
+  function publicGuardiesDay() {
+    const selected = selectedAbsenceItems();
+    const coverageItems = mergeSharedClassroomAbsences({ sessions: state.sessions, absences: selected });
+    consolidateMergedCoverageState(coverageItems);
+    const byHour = new Map(groupBySession(coverageItems).map((group) => [group.hora, group.items]));
+    const patioAssignments = state.patiConfig && !nonTeachingReason(state.date, state.patiConfig)
+      ? patioAssignmentsForDate(state.date, state.patiConfig)
+        .filter((assignment) => !isExcludedTeacher(assignment.teacherId))
+      : [];
+    const patioObservation = state.comentaris.get(PATI_COMMENT_KEY) || '';
+    const day = diaXmlSeleccionat();
+    const hours = hoursForSelectedDay().map((hour) => {
+      if (hour === 'PATI') {
+        return {
+          key: 'PATI',
+          kind: 'patio',
+          label: horaLabel(hour),
+          rows: [],
+          patio: {
+            zones: patioAssignments.map((assignment) => ({
+              name: String(assignment.zoneName || ''),
+              teacher: labelProfessor(assignment.teacherId, true),
+              absent: isProfessorAbsentAtHour(day, 'PATI', assignment.teacherId),
+            })),
+            observation: patioObservation,
+          },
+        };
+      }
+      return {
+        key: String(hour),
+        kind: 'guardies',
+        label: horaLabel(hour),
+        rows: (byHour.get(hour) || []).map((item) => {
+          const absentTeacherIds = item.absentTeacherIds?.length ? item.absentTeacherIds : [item.placa];
+          const assignedId = state.assignacions.get(item.id) || '';
+          const coTeacher = state.assignmentSources.get(item.id) === 'co-teacher';
+          return {
+            id: String(item.id || ''),
+            absent: absentTeacherIds.map((teacherId) => labelProfessor(teacherId, true)).join(' · '),
+            group: isGuardiaItem(item) ? 'Guàrdia' : (groupLabel(item) || ''),
+            subject: formatMateria(item) || '',
+            room: aulaLabel(item) || '',
+            assigned: assignedId ? labelProfessor(assignedId, true) : '',
+            coTeacher,
+            cancelled: state.cancelledAssignments.has(item.id),
+            comment: state.comentaris.get(item.id) || '',
+          };
+        }),
+      };
+    });
+    const groupLabels = new Map(grupsOrdenatsAmbLabel().map((group) => [String(group.codi), group.label]));
+    const groupsOut = Array.from(state.grupsFora)
+      .map((groupId) => ({
+        id: String(groupId),
+        label: groupLabels.get(String(groupId)) || String(groupId),
+        partial: state.partialGroups.has(groupId),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'ca', { numeric: true }));
+    return {
+      schemaVersion: 1,
+      date: state.date,
+      status: state.dayStatus,
+      revision: state.dayRevision,
+      publishedAt: state.publishedAt || '',
+      clientUpdatedAt: state.updatedAt || new Date().toISOString(),
+      hours,
+      groupsOut,
+    };
+  }
+
+  async function syncPublicGuardiesDay() {
+    if (!state.isAdmin || !state.courseId || !state.date) return;
+    const published = ['published', 'closed'].includes(state.dayStatus);
+    await savePublicGuardiesDay(
+      state.courseId,
+      state.date,
+      published ? publicGuardiesDay() : null,
+    );
+  }
+
   function daySignature(payload = serializableDay()) {
     return JSON.stringify(payload);
   }
@@ -481,6 +562,9 @@ import {
     pendingRemoteDay = null;
     await hydrateGuardiesDay(date);
     if (date !== state.date || date !== watchedDate) return;
+    if (state.isAdmin && ['published', 'closed'].includes(state.dayStatus)) {
+      syncPublicGuardiesDay().catch(() => {});
+    }
     unsubscribeGuardiesDay = subscribeGuardiesDay(state.courseId, date, (saved) => {
       if (date !== state.date || date !== watchedDate || !state.dayLoaded) return;
       const remoteRevision = Number(saved?.revision) || 0;
@@ -524,6 +608,7 @@ import {
         state.updatedAt = saved.clientUpdatedAt || new Date().toISOString();
         lastDaySignature = signature;
         state.dayPersistenceStatus = 'ready';
+        if (['published', 'closed'].includes(state.dayStatus)) await syncPublicGuardiesDay();
         flushPendingRemoteDay();
       } catch (error) {
         state.dayPersistenceStatus = 'error';
@@ -546,6 +631,7 @@ import {
     state.updatedAt = saved.clientUpdatedAt || new Date().toISOString();
     lastDaySignature = signature;
     state.dayPersistenceStatus = 'ready';
+    if (['published', 'closed'].includes(state.dayStatus)) await syncPublicGuardiesDay();
     flushPendingRemoteDay();
   }
 
@@ -564,6 +650,7 @@ import {
         ? result.day.countedAssignments
         : state.countedAssignments;
       state.guardCounts = new Map(Object.entries(result.stats?.counts || Object.fromEntries(state.guardCounts)));
+      await syncPublicGuardiesDay();
       state.unclosedDays = await loadUnclosedGuardiesDays(
         state.courseId,
         localDateString(new Date()),
@@ -2108,6 +2195,7 @@ import {
     try {
       state.persistenceStatus = 'saving';
       state.patiConfig = await saveGuardiesPati(state.courseId, next);
+      if (['published', 'closed'].includes(state.dayStatus)) await syncPublicGuardiesDay();
       state.persistenceStatus = 'ready';
       showError('');
       window.dispatchEvent(new CustomEvent('guardies:pati-updated'));

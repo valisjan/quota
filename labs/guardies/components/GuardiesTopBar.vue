@@ -42,6 +42,7 @@ function toggleTheme() {
         <a href="/">Quota</a>
         <a v-if="isAdmin" :class="{ active: !teacherView }" :href="guardiesHref" :aria-current="!teacherView ? 'page' : undefined">Guàrdies</a>
         <a :class="{ active: teacherView }" :href="professoratHref" :aria-current="teacherView ? 'page' : undefined">Professorat</a>
+        <a v-if="isAdmin" href="/labs/pantalles/?gestio=1&pantalla=sala-professorat">Pantalles</a>
       </div>
       <button id="theme-toggle" type="button" class="theme-toggle" aria-label="Canvia el tema" @click="toggleTheme">
         <span class="theme-icon" aria-hidden="true">◐</span>

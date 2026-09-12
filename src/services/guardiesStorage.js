@@ -531,12 +531,16 @@ export async function resetGuardiesCourseData(cursId) {
     const data = getE2EData(cursId);
     const deletedDays = Object.keys(data.days || {}).length;
     data.days = {};
+    data.publicDays = {};
     data.stats = { counts: {} };
     setE2EData(cursId, data);
     return { deletedDays };
   }
 
-  const days = await getDocs(collection(db, 'cursos', cursId, 'guardiesDays'));
+  const [days, publicDays] = await Promise.all([
+    getDocs(collection(db, 'cursos', cursId, 'guardiesDays')),
+    getDocs(collection(db, 'cursos', cursId, 'guardiesPublicDays')),
+  ]);
   const batch = new BatchSplit();
   const clientUpdatedAt = new Date().toISOString();
   days.docs.forEach((snapshot) => batch.set(snapshot.ref, {
@@ -559,6 +563,7 @@ export async function resetGuardiesCourseData(cursId) {
     revision: Math.max(0, Number(snapshot.data()?.revision) || 0) + 1,
     updatedAt: serverTimestamp(),
   }));
+  publicDays.docs.forEach((snapshot) => batch.delete(snapshot.ref));
   batch.set(guardiesStatsRef(cursId), { counts: {}, updatedAt: serverTimestamp() });
   await batch.commit();
   return { deletedDays: days.size };

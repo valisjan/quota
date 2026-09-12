@@ -301,7 +301,7 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.locator('#coverage-list .coverage-item')).toHaveCount(1);
     await expect(coverage).toContainText('Adell Domènech, Marina');
     await expect(coverage).toContainText('Fuentes Serra, Gabriel');
-    await expect(coverage.locator('.coverage-detail-cell > strong')).toHaveText('1ESO-A');
+    await expect(coverage.locator('.coverage-group-label')).toHaveText('1ESO-A');
     await expect(coverage.locator('.co-teacher-badge')).toHaveCount(0);
     await expect(coverage.locator('[data-assignacio]')).toHaveCount(1);
 
@@ -484,8 +484,16 @@ test.describe('Guàrdies: comportament existent', () => {
     expect(await page.locator('.work-header').evaluate((header) => header.scrollWidth <= header.clientWidth)).toBe(true);
     await page.getByRole('button', { name: 'Publica' }).click();
     await expect(page.locator('#day-status-action')).toHaveText('Tanca jornada');
+    const publicProjection = await page.evaluate(() => (
+      JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).publicDays?.['2026-09-07']
+    ));
+    expect(publicProjection.status).toBe('published');
+    expect(publicProjection.hours.some((hour) => hour.rows?.length)).toBe(true);
     await page.getByRole('button', { name: 'Despublica' }).click();
     await expect(page.locator('#day-status-action')).toHaveText('Publica');
+    expect(await page.evaluate(() => (
+      JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).publicDays?.['2026-09-07']
+    ))).toBeUndefined();
     await page.getByRole('button', { name: 'Publica' }).click();
     await expect(page.locator('#day-status-action')).toHaveText('Tanca jornada');
     await page.getByRole('button', { name: 'Tanca jornada' }).click();

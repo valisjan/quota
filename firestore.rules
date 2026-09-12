@@ -326,6 +326,25 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Projecció mínima per a pantalles en mode quiosc. No conté fitxers
+      // d'Untis, recomptes ni configuració interna de Guàrdies.
+      match /guardiesPublicDays/{date} {
+        allow read: if resource.data.status in ['published', 'closed'];
+        allow create, update: if esAdmin()
+          && request.resource.data.keys().hasOnly([
+            'schemaVersion', 'courseId', 'date', 'status', 'revision',
+            'publishedAt', 'clientUpdatedAt', 'hours', 'groupsOut', 'updatedAt'
+          ])
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.courseId == cursId
+          && request.resource.data.date == date
+          && request.resource.data.status in ['published', 'closed']
+          && request.resource.data.hours is list
+          && request.resource.data.groupsOut is list
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if esAdmin();
+      }
+
       match /sync_history/{id} {
         allow read, write: if esAdmin();
       }
@@ -346,6 +365,32 @@ service cloud.firestore {
           && !request.resource.data.diff(resource.data).affectedKeys()
             .hasAny(['rol', 'departament', 'departaments'])
         );
+      allow delete: if esAdmin();
+    }
+
+    match /pantalles/{screenId} {
+      allow read: if true;
+      allow create, update: if esAdmin()
+        && request.resource.data.keys().hasOnly([
+          'schemaVersion', 'name', 'active', 'courseId', 'dateMode',
+          'selectedDate', 'theme', 'scale', 'modules', 'message', 'updatedAt'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.active is bool
+        && request.resource.data.courseId is string
+        && request.resource.data.courseId.size() <= 20
+        && request.resource.data.dateMode in ['today', 'tomorrow', 'specific']
+        && request.resource.data.selectedDate is string
+        && request.resource.data.theme in ['light', 'dark']
+        && request.resource.data.scale is int
+        && request.resource.data.scale >= 80
+        && request.resource.data.scale <= 140
+        && request.resource.data.modules is list
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 240
+        && request.resource.data.updatedAt == request.time;
       allow delete: if esAdmin();
     }
 
