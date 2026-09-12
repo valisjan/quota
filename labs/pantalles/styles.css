@@ -88,6 +88,7 @@ button { touch-action: manipulation; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1rem;
   padding: .85rem 1rem;
   border: 1px solid var(--line-strong);
@@ -132,7 +133,7 @@ button { touch-action: manipulation; }
 }
 
 .session-counters, .touch-actions { display: flex; align-items: center; gap: .42rem; }
-.session-counters { flex-wrap: wrap; }
+.session-counters { flex: 0 0 auto; flex-wrap: nowrap; }
 .touch-actions { justify-content: flex-end; margin-left: auto; }
 
 .touch-toolbar button {
@@ -422,6 +423,7 @@ button { touch-action: manipulation; }
   .live-clock { justify-content: flex-start; }
   .touch-toolbar { justify-content: center; flex-direction: column; }
   .session-counters, .touch-actions { justify-content: center; margin-left: 0; }
+  .session-counters { flex-wrap: wrap; }
   .guard-row { grid-template-columns: 1fr 1fr; }
   .assigned-person { grid-column: 1 / -1; border-left: 0 !important; border-top: 1px solid var(--line); }
   .patio-grid, .outings-card > div { grid-template-columns: 1fr; }
