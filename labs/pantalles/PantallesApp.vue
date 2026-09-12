@@ -436,7 +436,7 @@ onBeforeUnmount(() => {
 
         <section v-else-if="!day" class="no-day">
           <div class="no-day-date">{{ formattedDate }}</div>
-          <strong>Encara no hi ha cap jornada publicada</strong>
+          <strong>No s'ha publicat el full de guàrdies d'aquest dia</strong>
         </section>
 
         <div v-else class="day-content">
