@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia';
 import { useGuardiesStore } from '../stores/guardies.js';
 
 const store = useGuardiesStore();
-const { date, absencies, dayStatus, dayPersistenceStatus, canWrite, teacherView } = storeToRefs(store);
+const { date, absencies, dayStatus, dayPersistenceStatus, canWrite, teacherView, unclosedDays } = storeToRefs(store);
 
 const xmlDay = computed(() => {
   if (!date.value) return '';
@@ -23,6 +23,14 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('ca-ES', {
     weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
   }).format(parsed);
+}
+
+function formatShortDate(value) {
+  if (!value) return '';
+  const parsed = new Date(`${value}T12:00:00`);
+  return Number.isNaN(parsed.getTime())
+    ? value
+    : new Intl.DateTimeFormat('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(parsed);
 }
 
 function localDateString(value) {
@@ -96,7 +104,12 @@ function changeStatus(action) {
 </script>
 
 <template>
-  <header class="work-header no-print" :class="{ 'teacher-date-header': teacherView }">
+  <div class="work-header-stack no-print">
+    <p v-if="!teacherView && canWrite && unclosedDays.length" class="unclosed-days-warning" role="status">
+      <strong>Dies no tancats:</strong>
+      {{ unclosedDays.map(formatShortDate).join(' · ') }}
+    </p>
+    <header class="work-header" :class="{ 'teacher-date-header': teacherView }">
     <div v-if="!teacherView" class="work-title">
       <p class="kicker">Control diari</p>
       <h1>Guàrdies</h1>
@@ -142,5 +155,6 @@ function changeStatus(action) {
       >Despublica</button>
       <button v-if="canWrite" id="clear-day-list" type="button" class="ghost" :disabled="dayStatus === 'closed' || !selectedAbsences.length" @click="clearDay">Neteja dia</button>
     </div>
-  </header>
+    </header>
+  </div>
 </template>

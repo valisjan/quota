@@ -72,6 +72,7 @@ export const useGuardiesStore = defineStore('guardies', {
     cancelledAssignments: new Set(),
     guardCounts: new Map(),
     countedAssignments: [],
+    unclosedDays: [],
   }),
   actions: {
     clearAbsencePlan() {

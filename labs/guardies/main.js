@@ -22,6 +22,7 @@ import {
   loadGuardiesDay,
   loadGuardiesStats,
   loadGuardiesTeacherDirectory,
+  loadUnclosedGuardiesDays,
   mergeGuardiesDayPlan,
   saveGuardiesDay,
   saveGuardiesConvivencia,
@@ -200,8 +201,15 @@ import {
       let remoteData = await loadGuardiesData(state.courseId);
       remoteData = await migrateLegacyData(remoteData);
       applyRemoteData(remoteData);
-      state.teacherDirectory = await loadGuardiesTeacherDirectory(state.courseId).catch(() => []);
-      const stats = await loadGuardiesStats(state.courseId);
+      const [teacherDirectory, stats, unclosedDays] = await Promise.all([
+        loadGuardiesTeacherDirectory(state.courseId).catch(() => []),
+        loadGuardiesStats(state.courseId),
+        state.canWrite
+          ? loadUnclosedGuardiesDays(state.courseId, localDateString(new Date())).catch(() => [])
+          : Promise.resolve([]),
+      ]);
+      state.teacherDirectory = teacherDirectory;
+      state.unclosedDays = unclosedDays;
       state.guardCounts = new Map(Object.entries(stats.counts || {}));
       lastRemoteDataSignature = remoteDataSignature({ ...remoteData, stats });
       state.persistenceStatus = 'ready';
@@ -556,6 +564,10 @@ import {
         ? result.day.countedAssignments
         : state.countedAssignments;
       state.guardCounts = new Map(Object.entries(result.stats?.counts || Object.fromEntries(state.guardCounts)));
+      state.unclosedDays = await loadUnclosedGuardiesDays(
+        state.courseId,
+        localDateString(new Date()),
+      ).catch(() => state.unclosedDays);
       lastDaySignature = daySignature();
       state.dayPersistenceStatus = 'ready';
       flushPendingRemoteDay();

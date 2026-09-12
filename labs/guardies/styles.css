@@ -290,6 +290,11 @@ h3 {
   box-shadow: var(--shadow);
 }
 
+.work-header-stack {
+  display: grid;
+  gap: 6px;
+}
+
 .work-header {
   display: grid;
   grid-template-columns: auto minmax(460px, 1fr) auto;
@@ -362,6 +367,22 @@ h3 {
   margin: -12px 0 0;
   color: var(--muted);
   font-size: 0.62rem;
+}
+
+.unclosed-days-warning {
+  width: 100%;
+  margin: 0;
+  border: 1px solid var(--amber-border);
+  border-radius: 5px;
+  background: var(--amber-soft);
+  color: var(--text);
+  padding: 6px 9px;
+  font-size: 0.7rem;
+  line-height: 1.25;
+}
+
+.unclosed-days-warning strong {
+  color: var(--amber-strong);
 }
 
 .range-builder,

@@ -654,6 +654,33 @@ export async function loadGuardiesDay(cursId, date, { publishedOnly = false } = 
   }
 }
 
+function guardiesDayNeedsClosing(day = {}) {
+  if (day.status === 'closed') return false;
+  if (day.status === 'published') return true;
+  return Boolean(
+    day.absenceIds?.length
+    || day.groupsOut?.length
+    || Object.keys(day.assignments || {}).length
+    || Object.keys(day.comments || {}).length
+  );
+}
+
+export async function loadUnclosedGuardiesDays(cursId, beforeDate) {
+  if (!cursId || !/^\d{4}-\d{2}-\d{2}$/.test(beforeDate || '')) return [];
+  if (E2E_AUTH_BYPASS) {
+    const data = getE2EData(cursId);
+    return Object.entries(data.days || {})
+      .filter(([date, day]) => date < beforeDate && guardiesDayNeedsClosing(day))
+      .map(([date]) => date)
+      .sort();
+  }
+  const snapshot = await getDocs(collection(db, 'cursos', cursId, 'guardiesDays'));
+  return snapshot.docs
+    .filter((item) => item.id < beforeDate && guardiesDayNeedsClosing(item.data()))
+    .map((item) => item.id)
+    .sort();
+}
+
 export function subscribeGuardiesDay(cursId, date, onChange, onError = () => {}, { publishedOnly = false } = {}) {
   if (E2E_AUTH_BYPASS) {
     return subscribeE2E(cursId, (data) => {

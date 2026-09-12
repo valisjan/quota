@@ -159,6 +159,22 @@ test.describe('Guàrdies: comportament existent', () => {
     await expect(page.getByRole('link', { name: 'Professorat', exact: true })).toHaveAttribute('aria-current', 'page');
   });
 
+  test('avisa de les jornades passades que encara no estan tancades', async ({ page }) => {
+    await openGuardies(page);
+    await uploadConfiguration(page);
+    await page.locator('#date-input').fill('2020-09-07');
+    await page.locator('#date-input').press('Tab');
+    await page.locator('#professor-search').fill('ADELL');
+    await page.locator('#professor-results [data-professor]').first().click();
+    await page.locator('#schedule-grid [data-absence]:not(:disabled)').first().check();
+    await page.getByRole('button', { name: 'Publica' }).click();
+    await expect(page.locator('.unclosed-days-warning')).toContainText('Dies no tancats:');
+    await expect(page.locator('.unclosed-days-warning')).toContainText('07/09/2020');
+    await expect(page.locator('.unclosed-days-warning + .work-header')).toBeVisible();
+    await page.getByRole('button', { name: 'Tanca jornada' }).click();
+    await expect(page.locator('.unclosed-days-warning')).toBeHidden();
+  });
+
   test('permet corregir manualment els recomptes de G i alliberat', async ({ page }) => {
     await openGuardies(page);
     await uploadConfiguration(page);
