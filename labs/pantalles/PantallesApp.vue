@@ -4,10 +4,12 @@ import { signInGuardies } from '../../src/services/guardiesStorage.js';
 import {
   DEFAULT_SCREEN_CONFIG,
   DEFAULT_SCREEN_ID,
+  deleteScreenAsset,
   isPantallesAdmin,
   saveScreenConfig,
   subscribePublicGuardiesDay,
   subscribeScreenConfig,
+  uploadScreenAsset,
 } from '../../src/services/pantallesStorage.js';
 
 const params = new URLSearchParams(window.location.search);
@@ -15,6 +17,7 @@ const screenId = params.get('pantalla') || DEFAULT_SCREEN_ID;
 const managementMode = params.get('gestio') === '1';
 const queryCourse = params.get('curs') || '';
 const queryDate = /^\d{4}-\d{2}-\d{2}$/.test(params.get('data') || '') ? params.get('data') : '';
+const assetUploadsEnabled = false;
 
 const config = reactive({ ...DEFAULT_SCREEN_CONFIG });
 const day = ref(null);
@@ -32,6 +35,9 @@ const errorMessage = ref('');
 const activeViewIndex = ref(0);
 const editingViewId = ref('');
 const clock = ref(new Date());
+const showViewTypePicker = ref(false);
+const uploadProgress = ref(0);
+const uploading = ref(false);
 let unsubscribeConfig = () => {};
 let unsubscribeDay = () => {};
 let saveTimer = null;
@@ -71,6 +77,7 @@ const activeView = computed(() => {
   const forced = views.value.find((view) => view.id === config.forcedViewId);
   return forced || views.value[activeViewIndex.value % Math.max(views.value.length, 1)] || null;
 });
+const activeViewType = computed(() => activeView.value?.type || 'guardies');
 const enabledModules = computed(() => new Set(['guardies', 'pati', 'sortides']));
 const isReady = computed(() => !loadingConfig.value && !loadingDay.value);
 const hours = computed(() => Array.isArray(day.value?.hours) ? day.value.hours : []);
@@ -160,10 +167,15 @@ function uniqueViewId() {
   return id;
 }
 
-function addView() {
+function addView(type = 'guardies') {
   const id = uniqueViewId();
-  config.views.push({ id, name: `Vista ${config.views.length + 1}`, duration: 20, modules: ['guardies', 'pati', 'sortides'] });
+  const names = { guardies: 'Guàrdies del dia', image: 'Imatge', pdf: 'Document PDF', canva: 'Presentació Canva' };
+  config.views.push({
+    id, name: names[type], duration: 20, modules: ['guardies', 'pati', 'sortides'], type,
+    assetUrl: '', assetPath: '', assetName: '', canvaUrl: '', fit: 'contain',
+  });
   editingViewId.value = id;
+  showViewTypePicker.value = false;
   scheduleConfigSave();
 }
 
@@ -172,15 +184,77 @@ function changePlaybackMode(event) {
   scheduleConfigSave();
 }
 
-function removeView(id) {
+async function removeView(id) {
   if (config.views.length <= 1) return;
   const index = config.views.findIndex((view) => view.id === id);
   if (index < 0) return;
+  const assetPath = config.views[index].assetPath;
   config.views.splice(index, 1);
   if (config.forcedViewId === id) config.forcedViewId = '';
   editingViewId.value = config.views[Math.min(index, config.views.length - 1)].id;
   config.modules = [...(config.views[0]?.modules || [])];
   scheduleConfigSave();
+  if (assetPath) await deleteScreenAsset(assetPath).catch(() => {});
+}
+
+function normalizeCanvaUrl(value) {
+  const raw = String(value || '').trim();
+  const iframeSource = raw.match(/src=["']([^"']+)["']/i)?.[1];
+  const candidate = (iframeSource || raw).replaceAll('&amp;', '&');
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== 'https:' || !(url.hostname === 'canva.com' || url.hostname.endsWith('.canva.com'))) return '';
+    url.searchParams.set('embed', '');
+    return url.toString();
+  } catch {
+    return '';
+  }
+}
+
+function saveCanvaLink() {
+  if (!editingView.value) return;
+  const normalized = normalizeCanvaUrl(editingView.value.canvaUrl);
+  if (!normalized && editingView.value.canvaUrl.trim()) {
+    errorMessage.value = 'Enganxa un enllaç o un codi d’inserció de Canva vàlid.';
+    return;
+  }
+  editingView.value.canvaUrl = normalized;
+  errorMessage.value = '';
+  scheduleConfigSave();
+}
+
+async function uploadAsset(event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  const view = editingView.value;
+  if (!file || !view) return;
+  const valid = view.type === 'image'
+    ? ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)
+    : file.type === 'application/pdf';
+  if (!valid) {
+    errorMessage.value = view.type === 'image' ? 'Selecciona una imatge JPG, PNG, WebP o GIF.' : 'Selecciona un arxiu PDF.';
+    return;
+  }
+  if (file.size > 25 * 1024 * 1024) {
+    errorMessage.value = 'L’arxiu supera el límit de 25 MB.';
+    return;
+  }
+  const oldPath = view.assetPath;
+  uploading.value = true;
+  uploadProgress.value = 0;
+  errorMessage.value = '';
+  try {
+    const uploaded = await uploadScreenAsset(screenId, view.id, file, (progress) => { uploadProgress.value = progress; });
+    view.assetUrl = uploaded.url;
+    view.assetPath = uploaded.path;
+    view.assetName = uploaded.name;
+    scheduleConfigSave();
+    if (oldPath && oldPath !== uploaded.path) await deleteScreenAsset(oldPath).catch(() => {});
+  } catch (error) {
+    errorMessage.value = error?.message || String(error);
+  } finally {
+    uploading.value = false;
+  }
 }
 
 function moveView(index, direction) {
@@ -275,7 +349,7 @@ onBeforeUnmount(() => {
   <main
     class="display-shell"
     :class="[`theme-${config.theme}`, { 'management-mode': managementMode }]"
-    :style="{ '--display-scale': activeScale / 100 }"
+    :style="{ '--display-scale': activeScale / 100, '--display-height': `${10000 / activeScale}vh` }"
   >
     <aside v-if="managementMode" class="management-panel">
       <template v-if="!adminReady">
@@ -340,7 +414,14 @@ onBeforeUnmount(() => {
         <section class="view-manager">
           <div class="view-manager-heading">
             <h2>Vistes</h2>
-            <button type="button" @click="addView">+ Nova vista</button>
+            <button type="button" @click="showViewTypePicker = !showViewTypePicker">{{ showViewTypePicker ? '× Tanca' : '+ Nova vista' }}</button>
+          </div>
+
+          <div v-if="showViewTypePicker" class="view-type-picker">
+            <button type="button" @click="addView('guardies')"><strong>Guàrdies</strong><span>Full, pati i sortides</span></button>
+            <button v-if="assetUploadsEnabled" type="button" @click="addView('image')"><strong>Imatge</strong><span>JPG, PNG, WebP o GIF</span></button>
+            <button v-if="assetUploadsEnabled" type="button" @click="addView('pdf')"><strong>PDF</strong><span>Documents i presentacions</span></button>
+            <button type="button" @click="addView('canva')"><strong>Canva</strong><span>Presentació sempre actualitzada</span></button>
           </div>
 
           <div v-if="config.views.length > 1" class="playback-settings">
@@ -385,6 +466,49 @@ onBeforeUnmount(() => {
               </label>
             </div>
 
+            <div class="view-content-editor">
+              <div v-if="editingView.type === 'guardies'" class="type-help">
+                <strong>Guàrdies</strong>
+                <span>Mostra el full publicat, les zones de pati i els grups de sortida.</span>
+              </div>
+
+              <template v-else-if="editingView.type === 'image'">
+                <div class="type-help">
+                  <strong>Imatge</strong>
+                  <span>Desa la imatge com a JPG, PNG, WebP o GIF i selecciona-la aquí. Màxim 25 MB.</span>
+                </div>
+                <label class="file-picker">{{ uploading ? `Pujant… ${uploadProgress}%` : (editingView.assetName || 'Selecciona una imatge') }}
+                  <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" :disabled="uploading" @change="uploadAsset" />
+                </label>
+                <label>Ajust de la imatge
+                  <select v-model="editingView.fit" @change="scheduleConfigSave">
+                    <option value="contain">Completa, sense retallar</option>
+                    <option value="cover">Omple la pantalla</option>
+                  </select>
+                </label>
+              </template>
+
+              <template v-else-if="editingView.type === 'pdf'">
+                <div class="type-help">
+                  <strong>PDF</strong>
+                  <span>Exporta el document o la presentació com a PDF i selecciona l’arxiu. Màxim 25 MB.</span>
+                </div>
+                <label class="file-picker">{{ uploading ? `Pujant… ${uploadProgress}%` : (editingView.assetName || 'Selecciona un PDF') }}
+                  <input type="file" accept="application/pdf" :disabled="uploading" @change="uploadAsset" />
+                </label>
+              </template>
+
+              <template v-else-if="editingView.type === 'canva'">
+                <div class="type-help">
+                  <strong>Canva</strong>
+                  <span>A Canva, obre Compartir › Insereix, copia el codi i enganxa’l aquí.</span>
+                </div>
+                <label>Enllaç o codi d’inserció
+                  <textarea v-model="editingView.canvaUrl" rows="3" placeholder="Enganxa aquí el codi de Canva" @change="saveCanvaLink"></textarea>
+                </label>
+              </template>
+            </div>
+
             <button v-if="config.views.length > 1" type="button" class="delete-view" @click="removeView(editingView.id)">Elimina la vista</button>
           </div>
         </section>
@@ -426,7 +550,7 @@ onBeforeUnmount(() => {
           </div>
         </header>
 
-        <nav class="touch-toolbar" aria-label="Navegació del dia">
+        <nav v-if="activeViewType === 'guardies'" class="touch-toolbar" aria-label="Navegació del dia">
           <button type="button" aria-label="Dia anterior" @click="shiftDay(-1)">←</button>
           <button type="button" class="today-button" @click="returnToday">Avui</button>
           <button type="button" aria-label="Dia següent" @click="shiftDay(1)">→</button>
@@ -438,7 +562,22 @@ onBeforeUnmount(() => {
 
         <p v-if="config.message" class="screen-message">{{ config.message }}</p>
 
-        <section v-if="!isReady" class="display-loading">
+        <section v-if="activeViewType === 'image'" class="media-view">
+          <img v-if="activeView?.assetUrl" :src="activeView.assetUrl" :alt="activeView.name" :style="{ objectFit: activeView.fit || 'contain' }" />
+          <strong v-else>Selecciona una imatge des de la gestió de la pantalla</strong>
+        </section>
+
+        <section v-else-if="activeViewType === 'pdf'" class="media-view document-view">
+          <iframe v-if="activeView?.assetUrl" :src="`${activeView.assetUrl}#toolbar=0&navpanes=0&view=FitH`" :title="activeView.name"></iframe>
+          <strong v-else>Selecciona un PDF des de la gestió de la pantalla</strong>
+        </section>
+
+        <section v-else-if="activeViewType === 'canva'" class="media-view canva-view">
+          <iframe v-if="activeView?.canvaUrl" :src="activeView.canvaUrl" :title="activeView.name" allowfullscreen></iframe>
+          <strong v-else>Enganxa l’enllaç de Canva des de la gestió de la pantalla</strong>
+        </section>
+
+        <section v-else-if="!isReady" class="display-loading">
           <span class="spinner"></span>
           <strong>Carregant la jornada…</strong>
         </section>
