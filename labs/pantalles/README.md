@@ -18,3 +18,10 @@ Quan estigui disponible el DNS, el mateix desplegament es podrà associar a
 
 La projecció es crea o actualitza en publicar o modificar una jornada i
 s'elimina en despublicar-la o reiniciar les dades del curs.
+
+## Vistes
+
+Cada pantalla pot tenir fins a dotze vistes. La gestió permet crear-les,
+ordenar-les, triar-ne els continguts i indicar quant de temps es mostra
+cadascuna. El quiosc les alterna automàticament, llevat que des de gestió se
+seleccioni una vista concreta.

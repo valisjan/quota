@@ -29,10 +29,13 @@ const adminAllowed = ref(false);
 const signingIn = ref(false);
 const saveState = ref('idle');
 const errorMessage = ref('');
+const activeViewIndex = ref(0);
+const editingViewId = ref('');
 let unsubscribeConfig = () => {};
 let unsubscribeDay = () => {};
 let saveTimer = null;
 let idleTimer = null;
+let rotationTimer = null;
 
 function localDateString(date = new Date()) {
   const year = date.getFullYear();
@@ -59,7 +62,14 @@ function configuredDate() {
 const selectedDate = computed(() => localDate.value || configuredDate());
 const selectedCourse = computed(() => queryCourse || config.courseId || DEFAULT_SCREEN_CONFIG.courseId);
 const activeScale = computed(() => localScale.value ?? config.scale ?? 100);
-const enabledModules = computed(() => new Set(config.modules || []));
+const views = computed(() => Array.isArray(config.views) ? config.views : []);
+const editingView = computed(() => views.value.find((view) => view.id === editingViewId.value) || views.value[0] || null);
+const activeView = computed(() => {
+  if (managementMode) return editingView.value;
+  const forced = views.value.find((view) => view.id === config.forcedViewId);
+  return forced || views.value[activeViewIndex.value % Math.max(views.value.length, 1)] || null;
+});
+const enabledModules = computed(() => new Set(activeView.value?.modules || []));
 const isReady = computed(() => !loadingConfig.value && !loadingDay.value);
 const hours = computed(() => Array.isArray(day.value?.hours) ? day.value.hours : []);
 const outings = computed(() => Array.isArray(day.value?.groupsOut) ? day.value.groupsOut : []);
@@ -128,21 +138,67 @@ function scheduleConfigSave() {
 }
 
 function toggleModule(module) {
-  const values = [...config.modules];
+  if (!editingView.value) return;
+  const values = [...editingView.value.modules];
   const index = values.indexOf(module);
   if (index >= 0) values.splice(index, 1);
   else values.push(module);
-  config.modules = values;
+  editingView.value.modules = values;
+  config.modules = [...(views.value[0]?.modules || [])];
   scheduleConfigSave();
 }
 
 function moveModule(index, direction) {
   const target = index + direction;
-  if (target < 0 || target >= config.modules.length) return;
-  const values = [...config.modules];
+  if (!editingView.value || target < 0 || target >= editingView.value.modules.length) return;
+  const values = [...editingView.value.modules];
   [values[index], values[target]] = [values[target], values[index]];
-  config.modules = values;
+  editingView.value.modules = values;
+  config.modules = [...(views.value[0]?.modules || [])];
   scheduleConfigSave();
+}
+
+function uniqueViewId() {
+  let number = views.value.length + 1;
+  let id = `vista-${number}`;
+  while (views.value.some((view) => view.id === id)) id = `vista-${++number}`;
+  return id;
+}
+
+function addView() {
+  const id = uniqueViewId();
+  config.views.push({ id, name: `Vista ${config.views.length + 1}`, duration: 20, modules: ['guardies'] });
+  editingViewId.value = id;
+  scheduleConfigSave();
+}
+
+function removeView(id) {
+  if (config.views.length <= 1) return;
+  const index = config.views.findIndex((view) => view.id === id);
+  if (index < 0) return;
+  config.views.splice(index, 1);
+  if (config.forcedViewId === id) config.forcedViewId = '';
+  editingViewId.value = config.views[Math.min(index, config.views.length - 1)].id;
+  config.modules = [...(config.views[0]?.modules || [])];
+  scheduleConfigSave();
+}
+
+function moveView(index, direction) {
+  const target = index + direction;
+  if (target < 0 || target >= config.views.length) return;
+  [config.views[index], config.views[target]] = [config.views[target], config.views[index]];
+  config.modules = [...(config.views[0]?.modules || [])];
+  scheduleConfigSave();
+}
+
+function scheduleRotation() {
+  window.clearTimeout(rotationTimer);
+  if (managementMode || config.forcedViewId || views.value.length < 2) return;
+  const duration = Math.min(300, Math.max(5, Number(activeView.value?.duration) || 20));
+  rotationTimer = window.setTimeout(() => {
+    activeViewIndex.value = (activeViewIndex.value + 1) % views.value.length;
+    scheduleRotation();
+  }, duration * 1000);
 }
 
 async function copyKioskUrl() {
@@ -181,6 +237,8 @@ watch([selectedCourse, selectedDate], ([courseId, date]) => {
   });
 }, { immediate: true });
 
+watch([views, () => config.forcedViewId, activeViewIndex], scheduleRotation, { deep: true });
+
 onMounted(async () => {
   if (managementMode) {
     adminAllowed.value = await isPantallesAdmin().catch(() => false);
@@ -188,6 +246,8 @@ onMounted(async () => {
   }
   unsubscribeConfig = subscribeScreenConfig(screenId, (next, exists) => {
     Object.assign(config, next);
+    if (!config.views.some((view) => view.id === editingViewId.value)) editingViewId.value = config.views[0]?.id || '';
+    activeViewIndex.value = 0;
     configExists.value = exists;
     localDate.value = '';
     localScale.value = null;
@@ -205,6 +265,7 @@ onBeforeUnmount(() => {
   unsubscribeDay();
   window.clearTimeout(saveTimer);
   window.clearTimeout(idleTimer);
+  window.clearTimeout(rotationTimer);
 });
 </script>
 
@@ -274,24 +335,72 @@ onBeforeUnmount(() => {
           <textarea v-model="config.message" rows="3" maxlength="240" @input="scheduleConfigSave"></textarea>
         </label>
 
-        <fieldset>
-          <legend>Continguts</legend>
-          <div v-for="(module, index) in config.modules" :key="module" class="module-row">
-            <span class="drag-mark" aria-hidden="true">✥</span>
-            <strong>{{ { guardies: 'Guàrdies', pati: 'Pati', sortides: 'Grups de sortida' }[module] }}</strong>
-            <button type="button" class="icon-button" :disabled="index === 0" @click="moveModule(index, -1)">↑</button>
-            <button type="button" class="icon-button" :disabled="index === config.modules.length - 1" @click="moveModule(index, 1)">↓</button>
-            <button type="button" class="remove-button" @click="toggleModule(module)">Oculta</button>
+        <section class="view-manager">
+          <div class="view-manager-heading">
+            <div>
+              <span>Vistes</span>
+              <strong>{{ config.views.length }} {{ config.views.length === 1 ? 'vista' : 'vistes' }}</strong>
+            </div>
+            <button type="button" @click="addView">+ Afegeix</button>
           </div>
-          <div class="hidden-modules">
-            <button
-              v-for="module in ['guardies', 'pati', 'sortides'].filter((item) => !config.modules.includes(item))"
-              :key="module"
-              type="button"
-              @click="toggleModule(module)"
-            >+ {{ { guardies: 'Guàrdies', pati: 'Pati', sortides: 'Grups de sortida' }[module] }}</button>
+
+          <label>Què mostra la pantalla
+            <select v-model="config.forcedViewId" @change="scheduleConfigSave">
+              <option value="">Rotació automàtica</option>
+              <option v-for="view in config.views" :key="view.id" :value="view.id">Només {{ view.name }}</option>
+            </select>
+          </label>
+
+          <div class="view-list" role="tablist" aria-label="Vistes de la pantalla">
+            <div v-for="(view, index) in config.views" :key="view.id" class="view-list-row" :class="{ selected: editingView?.id === view.id }">
+              <button type="button" class="view-select" role="tab" :aria-selected="editingView?.id === view.id" @click="editingViewId = view.id">
+                <strong>{{ view.name }}</strong>
+                <span>{{ view.duration }} s</span>
+              </button>
+              <button type="button" class="icon-button" aria-label="Mou la vista cap amunt" :disabled="index === 0" @click="moveView(index, -1)">↑</button>
+              <button type="button" class="icon-button" aria-label="Mou la vista cap avall" :disabled="index === config.views.length - 1" @click="moveView(index, 1)">↓</button>
+            </div>
           </div>
-        </fieldset>
+
+          <div v-if="editingView" class="view-editor">
+            <div class="management-grid">
+              <label>Nom de la vista
+                <input v-model="editingView.name" maxlength="60" @input="scheduleConfigSave" />
+              </label>
+              <label>Temps en pantalla
+                <select v-model.number="editingView.duration" @change="scheduleConfigSave">
+                  <option :value="10">10 segons</option>
+                  <option :value="15">15 segons</option>
+                  <option :value="20">20 segons</option>
+                  <option :value="30">30 segons</option>
+                  <option :value="60">1 minut</option>
+                  <option :value="120">2 minuts</option>
+                </select>
+              </label>
+            </div>
+
+            <fieldset>
+              <legend>Continguts d'aquesta vista</legend>
+              <div v-for="(module, index) in editingView.modules" :key="module" class="module-row">
+                <span class="drag-mark" aria-hidden="true">✥</span>
+                <strong>{{ { guardies: 'Guàrdies', pati: 'Pati', sortides: 'Grups de sortida' }[module] }}</strong>
+                <button type="button" class="icon-button" :disabled="index === 0" @click="moveModule(index, -1)">↑</button>
+                <button type="button" class="icon-button" :disabled="index === editingView.modules.length - 1" @click="moveModule(index, 1)">↓</button>
+                <button type="button" class="remove-button" @click="toggleModule(module)">Oculta</button>
+              </div>
+              <div class="hidden-modules">
+                <button
+                  v-for="module in ['guardies', 'pati', 'sortides'].filter((item) => !editingView.modules.includes(item))"
+                  :key="module"
+                  type="button"
+                  @click="toggleModule(module)"
+                >+ {{ { guardies: 'Guàrdies', pati: 'Pati', sortides: 'Grups de sortida' }[module] }}</button>
+              </div>
+            </fieldset>
+
+            <button v-if="config.views.length > 1" type="button" class="delete-view" @click="removeView(editingView.id)">Elimina aquesta vista</button>
+          </div>
+        </section>
 
         <label class="active-toggle">
           <input v-model="config.active" type="checkbox" @change="scheduleConfigSave" />
@@ -317,7 +426,7 @@ onBeforeUnmount(() => {
             <img src="/logo_IESJSB_nav.png" alt="" />
             <div>
               <span>IES Josep Sureda i Blanes</span>
-              <h1>Guàrdies del dia</h1>
+              <h1>{{ activeView?.name || 'Pantalla informativa' }}</h1>
             </div>
           </div>
           <div class="display-date">

@@ -228,6 +228,47 @@ button { touch-action: manipulation; }
 .form-error { margin: 0; padding: .6rem; border-radius: .35rem; background: #fae6e2; color: #8a2f24; }
 .panel-loading { min-height: 50vh; display: grid; place-content: center; }
 
+.view-manager {
+  display: grid;
+  gap: .75rem;
+  padding: .8rem;
+  border: 2px solid #7f8fa3;
+  border-radius: .65rem;
+  background: #f5f7fa;
+}
+.view-manager-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.view-manager-heading > div { display: grid; gap: .08rem; }
+.view-manager-heading span { color: #647182; font-size: .68rem; font-weight: 850; text-transform: uppercase; letter-spacing: .06em; }
+.view-manager-heading strong { font-size: 1rem; }
+.view-manager-heading button { min-height: 2.35rem; }
+.view-list { display: grid; gap: .35rem; }
+.view-list-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: .3rem;
+  padding: .3rem;
+  border: 1px solid #c2cad4;
+  border-radius: .45rem;
+  background: #fff;
+}
+.view-list-row.selected { border: 2px solid #304b8b; padding: calc(.3rem - 1px); background: #edf2ff; }
+.management-panel .view-select {
+  min-width: 0;
+  min-height: 2.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: .35rem .55rem;
+  background: transparent;
+  color: #17263b;
+  text-align: left;
+}
+.view-select strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.view-select span { color: #647182; font-size: .72rem; white-space: nowrap; }
+.view-editor { display: grid; gap: .65rem; padding-top: .75rem; border-top: 2px solid #c4ccd6; }
+.management-panel .delete-view { min-height: 2.25rem; background: transparent; color: #923b31; border: 1px solid #cda59f; }
+
 @media (orientation: portrait) {
   .kiosk-preview { padding: .75rem; }
   .display-header { align-items: flex-end; }

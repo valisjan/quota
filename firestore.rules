@@ -373,7 +373,8 @@ service cloud.firestore {
       allow create, update: if esAdmin()
         && request.resource.data.keys().hasOnly([
           'schemaVersion', 'name', 'active', 'courseId', 'dateMode',
-          'selectedDate', 'theme', 'scale', 'modules', 'message', 'updatedAt'
+          'selectedDate', 'theme', 'scale', 'modules', 'views', 'forcedViewId',
+          'message', 'updatedAt'
         ])
         && request.resource.data.schemaVersion == 1
         && request.resource.data.name is string
@@ -388,6 +389,10 @@ service cloud.firestore {
         && request.resource.data.scale >= 80
         && request.resource.data.scale <= 140
         && request.resource.data.modules is list
+        && request.resource.data.views is list
+        && request.resource.data.views.size() > 0
+        && request.resource.data.views.size() <= 12
+        && request.resource.data.forcedViewId is string
         && request.resource.data.message is string
         && request.resource.data.message.size() <= 240
         && request.resource.data.updatedAt == request.time;

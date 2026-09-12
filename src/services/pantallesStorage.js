@@ -24,8 +24,48 @@ export const DEFAULT_SCREEN_CONFIG = Object.freeze({
   theme: 'light',
   scale: 100,
   modules: ['guardies', 'pati', 'sortides'],
+  views: [{
+    id: 'guardies',
+    name: 'Guàrdies del dia',
+    duration: 20,
+    modules: ['guardies', 'pati', 'sortides'],
+  }],
+  forcedViewId: '',
   message: '',
 });
+
+const AVAILABLE_MODULES = ['guardies', 'pati', 'sortides'];
+
+function normalizeModules(modules) {
+  return Array.from(new Set(Array.isArray(modules) ? modules : []))
+    .filter((item) => AVAILABLE_MODULES.includes(item));
+}
+
+function normalizeViews(data = {}) {
+  const legacyModules = normalizeModules(data.modules);
+  const source = Array.isArray(data.views) && data.views.length
+    ? data.views
+    : [{
+      id: 'guardies',
+      name: 'Guàrdies del dia',
+      duration: 20,
+      modules: legacyModules.length ? legacyModules : DEFAULT_SCREEN_CONFIG.modules,
+    }];
+  const usedIds = new Set();
+  return source.slice(0, 12).map((view, index) => {
+    const fallbackId = `vista-${index + 1}`;
+    let id = String(view?.id || fallbackId).trim().replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 40) || fallbackId;
+    while (usedIds.has(id)) id = `${id}-${index + 1}`.slice(0, 40);
+    usedIds.add(id);
+    const modules = normalizeModules(view?.modules);
+    return {
+      id,
+      name: String(view?.name || `Vista ${index + 1}`).trim().slice(0, 60) || `Vista ${index + 1}`,
+      duration: Math.min(300, Math.max(5, Math.round(Number(view?.duration) || 20))),
+      modules,
+    };
+  });
+}
 
 function screenRef(screenId) {
   return doc(db, 'pantalles', String(screenId || DEFAULT_SCREEN_ID));
@@ -36,8 +76,9 @@ function publicDayRef(courseId, date) {
 }
 
 export function normalizeScreenConfig(data = {}) {
-  const modules = Array.from(new Set(Array.isArray(data.modules) ? data.modules : DEFAULT_SCREEN_CONFIG.modules))
-    .filter((item) => ['guardies', 'pati', 'sortides'].includes(item));
+  const views = normalizeViews(data);
+  const modules = normalizeModules(data.modules);
+  const forcedViewId = views.some((view) => view.id === data.forcedViewId) ? data.forcedViewId : '';
   return {
     ...DEFAULT_SCREEN_CONFIG,
     ...data,
@@ -45,7 +86,9 @@ export function normalizeScreenConfig(data = {}) {
     dateMode: ['today', 'tomorrow', 'specific'].includes(data.dateMode) ? data.dateMode : 'today',
     theme: ['light', 'dark'].includes(data.theme) ? data.theme : 'light',
     scale: Math.min(140, Math.max(80, Math.round(Number(data.scale) || 100))),
-    modules: modules.length ? modules : [...DEFAULT_SCREEN_CONFIG.modules],
+    modules: modules.length ? modules : [...views[0].modules],
+    views,
+    forcedViewId,
     message: String(data.message || '').trim().slice(0, 240),
   };
 }

@@ -70,11 +70,27 @@ test('administració de pantalla desa els canvis sense botó', async ({ page }) 
   await seedScreen(page);
   await page.goto('/labs/pantalles/?gestio=1&pantalla=sala-professorat');
 
-  const name = page.getByLabel('Nom');
+  const name = page.getByLabel('Nom', { exact: true });
   await expect(name).toHaveValue('Sala de professorat');
   await name.fill('Sala gran');
   await expect(page.getByText('Desant…')).toBeVisible();
   await expect.poll(async () => page.evaluate(() => (
     JSON.parse(localStorage.getItem('quota-e2e-pantalla:sala-professorat')).name
   ))).toBe('Sala gran');
+});
+
+test('administració crea i configura una segona vista', async ({ page }) => {
+  await seedScreen(page);
+  await page.goto('/labs/pantalles/?gestio=1&pantalla=sala-professorat');
+
+  await page.getByRole('button', { name: '+ Afegeix' }).click();
+  await page.getByLabel('Nom de la vista').fill('Només pati');
+  await page.getByLabel('Temps en pantalla').selectOption('30');
+  await page.getByRole('button', { name: '+ Pati' }).click();
+  await page.getByRole('button', { name: 'Oculta' }).first().click();
+
+  await expect.poll(async () => page.evaluate(() => {
+    const value = JSON.parse(localStorage.getItem('quota-e2e-pantalla:sala-professorat'));
+    return value.views?.find((view) => view.name === 'Només pati') || null;
+  })).toMatchObject({ duration: 30, modules: ['pati'] });
 });
