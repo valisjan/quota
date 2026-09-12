@@ -676,6 +676,14 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.locator('#date-input').fill('2026-09-08');
     await page.locator('#date-input').press('Tab');
     await expect(page.locator('[data-remove-group="10"]')).toBeVisible();
+    await page.getByRole('button', { name: 'Publica' }).click();
+    const publishedGroups = await page.evaluate(() => (
+      JSON.parse(localStorage.getItem('quota-e2e-guardies:e2e-2026')).days['2026-09-08'].groupsOut
+    ));
+    expect(publishedGroups).toContain('10');
+    await page.getByRole('link', { name: 'Professorat', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Grups de sortida' })).toBeVisible();
+    await expect(page.locator('[data-public-outing-group="10"]')).toContainText('Fora del centre');
   });
 
   test('decideix per cada grup si la sortida és completa o parcial', async ({ page }) => {
@@ -759,6 +767,8 @@ test.describe('Guàrdies: comportament existent', () => {
     const printedSession = page.locator('.print-session-detail').first();
     await expect(printedSession).toBeVisible();
     await expect(printedSession).toContainText('1ESO-A · MAT · Aula 14');
+    const printedDetailFontSize = await printedSession.evaluate((node) => Number.parseFloat(getComputedStyle(node).fontSize));
+    expect(printedDetailFontSize).toBeGreaterThanOrEqual(testInfo.project.name === 'chromium-desktop' ? 9.5 : 11);
     await expect(printedSession.locator('.print-detail-highlight')).toHaveCount(2);
     await expect(printedSession.locator('.print-detail-highlight').first()).toHaveText('1ESO-A');
     await expect(printedSession.locator('.print-detail-highlight').last()).toHaveText('Aula 14');

@@ -51,5 +51,12 @@ onBeforeUnmount(() => window.removeEventListener('guardies:auto-assign-result', 
       </div>
     </div>
     <div id="coverage-list" class="coverage-list"></div>
+    <section v-if="!canWrite" class="teacher-outing-panel no-print" aria-labelledby="teacher-outing-title">
+      <header>
+        <p class="kicker">Sortides</p>
+        <h2 id="teacher-outing-title">Grups de sortida</h2>
+      </header>
+      <div id="public-outing-list" class="teacher-outing-list"></div>
+    </section>
   </section>
 </template>

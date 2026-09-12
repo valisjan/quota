@@ -46,20 +46,20 @@ window.addEventListener('guardies:auth-ready', () => {
       <button type="button" role="tab" :aria-selected="adminSection === 'config'" :class="{ active: adminSection === 'config' }" @click="store.adminSection = 'config'">Configuració</button>
       <button type="button" role="tab" :aria-selected="adminSection === 'statistics'" :class="{ active: adminSection === 'statistics' }" @click="store.adminSection = 'statistics'">Estadístiques</button>
     </nav>
-    <GuardiesWorkHeader v-show="(canWrite && adminSection === 'daily') || (!canWrite && teacherSection === 'daily')" />
+    <GuardiesWorkHeader v-show="contextReady && ((canWrite && adminSection === 'daily') || (!canWrite && teacherSection === 'daily'))" />
   </Teleport>
   <Teleport to="#guardies-setup-root">
-    <GuardiesAdminStatistics v-show="canWrite && adminSection === 'statistics'" />
-    <GuardiesSetupPanel v-show="canWrite && adminSection === 'config'" />
-    <GuardiesTeacherExclusionsPanel v-show="canWrite && adminSection === 'config'" />
-    <GuardiesGuardCountPanel v-show="canWrite && adminSection === 'config'" />
-    <GuardiesObservationPresetsPanel v-show="canWrite && adminSection === 'config'" />
+    <GuardiesAdminStatistics v-show="contextReady && canWrite && adminSection === 'statistics'" />
+    <GuardiesSetupPanel v-show="contextReady && canWrite && adminSection === 'config'" />
+    <GuardiesTeacherExclusionsPanel v-show="contextReady && canWrite && adminSection === 'config'" />
+    <GuardiesGuardCountPanel v-show="contextReady && canWrite && adminSection === 'config'" />
+    <GuardiesObservationPresetsPanel v-show="contextReady && canWrite && adminSection === 'config'" />
   </Teleport>
   <Teleport to="#guardies-convivencia-root">
-    <GuardiesConvivenciaPanel v-show="canWrite && adminSection === 'config'" />
+    <GuardiesConvivenciaPanel v-show="contextReady && canWrite && adminSection === 'config'" />
   </Teleport>
   <Teleport to="#guardies-pati-root">
-    <GuardiesPatiPanel v-show="canWrite && adminSection === 'config'" />
+    <GuardiesPatiPanel v-show="contextReady && canWrite && adminSection === 'config'" />
   </Teleport>
   <Teleport v-if="contextReady && !canWrite" to="#guardies-setup-root">
     <section v-if="authRequired" class="guardies-auth-gate no-print">

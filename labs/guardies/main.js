@@ -73,6 +73,7 @@ import {
     printDateLabel: document.getElementById('print-date-label'),
     scheduleGrid: document.getElementById('schedule-grid'),
     coverageList: document.getElementById('coverage-list'),
+    publicOutingList: document.getElementById('public-outing-list'),
     groupSearch: document.getElementById('group-search'),
     selectedGroups: document.getElementById('selected-groups'),
     releasedCount: document.getElementById('released-count'),
@@ -451,6 +452,7 @@ import {
     state.dayLoaded = false;
     state.dayPersistenceStatus = 'loading';
     state.clearDayContext();
+    render();
     try {
       const saved = await loadGuardiesDay(state.courseId, date, {
         publishedOnly: state.teacherView || !state.isAdmin,
@@ -1195,13 +1197,15 @@ import {
   function renderGroupPicker() {
     const grups = grupsOrdenatsAmbLabel();
     const validGroups = new Set(grups.map((grup) => grup.codi));
-    Array.from(state.grupsFora).forEach((codi) => {
-      if (!validGroups.has(codi)) {
-        state.grupsFora.delete(codi);
-        state.grupProfessorsFora.delete(codi);
-        state.grupProfessorsAlliberats.delete(codi);
-      }
-    });
+    if (state.canWrite) {
+      Array.from(state.grupsFora).forEach((codi) => {
+        if (!validGroups.has(codi)) {
+          state.grupsFora.delete(codi);
+          state.grupProfessorsFora.delete(codi);
+          state.grupProfessorsAlliberats.delete(codi);
+        }
+      });
+    }
 
     renderSelectedGroupsByHour(grups);
     const available = grups.filter((grup) => !state.grupsFora.has(grup.codi));
@@ -1595,20 +1599,47 @@ import {
   }
 
   function render() {
-    renderConvivenciaAdmin();
+    const ready = state.contextReady
+      && state.persistenceStatus !== 'loading'
+      && state.dayPersistenceStatus !== 'loading'
+      && state.dayLoaded;
     const hasSchedule = Boolean(state.sessions.length);
     const hasVisibleDay = (state.isAdmin && !state.teacherView)
       || ['published', 'closed'].includes(state.dayStatus);
-    const teDades = hasSchedule && hasVisibleDay;
+    const teDades = ready && hasSchedule && hasVisibleDay;
     el.workspace.classList.toggle('hidden', !teDades);
     el.empty.classList.toggle('hidden', teDades);
+    if (!ready) return;
+
+    renderConvivenciaAdmin();
     if (!teDades) return;
 
     renderInitialData();
     renderGroupPicker();
+    renderPublicOutingGroups();
     renderSchedule();
     renderCoverage();
     renderReleasedList();
+  }
+
+  function renderPublicOutingGroups() {
+    if (!el.publicOutingList) return;
+    const labels = new Map(grupsOrdenatsAmbLabel().map((group) => [String(group.codi), group.label]));
+    const groups = Array.from(state.grupsFora)
+      .map((groupId) => ({
+        id: String(groupId),
+        label: labels.get(String(groupId)) || String(groupId),
+        partial: state.partialGroups.has(groupId),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'ca', { numeric: true }));
+    el.publicOutingList.innerHTML = groups.length
+      ? groups.map((group) => `
+          <article class="teacher-outing-group" data-public-outing-group="${escapeHtml(group.id)}">
+            <strong>${escapeHtml(group.label)}</strong>
+            <span>${group.partial ? 'Sortida parcial' : 'Fora del centre'}</span>
+          </article>
+        `).join('')
+      : '<div class="empty-small">—</div>';
   }
 
 
