@@ -86,14 +86,14 @@ const formattedTime = computed(() => new Intl.DateTimeFormat('ca-ES', {
 }).format(clock.value));
 const currentSession = computed(() => {
   const now = clock.value;
-  if (now.getDay() === 0 || now.getDay() === 6) return 'Fora d’horari';
+  if (now.getDay() === 0 || now.getDay() === 6) return 'Fora de l’horari lectiu';
   const minutes = now.getHours() * 60 + now.getMinutes();
   const slots = [
     [480, 535, '1a hora'], [535, 590, '2a hora'], [590, 645, '3a hora'],
     [645, 675, 'Pati'], [675, 730, '4a hora'], [730, 785, '5a hora'],
-    [785, 840, '6a hora'], [840, 895, '7a hora'],
+    [785, 840, '6a hora'], [840, 900, '7a hora'],
   ];
-  return slots.find(([start, end]) => minutes >= start && minutes < end)?.[2] || 'Fora d’horari';
+  return slots.find(([start, end]) => minutes >= start && minutes < end)?.[2] || 'Fora de l’horari lectiu';
 });
 const kioskUrl = computed(() => {
   const url = new URL('/labs/pantalles/', window.location.origin);
