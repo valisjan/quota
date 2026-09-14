@@ -88,6 +88,7 @@ async function uploadConfiguration(page) {
   await expect(page.locator('[data-upload-status="duties"]')).toHaveText('OK');
   await page.getByRole('tab', { name: 'Gestió diària' }).click();
   await expect(page.locator('#workspace')).toBeVisible();
+  await expect(page.locator('#empty-state')).toBeHidden();
 }
 
 test.describe('Guàrdies: comportament existent', () => {
@@ -770,6 +771,21 @@ test.describe('Guàrdies: comportament existent', () => {
     }
     await page.emulateMedia({ media: 'print' });
     await expect(page.locator('.print-header')).toBeVisible();
+    await expect(page.locator('#empty-state')).toBeHidden();
+    const printContainers = await page.evaluate(() => {
+      const panel = getComputedStyle(document.querySelector('.day-panel'));
+      const list = getComputedStyle(document.querySelector('#coverage-list'));
+      return {
+        panelBreakInside: panel.breakInside,
+        panelOverflow: panel.overflow,
+        listBreakInside: list.breakInside,
+      };
+    });
+    expect(printContainers).toEqual({
+      panelBreakInside: 'auto',
+      panelOverflow: 'visible',
+      listBreakInside: 'auto',
+    });
     await expect(page.locator('.print-header > img')).toBeVisible();
     await expect(page.locator('.print-header')).not.toContainText('ESBORRANY');
     const printHeaderRows = await page.locator('.print-header').evaluate((header) => {

@@ -58,8 +58,6 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
 
   const el = {
     error: document.getElementById('error-box'),
-    empty: document.getElementById('empty-state'),
-    workspace: document.getElementById('workspace'),
     statSessions: document.getElementById('stat-sessions'),
     statProfessors: document.getElementById('stat-professors'),
     statGrups: document.getElementById('stat-grups'),
@@ -1706,8 +1704,6 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
     const hasVisibleDay = (state.isAdmin && !state.teacherView)
       || ['published', 'closed'].includes(state.dayStatus);
     const teDades = ready && hasSchedule && hasVisibleDay;
-    el.workspace.classList.toggle('hidden', !teDades);
-    el.empty.classList.toggle('hidden', teDades);
     if (!ready) return;
 
     renderConvivenciaAdmin();
