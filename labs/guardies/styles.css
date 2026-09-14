@@ -3645,16 +3645,6 @@ h3 {
     background: #fff !important;
   }
 
-  .coverage-session.seventh-session {
-    flex: 0 0 9mm;
-  }
-
-  .coverage-session.seventh-session::after {
-    content: "";
-    flex: 1 1 auto;
-    min-height: 2mm;
-  }
-
   .coverage-row {
     grid-template-columns: 1fr 1.15fr 1fr 1fr;
   }
