@@ -857,19 +857,30 @@ test.describe('Guàrdies: comportament existent', () => {
     await page.getByRole('tab', { name: 'Gestió diària' }).click();
     await page.locator('#date-input').fill('2026-09-07');
     await page.locator('#date-input').press('Tab');
+    const seventhObservation = page.locator('.seventh-session [data-comment="__seventh_observation__"]');
+    await expect(seventhObservation).toBeVisible();
+    await seventhObservation.fill('Revisar la sortida de darrera hora');
+    await page.waitForTimeout(500);
+    await page.reload();
+    await expect(page.locator('.seventh-session [data-comment="__seventh_observation__"]'))
+      .toHaveValue('Revisar la sortida de darrera hora');
     await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
     await page.emulateMedia({ media: 'print' });
 
     const layout = await page.evaluate(() => {
       const panel = document.querySelector('.day-panel').getBoundingClientRect();
       const list = document.querySelector('#coverage-list').getBoundingClientRect();
-      const sessions = Array.from(document.querySelectorAll('.coverage-session:not(.pati-session)'))
+      const sessions = Array.from(document.querySelectorAll('.coverage-session:not(.pati-session):not(.seventh-session)'))
         .map((node) => node.getBoundingClientRect());
       const patio = document.querySelector('.coverage-session.pati-session').getBoundingClientRect();
+      const seventh = document.querySelector('.coverage-session.seventh-session').getBoundingClientRect();
+      const seventhObservationPrint = document.querySelector('.seventh-observation-print').getBoundingClientRect();
       return {
         panelHeight: panel.height,
         sessionHeights: sessions.map((box) => box.height),
         patioHeight: patio.height,
+        seventhHeight: seventh.height,
+        seventhObservationHeight: seventhObservationPrint.height,
         bottomGap: Math.abs(panel.bottom - list.bottom),
       };
     });
@@ -877,7 +888,10 @@ test.describe('Guàrdies: comportament existent', () => {
     expect(layout.panelHeight).toBeGreaterThan(1500);
     expect(Math.max(...layout.sessionHeights) - Math.min(...layout.sessionHeights)).toBeLessThan(2);
     expect(layout.patioHeight).toBeLessThan(Math.min(...layout.sessionHeights));
-    expect(Math.min(...layout.sessionHeights)).toBeGreaterThan(100);
+    expect(layout.seventhHeight).toBeLessThan(Math.min(...layout.sessionHeights));
+    expect(layout.seventhHeight).toBeGreaterThan(60);
+    expect(layout.seventhObservationHeight).toBeGreaterThan(20);
     expect(layout.bottomGap).toBeLessThan(2);
+    await expect(page.locator('.seventh-observation-print')).toContainText('Revisar la sortida de darrera hora');
   });
 });

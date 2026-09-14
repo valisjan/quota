@@ -36,6 +36,7 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
 
 (function initGuardiesLab() {
   const PATI_COMMENT_KEY = '__pati_observation__';
+  const SEVENTH_COMMENT_KEY = '__seventh_observation__';
   const LEGACY_STORAGE = {
     referenceXml: 'quota_guardies_lab_reference_xml',
     referenceName: 'quota_guardies_lab_reference_name',
@@ -505,7 +506,9 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
       }
     });
     Object.entries(saved?.comments || {}).forEach(([id, comment]) => {
-      if ((state.absencies.has(id) || id === PATI_COMMENT_KEY) && comment) state.comentaris.set(id, comment);
+      if ((state.absencies.has(id) || [PATI_COMMENT_KEY, SEVENTH_COMMENT_KEY].includes(id)) && comment) {
+        state.comentaris.set(id, comment);
+      }
     });
     (saved?.groupsOut || []).forEach((groupId) => state.grupsFora.add(groupId));
     Object.entries(saved?.groupTeachers || {}).forEach(([groupId, teachers]) => {
@@ -1911,6 +1914,7 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
             </div>
           </div>
         ` : ''}
+        ${hora === seventhHour ? renderSeventhObservation() : ''}
       </section>
     `;
     }).join('');
@@ -2009,7 +2013,11 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
     const printComment = Array.from(el.coverageList.querySelectorAll('[data-comment-print]'))
       .find((node) => node.dataset.commentPrint === id);
     if (printComment) {
-      const prefix = id === PATI_COMMENT_KEY ? 'Observacions del pati' : 'Comentari';
+      const prefix = id === PATI_COMMENT_KEY
+        ? 'Observacions del pati'
+        : id === SEVENTH_COMMENT_KEY
+          ? 'Observacions de la 7a hora'
+          : 'Comentari';
       printComment.textContent = value ? `${prefix}: ${value}` : '';
     }
     scheduleDaySave();
@@ -2171,6 +2179,25 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
           <p class="pati-observation-print print-only" data-comment-print="${PATI_COMMENT_KEY}">${observation ? `Observacions del pati: ${escapeHtml(observation)}` : ''}</p>
         </div>
       </div>
+    `;
+  }
+
+  function renderSeventhObservation() {
+    const observation = state.comentaris.get(SEVENTH_COMMENT_KEY) || '';
+    const control = state.canWrite ? `
+      <label class="seventh-observation no-print">
+        <span>Observacions de la 7a hora</span>
+        <textarea
+          data-comment="${SEVENTH_COMMENT_KEY}"
+          rows="2"
+          placeholder="Indicacions de la cap d’estudis…"
+          ${state.dayStatus === 'closed' ? 'disabled' : ''}
+        >${escapeHtml(observation)}</textarea>
+      </label>
+    ` : observation ? `<p class="seventh-observation-readonly">${escapeHtml(observation)}</p>` : '';
+    return `
+      ${control}
+      <p class="seventh-observation-print print-only" data-comment-print="${SEVENTH_COMMENT_KEY}">${observation ? `Observacions de la 7a hora: ${escapeHtml(observation)}` : ''}</p>
     `;
   }
 
