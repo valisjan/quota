@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import GuardiesKioskPrototype from './GuardiesKioskPrototype.vue';
 import { signInGuardies } from '../../src/services/guardiesStorage.js';
 import {
   DEFAULT_SCREEN_CONFIG,
@@ -15,6 +16,7 @@ const screenId = params.get('pantalla') || DEFAULT_SCREEN_ID;
 const managementMode = params.get('gestio') === '1';
 const queryCourse = params.get('curs') || '';
 const queryDate = /^\d{4}-\d{2}-\d{2}$/.test(params.get('data') || '') ? params.get('data') : '';
+const prototypeMode = params.get('prototip') === 'quiosc-guardies';
 
 const config = reactive({ ...DEFAULT_SCREEN_CONFIG });
 const day = ref(null);
@@ -333,6 +335,7 @@ async function signIn() {
 }
 
 watch([selectedCourse, selectedDate], ([courseId, date]) => {
+  if (prototypeMode) return;
   unsubscribeDay();
   day.value = null;
   loadingDay.value = true;
@@ -352,6 +355,7 @@ watch([views, () => config.forcedViewId, activeViewIndex], scheduleRotation, { d
 watch([currentSlot, selectedDate, activeViewType, day], centerCurrentHour);
 
 onMounted(async () => {
+  if (prototypeMode) return;
   if (managementMode) {
     adminAllowed.value = await isPantallesAdmin().catch(() => false);
     adminReady.value = true;
@@ -389,6 +393,8 @@ onBeforeUnmount(() => {
     :class="[`theme-${config.theme}`, { 'management-mode': managementMode, 'management-dark': managementMode && managementDark }]"
     :style="{ '--display-scale': activeScale / 100, '--display-height': `${10000 / activeScale}vh` }"
   >
+    <GuardiesKioskPrototype v-if="prototypeMode" />
+    <template v-else>
     <nav v-if="managementMode" class="management-nav" aria-label="Navegació principal">
       <div class="management-nav-inner">
         <a class="management-brand" href="/">
@@ -698,5 +704,6 @@ onBeforeUnmount(() => {
         </footer>
       </template>
     </section>
+    </template>
   </main>
 </template>
