@@ -35,6 +35,20 @@ function singleValue(values) {
   return unique.length === 1 ? unique[0] : '';
 }
 
+function normalisedValue(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase();
+}
+
+function sameGroup(left, right) {
+  const leftValues = [left.grup, left.grupVisible].map(normalisedValue).filter(Boolean);
+  const rightValues = [right.grup, right.grupVisible].map(normalisedValue).filter(Boolean);
+  return leftValues.some((value) => rightValues.includes(value));
+}
+
 function sharedClassroomContext(sessions, absence) {
   if (!absence?.placa || !absence?.dia || !absence?.hora) return null;
   const targetSessions = sessions.filter((session) => (
@@ -44,8 +58,7 @@ function sharedClassroomContext(sessions, absence) {
     && session.hora === absence.hora
   ));
   const groupId = singleValue(targetSessions.map((session) => session.grup));
-  const roomId = singleValue(targetSessions.map((session) => session.aula));
-  if (!groupId || !roomId) return null;
+  if (!groupId) return null;
 
   const teachersAtSlot = new Map();
   sessions.filter((session) => (
@@ -55,16 +68,14 @@ function sharedClassroomContext(sessions, absence) {
     teachersAtSlot.get(session.placa).push(session);
   });
 
+  const targetClassroom = { grup: groupId };
   const teacherIds = Array.from(teachersAtSlot.entries())
-    .filter(([, teacherSessions]) => (
-      singleValue(teacherSessions.map((session) => session.grup)) === groupId
-      && singleValue(teacherSessions.map((session) => session.aula)) === roomId
-    ))
+    .filter(([, teacherSessions]) => teacherSessions.some((session) => sameGroup(session, targetClassroom)))
     .map(([teacherId]) => teacherId)
     .sort((a, b) => String(a).localeCompare(String(b), 'ca', { numeric: true }));
-  if (teacherIds.length !== 2 || !teacherIds.includes(absence.placa)) return null;
+  if (teacherIds.length < 2 || !teacherIds.includes(absence.placa)) return null;
   return {
-    key: [absence.dia, absence.hora, groupId, roomId].join('|'),
+    key: [absence.dia, absence.hora, groupId].join('|'),
     teacherIds,
   };
 }
@@ -75,9 +86,7 @@ export function classroomPartnerForAbsence({ sessions = [], absence, absences } 
   const presentTeachers = context.teacherIds.filter((teacherId) => (
     !isTeacherAbsentAtSlot(absences, absence.dia, absence.hora, teacherId)
   ));
-  return presentTeachers.length === 1 && presentTeachers[0] !== absence.placa
-    ? presentTeachers[0]
-    : '';
+  return presentTeachers.find((teacherId) => teacherId !== absence.placa) || '';
 }
 
 function mergedValues(items, field) {
@@ -102,7 +111,11 @@ export function mergeSharedClassroomAbsences({ sessions = [], absences = [] } = 
     const absentTeacherIds = Array.from(new Set(members.map((member) => member.placa))).sort((a, b) => (
       String(a).localeCompare(String(b), 'ca', { numeric: true })
     ));
-    if (absentTeacherIds.length !== 2 || !context.teacherIds.every((teacherId) => absentTeacherIds.includes(teacherId))) {
+    if (
+      absentTeacherIds.length < 2
+      || !absentTeacherIds.every((teacherId) => context.teacherIds.includes(teacherId))
+      || context.teacherIds.some((teacherId) => !absentTeacherIds.includes(teacherId))
+    ) {
       result.push(item);
       return;
     }
