@@ -35,7 +35,7 @@ function changeScale(amount) {
       <div class="prototype-time"><span>{{ displayedDay }}</span><strong>10:05</strong><em>3a hora en curs</em></div>
     </header>
     <nav class="prototype-toolbar" aria-label="Controls simulats del quiosc">
-      <div class="prototype-session-nav"><button v-for="hour in ['1a', '2a', '3a', '4a', '5a', '6a']" :key="hour" type="button" :class="{ active: selectedHour === hour }" @click="selectedHour = hour">{{ hour }}<small>{{ hour === '3a' ? '2 G' : hour === '4a' ? '1 G' : '0 G' }}</small></button></div>
+      <div class="prototype-session-nav"><button v-for="hour in ['1a', '2a', '3a', '4a', '5a', '6a']" :key="hour" type="button" :class="{ active: selectedHour === hour }" @mouseenter="selectedHour = hour" @focus="selectedHour = hour">{{ hour }}<small>{{ hour === '3a' ? '2 G' : hour === '4a' ? '1 G' : '0 G' }}</small></button></div>
       <div class="prototype-actions"><button type="button" aria-label="Dia anterior" :disabled="dayIndex === 0" @click="changeDay(-1)">←</button><button type="button" class="prototype-today" @click="resetDay">Avui</button><button type="button" aria-label="Dia següent" :disabled="dayIndex === days.length - 1" @click="changeDay(1)">→</button><i></i><button type="button" aria-label="Redueix el text" @click="changeScale(-10)">−</button><button type="button" class="prototype-percent" @click="scale = 100">{{ scale }}%</button><button type="button" aria-label="Augmenta el text" @click="changeScale(10)">+</button></div>
     </nav>
     <div class="prototype-content">
@@ -43,7 +43,7 @@ function changeScale(amount) {
       <main class="prototype-layout">
         <section class="prototype-guards">
           <header><h2>Guàrdies</h2><span>3 incidències</span></header>
-          <article v-for="item in guardies" :key="item.hour + item.group" class="prototype-guard" :class="[item.type, { highlighted: item.hour.startsWith(selectedHour) }]" @click="selectedHour = item.hour.slice(0, 2)">
+          <article v-for="item in guardies" :key="item.hour + item.group" class="prototype-guard" :class="[item.type, { highlighted: item.hour.startsWith(selectedHour) }]" @mouseenter="selectedHour = item.hour.slice(0, 2)">
             <div class="prototype-hour">{{ item.hour }}</div>
             <div class="prototype-class"><strong>{{ item.group }}</strong><span>{{ item.subject }} · {{ item.room }}</span></div>
             <div class="prototype-absence"><span>Absència</span><strong>{{ item.absent }}</strong></div>
