@@ -2777,7 +2777,7 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
         ].filter(Boolean).join(' · ');
     const locked = state.dayStatus === 'closed' || !state.canWrite;
     const assignmentControl = isPati || isGuardiaItem(item)
-      ? '<span class="info-only-label">Informatiu · no se substitueix</span>'
+      ? '<span class="info-only-label">Sense substitució</span>'
       : coTeacher
         ? `<strong class="readonly-assignment assigned no-print">${escapeHtml(labelProfessor(coTeacher))}</strong><span class="co-teacher-badge no-print">Queda amb el grup</span>`
       : state.canWrite
