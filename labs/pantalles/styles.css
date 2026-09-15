@@ -246,10 +246,17 @@ button { touch-action: manipulation; }
 
 .guard-list { display: grid; }
 .guard-row {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr) minmax(0, 1.05fr);
   border-left: .3rem solid #4d9369;
+  border-radius: .35rem;
+  transition: transform .22s ease, box-shadow .22s ease, opacity .22s ease;
+  transform-origin: left center;
 }
+.guard-list:has(.guard-row:hover) .guard-row:not(:hover) { opacity: .48; transform: scale(.985); }
+.guard-row:hover { z-index: 2; transform: scale(1.035); background: var(--surface); box-shadow: 0 10px 24px rgb(16 28 44 / .24); }
+.guard-row:hover > div { padding-top: 1.08rem; padding-bottom: 1.08rem; }
 .guard-row + .guard-row { border-top: 2px solid var(--line); }
 .guard-row.pending { border-left-color: #ba7934; }
 .guard-row.cancelled { opacity: .62; }
