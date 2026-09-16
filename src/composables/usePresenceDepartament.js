@@ -31,6 +31,7 @@ export function usePresenceDepartament({ departamentSeleccionat, authStore, curs
   let presenceUnsubscribe = null;
   let presenceInterval = null;
   let beforeunloadHandler = null;
+  return { activeUsers, usuarisActius };
 
   function getUserData() {
     return {

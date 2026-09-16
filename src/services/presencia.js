@@ -76,6 +76,9 @@ export function etiquetaAreaPresencia(path = '') {
 }
 
 export function subscribePresencia(cursId, callback, onError = console.error) {
+  callback([]);
+  return () => {};
+  /*
   if (E2E_AUTH_BYPASS) {
     callback([
       {
@@ -140,9 +143,12 @@ export function subscribePresencia(cursId, callback, onError = console.error) {
     },
     onError
   );
+  */
 }
 
 export function iniciarPresenciaGlobal({ cursId, user, getPath }) {
+  return () => {};
+  /*
   if (E2E_AUTH_BYPASS) return () => {};
   if (!cursId || !user?.uid) return () => {};
 
@@ -205,4 +211,5 @@ export function iniciarPresenciaGlobal({ cursId, user, getPath }) {
     window.removeEventListener('beforeunload', handleBeforeUnload);
     deleteDoc(presenceRef).catch(() => {});
   };
+  */
 }
