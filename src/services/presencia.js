@@ -3,8 +3,8 @@ import { db } from '../firebase';
 import { E2E_AUTH_BYPASS } from './e2e';
 
 const SESSION_KEY = 'quota_presence_session_id';
-const HEARTBEAT_MS = 20 * 1000;
-const ACTIVE_WINDOW_MS = 75 * 1000;
+const HEARTBEAT_MS = 60 * 1000;
+const ACTIVE_WINDOW_MS = 180 * 1000;
 
 function sessionId() {
   let value = sessionStorage.getItem(SESSION_KEY);
