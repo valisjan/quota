@@ -88,7 +88,7 @@ export function usePresenceDepartament({ departamentSeleccionat, authStore, curs
         const noms = [];
         snapshot.docs.forEach((d) => {
           const lastSeen = d.data().lastSeen?.toMillis?.();
-          if (lastSeen && now - lastSeen < 30000) {
+          if (lastSeen && now - lastSeen < 180000) {
             count++;
             noms.push(d.data().usuari || d.data().rol || 'Usuari');
           }
@@ -104,7 +104,7 @@ export function usePresenceDepartament({ departamentSeleccionat, authStore, curs
         setDoc(presenceRef, { lastSeen: serverTimestamp(), ...getUserData() }, { merge: true })
           .catch(console.error);
       }
-    }, 10000);
+    }, 60000);
 
     beforeunloadHandler = () => {
       if (presenceRef) deleteDoc(presenceRef).catch(console.error);
