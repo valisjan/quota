@@ -12,6 +12,14 @@ import {
 } from '../../src/services/pantallesStorage.js';
 
 const params = new URLSearchParams(window.location.search);
+const isPantallesDomain = window.location.hostname === 'pantalles.iessureda.com';
+const quotaUrl = 'https://quota.iessureda.com';
+const guardiesUrl = 'https://guardies.iessureda.com';
+const pantallesHref = (path = '/') => {
+  if (!isPantallesDomain) return path;
+  const localPath = path.replace(/^\/labs\/pantalles\/?/, '/') || '/';
+  return `${window.location.origin}${localPath}`;
+};
 const screenId = params.get('pantalla') || DEFAULT_SCREEN_ID;
 const managementMode = params.get('gestio') === '1';
 const queryCourse = params.get('curs') || '';
@@ -114,7 +122,7 @@ const currentSlot = computed(() => {
 });
 const currentSession = computed(() => currentSlot.value || 'Fora de l’horari lectiu');
 const kioskUrl = computed(() => {
-  const url = new URL('/labs/pantalles/', window.location.origin);
+  const url = new URL(pantallesHref('/labs/pantalles/'), window.location.origin);
   url.searchParams.set('pantalla', screenId);
   return url.toString();
 });
@@ -397,15 +405,15 @@ onBeforeUnmount(() => {
     <template v-else>
     <nav v-if="managementMode" class="management-nav" aria-label="Navegació principal">
       <div class="management-nav-inner">
-        <a class="management-brand" href="/">
+        <a class="management-brand" :href="isPantallesDomain ? `${quotaUrl}/` : '/'">
           <img src="/logo_IESJSB_nav.png" alt="IES Josep Sureda i Blanes" />
           <span><strong>QUOTA</strong><small>IES Josep Sureda i Blanes</small></span>
         </a>
         <div class="management-nav-tabs" aria-label="Seccions">
-          <a href="/">Quota</a>
-          <a href="/labs/guardies/">Guàrdies</a>
-          <a href="/labs/guardies/?vista=professor">Professorat</a>
-          <a class="active" href="/labs/pantalles/?gestio=1&pantalla=sala-professorat" aria-current="page">Pantalles</a>
+          <a :href="isPantallesDomain ? `${quotaUrl}/` : '/'">Quota</a>
+          <a :href="isPantallesDomain ? `${guardiesUrl}/` : '/labs/guardies/'">Guàrdies</a>
+          <a :href="isPantallesDomain ? `${guardiesUrl}/?vista=professor` : '/labs/guardies/?vista=professor'">Professorat</a>
+          <a class="active" :href="pantallesHref('/labs/pantalles/?gestio=1&pantalla=sala-professorat')" aria-current="page">Pantalles</a>
         </div>
         <button type="button" class="management-theme-toggle" aria-label="Canvia el tema" @click="toggleManagementTheme">
           <span aria-hidden="true">◐</span> {{ managementDark ? 'Clar' : 'Fosc' }}
