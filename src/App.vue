@@ -323,13 +323,17 @@ const links = computed(() => {
   const visibles = [
     { to: '/', label: 'Inici' },
     {
-      href: `/labs/guardies/${cursStore.cursActiuId ? `?curs=${encodeURIComponent(cursStore.cursActiuId)}` : ''}`,
+      href: `https://guardies.iessureda.com/${cursStore.cursActiuId ? `?curs=${encodeURIComponent(cursStore.cursActiuId)}` : ''}`,
       label: 'Guàrdies',
     },
   ];
   if (authStore.esAdmin()) visibles.push({ to: '/admin', label: 'Administració' });
   if (authStore.esCapDepartament()) visibles.push({ to: '/departament', label: 'Departaments' });
   if (authStore.estaAutenticat) visibles.push({ to: '/resums', label: 'Resums' });
+  if (authStore.esAdmin()) visibles.push({
+    href: 'https://pantalles.iessureda.com/?gestio=1&pantalla=sala-professorat',
+    label: 'Pantalles',
+  });
   return visibles;
 });
 
