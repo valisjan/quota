@@ -131,6 +131,20 @@ test('no considera codocència dos professors del mateix grup en aules diferents
   }), '');
 });
 
+test('detecta codocència amb aula diferent quan coincideixen grup i matèria', () => {
+  const sessions = [
+    { placa: 'P1', dia: '1', hora: '8:00', grup: '4ESO-B', aula: 'AULA 16', materia: 'ANG', teClasse: true },
+    { placa: 'P2', dia: '1', hora: '8:00', grup: '4ESO-B', aula: 'AULA 12', materia: 'ANG', teClasse: true },
+  ];
+  const absence = { id: 'P1|1|8:00', placa: 'P1', dia: '1', hora: '8:00' };
+
+  assert.equal(classroomPartnerForAbsence({
+    sessions,
+    absence,
+    absences: new Map([[absence.id, absence]]),
+  }), 'P2');
+});
+
 test('no considera docència compartida els blocs flexibles ni dues absències', () => {
   const flexibleSessions = [
     { placa: 'P1', dia: '1', hora: '8:00', grup: '1A', aula: 'A12', teClasse: true },

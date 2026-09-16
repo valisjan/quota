@@ -55,6 +55,12 @@ function sameRoom(left, right) {
   return leftValues.some((value) => rightValues.includes(value));
 }
 
+function sameSubject(left, right) {
+  const leftValues = [left.materia, left.materiaCurta, left.materiaNom].map(normalisedValue).filter(Boolean);
+  const rightValues = [right.materia, right.materiaCurta, right.materiaNom].map(normalisedValue).filter(Boolean);
+  return leftValues.some((value) => rightValues.includes(value));
+}
+
 function sharedClassroomContext(sessions, absence) {
   if (!absence?.placa || !absence?.dia || !absence?.hora) return null;
   const targetSessions = sessions.filter((session) => (
@@ -65,7 +71,8 @@ function sharedClassroomContext(sessions, absence) {
   ));
   const groupId = singleValue(targetSessions.map((session) => session.grup));
   const roomId = singleValue(targetSessions.map((session) => session.aula));
-  if (!groupId || !roomId) return null;
+  const subjectId = singleValue(targetSessions.map((session) => session.materia));
+  if (!groupId) return null;
 
   const teachersAtSlot = new Map();
   sessions.filter((session) => (
@@ -75,16 +82,17 @@ function sharedClassroomContext(sessions, absence) {
     teachersAtSlot.get(session.placa).push(session);
   });
 
-  const targetClassroom = { grup: groupId, aula: roomId };
+  const targetClassroom = { grup: groupId, aula: roomId, materia: subjectId };
   const teacherIds = Array.from(teachersAtSlot.entries())
     .filter(([, teacherSessions]) => teacherSessions.some((session) => (
-      sameGroup(session, targetClassroom) && sameRoom(session, targetClassroom)
+      sameGroup(session, targetClassroom)
+      && (sameRoom(session, targetClassroom) || sameSubject(session, targetClassroom))
     )))
     .map(([teacherId]) => teacherId)
     .sort((a, b) => String(a).localeCompare(String(b), 'ca', { numeric: true }));
   if (teacherIds.length < 2 || !teacherIds.includes(absence.placa)) return null;
   return {
-    key: [absence.dia, absence.hora, groupId, roomId].join('|'),
+    key: [absence.dia, absence.hora, groupId, roomId || subjectId].join('|'),
     teacherIds,
   };
 }
