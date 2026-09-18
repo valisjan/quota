@@ -302,6 +302,7 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly([
             'schemaVersion', 'date', 'status', 'absenceIds', 'assignments',
             'comments', 'groupsOut', 'groupTeachers', 'groupReleasedTeachers', 'partialGroups', 'outingAbsenceIds', 'cancelledAssignments',
+            'overriddenCoTeacherAssignments',
             'publishedAt', 'closedAt', 'countedAssignments', 'clientUpdatedAt',
             'revision', 'updatedAt'
           ])
@@ -317,6 +318,7 @@ service cloud.firestore {
           && request.resource.data.partialGroups is list
           && request.resource.data.outingAbsenceIds is list
           && request.resource.data.cancelledAssignments is list
+          && request.resource.data.overriddenCoTeacherAssignments is list
           && request.resource.data.publishedAt is string
           && request.resource.data.closedAt is string
           && request.resource.data.countedAssignments is list
