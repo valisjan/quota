@@ -422,6 +422,7 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
       partialGroups: Array.from(state.partialGroups).sort(),
       outingAbsenceIds: Array.from(state.outingAbsenceIds).sort(),
       cancelledAssignments: Array.from(state.cancelledAssignments).sort(),
+      overriddenCoTeacherAssignments: Array.from(state.overriddenCoTeacherAssignments).sort(),
       publishedAt: state.publishedAt,
       closedAt: state.closedAt,
       countedAssignments: state.countedAssignments,
@@ -559,6 +560,7 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
     state.closedAt = saved?.closedAt || '';
     state.updatedAt = saved?.clientUpdatedAt || '';
     state.cancelledAssignments = new Set(saved?.cancelledAssignments || []);
+    state.overriddenCoTeacherAssignments = new Set(saved?.overriddenCoTeacherAssignments || []);
     state.countedAssignments = Array.isArray(saved?.countedAssignments) ? saved.countedAssignments : [];
     state.dayRevision = Number(saved?.revision) || 0;
     lastDaySignature = daySignature();
@@ -1886,13 +1888,15 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
             absence: item,
             absences: state.absencies,
           });
-      if (classroomPartner) {
+      const coTeacherOverridden = state.overriddenCoTeacherAssignments.has(item.id);
+      const currentSource = state.assignmentSources.get(item.id);
+      if (classroomPartner && !coTeacherOverridden && (!currentSource || currentSource === 'co-teacher')) {
         state.assignacions.set(item.id, classroomPartner);
         state.assignmentSources.set(item.id, 'co-teacher');
         state.cancelledAssignments.delete(item.id);
         return;
       }
-      if (state.assignmentSources.get(item.id) === 'co-teacher') {
+      if (!classroomPartner && currentSource === 'co-teacher') {
         state.assignacions.delete(item.id);
         state.assignmentSources.delete(item.id);
       }
@@ -1954,6 +1958,12 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
       select.addEventListener('change', () => {
         if (state.dayStatus === 'closed') return;
         state.cancelledAssignments.delete(select.dataset.assignacio);
+        const classroomPartner = select.dataset.coTeacher || '';
+        if (select.value === classroomPartner && classroomPartner) {
+          state.overriddenCoTeacherAssignments.delete(select.dataset.assignacio);
+        } else {
+          state.overriddenCoTeacherAssignments.add(select.dataset.assignacio);
+        }
         if (select.value) {
           const absence = state.absencies.get(select.dataset.assignacio);
           const candidate = absence
@@ -1963,7 +1973,9 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
           state.assignacions.set(select.dataset.assignacio, select.value);
           state.assignmentSources.set(
             select.dataset.assignacio,
-            candidate?.alliberaments?.length ? 'released' : candidate?.outsideDuty ? 'other' : 'guard',
+            select.value === classroomPartner
+              ? 'co-teacher'
+              : candidate?.alliberaments?.length ? 'released' : candidate?.outsideDuty ? 'other' : 'guard',
           );
         } else {
           state.assignacions.delete(select.dataset.assignacio);
@@ -2017,6 +2029,7 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
           state.assignmentSources.delete(absenceId);
           state.comentaris.delete(absenceId);
           state.cancelledAssignments.delete(absenceId);
+          state.overriddenCoTeacherAssignments.delete(absenceId);
         });
         renderSchedule();
         renderCoverage();
@@ -2784,6 +2797,13 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
     const candidates = isPati ? [] : guardiesPerFranja(item.dia, item.hora, item.placa, item.id);
     const assignat = state.assignacions.get(item.id) || '';
     const coTeacher = state.assignmentSources.get(item.id) === 'co-teacher' ? assignat : '';
+    const classroomPartner = isGuardiaItem(item)
+      ? ''
+      : classroomPartnerForAbsence({
+          sessions: state.sessions,
+          absence: item,
+          absences: state.absencies,
+        });
     const hasCandidates = candidates.length > 0;
     const hasAvailableCandidates = candidates.some((candidate) => !candidate.unavailable);
     const hasReleasedCandidates = candidates.some((candidate) => (
@@ -2807,12 +2827,13 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
     const locked = state.dayStatus === 'closed' || !state.canWrite;
     const assignmentControl = isPati || isGuardiaItem(item)
       ? '<span class="info-only-label">Sense substitució</span>'
-      : coTeacher
+      : !state.canWrite && coTeacher
         ? `<strong class="readonly-assignment assigned no-print">${escapeHtml(labelProfessor(coTeacher))}</strong><span class="co-teacher-badge no-print">Queda amb el grup</span>`
       : state.canWrite
-        ? `<select data-assignacio="${escapeHtml(item.id)}" ${hasCandidates && !locked ? '' : 'disabled'}>
+        ? `<select data-assignacio="${escapeHtml(item.id)}" data-co-teacher="${escapeHtml(classroomPartner)}" ${(hasCandidates || classroomPartner) && !locked ? '' : 'disabled'}>
             <option value="">Sense preassignar</option>
-            ${candidates.map((candidate) => `
+            ${classroomPartner ? `<option value="${escapeHtml(classroomPartner)}" ${classroomPartner === assignat ? 'selected' : ''}>${escapeHtml(labelProfessor(classroomPartner))} · Queda amb el grup</option>` : ''}
+            ${candidates.filter((candidate) => candidate.placa !== classroomPartner).map((candidate) => `
               <option
                 class="candidate-option ${candidateOptionClass(candidate)}"
                 value="${escapeHtml(candidate.placa)}"
@@ -2822,7 +2843,7 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
                 ${escapeHtml(candidateSelectLabel(candidate))}
               </option>
             `).join('')}
-          </select>`
+          </select>${coTeacher ? '<span class="co-teacher-badge no-print">Queda amb el grup</span>' : ''}`
         : `<strong class="readonly-assignment no-print ${assignat ? 'assigned' : 'pending'}">${escapeHtml(assignat ? labelProfessor(assignat) : 'Sense cobrir')}</strong>`;
     const commentControl = state.canWrite
       ? `<select data-comment-preset="${escapeHtml(item.id)}" aria-label="Observació preestablerta" ${locked || !state.observationPresets.length ? 'disabled' : ''}>
