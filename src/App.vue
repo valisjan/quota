@@ -336,7 +336,7 @@ const links = computed(() => {
     { to: '/', label: 'Quota' },
     {
       href: `${appLinks.guardies}${guardiesSuffix ? `?${guardiesSuffix}` : ''}`,
-      label: 'Guàrdies',
+      label: admin ? 'Guàrdies' : 'Professorat',
     },
     { href: appLinks.retards, label: 'Retards' },
   ];
