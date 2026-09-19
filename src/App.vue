@@ -328,7 +328,7 @@ const departamentsVistaOrdenats = computed(() =>
 
 const links = computed(() => {
   const visibles = [
-    { to: '/', label: 'Inici' },
+    { to: '/', label: 'Quota' },
     {
       href: `${appLinks.guardies}${cursStore.cursActiuId ? `?curs=${encodeURIComponent(cursStore.cursActiuId)}` : ''}`,
       label: 'Guàrdies',
