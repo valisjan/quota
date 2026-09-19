@@ -13,8 +13,10 @@ import {
 
 const params = new URLSearchParams(window.location.search);
 const isPantallesDomain = window.location.hostname === 'pantalles.iessureda.com';
-const quotaUrl = 'https://quota.iessureda.com';
-const guardiesUrl = 'https://guardies.iessureda.com';
+const netlifyMode = window.location.hostname.endsWith('.netlify.app');
+const quotaUrl = netlifyMode ? 'https://chic-tartufo-68ee9c.netlify.app' : 'https://quota.iessureda.com';
+const guardiesUrl = netlifyMode ? 'https://guardies.netlify.app' : 'https://guardies.iessureda.com';
+const retardsUrl = netlifyMode ? 'https://spontaneous-gecko-a2703a.netlify.app' : 'https://retards.iessureda.com';
 const pantallesHref = (path = '/') => {
   if (!isPantallesDomain) return path;
   const localPath = path.replace(/^\/labs\/pantalles\/?/, '/') || '/';
@@ -436,6 +438,7 @@ onBeforeUnmount(() => {
           <a :href="isPantallesDomain ? `${guardiesUrl}/` : '/labs/guardies/'">Guàrdies</a>
           <a :href="isPantallesDomain ? `${guardiesUrl}/?vista=professor` : '/labs/guardies/?vista=professor'">Professorat</a>
           <a class="active" :href="pantallesHref('/labs/pantalles/?gestio=1&pantalla=sala-professorat')" aria-current="page">Pantalles</a>
+          <a :href="retardsUrl">Retards</a>
         </div>
         <button type="button" class="management-theme-toggle" aria-label="Canvia el tema" @click="toggleManagementTheme">
           <span aria-hidden="true">◐</span> {{ managementDark ? 'Clar' : 'Fosc' }}
