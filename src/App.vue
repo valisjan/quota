@@ -327,18 +327,23 @@ const departamentsVistaOrdenats = computed(() =>
 );
 
 const links = computed(() => {
+  const admin = authStore.esAdmin();
+  const guardiesQuery = new URLSearchParams();
+  if (cursStore.cursActiuId) guardiesQuery.set('curs', cursStore.cursActiuId);
+  if (!admin) guardiesQuery.set('vista', 'professor');
+  const guardiesSuffix = guardiesQuery.toString();
   const visibles = [
     { to: '/', label: 'Quota' },
     {
-      href: `${appLinks.guardies}${cursStore.cursActiuId ? `?curs=${encodeURIComponent(cursStore.cursActiuId)}` : ''}`,
+      href: `${appLinks.guardies}${guardiesSuffix ? `?${guardiesSuffix}` : ''}`,
       label: 'Guàrdies',
     },
     { href: appLinks.retards, label: 'Retards' },
   ];
-  if (authStore.esAdmin()) visibles.push({ to: '/admin', label: 'Administració' });
+  if (admin) visibles.push({ to: '/admin', label: 'Administració' });
   if (authStore.esCapDepartament()) visibles.push({ to: '/departament', label: 'Departaments' });
   if (authStore.estaAutenticat) visibles.push({ to: '/resums', label: 'Resums' });
-  visibles.push({ href: appLinks.pantalles, label: 'Pantalles' });
+  if (admin) visibles.push({ href: appLinks.pantalles, label: 'Pantalles' });
   return visibles;
 });
 
