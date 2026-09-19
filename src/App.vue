@@ -307,6 +307,13 @@ const router = useRouter();
 const authStore = useAuthStore();
 const cursStore = useCursStore();
 const mobileMenuOpen = ref(false);
+const netlifyMode = window.location.hostname.endsWith('.netlify.app');
+const appLinks = {
+  quota: netlifyMode ? 'https://chic-tartufo-68ee9c.netlify.app/' : 'https://quota.iessureda.com/',
+  guardies: netlifyMode ? 'https://guardies.netlify.app/' : 'https://guardies.iessureda.com/',
+  pantalles: netlifyMode ? 'https://pantalles.netlify.app/?gestio=1&pantalla=sala-professorat' : 'https://pantalles.iessureda.com/?gestio=1&pantalla=sala-professorat',
+  retards: netlifyMode ? 'https://spontaneous-gecko-a2703a.netlify.app/' : 'https://retards.iessureda.com/',
+};
 const { isDark, themeLabel, themeAriaLabel, toggleTheme } = useTheme();
 let stopPresenciaGlobal = null;
 
@@ -323,17 +330,15 @@ const links = computed(() => {
   const visibles = [
     { to: '/', label: 'Inici' },
     {
-      href: `https://guardies.iessureda.com/${cursStore.cursActiuId ? `?curs=${encodeURIComponent(cursStore.cursActiuId)}` : ''}`,
+      href: `${appLinks.guardies}${cursStore.cursActiuId ? `?curs=${encodeURIComponent(cursStore.cursActiuId)}` : ''}`,
       label: 'Guàrdies',
     },
+    { href: appLinks.retards, label: 'Retards' },
   ];
   if (authStore.esAdmin()) visibles.push({ to: '/admin', label: 'Administració' });
   if (authStore.esCapDepartament()) visibles.push({ to: '/departament', label: 'Departaments' });
   if (authStore.estaAutenticat) visibles.push({ to: '/resums', label: 'Resums' });
-  if (authStore.esAdmin()) visibles.push({
-    href: 'https://pantalles.iessureda.com/?gestio=1&pantalla=sala-professorat',
-    label: 'Pantalles',
-  });
+  visibles.push({ href: appLinks.pantalles, label: 'Pantalles' });
   return visibles;
 });
 
