@@ -318,7 +318,10 @@ service cloud.firestore {
           && request.resource.data.partialGroups is list
           && request.resource.data.outingAbsenceIds is list
           && request.resource.data.cancelledAssignments is list
-          && request.resource.data.overriddenCoTeacherAssignments is list
+          && (
+            !('overriddenCoTeacherAssignments' in request.resource.data)
+            || request.resource.data.overriddenCoTeacherAssignments is list
+          )
           && request.resource.data.publishedAt is string
           && request.resource.data.closedAt is string
           && request.resource.data.countedAssignments is list
