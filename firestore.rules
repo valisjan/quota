@@ -291,6 +291,14 @@ service cloud.firestore {
               && request.resource.data.counts is map
               && request.resource.data.updatedAt == request.time
             )
+            || (
+              id == 'directoriVersion'
+              && request.resource.data.keys().hasOnly(['version', 'updatedAt', 'updatedBy'])
+              && request.resource.data.version is int
+              && request.resource.data.updatedAt == request.time
+              && request.resource.data.updatedBy is string
+              && request.resource.data.updatedBy.size() <= 320
+            )
           );
         allow delete: if esAdmin();
       }

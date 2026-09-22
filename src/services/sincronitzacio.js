@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, doc, getDoc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { normalitzarJornada } from '../utils/horesProfessor';
 import { departamentsProfessor, formatDepartamentsProfessor, separarDepartaments } from '../utils/departaments';
 import { E2E_AUTH_BYPASS, getE2ECollection } from './e2e';
@@ -1372,6 +1372,15 @@ export async function sincronitzar(cursId, options = {}) {
       });
     }
   }
+
+  // Guardies caches this combined directory locally. Update one small version
+  // document only after professors and pre-authorised profiles are in sync, so
+  // open Guardies tabs refresh their directory exactly once.
+  await setDoc(doc(db, 'cursos', cursId, 'guardies', 'directoriVersion'), {
+    version: Date.now(),
+    updatedAt: serverTimestamp(),
+    updatedBy: '',
+  });
 
   const resultat = {
     total: classesNoves.length,
