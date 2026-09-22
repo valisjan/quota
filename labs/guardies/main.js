@@ -59,6 +59,8 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
   let teacherAliasesById = new Map();
   let professorResultIndex = -1;
   let bootstrapInFlight = null;
+  let bootstrapRetryTimer = null;
+  let bootstrapRetryAttempt = 0;
   let visibilityResumeInFlight = null;
 
   function handleOnline() {
@@ -187,6 +189,10 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
   bootstrap();
 
   function bootstrap() {
+    if (bootstrapRetryTimer) {
+      window.clearTimeout(bootstrapRetryTimer);
+      bootstrapRetryTimer = null;
+    }
     if (bootstrapInFlight) return bootstrapInFlight;
     bootstrapInFlight = bootstrapInternal().finally(() => {
       bootstrapInFlight = null;
@@ -248,6 +254,7 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
       await activateGuardiesDay(state.date);
       if (!document.hidden) subscribeToRemoteData();
       state.contextReady = true;
+      bootstrapRetryAttempt = 0;
       render();
       window.dispatchEvent(new CustomEvent('guardies:auth-ready'));
     } catch (error) {
@@ -257,7 +264,19 @@ import { savePublicGuardiesDay } from '../../src/services/pantallesStorage.js';
       showError(state.authRequired ? '' : error.message || String(error));
       render();
       window.dispatchEvent(new CustomEvent('guardies:auth-ready'));
+      if (!state.authRequired) scheduleBootstrapRetry();
     }
+  }
+
+  function scheduleBootstrapRetry() {
+    if (bootstrapRetryTimer || bootstrapInFlight || state.authRequired) return;
+    const delays = [10000, 30000, 60000, 120000];
+    const delay = delays[Math.min(bootstrapRetryAttempt, delays.length - 1)];
+    bootstrapRetryAttempt += 1;
+    bootstrapRetryTimer = window.setTimeout(() => {
+      bootstrapRetryTimer = null;
+      bootstrap();
+    }, delay);
   }
 
   function handleVisibilityChange() {
