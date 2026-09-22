@@ -41,6 +41,7 @@ const uploads = computed(() => {
 
 const cacheLabel = computed(() => {
   if (persistenceStatus.value === 'loading') return 'Connectant amb Quota...';
+  if (persistenceStatus.value === 'stale') return 'Dades locals · reintentant connexió...';
   if (persistenceStatus.value === 'saving') return 'Guardant a Quota...';
   const count = uploads.value.filter((upload) => upload.loaded).length;
   const course = courseName.value || courseId.value || 'curs actiu';
