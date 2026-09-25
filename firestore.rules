@@ -287,8 +287,10 @@ service cloud.firestore {
             )
             || (
               id == 'stats'
-              && request.resource.data.keys().hasOnly(['counts', 'updatedAt'])
+              && request.resource.data.keys().hasOnly(['counts', 'guardHistory', 'guardHistoryVersion', 'updatedAt'])
               && request.resource.data.counts is map
+              && (!('guardHistory' in request.resource.data) || request.resource.data.guardHistory is map)
+              && (!('guardHistoryVersion' in request.resource.data) || request.resource.data.guardHistoryVersion is int)
               && request.resource.data.updatedAt == request.time
             )
             || (
