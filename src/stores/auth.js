@@ -1,11 +1,12 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
-import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db, auth, isIOSWebKit } from '../firebase';
 import { getRestDocument } from '../services/firestoreRest';
 import { useCursStore } from './curs';
 import { E2E_AUTH_BYPASS } from '../services/e2e';
+import { signInStaff } from '../services/auth';
 
 const DOMINI = 'iesjosepsuredaiblanes.com';
 
@@ -217,21 +218,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function iniciarSessioGoogle() {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({
-      hd: DOMINI,
-      prompt: 'select_account',
-    });
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (err) {
-      if (err.code === 'auth/popup-blocked') {
-        throw new Error("Safari ha bloquejat l'inici de sessió. Permet les finestres emergents i torna-ho a provar.");
-      }
-      if (!['auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(err.code)) {
-        throw err;
-      }
-    }
+    return signInStaff();
   }
 
   async function tancarSessio() {

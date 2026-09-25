@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import GuardiesKioskPrototype from './GuardiesKioskPrototype.vue';
-import { signInGuardies } from '../../src/services/guardiesStorage.js';
+import { signInStaff } from '../../src/services/auth.js';
 import {
   DEFAULT_SCREEN_CONFIG,
   DEFAULT_SCREEN_ID,
@@ -334,7 +334,7 @@ async function signIn() {
   signingIn.value = true;
   errorMessage.value = '';
   try {
-    await signInGuardies();
+    await signInStaff();
     adminAllowed.value = await isPantallesAdmin();
   } catch (error) {
     errorMessage.value = error?.message || String(error);
@@ -435,8 +435,8 @@ onBeforeUnmount(() => {
         </a>
         <div class="management-nav-tabs" aria-label="Seccions">
           <a :href="isPantallesDomain ? `${quotaUrl}/` : '/'">Quota</a>
-          <a :href="isPantallesDomain ? `${guardiesUrl}/` : '/labs/guardies/'">Guàrdies</a>
-          <a :href="isPantallesDomain ? `${guardiesUrl}/?vista=professor` : '/labs/guardies/?vista=professor'">Professorat</a>
+          <a :href="`${guardiesUrl}/`">Guàrdies</a>
+          <a :href="`${guardiesUrl}/?vista=professor`">Professorat</a>
           <a class="active" :href="pantallesHref('/labs/pantalles/?gestio=1&pantalla=sala-professorat')" aria-current="page">Pantalles</a>
           <a :href="retardsUrl">Retards</a>
         </div>
