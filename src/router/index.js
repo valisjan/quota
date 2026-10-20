@@ -13,6 +13,7 @@ const GestioCursos = () => import('../components/GestioCursos.vue');
 const Configuracio = () => import('../components/Configuracio.vue');
 const AdminSeguiment = () => import('../components/AdminSeguiment.vue');
 const ConsumPla = () => import('../components/ConsumPla.vue');
+const ProfessoratAdmin = () => import('../components/ProfessoratAdmin.vue');
 
 const routes = [
   { path: '/', component: Home },
@@ -22,7 +23,8 @@ const routes = [
     meta: { requiresAdmin: true },
     children: [
       { path: 'classes', redirect: '/admin/dades' },
-      { path: 'professors', redirect: '/admin/dades' },
+      { path: 'professors', redirect: '/admin/professorat' },
+      { path: 'professorat', component: ProfessoratAdmin },
       { path: 'departaments', redirect: '/admin/dades' },
       { path: 'dades', component: DadesImportades },
       { path: 'sincronitzacio', redirect: '/admin/dades' },

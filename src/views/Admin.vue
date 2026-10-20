@@ -238,7 +238,15 @@ const tabs = [
     icon: 'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3',
     help: 'Sync Sheets',
     descripcio: 'Importa classes i professors des de Google Sheets i valida les dades.',
-    aliases: ['/admin/classes', '/admin/professors', '/admin/departaments'],
+    aliases: ['/admin/classes', '/admin/departaments'],
+  },
+  {
+    path: '/admin/professorat',
+    nom: 'Professorat',
+    icon: 'M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z',
+    help: 'Fitxes',
+    descripcio: 'Altes, canvis, substitucions i baixes del professorat, amb els rols i els permisos d\'accés.',
+    aliases: ['/admin/professors'],
   },
   {
     path: '/admin/parametres',
@@ -401,6 +409,12 @@ const navegacioAdmin = computed(() => {
       estat: mostrarAvisDesactualitzat.value ? 'warning' : 'ready',
       badge: mostrarAvisDesactualitzat.value ? 'Revisar' : 'Al dia',
       badgeClass: mostrarAvisDesactualitzat.value ? 'admin-nav-badge-warning' : 'admin-nav-badge-ok',
+    }],
+    ['/admin/professorat', {
+      workflowHelp: 'Altes, canvis, substitucions i baixes del professorat.',
+      estat: 'ready',
+      badge: 'Fitxes',
+      badgeClass: 'admin-nav-badge-info',
     }],
     ['/admin/parametres', {
       workflowHelp: 'Ajusta regles i paràmetres generals.',
