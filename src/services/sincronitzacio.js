@@ -5,6 +5,7 @@ import { departamentsProfessor, formatDepartamentsProfessor, separarDepartaments
 import { E2E_AUTH_BYPASS, getE2ECollection } from './e2e';
 import { BatchSplit } from '../utils/firestoreBatch';
 import { llegirRols, rolQuota } from '../utils/rolsProfessorat';
+import { planificarProfessors } from '../utils/professorsSync';
 
 const APPS_SCRIPT_URL =
   'https://script.google.com/macros/s/AKfycbykQQXn6_oZ1iTtkASuHSA1P1kr5eSqGlIEdm5IBfuxSvr0wDh2I6Ec_yjILnHCXDKe/exec';
@@ -784,7 +785,7 @@ async function calcularDiscrepanciesProfessors(cursId, professorsSheets) {
 
   let noves = 0;
   let modificades = 0;
-  let migracions = 0;
+  const migracions = 0;
   const preview = {
     noves: [],
     modificades: [],
@@ -804,20 +805,7 @@ async function calcularDiscrepanciesProfessors(cursId, professorsSheets) {
     }
 
     const detalls = detallCanvisProfessor(existent.data, professor);
-    const migracio = Boolean(professor.codiUntis && existent.id !== professor.codiUntis);
-    if (migracio) {
-      migracions++;
-      preview.migracions.push({
-        tipus: 'migracio',
-        resum: resumProfessorCanvi(professor),
-        detall: [
-          `ID Firestore: ${existent.id} -> ${professor.codiUntis}`,
-          ...detalls.filter((detall) => !detall.startsWith('Codi Untis:')),
-        ].join(', '),
-      });
-    } else if (
-      detalls.length > 0
-    ) {
+    if (detalls.length > 0) {
       modificades++;
       preview.modificades.push({
         tipus: 'modificat',
@@ -1179,19 +1167,17 @@ export async function sincronitzar(cursId, options = {}) {
 
   // 5. Sincronitzar professors
   const snapProfs = await getDocs(cc(cursId, 'professors'));
-  const profsExistentsPerNom = new Map(
-    snapProfs.docs.map((d) => [n(d.data().nom), { id: d.id, data: d.data() }])
-  );
-
   const batchProfs = new BatchSplit();
-  let profsAfegits = 0, profsMigrats = 0, profsEliminats = 0;
-  const idsEliminatsMigracio = new Set();
-  const nomsSheets = new Set(professorsNous.map((p) => n(p.nom)));
-
-  professorsNous.forEach((prof) => {
-    const existent = profsExistentsPerNom.get(n(prof.nom));
+  // Ja no hi ha migracions: el document d'un professor no es mou quan li canvia el codi.
+  const profsMigrats = 0;
+  let profsEliminats = 0;
+  const pla = planificarProfessors(
+    snapProfs.docs.map((d) => ({ id: d.id, nom: d.data().nom, codiUntis: d.data().codiUntis || '' })),
+    professorsNous,
+  );
+  const campsFixos = (prof) => {
     const departaments = departamentsProfessor(prof);
-    const campsFixos = {
+    return {
       nom: prof.nom,
       departament: departaments[0] || '',
       departaments,
@@ -1202,57 +1188,27 @@ export async function sincronitzar(cursId, options = {}) {
       eliminatDelFull: false,
       updatedAt: new Date(),
     };
+  };
 
-    if (prof.codiUntis) {
-      const novaRef = dd(cursId, 'professors', prof.codiUntis);
-      if (!existent) {
-        batchProfs.set(novaRef, {
-          ...campsFixos,
-          preferencia: '', motiuAllegat: '', comentaris: '',
-          gpAssignades: 0, gcAssignades: 0, palicAssignades: 0, sdAssignades: 0, sdAssignacions: [], ddAssignades: 0, ddAssignacions: [],
-        });
-        profsAfegits++;
-      } else if (existent.id === prof.codiUntis) {
-        batchProfs.update(novaRef, campsFixos);
-      } else {
-        batchProfs.set(novaRef, {
-          ...campsFixos,
-          preferencia: existent.data.preferencia || '',
-          motiuAllegat: existent.data.motiuAllegat || '',
-          comentaris: existent.data.comentaris || '',
-          gpAssignades: existent.data.gpAssignades || 0,
-          gcAssignades: existent.data.gcAssignades || 0,
-          palicAssignades: existent.data.palicAssignades || 0,
-          sdAssignades: existent.data.sdAssignades || 0,
-          sdAssignacions: existent.data.sdAssignacions || [],
-          ddAssignades: existent.data.ddAssignades || 0,
-          ddAssignacions: existent.data.ddAssignacions || [],
-        });
-        batchProfs.delete(dd(cursId, 'professors', existent.id));
-        idsEliminatsMigracio.add(existent.id);
-        profsMigrats++;
-      }
-    } else {
-      if (!existent) {
-        batchProfs.set(dd(cursId, 'professors'), {
-          ...campsFixos,
-          preferencia: '', motiuAllegat: '', comentaris: '',
-          gpAssignades: 0, gcAssignades: 0, palicAssignades: 0, sdAssignades: 0, sdAssignacions: [], ddAssignades: 0, ddAssignacions: [],
-        });
-        profsAfegits++;
-      } else {
-        batchProfs.update(dd(cursId, 'professors', existent.id), campsFixos);
-      }
-    }
+  pla.actualitzar.forEach(({ id, professor }) => {
+    batchProfs.update(dd(cursId, 'professors', id), campsFixos(professor));
   });
+  pla.crear.forEach(({ id, professor }) => {
+    batchProfs.set(dd(cursId, 'professors', id), {
+      ...campsFixos(professor),
+      preferencia: '', motiuAllegat: '', comentaris: '',
+      gpAssignades: 0, gcAssignades: 0, palicAssignades: 0, sdAssignades: 0, sdAssignacions: [], ddAssignades: 0, ddAssignacions: [],
+    });
+  });
+  const profsAfegits = pla.crear.length;
 
   // Professors que ja no surten al full → marcar com a eliminats (soft delete)
-  snapProfs.docs.forEach((d) => {
-    if (!nomsSheets.has(n(d.data().nom)) && !idsEliminatsMigracio.has(d.id)) {
-      if (!d.data().eliminatDelFull) {
-        batchProfs.update(d.ref, { eliminatDelFull: true });
-        profsEliminats++;
-      }
+  const perId = new Map(snapProfs.docs.map((d) => [d.id, d]));
+  pla.eliminar.forEach((id) => {
+    const d = perId.get(id);
+    if (!d.data().eliminatDelFull) {
+      batchProfs.update(d.ref, { eliminatDelFull: true });
+      profsEliminats++;
     }
   });
 
