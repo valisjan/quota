@@ -427,6 +427,49 @@ service cloud.firestore {
       allow write: if esAdmin();
     }
 
+    // ---- Retards (alumnat que arriba tard) -------------------------------------
+    // Hi entren l'administració i qui té el rol PSC al professorat de Quota (permís
+    // d'accés a «preautoritzats»). Les dades van empaquetades perquè costin poques
+    // lectures: un document amb tots els alumnes de cada curs i un amb els retards de
+    // cada mes.
+    function permisRetards() {
+      return preautoritzat(request.auth.token.email);
+    }
+
+    function esAdminRetards() {
+      return autenticat() && (
+        (permisRetards() != null && permisRetards().rol == 'admin')
+        || esAdmin()
+      );
+    }
+
+    function esPscRetards() {
+      return autenticat()
+        && permisRetards() != null
+        && permisRetards().rols is list
+        && 'psc' in permisRetards().rols;
+    }
+
+    // L'ordre importa: la PSC pot no tenir document a «usuaris» (mai no ha entrat a Quota).
+    function potRetards() {
+      return esPscRetards() || esAdminRetards();
+    }
+
+    match /retardsAlumnes/{schoolYear} {
+      allow read: if potRetards();
+      allow write: if esAdminRetards()
+        && request.resource.data.keys().hasOnly(['schoolYear', 'students', 'updatedAt', 'updatedBy'])
+        && request.resource.data.students is list;
+    }
+
+    match /retardsMesos/{mesId} {
+      allow read: if potRetards();
+      allow create, update: if potRetards()
+        && request.resource.data.keys().hasOnly(['schoolYear', 'month', 'records', 'updatedAt', 'updatedBy'])
+        && request.resource.data.records is list;
+      allow delete: if esAdminRetards();
+    }
+
     // Config global antiga: només lectura administrativa per migracions puntuals.
     match /config/{id} {
       allow read: if esAdmin();
