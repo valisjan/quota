@@ -4,6 +4,7 @@ import { normalitzarJornada } from '../utils/horesProfessor';
 import { departamentsProfessor, formatDepartamentsProfessor, separarDepartaments } from '../utils/departaments';
 import { E2E_AUTH_BYPASS, getE2ECollection } from './e2e';
 import { BatchSplit } from '../utils/firestoreBatch';
+import { llegirRols, rolQuota } from '../utils/rolsProfessorat';
 
 const APPS_SCRIPT_URL =
   'https://script.google.com/macros/s/AKfycbykQQXn6_oZ1iTtkASuHSA1P1kr5eSqGlIEdm5IBfuxSvr0wDh2I6Ec_yjILnHCXDKe/exec';
@@ -187,6 +188,8 @@ function llegirProfessorsDeResposta(data) {
   return (data.table?.rows || [])
     .map((row) => {
       const departaments = separarDepartaments(valorCamp(row, columnes, 'departament', 1));
+      const rolFull = valorCamp(row, columnes, 'rol', 5);
+      const { rols, desconeguts } = llegirRols(rolFull);
       return {
         nom:          valorCamp(row, columnes, 'nom', 0),
         departament: departaments[0] || '',
@@ -194,7 +197,10 @@ function llegirProfessorsDeResposta(data) {
         jornada:      normalitzarJornada(valorCamp(row, columnes, 'jornada', 2)),
         codiUntis:    normalitzarCodiUntis(valorCamp(row, columnes, 'codiUntis', 3)),
         email:        completarEmail(valorCamp(row, columnes, 'email', 4)),
-        rol:          valorCamp(row, columnes, 'rol', 5),
+        // Text del full tal qual (signatura i resum de canvis) i rols ja interpretats.
+        rol:          rolFull,
+        rols,
+        rolsDesconeguts: desconeguts,
         comentariFull: valorCamp(row, columnes, 'comentariFull', 6),
       };
     })
@@ -1351,7 +1357,7 @@ export async function sincronitzar(cursId, options = {}) {
   // 7. Pre-autoritzar professors amb email (columnes EMAIL i ROL del full Professorat)
   const preautoritzats = professorsNous
     .filter((p) => p.email)
-    .map((p) => ({ ...p, rol: ROLS_VALIDS.has(p.rol) ? p.rol : 'professor' }));
+    .map((p) => ({ ...p, rol: rolQuota(p.rols) }));
 
   // Guard: only sync if we actually have emails — avoids wiping everything if the column is empty.
   if (preautoritzats.length > 0) {
@@ -1366,6 +1372,8 @@ export async function sincronitzar(cursId, options = {}) {
         nom: p.nom,
         codiUntis: p.codiUntis || '',
         rol: p.rol,
+        // Tots els rols del full (p. ex. ['cap_departament', 'psc']) per a les altres apps.
+        rols: p.rols.length ? p.rols : ['professor'],
         departament: p.departament || null,
         departaments: departamentsProfessor(p),
         updatedAt: new Date(),
