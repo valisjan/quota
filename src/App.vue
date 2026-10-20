@@ -2,7 +2,7 @@
   <div class="app-shell min-h-screen">
     <a href="#main-content" class="skip-link">Saltar al contingut</a>
     <nav class="app-nav sticky top-0 z-[100] border-b shadow-sm backdrop-blur">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 2xl:max-w-screen-2xl">
         <div class="flex h-16 items-center justify-between gap-4">
           <router-link to="/" class="flex shrink-0 items-center gap-3">
             <img
@@ -12,22 +12,47 @@
             />
             <div class="hidden sm:block">
               <h1 class="app-brand-title text-base font-semibold leading-tight">QUOTA</h1>
-              <p class="app-brand-subtitle text-xs font-medium">IES Josep Sureda i Blanes</p>
+              <p class="app-brand-subtitle hidden text-xs font-medium 2xl:block">IES Josep Sureda i Blanes</p>
             </div>
           </router-link>
 
-          <div class="hidden flex-1 items-center justify-between gap-4 lg:flex">
-            <div class="app-nav-tabs flex items-center gap-1 rounded-md p-1" aria-label="Navegació principal">
-              <template v-for="link in links" :key="link.to || link.href">
-                <a
-                  v-if="link.href"
-                  :href="link.href"
-                  class="app-nav-link app-nav-link-idle shrink-0 rounded px-3 py-1.5 text-sm font-semibold transition"
+          <div class="hidden min-w-0 flex-1 items-center justify-between gap-4 xl:flex">
+            <div class="flex min-w-0 items-center gap-2">
+              <div v-if="altresApps.length" ref="appsMenu" class="relative shrink-0">
+                <button
+                  type="button"
+                  class="app-nav-button inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm font-semibold transition"
+                  aria-haspopup="true"
+                  :aria-expanded="appsOpen"
+                  aria-controls="quota-apps-menu"
+                  @click="appsOpen = !appsOpen"
                 >
-                  {{ link.label }}
-                </a>
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                  </svg>
+                  <span>Apps</span>
+                </button>
+                <div
+                  v-if="appsOpen"
+                  id="quota-apps-menu"
+                  class="absolute left-0 top-[calc(100%+8px)] z-[110] grid w-64 gap-0.5 rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-gray-800"
+                >
+                  <a
+                    v-for="app in altresApps"
+                    :key="app.href"
+                    :href="app.href"
+                    class="grid gap-0.5 rounded-md px-3 py-2 text-slate-900 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-gray-700"
+                    @click="appsOpen = false"
+                  >
+                    <strong class="text-sm">{{ app.label }}</strong>
+                    <small class="text-xs text-slate-600 dark:text-slate-400">{{ app.descripcio }}</small>
+                  </a>
+                </div>
+              </div>
+              <div class="app-nav-tabs flex min-w-0 items-center gap-1 overflow-x-auto rounded-md p-1" style="scrollbar-width: none" aria-label="Navegació principal">
                 <router-link
-                  v-else
+                  v-for="link in seccions"
+                  :key="link.to"
                   :to="link.to"
                   class="app-nav-link shrink-0 rounded px-3 py-1.5 text-sm font-semibold transition"
                   :class="isActive(link.to)
@@ -36,7 +61,7 @@
                 >
                   {{ link.label }}
                 </router-link>
-              </template>
+              </div>
             </div>
 
             <div class="flex shrink-0 items-center gap-2">
@@ -56,7 +81,7 @@
                 class="flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-1 shadow-sm"
                 title="Canvia la vista sense perdre permisos reals d'administració"
               >
-                <span class="hidden text-xs font-bold uppercase text-amber-800 xl:inline">Vista</span>
+                <span class="hidden text-xs font-bold uppercase text-amber-800 2xl:inline">Vista</span>
                 <select
                   :value="vistaRolSeleccionada"
                   @change="canviarVistaRol($event.target.value)"
@@ -85,7 +110,8 @@
 
               <span
                 v-if="authStore.estaAutenticat"
-                class="app-user-label max-w-[13rem] truncate border-l pl-3 text-sm font-medium"
+                class="app-user-label hidden max-w-[11rem] truncate border-l pl-3 text-sm font-medium 2xl:inline-block"
+                :title="etiquetaUsuariActiu"
               >
                 {{ etiquetaUsuariActiu }}
               </span>
@@ -102,13 +128,13 @@
                   <circle cx="12" cy="12" r="9.25" />
                   <path stroke-linecap="round" d="M9.5 9.25a2.5 2.5 0 0 1 4.9.83c0 1.67-2.5 2.5-2.5 3.42M12 16.75h.01" />
                 </svg>
-                <span class="hidden xl:inline">Ajuda</span>
               </a>
 
               <button
                 type="button"
                 class="theme-toggle"
                 :aria-label="themeAriaLabel"
+                :title="themeLabel"
                 @click="toggleTheme"
               >
                 <svg v-if="isDark" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -118,7 +144,6 @@
                 <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                   <path d="M20.5 14.4A7.5 7.5 0 0 1 9.6 3.5 8.5 8.5 0 1 0 20.5 14.4Z" />
                 </svg>
-                <span>{{ themeLabel }}</span>
               </button>
 
               <button
@@ -126,6 +151,7 @@
                 type="button"
                 @click="tancarSessio"
                 class="app-nav-button rounded-md px-3 py-2 text-sm font-semibold transition"
+                :title="`Sortir (${etiquetaUsuariActiu})`"
               >
                 Sortir
               </button>
@@ -134,7 +160,7 @@
 
           <button
             type="button"
-            class="app-nav-button rounded-md p-2 transition lg:hidden"
+            class="app-nav-button rounded-md p-2 transition xl:hidden"
             :aria-expanded="mobileMenuOpen"
             aria-label="Obrir menú"
             @click="mobileMenuOpen = !mobileMenuOpen"
@@ -148,7 +174,7 @@
           </button>
         </div>
 
-        <div v-if="mobileMenuOpen" class="app-mobile-menu border-t pb-4 pt-2 lg:hidden">
+        <div v-if="mobileMenuOpen" class="app-mobile-menu border-t pb-4 pt-2 xl:hidden">
           <div class="space-y-0.5" role="menu" aria-label="Navegació principal">
             <template v-for="link in links" :key="link.to || link.href">
               <a
@@ -345,6 +371,33 @@ const links = computed(() => {
   if (authStore.estaAutenticat) visibles.push({ to: '/resums', label: 'Resums' });
   if (admin) visibles.push({ href: appLinks.pantalles, label: 'Pantalles' });
   return visibles;
+});
+
+const DESCRIPCIONS_APPS = {
+  Guàrdies: 'Full de guàrdies del dia',
+  Professorat: 'Les teves guàrdies',
+  Retards: "Retards de l'alumnat",
+  Pantalles: 'Pantalles del centre',
+};
+const seccions = computed(() => links.value.filter((link) => link.to));
+const altresApps = computed(() => links.value
+  .filter((link) => link.href)
+  .map((link) => ({ ...link, descripcio: DESCRIPCIONS_APPS[link.label] || '' })));
+
+// Menú «Apps»: es tanca en triar, en clicar fora o amb Escape.
+const appsOpen = ref(false);
+const appsMenu = ref(null);
+function tancarAppsFora(event) {
+  if (appsMenu.value && !appsMenu.value.contains(event.target)) appsOpen.value = false;
+}
+function tancarAppsEscape(event) {
+  if (event.key === 'Escape') appsOpen.value = false;
+}
+document.addEventListener('click', tancarAppsFora);
+document.addEventListener('keydown', tancarAppsEscape);
+onUnmounted(() => {
+  document.removeEventListener('click', tancarAppsFora);
+  document.removeEventListener('keydown', tancarAppsEscape);
 });
 
 const vistaRolSeleccionada = computed(() => authStore.rolVista || 'admin');
