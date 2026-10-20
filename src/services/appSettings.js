@@ -1,4 +1,4 @@
-import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { E2E_AUTH_BYPASS } from './e2e';
 
@@ -13,6 +13,7 @@ export const DEFAULT_APP_SETTINGS = {
   sheetsIdAnterior: '',
   gpExclusions: null,  // null = usar exclusions hardcoded; [] o array = configuració admin
   gpReductions: {},    // { 'Departament': N } — membres efectius menys N
+  professoratAQuota: false, // true = el professorat es gestiona a Quota i no es llegeix la pestanya del full
 };
 
 const noop = () => {};
@@ -37,6 +38,12 @@ export function subscribeAppSettings(cursId, callback, onError = console.error) 
     },
     onError
   );
+}
+
+export async function llegirAppSettings(cursId) {
+  if (E2E_AUTH_BYPASS || !cursId) return { ...DEFAULT_APP_SETTINGS };
+  const snapshot = await getDoc(settingsRef(cursId));
+  return { ...DEFAULT_APP_SETTINGS, ...(snapshot.exists() ? snapshot.data() : {}) };
 }
 
 export async function updateAppSettings(cursId, settings) {

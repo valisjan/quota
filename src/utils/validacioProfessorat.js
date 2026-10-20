@@ -119,24 +119,22 @@ export function validarProfessorat(professors, existents = []) {
     }
   });
 
-  // Correus que no semblen de la persona. Si dues files encaixen amb el correu de
-  // l'altra, és que s'han creuat (crític); si no, només avís (sobrenoms, comptes genèrics).
-  const sospitosos = professors.filter((professor) => (
-    professor.email && !correuSemblaDe(professor.email, professor.nom)
-  ));
-  const creuats = new Set();
-  sospitosos.forEach((a) => {
-    professors.forEach((b) => {
-      if (a === b || !b.email || creuats.has(a) || creuats.has(b)) return;
-      if (correuSemblaDe(b.email, a.nom) && correuSemblaDe(a.email, b.nom)) {
-        creuats.add(a);
-        creuats.add(b);
-        afegir('correus_creuats', 'critic', `${nomVisible(a)} i ${nomVisible(b)}`, `Els correus semblen intercanviats: ${a.email} i ${b.email}.`);
-      }
-    });
-  });
-  sospitosos.filter((professor) => !creuats.has(professor)).forEach((professor) => {
-    afegir('correu_sospitos', 'avis', nomVisible(professor), `El correu ${professor.email} no sembla d'aquesta persona.`);
+  // Correus que no semblen de la persona. Si el correu encaixa amb una altra persona del
+  // full, és d'aquella (dues files intercanviades o una columna desplaçada): crític. Si
+  // no encaixa amb ningú, només avís (sobrenoms, comptes genèrics com psc@).
+  professors.forEach((professor) => {
+    if (!professor.email || correuSemblaDe(professor.email, professor.nom)) return;
+    const propietaris = professors.filter((altre) => altre !== professor && correuSemblaDe(professor.email, altre.nom));
+    if (propietaris.length) {
+      afegir(
+        'correu_d_altri',
+        'critic',
+        nomVisible(professor),
+        `El correu ${professor.email} sembla de ${propietaris.map(nomVisible).join(' o ')}.`,
+      );
+    } else {
+      afegir('correu_sospitos', 'avis', nomVisible(professor), `El correu ${professor.email} no sembla d'aquesta persona.`);
+    }
   });
 
   return riscos;

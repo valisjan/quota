@@ -44,7 +44,7 @@ test('substituts, vacants ocupades i canvis de codi legítims no són crítics',
   assert.deepEqual(riscos, []);
 });
 
-test('correus creuats entre dues files és crític; un compte genèric només avisa', () => {
+test('un correu que és d\'una altra persona del full és crític; un compte genèric només avisa', () => {
   const riscos = validarProfessorat([
     { nom: 'RIGO MAS, NEUS', email: 'jrigo@iesjosepsuredaiblanes.com' },
     { nom: 'RIGO PONS, JAUME', email: 'nrigo@iesjosepsuredaiblanes.com' },
@@ -52,7 +52,20 @@ test('correus creuats entre dues files és crític; un compte genèric només av
     { nom: 'GONZALEZ PAVON, FCO JAVIER', email: 'jgonzalez@iesjosepsuredaiblanes.com' },
     { nom: 'ORTEGA RODRÍGUEZ, LAURA', email: 'psc@iesjosepsuredaiblanes.com' },
   ]);
-  assert.deepEqual(tipus(riscos), ['critic:correus_creuats', 'critic:correus_creuats', 'avis:correu_sospitos']);
+  assert.deepEqual(tipus(riscos), [
+    'critic:correu_d_altri', 'critic:correu_d_altri', 'critic:correu_d_altri', 'avis:correu_sospitos',
+  ]);
+  assert.ok(riscos[0].detall.includes('RIGO PONS, JAUME'));
+});
+
+test('detecta correus desplaçats en cadena (no només intercanvis de dues files)', () => {
+  const riscos = validarProfessorat([
+    { nom: 'VILLALONGA MASSUTI, PAU', email: 'fmiralles@iesjosepsuredaiblanes.com' },
+    { nom: 'MIRALLES NIELL, FRANCESCA MARIA', email: 'aramon@iesjosepsuredaiblanes.com' },
+    { nom: 'RAMON ANEAS, AINA', email: 'pvillalonga@iesjosepsuredaiblanes.com' },
+  ]);
+  assert.deepEqual(tipus(riscos), ['critic:correu_d_altri', 'critic:correu_d_altri', 'critic:correu_d_altri']);
+  assert.ok(riscos[0].detall.includes('MIRALLES NIELL'));
 });
 
 test('correus repetits o d un altre domini, noms repetits i rols desconeguts són crítics', () => {

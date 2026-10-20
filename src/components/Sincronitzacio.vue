@@ -7,7 +7,12 @@
           Sincronització amb Google Sheets
         </h3>
         <p class="mt-1 text-base text-slate-700">
-          Llegeix les pestanyes <strong>Classes</strong> i <strong>Professorat</strong>.
+          <template v-if="settings.professoratAQuota">
+            Llegeix la pestanya <strong>Classes</strong>. El professorat es gestiona a la pàgina <strong>Professorat</strong>.
+          </template>
+          <template v-else>
+            Llegeix les pestanyes <strong>Classes</strong> i <strong>Professorat</strong>.
+          </template>
         </p>
         <p class="mt-2 text-sm font-medium text-slate-600">
           L'administració comprova Google Sheets en segon pla i sincronitza automàticament quan detecta canvis al full configurat,

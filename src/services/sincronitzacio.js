@@ -5,8 +5,10 @@ import { departamentsProfessor, formatDepartamentsProfessor, separarDepartaments
 import { E2E_AUTH_BYPASS, getE2ECollection } from './e2e';
 import { BatchSplit } from '../utils/firestoreBatch';
 import { llegirRols, rolQuota } from '../utils/rolsProfessorat';
-import { planificarProfessors } from '../utils/professorsSync';
+import { esGuio, planificarProfessors } from '../utils/professorsSync';
 import { validarProfessorat } from '../utils/validacioProfessorat';
+import { llegirAppSettings } from './appSettings';
+import { reanomenarAClasses } from './professorat';
 
 const APPS_SCRIPT_URL =
   'https://script.google.com/macros/s/AKfycbykQQXn6_oZ1iTtkASuHSA1P1kr5eSqGlIEdm5IBfuxSvr0wDh2I6Ec_yjILnHCXDKe/exec';
@@ -121,7 +123,7 @@ function valorCamp(row, index, camp, fallbackIndex) {
 
 function normalitzarCodiUntis(raw) {
   const codi = (raw || '').toString().trim();
-  if (!codi) return '';
+  if (!codi || esGuio(codi)) return '';
   if (codi.includes('@')) return '';
   if (ROLS_VALIDS.has(n(codi))) return '';
   if (codi.length > 12) return '';
@@ -198,6 +200,8 @@ function llegirProfessorsDeResposta(data) {
         departaments,
         jornada:      normalitzarJornada(valorCamp(row, columnes, 'jornada', 2)),
         codiUntis:    normalitzarCodiUntis(valorCamp(row, columnes, 'codiUntis', 3)),
+        // «-» al codi: sense plaça pròpia (p. ex. titular de baixa amb substitut).
+        senseCodi:    esGuio(valorCamp(row, columnes, 'codiUntis', 3)),
         email:        completarEmail(valorCamp(row, columnes, 'email', 4)),
         // Text del full tal qual (signatura i resum de canvis) i rols ja interpretats.
         rol:          rolFull,
@@ -395,13 +399,20 @@ async function llegirSheets(nomPestanya, sheetsId = DEFAULT_SHEETS_ID) {
   return parseGvizResponse(text);
 }
 
-export async function llegirEstatFontSheets(sheetsId = DEFAULT_SHEETS_ID) {
+// Quan el professorat es gestiona a Quota (pàgina Professorat), la pestanya Professorat
+// del full ja no es llegeix: pot no existir.
+export async function professoratGestionatAQuota(cursId) {
+  if (E2E_AUTH_BYPASS || !cursId) return false;
+  return Boolean((await llegirAppSettings(cursId)).professoratAQuota);
+}
+
+export async function llegirEstatFontSheets(sheetsId = DEFAULT_SHEETS_ID, { ambProfessorat = true } = {}) {
   const [jsonClasses, jsonProfs] = await Promise.all([
     llegirSheets(SHEET_CLASSES, sheetsId),
-    llegirSheets(SHEET_PROFESSORAT, sheetsId),
+    ambProfessorat ? llegirSheets(SHEET_PROFESSORAT, sheetsId) : null,
   ]);
   const classes = aplicarClassesMulticurs(llegirClassesDeResposta(jsonClasses));
-  const professors = llegirProfessorsDeResposta(jsonProfs);
+  const professors = ambProfessorat ? llegirProfessorsDeResposta(jsonProfs) : [];
   return {
     sheetsId,
     classes,
@@ -642,7 +653,8 @@ function detallCanvisProfessor(existent = {}, nou = {}) {
   afegir('Jornada', existent.jornada, nou.jornada);
   afegir('Codi Untis', existent.codiUntis, nou.codiUntis);
   afegir('Email', existent.email, nou.email);
-  afegir('Rol', existent.rol, nou.rol);
+  const rolsVisibles = (professor) => (professor.rols || []).filter((rol) => rol !== 'professor').sort().join(', ');
+  afegir('Rols', rolsVisibles(existent), rolsVisibles(nou));
   afegir('Comentari', existent.comentariFull, nou.comentariFull);
   return detalls;
 }
@@ -910,14 +922,15 @@ export async function comprovarEstatActualitzacioSheets(cursId, options = {}) {
   }
 
   const sheetsId = options.sheetsId || DEFAULT_SHEETS_ID;
+  const ambProfessorat = !(await professoratGestionatAQuota(cursId));
   const [stateSnap, estatFont] = await Promise.all([
     getDoc(syncStateRef(cursId)),
-    llegirEstatFontSheets(sheetsId),
+    llegirEstatFontSheets(sheetsId, { ambProfessorat }),
   ]);
   const estatGuardat = stateSnap.exists() ? stateSnap.data() : null;
   const signaturaGuardada = estatGuardat?.classesSignature || '';
-  const signaturaProfessorsGuardada = estatGuardat?.professorsSignature || '';
-  const signaturaCompletaGuardada = estatGuardat?.sourceSignature || '';
+  const signaturaProfessorsGuardada = ambProfessorat ? estatGuardat?.professorsSignature || '' : '';
+  const signaturaCompletaGuardada = ambProfessorat ? estatGuardat?.sourceSignature || '' : '';
   const teReferencia = Boolean(signaturaCompletaGuardada || signaturaGuardada || signaturaProfessorsGuardada);
   const origenCanviat = Boolean(teReferencia && estatGuardat?.sheetsId && estatGuardat.sheetsId !== sheetsId);
   const classesCanviades = Boolean(signaturaGuardada && signaturaGuardada !== estatFont.signaturaClasses);
@@ -933,9 +946,11 @@ export async function comprovarEstatActualitzacioSheets(cursId, options = {}) {
   if ((senseReferencia || signaturaCanviada) && !origenCanviat) {
     [classes, professors] = await Promise.all([
       calcularDiscrepanciesClasses(cursId, estatFont.classes),
-      calcularDiscrepanciesProfessors(cursId, estatFont.professors),
+      ambProfessorat ? calcularDiscrepanciesProfessors(cursId, estatFont.professors) : resumCanvisBuit(),
     ]);
-    const departaments = await calcularDiscrepanciesDepartaments(cursId, estatFont.professors);
+    const departaments = ambProfessorat
+      ? await calcularDiscrepanciesDepartaments(cursId, estatFont.professors)
+      : resumCanvisBuit();
     sheetsCanviat = classes.totalCanvis + professors.totalCanvis + departaments.totalCanvis > 0;
     if (!sheetsCanviat) {
       try {
@@ -1050,15 +1065,18 @@ export async function comprovarDiscrepancies(cursId, options = {}) {
     throw new Error('No hi ha cap curs actiu per comprovar la sincronització.');
   }
   const sheetsId = options.sheetsId || DEFAULT_SHEETS_ID;
-  const estatFont = await llegirEstatFontSheets(sheetsId);
-  return calcularResumCanvis(cursId, estatFont);
+  const ambProfessorat = !(await professoratGestionatAQuota(cursId));
+  const estatFont = await llegirEstatFontSheets(sheetsId, { ambProfessorat });
+  return calcularResumCanvis(cursId, estatFont, { ambProfessorat });
 }
 
-async function calcularResumCanvis(cursId, estatFont) {
+async function calcularResumCanvis(cursId, estatFont, { ambProfessorat = true } = {}) {
+  const buit = async () => ({ ...resumCanvisBuit(), totalSheets: 0, totalApp: 0, migracions: 0, riscos: [], gestionatAQuota: true,
+    preview: { noves: [], modificades: [], migracions: [], conservatsForaFull: [], afegits: [], eliminats: [] } });
   const [classes, professors, departaments] = await Promise.all([
     calcularDiscrepanciesClasses(cursId, estatFont.classes),
-    calcularDiscrepanciesProfessors(cursId, estatFont.professors),
-    calcularDiscrepanciesDepartaments(cursId, estatFont.professors),
+    ambProfessorat ? calcularDiscrepanciesProfessors(cursId, estatFont.professors) : buit(),
+    ambProfessorat ? calcularDiscrepanciesDepartaments(cursId, estatFont.professors) : buit(),
   ]);
   const totalCanvis = classes.totalCanvis + professors.totalCanvis + departaments.totalCanvis;
   const riscos = [...(professors.riscos || []), ...(classes.riscos || [])];
@@ -1152,9 +1170,11 @@ export async function sincronitzar(cursId, options = {}) {
     await new Promise((r) => setTimeout(r, 3000));
   } catch (_) {}
 
-  // 2. Llegir Classes i Professorat des de Sheets
-  const estatFont = await llegirEstatFontSheets(sheetsId);
-  const resumCanvis = await calcularResumCanvis(cursId, estatFont);
+  // 2. Llegir Classes i Professorat des de Sheets. Si el professorat ja es gestiona a
+  // Quota (pàgina Professorat), la pestanya Professorat no es llegeix ni es toca.
+  const ambProfessorat = !(await professoratGestionatAQuota(cursId));
+  const estatFont = await llegirEstatFontSheets(sheetsId, { ambProfessorat });
+  const resumCanvis = await calcularResumCanvis(cursId, estatFont, { ambProfessorat });
   const resumResultat = limitarResumPerResultat(resumCanvis);
 
   // 3. Errors greus al full (codis desplaçats, correus creuats...): no s'apliquen sense
@@ -1168,81 +1188,128 @@ export async function sincronitzar(cursId, options = {}) {
   }
 
   // Còpia del professorat, els permisos i els departaments abans d'escriure (per desfer).
-  await guardarCopiaAbansSync(cursId, options.actor);
+  if (ambProfessorat) await guardarCopiaAbansSync(cursId, options.actor);
   const classesNoves = estatFont.classes;
   const professorsNous = estatFont.professors;
 
-  // 4. Sincronitzar departaments
-  const nomsDepNous = [...new Set(professorsNous.flatMap((p) => departamentsProfessor(p)))].sort();
-  const nomsDepNousNorm = new Set(nomsDepNous.map(n));
-
-  const snapDeps = await getDocs(cc(cursId, 'departaments'));
-  const batchDeps = new BatchSplit();
-  let depsAfegits = 0, depsEliminats = 0;
-
-  snapDeps.docs.forEach((d) => {
-    if (!nomsDepNousNorm.has(n(d.data().nom))) {
-      batchDeps.delete(dd(cursId, 'departaments', d.id));
-      depsEliminats++;
-    }
-  });
-  const depsExistentsNorm = new Set(snapDeps.docs.map((d) => n(d.data().nom)));
-  nomsDepNous.forEach((nom) => {
-    if (!depsExistentsNorm.has(n(nom))) {
-      batchDeps.set(dd(cursId, 'departaments'), { nom, updatedAt: new Date() });
-      depsAfegits++;
-    }
-  });
-  await batchDeps.commit();
-
-  // 5. Sincronitzar professors
-  const snapProfs = await getDocs(cc(cursId, 'professors'));
-  const batchProfs = new BatchSplit();
+  let depsAfegits = 0, depsEliminats = 0, profsAfegits = 0, profsEliminats = 0, totalDeps = 0;
+  // Titulars de baixa: passen a Anteriors i no tenen permís d'accés.
+  const nomsDeBaixa = new Set();
   // Ja no hi ha migracions: el document d'un professor no es mou quan li canvia el codi.
   const profsMigrats = 0;
-  let profsEliminats = 0;
-  const pla = planificarProfessors(
-    snapProfs.docs.map((d) => ({ id: d.id, nom: d.data().nom, codiUntis: d.data().codiUntis || '' })),
-    professorsNous,
-  );
-  const campsFixos = (prof) => {
-    const departaments = departamentsProfessor(prof);
-    return {
-      nom: prof.nom,
-      departament: departaments[0] || '',
-      departaments,
-      jornada: prof.jornada,
-      codiUntis: prof.codiUntis,
-      email: prof.email || '',
-      comentariFull: prof.comentariFull || '',
-      eliminatDelFull: false,
-      updatedAt: new Date(),
-    };
-  };
+  if (ambProfessorat) {
+    // 4. Sincronitzar departaments
+    const nomsDepNous = [...new Set(professorsNous.flatMap((p) => departamentsProfessor(p)))].sort();
+    const nomsDepNousNorm = new Set(nomsDepNous.map(n));
+    totalDeps = nomsDepNous.length;
 
-  pla.actualitzar.forEach(({ id, professor }) => {
-    batchProfs.update(dd(cursId, 'professors', id), campsFixos(professor));
-  });
-  pla.crear.forEach(({ id, professor }) => {
-    batchProfs.set(dd(cursId, 'professors', id), {
-      ...campsFixos(professor),
-      preferencia: '', motiuAllegat: '', comentaris: '',
-      gpAssignades: 0, gcAssignades: 0, palicAssignades: 0, sdAssignades: 0, sdAssignacions: [], ddAssignades: 0, ddAssignacions: [],
+    const snapDeps = await getDocs(cc(cursId, 'departaments'));
+    const batchDeps = new BatchSplit();
+
+    snapDeps.docs.forEach((d) => {
+      if (!nomsDepNousNorm.has(n(d.data().nom))) {
+        batchDeps.delete(dd(cursId, 'departaments', d.id));
+        depsEliminats++;
+      }
     });
-  });
-  const profsAfegits = pla.crear.length;
+    const depsExistentsNorm = new Set(snapDeps.docs.map((d) => n(d.data().nom)));
+    nomsDepNous.forEach((nom) => {
+      if (!depsExistentsNorm.has(n(nom))) {
+        batchDeps.set(dd(cursId, 'departaments'), { nom, updatedAt: new Date() });
+        depsAfegits++;
+      }
+    });
+    await batchDeps.commit();
 
-  // Professors que ja no surten al full → marcar com a eliminats (soft delete)
-  const perId = new Map(snapProfs.docs.map((d) => [d.id, d]));
-  pla.eliminar.forEach((id) => {
-    const d = perId.get(id);
-    if (!d.data().eliminatDelFull) {
-      batchProfs.update(d.ref, { eliminatDelFull: true });
-      profsEliminats++;
+    // 5. Sincronitzar professors
+    const snapProfs = await getDocs(cc(cursId, 'professors'));
+    const batchProfs = new BatchSplit();
+    const pla = planificarProfessors(
+      snapProfs.docs.map((d) => ({ id: d.id, nom: d.data().nom, codiUntis: d.data().codiUntis || '' })),
+      professorsNous,
+    );
+    const campsFixos = (prof) => {
+      const departaments = departamentsProfessor(prof);
+      return {
+        nom: prof.nom,
+        departament: departaments[0] || '',
+        departaments,
+        jornada: prof.jornada,
+        codiUntis: prof.codiUntis,
+        email: prof.email || '',
+        comentariFull: prof.comentariFull || '',
+        // Rols del full (columna ROL) també a la fitxa: la pàgina Professorat en parteix.
+        rols: ['professor', ...(prof.rols || []).filter((rol) => rol !== 'professor')],
+        rol: rolQuota(prof.rols || []),
+        eliminatDelFull: false,
+        updatedAt: new Date(),
+      };
+    };
+
+    pla.actualitzar.forEach(({ id, professor }) => {
+      batchProfs.update(dd(cursId, 'professors', id), campsFixos(professor));
+    });
+    pla.crear.forEach(({ id, professor }) => {
+      batchProfs.set(dd(cursId, 'professors', id), {
+        ...campsFixos(professor),
+        preferencia: '', motiuAllegat: '', comentaris: '',
+        gpAssignades: 0, gcAssignades: 0, palicAssignades: 0, sdAssignades: 0, sdAssignacions: [], ddAssignades: 0, ddAssignacions: [],
+      });
+    });
+    profsAfegits = pla.crear.length;
+    const perId = new Map(snapProfs.docs.map((d) => [d.id, d]));
+
+    // Titulars de baixa (codi «-» i la seva plaça la porta el substitut): el substitut s'ha
+    // quedat la fitxa de la plaça amb la planificació; el titular passa a Anteriors amb les
+    // seves dades i preferències personals, enllaçat amb el substitut (per reactivar-lo).
+    pla.titularsDeBaixa.forEach(({ professor, docId, codiUntis, substitut }) => {
+      if (!substitut) return;
+      const anterior = perId.get(docId)?.data() || {};
+      const refTitular = dd(cursId, 'professors');
+      batchProfs.set(refTitular, {
+        ...campsFixos(professor),
+        codiUntis,
+        preferencia: anterior.preferencia || '',
+        motiuAllegat: anterior.motiuAllegat || '',
+        comentaris: anterior.comentaris || '',
+        gpAssignades: 0, gcAssignades: 0, palicAssignades: 0, sdAssignades: 0, sdAssignacions: [], ddAssignades: 0, ddAssignacions: [],
+        eliminatDelFull: true,
+        desactivatAt: new Date().toISOString(),
+        desactivatPer: options.actor || 'sincronització',
+        motiuBaixa: 'Baixa',
+        substituitPer: substitut.nom,
+        substitutId: docId,
+      });
+      batchProfs.update(dd(cursId, 'professors', docId), {
+        substitueixA: refTitular.id,
+        preferencia: '',
+        motiuAllegat: '',
+        comentaris: '',
+      });
+      nomsDeBaixa.add(n(professor.nom));
+      profsAfegits++;
+    });
+
+    // Professors que ja no surten al full → marcar com a eliminats (soft delete)
+    pla.eliminar.forEach((id) => {
+      const d = perId.get(id);
+      if (!d.data().eliminatDelFull) {
+        batchProfs.update(d.ref, { eliminatDelFull: true });
+        profsEliminats++;
+      }
+    });
+
+    await batchProfs.commit();
+
+    // Qui ocupa una plaça (una vacant com «MAT4» o la d'un titular de baixa) n'hereta
+    // les classes assignades, que les classes guarden pel nom.
+    for (const { id, professor, ocupaPlaca } of pla.actualitzar) {
+      const nomAnterior = perId.get(id)?.data().nom;
+      if (ocupaPlaca && nomAnterior && nomAnterior !== professor.nom) {
+        await reanomenarAClasses(cursId, nomAnterior, professor.nom);
+      }
     }
-  });
-
-  await batchProfs.commit();
+  }
 
   // 6. Sincronitzar classes
   const snapClasses = await getDocs(cc(cursId, 'classes'));
@@ -1340,30 +1407,33 @@ export async function sincronitzar(cursId, options = {}) {
 
   await batchClasses.commit();
 
-  // 7. Pre-autoritzar professors amb email (columnes EMAIL i ROL del full Professorat)
-  const preautoritzats = professorsNous
-    .filter((p) => p.email)
-    .map((p) => ({ ...p, rol: rolQuota(p.rols) }));
+  if (ambProfessorat) {
+    // 7. Pre-autoritzar professors amb email (columnes EMAIL i ROL del full Professorat)
+    const preautoritzats = professorsNous
+      .filter((p) => p.email && !nomsDeBaixa.has(n(p.nom)))
+      .map((p) => ({ ...p, rol: rolQuota(p.rols) }));
 
-  // Guard: only sync if we actually have emails — avoids wiping everything if the column is empty.
-  if (preautoritzats.length > 0) {
-    const snapPre = await getDocs(collection(db, 'preautoritzats'));
-    const emailsNous = new Set(preautoritzats.map((p) => p.email));
-    for (const d of snapPre.docs) {
-      if (!emailsNous.has(d.id)) await deleteDoc(d.ref);
-    }
-    for (const p of preautoritzats) {
-      await setDoc(doc(db, 'preautoritzats', p.email), {
-        email: p.email,
-        nom: p.nom,
-        codiUntis: p.codiUntis || '',
-        rol: p.rol,
-        // Tots els rols del full (p. ex. ['cap_departament', 'psc']) per a les altres apps.
-        rols: p.rols.length ? p.rols : ['professor'],
-        departament: p.departament || null,
-        departaments: departamentsProfessor(p),
-        updatedAt: new Date(),
-      });
+    // Guard: only sync if we actually have emails — avoids wiping everything if the column is empty.
+    if (preautoritzats.length > 0) {
+      const snapPre = await getDocs(collection(db, 'preautoritzats'));
+      const emailsNous = new Set(preautoritzats.map((p) => p.email));
+      for (const d of snapPre.docs) {
+        if (!emailsNous.has(d.id)) await deleteDoc(d.ref);
+      }
+      for (const p of preautoritzats) {
+        await setDoc(doc(db, 'preautoritzats', p.email), {
+          email: p.email,
+          nom: p.nom,
+          codiUntis: p.codiUntis || '',
+          rol: p.rol,
+          // Tots els rols del full per a les altres apps, amb la base de professor
+          // (p. ex. ['professor', 'cap_departament', 'psc']), com els desa la pàgina Professorat.
+          rols: ['professor', ...p.rols.filter((rol) => rol !== 'professor')],
+          departament: p.departament || null,
+          departaments: departamentsProfessor(p),
+          updatedAt: new Date(),
+        });
+      }
     }
   }
 
@@ -1376,6 +1446,11 @@ export async function sincronitzar(cursId, options = {}) {
     updatedBy: '',
   });
 
+  const totalProfs = ambProfessorat
+    ? professorsNous.length
+    : (await getDocs(cc(cursId, 'professors'))).docs.filter((d) => !d.data().eliminatDelFull).length;
+  if (!ambProfessorat) totalDeps = (await getDocs(cc(cursId, 'departaments'))).size;
+
   const resultat = {
     total: classesNoves.length,
     afegides,
@@ -1387,8 +1462,8 @@ export async function sincronitzar(cursId, options = {}) {
     profsAfegits,
     profsMigrats,
     profsEliminats,
-    totalDeps: nomsDepNous.length,
-    totalProfs: professorsNous.length,
+    totalDeps,
+    totalProfs,
     totalCanvis: resumCanvis.totalCanvis,
     detalls: resumResultat.detalls,
     classes: resumResultat.classes,
@@ -1429,11 +1504,16 @@ const COPIA_SYNC_ID = 'darrera';
 function copiaSyncRef(cursId) { return doc(db, 'cursos', cursId, 'sync_backups', COPIA_SYNC_ID); }
 const MIDA_MAXIMA_COPIA = 900 * 1024;
 
+// Camps de les classes que guarden el professorat pel nom: la sincronització els canvia
+// quan algú ocupa una plaça, i desfer-la els ha de tornar com estaven.
+const CAMPS_ASSIGNACIO_CLASSE = ['professors', 'participants', 'professorAssignat'];
+
 async function guardarCopiaAbansSync(cursId, actor) {
-  const [professors, preautoritzats, departaments] = await Promise.all([
+  const [professors, preautoritzats, departaments, classes] = await Promise.all([
     getDocs(cc(cursId, 'professors')),
     getDocs(collection(db, 'preautoritzats')),
     getDocs(cc(cursId, 'departaments')),
+    getDocs(cc(cursId, 'classes')),
   ]);
   const docs = (snap) => snap.docs.map((d) => ({ id: d.id, data: d.data() }));
   const copia = {
@@ -1442,6 +1522,10 @@ async function guardarCopiaAbansSync(cursId, actor) {
     professors: docs(professors),
     preautoritzats: docs(preautoritzats),
     departaments: docs(departaments),
+    assignacionsClasses: classes.docs.map((d) => ({
+      id: d.id,
+      ...Object.fromEntries(CAMPS_ASSIGNACIO_CLASSE.map((camp) => [camp, d.data()[camp] ?? null])),
+    })),
   };
   // Un document de Firestore no pot passar d'1 MB: si no hi cap, millor no sincronitzar.
   if (JSON.stringify(copia).length > MIDA_MAXIMA_COPIA) {
@@ -1452,6 +1536,8 @@ async function guardarCopiaAbansSync(cursId, actor) {
 
 export async function llegirCopiaAbansSync(cursId) {
   if (E2E_AUTH_BYPASS || !cursId) return null;
+  // Amb el professorat gestionat a Quota, la còpia és d'abans i desfer-la el faria malbé.
+  if (await professoratGestionatAQuota(cursId)) return null;
   const snap = await getDoc(copiaSyncRef(cursId));
   if (!snap.exists()) return null;
   const data = snap.data();
@@ -1475,15 +1561,39 @@ async function restaurarColleccio(refColleccio, copia = []) {
   await batch.commit();
 }
 
+// Torna els noms del professorat a les classes que encara existeixen (no recupera classes
+// esborrades ni desfà els altres canvis de la pestanya Classes).
+async function restaurarAssignacionsClasses(cursId, assignacions) {
+  if (!assignacions.length) return;
+  const actuals = new Map((await getDocs(cc(cursId, 'classes'))).docs.map((d) => [d.id, d]));
+  const batch = new BatchSplit();
+  let canvis = 0;
+  assignacions.forEach((assignacio) => {
+    const actual = actuals.get(assignacio.id);
+    if (!actual) return;
+    const valors = Object.fromEntries(CAMPS_ASSIGNACIO_CLASSE
+      .filter((camp) => JSON.stringify(actual.data()[camp] ?? null) !== JSON.stringify(assignacio[camp] ?? null))
+      .map((camp) => [camp, assignacio[camp] ?? (camp === 'professorAssignat' ? '' : [])]));
+    if (!Object.keys(valors).length) return;
+    batch.update(actual.ref, valors);
+    canvis += 1;
+  });
+  if (canvis) await batch.commit();
+}
+
 // Deixa el professorat, els permisos i els departaments com estaven abans de l'última
 // sincronització, i posa en pausa l'automàtica perquè no ho torni a aplicar tot sol.
 export async function desferDarreraSync(cursId, actor) {
+  if (await professoratGestionatAQuota(cursId)) {
+    throw new Error('El professorat ja es gestiona a Quota: no es pot desfer una sincronització del full.');
+  }
   const snap = await getDoc(copiaSyncRef(cursId));
   if (!snap.exists()) throw new Error('No hi ha cap còpia per desfer.');
   const copia = snap.data();
   await restaurarColleccio(cc(cursId, 'professors'), copia.professors);
   await restaurarColleccio(collection(db, 'preautoritzats'), copia.preautoritzats);
   await restaurarColleccio(cc(cursId, 'departaments'), copia.departaments);
+  await restaurarAssignacionsClasses(cursId, copia.assignacionsClasses || []);
   await setDoc(syncStateRef(cursId), {
     autoSyncPausada: true,
     restauratAt: new Date().toISOString(),

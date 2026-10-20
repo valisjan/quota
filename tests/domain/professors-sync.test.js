@@ -72,6 +72,30 @@ test('quan torna el titular i s esborra la fila del substitut, aquest queda per 
   assert.deepEqual(pla.eliminar, ['auto1']);
 });
 
+test('titular de baixa (codi «-») amb substitut: el substitut ocupa la plaça i el titular en surt', () => {
+  const existents = [
+    { id: 'ADEL', nom: 'ADELL DOMENECH, MARINA', codiUntis: 'ADEL' },
+    { id: 'MIRA', nom: 'MIRALLES NIELL, FRANCESCA MARIA', codiUntis: 'MIRA' },
+  ];
+  const pla = planificarProfessors(existents, [
+    { nom: 'ADELL DOMENECH, MARINA', codiUntis: '', senseCodi: true },
+    { nom: 'VIAL YAGÜE, LAURA', codiUntis: 'ADEL' },
+    // Guió però ningú no porta la seva plaça: és una fila normal sense codi.
+    { nom: 'MIRALLES NIELL, FRANCESCA MARIA', codiUntis: '', senseCodi: true },
+    // Persona nova sense codi.
+    { nom: 'VILLALONGA MASSUTI, PAU', codiUntis: '', senseCodi: true },
+  ]);
+  assert.deepEqual(pla.actualitzar.map((item) => [item.id, item.professor.nom, item.ocupaPlaca]), [
+    ['ADEL', 'VIAL YAGÜE, LAURA', true],
+    ['MIRA', 'MIRALLES NIELL, FRANCESCA MARIA', false],
+  ]);
+  assert.deepEqual(ids(pla.crear), [[null, 'VILLALONGA MASSUTI, PAU']]);
+  assert.deepEqual(pla.eliminar, []);
+  assert.deepEqual(pla.titularsDeBaixa.map((baixa) => [baixa.professor.nom, baixa.docId, baixa.codiUntis, baixa.substitut?.nom]), [
+    ['ADELL DOMENECH, MARINA', 'ADEL', 'ADEL', 'VIAL YAGÜE, LAURA'],
+  ]);
+});
+
 test('els noms es comparen sense distingir majúscules ni espais als extrems', () => {
   const pla = planificarProfessors([{ id: 'X1', nom: 'Pol Font, Marta', codiUntis: 'POL' }], [{ nom: '  POL FONT, MARTA ', codiUntis: 'PRO1' }]);
   assert.deepEqual(ids(pla.actualitzar), [['X1', '  POL FONT, MARTA ']]);
