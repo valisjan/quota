@@ -205,6 +205,11 @@ service cloud.firestore {
         allow write: if esAdmin();
       }
 
+      // Còpia del professorat i els permisos abans de cada sincronització (per desfer-la).
+      match /sync_backups/{id} {
+        allow read, write: if esAdmin();
+      }
+
       match /untis/{id} {
         allow read: if esAdmin();
         allow create, update: if esAdmin()

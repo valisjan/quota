@@ -10,7 +10,8 @@
           Llegeix les pestanyes <strong>Classes</strong> i <strong>Professorat</strong>.
         </p>
         <p class="mt-2 text-sm font-medium text-slate-600">
-          L'administració comprova Google Sheets en segon pla i sincronitza automàticament quan detecta canvis al full configurat.
+          L'administració comprova Google Sheets en segon pla i sincronitza automàticament quan detecta canvis al full configurat,
+          tret que el full tingui errors greus (codis desplaçats, correus creuats...): llavors cal revisar-los aquí.
         </p>
       </div>
 
@@ -31,6 +32,24 @@
           >
             <span v-if="estatSync === 'sincronitzant'" class="animate-spin">&#9203;</span>
             {{ estatSync === 'sincronitzant' ? 'Sincronitzant...' : 'Sincronitza' }}
+          </button>
+        </div>
+
+        <div
+          v-if="copiaSync"
+          class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-gray-800 dark:text-gray-300"
+        >
+          <span>
+            Còpia d'abans de l'última sincronització: <strong>{{ formatDataHora(copiaSync.createdAt) }}</strong>
+            · {{ copiaSync.professors }} professors · {{ copiaSync.preautoritzats }} permisos
+          </span>
+          <button
+            type="button"
+            :disabled="estatDesfer === 'desfent' || estatSync === 'sincronitzant' || settings.tancamentAdmin || cursStore.esBloqueig"
+            class="rounded-md border border-slate-300 bg-white px-3 py-1.5 font-medium text-slate-800 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:bg-gray-900 dark:text-gray-100"
+            @click="desferSync"
+          >
+            {{ estatDesfer === 'desfent' ? 'Desfent...' : "Desfés l'última sincronització" }}
           </button>
         </div>
 
@@ -91,7 +110,9 @@
                 <div>
                   <p class="font-semibold text-rose-900">Revisa abans de sincronitzar</p>
                   <p class="mt-0.5 text-sm text-rose-800">
-                    Hi ha canvis que afecten classes amb assignació existent.
+                    {{ riscosCriticsComprova.length
+                      ? `${riscosCriticsComprova.length} ${riscosCriticsComprova.length === 1 ? 'problema greu' : 'problemes greus'}: no es podrà sincronitzar sense confirmar-ho.`
+                      : 'Hi ha canvis que convé revisar.' }}
                   </p>
                 </div>
                 <span class="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-rose-700">
@@ -104,7 +125,13 @@
                   :key="`${risc.tipus}-${index}-${risc.resum}`"
                   class="rounded-md border border-rose-100 bg-white/80 px-3 py-2 text-sm"
                 >
-                  <div class="font-semibold text-rose-950">{{ risc.resum }}</div>
+                  <div class="font-semibold text-rose-950">
+                    <span
+                      class="mr-1.5 rounded px-1.5 py-0.5 text-xs font-bold uppercase"
+                      :class="risc.severitat === 'critic' ? 'bg-rose-600 text-white' : 'bg-amber-100 text-amber-800'"
+                    >{{ risc.severitat === 'critic' ? 'Greu' : 'Avís' }}</span>
+                    {{ risc.resum }}
+                  </div>
                   <div class="mt-0.5 text-xs text-rose-800">{{ risc.detall }}</div>
                 </div>
               </div>
@@ -434,7 +461,7 @@
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { query, orderBy, limit } from 'firebase/firestore';
-import { sincronitzar, comprovarDiscrepancies } from '../services/sincronitzacio.js';
+import { sincronitzar, comprovarDiscrepancies, desferDarreraSync, llegirCopiaAbansSync } from '../services/sincronitzacio.js';
 import { useAuthStore } from '../stores/auth';
 import { useCursStore } from '../stores/curs';
 import { useToastStore } from '../stores/toast';
@@ -496,7 +523,11 @@ const resumCanvisSync = computed(() => [
 ]);
 
 const riscosComprova = computed(() => resultComprova.value?.riscos || []);
-const riscosComprovaLimitats = computed(() => riscosComprova.value.slice(0, 6));
+const riscosCriticsComprova = computed(() => riscosComprova.value.filter((risc) => risc.severitat === 'critic'));
+const riscosComprovaLimitats = computed(() => [
+  ...riscosCriticsComprova.value,
+  ...riscosComprova.value.filter((risc) => risc.severitat !== 'critic'),
+].slice(0, 15));
 
 const resumPreviewComprova = computed(() => {
   const classes = resultComprova.value?.classes || {};
@@ -723,11 +754,16 @@ async function comprovar() {
   }
 }
 
-async function ferSync() {
+async function ferSync(opcions = {}) {
   if (estatSync.value === 'sincronitzant' || settings.value.tancamentAdmin || cursStore.esBloqueig) return;
   estatSync.value = 'sincronitzant';
   try {
-    const result = await sincronitzar(cursStore.cursActiuId, { actor: authStore.usuari || authStore.rol || 'admin', sheetsId: settings.value.sheetsId });
+    const result = await sincronitzar(cursStore.cursActiuId, {
+      actor: authStore.usuari || authStore.rol || 'admin',
+      sheetsId: settings.value.sheetsId,
+      acceptarRiscos: Boolean(opcions.acceptarRiscos),
+    });
+    carregarCopiaSync();
     statsSync.value = result;
     ultimaSync.value = result.timestamp;
     estatSync.value = 'ok';
@@ -776,9 +812,51 @@ async function ferSync() {
     };
     estatComprova.value = 'ok';
   } catch (e) {
+    if (e.code === 'riscos_critics') {
+      estatSync.value = 'idle';
+      const llista = e.riscos.slice(0, 10).map((risc) => `• ${risc.resum}: ${risc.detall}`).join('\n');
+      const mes = e.riscos.length > 10 ? `\n… i ${e.riscos.length - 10} més.` : '';
+      const confirmat = window.confirm(
+        `${e.message}\n\n${llista}${mes}\n\nEl més segur és corregir el full. Vols sincronitzar igualment?`,
+      );
+      if (confirmat) await ferSync({ acceptarRiscos: true });
+      else comprovar();
+      return;
+    }
     errorSyncMsg.value = e.message;
     estatSync.value = 'error';
     toast.error('Error de sincronització: ' + e.message);
+  }
+}
+
+const copiaSync = ref(null);
+const estatDesfer = ref('idle');
+
+async function carregarCopiaSync() {
+  try {
+    copiaSync.value = await llegirCopiaAbansSync(cursStore.cursActiuId);
+  } catch (error) {
+    console.warn("No s'ha pogut llegir la còpia de sincronització:", error);
+    copiaSync.value = null;
+  }
+}
+
+async function desferSync() {
+  if (!copiaSync.value || estatDesfer.value === 'desfent') return;
+  const confirmat = window.confirm(
+    `Es tornarà el professorat, els permisos i els departaments a com estaven el ${formatDataHora(copiaSync.value.createdAt)}.\n\n`
+    + "Les classes no es tornen enrere. La sincronització automàtica quedarà en pausa fins que sincronitzis manualment.\n\nVols desfer-la?",
+  );
+  if (!confirmat) return;
+  estatDesfer.value = 'desfent';
+  try {
+    await desferDarreraSync(cursStore.cursActiuId, authStore.usuari || authStore.rol || 'admin');
+    toast.ok("S'ha desfet l'última sincronització del professorat.");
+    estatDesfer.value = 'idle';
+    comprovar();
+  } catch (error) {
+    estatDesfer.value = 'idle';
+    toast.error("No s'ha pogut desfer: " + error.message);
   }
 }
 
@@ -795,6 +873,7 @@ function setupCursSubscriptions(cursId) {
 }
 
 watch(() => cursStore.cursActiuId, setupCursSubscriptions, { immediate: true });
+watch(() => cursStore.cursActiuId, carregarCopiaSync, { immediate: true });
 
 onUnmounted(() => {
   settingsUnsubscribe?.();

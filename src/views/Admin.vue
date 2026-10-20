@@ -297,9 +297,14 @@ const mostrarBotoAvisSincronitzar = computed(() =>
   mostrarAvisDesactualitzat.value && route.path !== '/admin/dades' && estatAutoSync.value !== 'sincronitzant'
 );
 const ultimaSyncSheets = computed(() => actualitzacioSheets.value?.ultimaSync || syncState.value?.syncedAt || '');
+const riscosCriticsSheets = computed(() => actualitzacioSheets.value?.riscosCritics || []);
 const titolAvisActualitzacio = computed(() =>
   estatAutoSync.value === 'sincronitzant'
     ? 'Sincronització automàtica en curs'
+    : riscosCriticsSheets.value.length
+    ? 'El full té errors: no s\'ha sincronitzat'
+    : actualitzacioSheets.value?.autoSyncPausada
+    ? 'Sincronització automàtica en pausa'
     : estatAutoSync.value === 'error'
     ? 'No s\'ha pogut sincronitzar automàticament'
     : actualitzacioSheets.value?.senseReferencia ? 'Cal sincronitzar Google Sheets' : 'Canvis pendents a Google Sheets'
@@ -307,6 +312,14 @@ const titolAvisActualitzacio = computed(() =>
 const detallAvisActualitzacio = computed(() => {
   if (estatAutoSync.value === 'sincronitzant') {
     return "S'han detectat canvis al full i s'estan aplicant automàticament.";
+  }
+  if (riscosCriticsSheets.value.length) {
+    const primers = riscosCriticsSheets.value.slice(0, 3).map((risc) => risc.resum).join('; ');
+    const total = riscosCriticsSheets.value.length;
+    return `${total} ${total === 1 ? 'problema greu' : 'problemes greus'} al full (${primers}${total > 3 ? '…' : ''}). Corregeix-los al full o revisa'ls a Dades importades.`;
+  }
+  if (actualitzacioSheets.value?.autoSyncPausada) {
+    return "Després de desfer una sincronització, els canvis del full no s'apliquen sols. Revisa'ls i sincronitza a Dades importades.";
   }
   if (estatAutoSync.value === 'error') {
     return errorAutoSync.value || "Revisa la sincronització manualment.";
@@ -561,6 +574,8 @@ function marcarAvisComSincronitzat(estatGuardat) {
 function potSincronitzarAutomaticament(result) {
   if (!result?.desactualitzat) return false;
   if (result.senseReferencia || result.origenCanviat) return false;
+  // Errors greus al full o pausa després de desfer: cal que un administrador ho revisi.
+  if (result.riscosCritics?.length || result.autoSyncPausada) return false;
   if (settings.value.tancamentAdmin || cursStore.esBloqueig) return false;
   if (!cursStore.cursActiuId || !settingsReady.value) return false;
   return true;

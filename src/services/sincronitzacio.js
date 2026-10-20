@@ -6,6 +6,7 @@ import { E2E_AUTH_BYPASS, getE2ECollection } from './e2e';
 import { BatchSplit } from '../utils/firestoreBatch';
 import { llegirRols, rolQuota } from '../utils/rolsProfessorat';
 import { planificarProfessors } from '../utils/professorsSync';
+import { validarProfessorat } from '../utils/validacioProfessorat';
 
 const APPS_SCRIPT_URL =
   'https://script.google.com/macros/s/AKfycbykQQXn6_oZ1iTtkASuHSA1P1kr5eSqGlIEdm5IBfuxSvr0wDh2I6Ec_yjILnHCXDKe/exec';
@@ -441,6 +442,8 @@ async function guardarEstatFontSincronitzada(cursId, estatFont, resultat, actor)
   await setDoc(
     syncStateRef(cursId),
     {
+      // Una sincronització feta per un administrador reprèn l'automàtica després de desfer.
+      autoSyncPausada: false,
       sourceSignature: estatFont.signatura,
       classesSignature: estatFont.signaturaClasses,
       professorsSignature: estatFont.signaturaProfessors,
@@ -830,6 +833,13 @@ async function calcularDiscrepanciesProfessors(cursId, professorsSheets) {
   });
 
   const eliminades = preview.conservatsForaFull.filter((p) => !p.detall.startsWith('Ja')).length;
+  const riscos = validarProfessorat(
+    professorsSheets,
+    snapProfs.docs
+      .map((d) => d.data())
+      .filter((data) => !data.eliminatDelFull)
+      .map((data) => ({ nom: data.nom, codiUntis: data.codiUntis || '' })),
+  );
 
   return {
     totalSheets: professorsSheets.length,
@@ -840,6 +850,7 @@ async function calcularDiscrepanciesProfessors(cursId, professorsSheets) {
     migracions,
     totalCanvis: noves + modificades + migracions + eliminades,
     preview,
+    riscos,
   };
 }
 
@@ -955,9 +966,15 @@ export async function comprovarEstatActualitzacioSheets(cursId, options = {}) {
     totalProfessors: estatFont.totalProfessors,
     canvisClasses: classes,
     canvisProfessors: professors,
+    riscosCritics: riscosCritics([...(professors.riscos || []), ...(classes.riscos || [])]),
+    autoSyncPausada: Boolean(estatGuardat?.autoSyncPausada),
     ultimaSync: estatGuardat?.syncedAt || '',
     checkedAt: estatFont.checkedAt,
   };
+}
+
+export function riscosCritics(riscos = []) {
+  return riscos.filter((risc) => risc.severitat === 'critic');
 }
 
 export async function provarConnexioSheets(sheetsId) {
@@ -1044,7 +1061,7 @@ async function calcularResumCanvis(cursId, estatFont) {
     calcularDiscrepanciesDepartaments(cursId, estatFont.professors),
   ]);
   const totalCanvis = classes.totalCanvis + professors.totalCanvis + departaments.totalCanvis;
-  const riscos = classes.riscos || [];
+  const riscos = [...(professors.riscos || []), ...(classes.riscos || [])];
 
   return {
     totalSheets: classes.totalSheets,
@@ -1139,6 +1156,19 @@ export async function sincronitzar(cursId, options = {}) {
   const estatFont = await llegirEstatFontSheets(sheetsId);
   const resumCanvis = await calcularResumCanvis(cursId, estatFont);
   const resumResultat = limitarResumPerResultat(resumCanvis);
+
+  // 3. Errors greus al full (codis desplaçats, correus creuats...): no s'apliquen sense
+  // que un administrador ho confirmi. Així tampoc no hi passa la sincronització automàtica.
+  const critics = riscosCritics(resumCanvis.riscos);
+  if (critics.length && !options.acceptarRiscos) {
+    const error = new Error(`El full té ${critics.length} ${critics.length === 1 ? 'problema greu' : 'problemes greus'}. Revisa'ls abans de sincronitzar.`);
+    error.code = 'riscos_critics';
+    error.riscos = critics;
+    throw error;
+  }
+
+  // Còpia del professorat, els permisos i els departaments abans d'escriure (per desfer).
+  await guardarCopiaAbansSync(cursId, options.actor);
   const classesNoves = estatFont.classes;
   const professorsNous = estatFont.professors;
 
@@ -1388,4 +1418,81 @@ export async function sincronitzar(cursId, options = {}) {
   }
 
   return resultat;
+}
+
+// ---------------------------------------------------------------------------
+// Còpia abans de sincronitzar i «desfer»: professorat, permisos (preautoritzats) i
+// departaments, que és el que es fa malbé amb un error al full Professorat. Les classes
+// es recuperen de la còpia diària de Firestore si cal.
+
+const COPIA_SYNC_ID = 'darrera';
+function copiaSyncRef(cursId) { return doc(db, 'cursos', cursId, 'sync_backups', COPIA_SYNC_ID); }
+const MIDA_MAXIMA_COPIA = 900 * 1024;
+
+async function guardarCopiaAbansSync(cursId, actor) {
+  const [professors, preautoritzats, departaments] = await Promise.all([
+    getDocs(cc(cursId, 'professors')),
+    getDocs(collection(db, 'preautoritzats')),
+    getDocs(cc(cursId, 'departaments')),
+  ]);
+  const docs = (snap) => snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+  const copia = {
+    createdAt: new Date().toISOString(),
+    actor: actor || 'admin',
+    professors: docs(professors),
+    preautoritzats: docs(preautoritzats),
+    departaments: docs(departaments),
+  };
+  // Un document de Firestore no pot passar d'1 MB: si no hi cap, millor no sincronitzar.
+  if (JSON.stringify(copia).length > MIDA_MAXIMA_COPIA) {
+    throw new Error("La còpia de seguretat abans de sincronitzar és massa gran. No s'ha aplicat cap canvi.");
+  }
+  await setDoc(copiaSyncRef(cursId), copia);
+}
+
+export async function llegirCopiaAbansSync(cursId) {
+  if (E2E_AUTH_BYPASS || !cursId) return null;
+  const snap = await getDoc(copiaSyncRef(cursId));
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  return {
+    createdAt: data.createdAt,
+    actor: data.actor,
+    professors: data.professors?.length || 0,
+    preautoritzats: data.preautoritzats?.length || 0,
+    departaments: data.departaments?.length || 0,
+  };
+}
+
+async function restaurarColleccio(refColleccio, copia = []) {
+  const actuals = await getDocs(refColleccio);
+  const ids = new Set(copia.map((item) => item.id));
+  const batch = new BatchSplit();
+  actuals.docs.forEach((d) => {
+    if (!ids.has(d.id)) batch.delete(d.ref);
+  });
+  copia.forEach((item) => batch.set(doc(refColleccio, item.id), item.data));
+  await batch.commit();
+}
+
+// Deixa el professorat, els permisos i els departaments com estaven abans de l'última
+// sincronització, i posa en pausa l'automàtica perquè no ho torni a aplicar tot sol.
+export async function desferDarreraSync(cursId, actor) {
+  const snap = await getDoc(copiaSyncRef(cursId));
+  if (!snap.exists()) throw new Error('No hi ha cap còpia per desfer.');
+  const copia = snap.data();
+  await restaurarColleccio(cc(cursId, 'professors'), copia.professors);
+  await restaurarColleccio(collection(db, 'preautoritzats'), copia.preautoritzats);
+  await restaurarColleccio(cc(cursId, 'departaments'), copia.departaments);
+  await setDoc(syncStateRef(cursId), {
+    autoSyncPausada: true,
+    restauratAt: new Date().toISOString(),
+    restauratPer: actor || 'admin',
+  }, { merge: true });
+  await setDoc(doc(db, 'cursos', cursId, 'guardies', 'directoriVersion'), {
+    version: Date.now(),
+    updatedAt: serverTimestamp(),
+    updatedBy: '',
+  });
+  return { createdAt: copia.createdAt };
 }

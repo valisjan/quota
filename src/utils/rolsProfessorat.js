@@ -12,7 +12,7 @@ const CONEGUTS = new Set([...ROLS_QUOTA, ...ROLS_ALTRES_APPS]);
 function normalitzarRol(valor) {
   return String(valor || '')
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase()
     .replace(/[\s-]+/g, '_');
