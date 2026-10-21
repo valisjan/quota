@@ -442,6 +442,31 @@ service cloud.firestore {
       allow write: if esAdmin();
     }
 
+    // ---- Correus de Guàrdies al professorat ---------------------------------------
+    // La gestió els posa a la cua (només a adreces del centre) i el servei de correu
+    // (Apps Script, amb un compte del centre que té accés al projecte) els envia i en
+    // marca l'estat. Les dades no surten de la gestió.
+    match /guardiesCorreus/{id} {
+      allow read: if esAdmin();
+      allow create, update: if esAdmin()
+        && request.resource.data.keys().hasOnly([
+          'courseId', 'kind', 'template', 'date', 'teacherId', 'email', 'fields',
+          'check', 'status', 'reason', 'sendAfter', 'createdAt', 'createdBy'
+        ])
+        && request.resource.data.courseId is string
+        && request.resource.data.kind in ['alliberat', 'pati', 'prova']
+        && request.resource.data.template in ['alliberat', 'pati']
+        && request.resource.data.status == 'pendent'
+        && request.resource.data.email is string
+        && request.resource.data.email.matches('[a-z0-9._%+-]+@iesjosepsuredaiblanes[.]com')
+        && request.resource.data.fields is map
+        && request.resource.data.check is map
+        && request.resource.data.sendAfter is timestamp
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.createdBy is string;
+      allow delete: if false;
+    }
+
     // ---- Retards (alumnat que arriba tard) -------------------------------------
     // Hi entren l'administració i qui té el rol PSC al professorat de Quota (permís
     // d'accés a «preautoritzats»). Les dades van empaquetades perquè costin poques
