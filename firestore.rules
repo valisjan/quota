@@ -344,6 +344,21 @@ service cloud.firestore {
           && request.resource.data.revision is int
           && request.resource.data.updatedAt == request.time;
         allow delete: if false;
+
+        // Historial: la versió que cada canvi substitueix, a 30 posicions fixes
+        // (v00-v29) que es reutilitzen. Només la gestió la veu i l'escriu. Es
+        // desa a la mateixa transacció que el canvi, i per això no pot exigir
+        // camps que una jornada antiga potser no té: si fallés, no es podria desar.
+        match /versions/{slot} {
+          allow read: if esAdmin();
+          allow create, update: if esAdmin()
+            && slot.matches('v[0-2][0-9]')
+            && request.resource.data.get('date', date) == date
+            && request.resource.data.replacedAt == request.time
+            && request.resource.data.replacedBy is string
+            && request.resource.data.replacedBy.size() <= 320;
+          allow delete: if false;
+        }
       }
 
       // Projecció mínima per a pantalles en mode quiosc. No conté fitxers
