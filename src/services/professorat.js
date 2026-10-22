@@ -24,8 +24,10 @@ import {
   fitxaPerCopiar,
   planDepartaments,
   planPermisos,
+  planUsuaris,
   planificacioBuida,
   planificacioPlaca,
+  treuAdministracioPropia,
 } from '../utils/professorat';
 import { subscribeAppSettings, updateAppSettings } from './appSettings';
 import { E2E_AUTH_BYPASS, getE2ECollection } from './e2e';
@@ -34,6 +36,7 @@ const professorsRef = (cursId) => collection(db, 'cursos', cursId, 'professors')
 const classesRef = (cursId) => collection(db, 'cursos', cursId, 'classes');
 const departamentsRef = (cursId) => collection(db, 'cursos', cursId, 'departaments');
 const preautoritzatsRef = () => collection(db, 'preautoritzats');
+const usuarisRef = () => collection(db, 'usuaris');
 const directoriVersionRef = (cursId) => doc(db, 'cursos', cursId, 'guardies', 'directoriVersion');
 
 const ambId = (d) => ({ id: d.id, ...d.data() });
@@ -56,6 +59,7 @@ function memoriaE2E() {
     memoria = {
       professors: getE2ECollection('professors').map((professor) => ({ eliminatDelFull: false, ...professor })),
       preautoritzats: [],
+      usuaris: getE2ECollection('usuaris'),
       departaments: getE2ECollection('departaments'),
       gestioAQuota: false,
     };
@@ -140,16 +144,13 @@ export async function reanomenarAClasses(cursId, nomAntic, nomNou) {
 }
 
 // Només els permisos dels correus indicats (l'antic i el nou d'una fitxa).
-async function actualitzarPermisosDe(cursId, emails) {
+async function actualitzarPermisosDe(cursId, emails, professors) {
   const objectius = [...new Set(emails.map(completarEmail).filter(Boolean))];
   if (!objectius.length || !esCursVigent(cursId)) return { escrits: 0, esborrats: 0, omesos: !esCursVigent(cursId) };
-  const [professors, actuals] = await Promise.all([
-    llegirProfessors(cursId),
-    Promise.all(objectius.map(async (email) => {
-      const snap = await getDoc(doc(preautoritzatsRef(), email));
-      return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-    })),
-  ]);
+  const actuals = await Promise.all(objectius.map(async (email) => {
+    const snap = await getDoc(doc(preautoritzatsRef(), email));
+    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+  }));
   const professorsObjectiu = professors.filter((professor) => objectius.includes(completarEmail(professor.email)));
   const pla = planPermisos(professorsObjectiu, actuals.filter(Boolean));
   const batch = new BatchSplit();
@@ -159,11 +160,23 @@ async function actualitzarPermisosDe(cursId, emails) {
   return { escrits: pla.escriure.length, esborrats: pla.esborrar.length, omesos: false };
 }
 
-async function actualitzarDepartaments(cursId) {
-  const [professors, deps] = await Promise.all([
-    llegirProfessors(cursId),
-    getDocs(departamentsRef(cursId)),
-  ]);
+// La còpia del rol a les fitxes d'usuari d'aquests correus (vegeu planUsuaris): dar o
+// treure un rol s'aplica de seguida a totes les aplicacions, no quan la persona torni a
+// entrar a Quota.
+async function actualitzarUsuarisDe(cursId, emails, professors, sessio) {
+  const objectius = [...new Set(emails.map(completarEmail).filter(Boolean))];
+  if (!objectius.length || !esCursVigent(cursId)) return 0;
+  const snap = await getDocs(query(usuarisRef(), where('email', 'in', objectius)));
+  const canvis = planUsuaris(snap.docs.map(ambId), professors, { actorEmail: sessio?.email });
+  if (!canvis.length) return 0;
+  const batch = new BatchSplit();
+  canvis.forEach((canvi) => batch.update(doc(usuarisRef(), canvi.uid), { ...canvi.nou, updatedAt: ara() }));
+  await batch.commit();
+  return canvis.length;
+}
+
+async function actualitzarDepartaments(cursId, professors) {
+  const deps = await getDocs(departamentsRef(cursId));
   // Mai no es buida la llista per una lectura incompleta.
   if (!professors.some(esActiu)) return;
   const { afegir, eliminar } = planDepartaments(professors, deps.docs.map(ambId));
@@ -181,9 +194,9 @@ async function avisarGuardies(cursId) {
 
 // Els efectes secundaris no han de fer perdre la fitxa ja desada: es recullen com a avisos.
 // reanomenaments: [[nomAntic, nomNou]] — canvi de nom o traspàs de les classes d'una plaça.
-async function efectes(cursId, { emails = [], reanomenaments = [] } = {}) {
+async function efectes(cursId, { emails = [], reanomenaments = [], sessio = null } = {}) {
   const avisos = [];
-  const resultat = { classesReanomenades: 0, permisos: null };
+  const resultat = { classesReanomenades: 0, permisos: null, usuaris: 0 };
   for (const [nomAntic, nomNou] of reanomenaments) {
     try {
       resultat.classesReanomenades += await reanomenarAClasses(cursId, nomAntic, nomNou);
@@ -191,13 +204,26 @@ async function efectes(cursId, { emails = [], reanomenaments = [] } = {}) {
       avisos.push(`No s'han pogut passar les classes de ${nomAntic} a ${nomNou}: ${error.message}`);
     }
   }
+  let professors = null;
   try {
-    resultat.permisos = await actualitzarPermisosDe(cursId, emails);
+    professors = await llegirProfessors(cursId);
   } catch (error) {
-    avisos.push(`No s'han pogut actualitzar els permisos d'accés: ${error.message}`);
+    avisos.push(`No s'ha pogut llegir el professorat per actualitzar els permisos: ${error.message}`);
+  }
+  if (professors) {
+    try {
+      resultat.permisos = await actualitzarPermisosDe(cursId, emails, professors);
+    } catch (error) {
+      avisos.push(`No s'han pogut actualitzar els permisos d'accés: ${error.message}`);
+    }
+    try {
+      resultat.usuaris = await actualitzarUsuarisDe(cursId, emails, professors, sessio);
+    } catch (error) {
+      avisos.push(`No s'ha pogut aplicar el rol als comptes que ja havien entrat: ${error.message}`);
+    }
   }
   try {
-    await actualitzarDepartaments(cursId);
+    if (professors) await actualitzarDepartaments(cursId, professors);
   } catch (error) {
     avisos.push(`No s'ha pogut actualitzar la llista de departaments: ${error.message}`);
   }
@@ -214,11 +240,30 @@ async function efectes(cursId, { emails = [], reanomenaments = [] } = {}) {
 
 const metadades = (actor) => ({ updatedAt: ara(), updatedBy: actor || 'admin' });
 
-export async function desarProfessor({ cursId, professor = null, form, actor }) {
+// sessio: { email, rol } de qui fa el canvi. Ningú no es pot treure l'administració a si mateix.
+function comprovaAdministracioPropia(sessio, abans, despres) {
+  if (treuAdministracioPropia({ sessio, abans, despres })) {
+    throw new Error("No et pots treure l'administració a tu mateix/a. Demana-ho a una altra persona de l'administració.");
+  }
+}
+
+// En mode de prova, la còpia del rol de les fitxes d'usuari es manté en memòria.
+function actualitzarUsuarisE2E(emails, sessio) {
+  const estat = memoriaE2E();
+  const objectius = new Set(emails.map(completarEmail).filter(Boolean));
+  const afectats = estat.usuaris.filter((usuari) => objectius.has(completarEmail(usuari.email)));
+  const canvis = planUsuaris(afectats, estat.professors, { actorEmail: sessio?.email });
+  canvis.forEach((canvi) => Object.assign(estat.usuaris.find((usuari) => usuari.id === canvi.uid), canvi.nou));
+  if (canvis.length) notificaE2E();
+}
+
+export async function desarProfessor({ cursId, professor = null, form, actor, sessio = null }) {
   const fitxa = campsFitxa(form);
+  comprovaAdministracioPropia(sessio, professor, { ...(professor || { eliminatDelFull: false }), ...fitxa });
   if (E2E_AUTH_BYPASS) {
     const id = professor?.id || `e2e-prof-${Date.now()}`;
     desaE2E(id, { ...fitxa, ...(professor ? {} : { eliminatDelFull: false, ...planificacioBuida() }) }, { nou: !professor });
+    actualitzarUsuarisE2E([professor?.email, fitxa.email], sessio);
     return { id, avisos: [] };
   }
   const ref = professor ? doc(professorsRef(cursId), professor.id) : doc(professorsRef(cursId));
@@ -239,11 +284,13 @@ export async function desarProfessor({ cursId, professor = null, form, actor }) 
   const resultat = await efectes(cursId, {
     emails: [professor?.email, fitxa.email],
     reanomenaments: professor ? [[professor.nom, fitxa.nom]] : [],
+    sessio,
   });
   return { id: ref.id, ...resultat };
 }
 
-export async function desactivarProfessor({ cursId, professor, motiu, actor }) {
+export async function desactivarProfessor({ cursId, professor, motiu, actor, sessio = null }) {
+  comprovaAdministracioPropia(sessio, professor, { ...professor, eliminatDelFull: true });
   const canvis = {
     eliminatDelFull: true,
     desactivatAt: ara().toISOString(),
@@ -252,17 +299,19 @@ export async function desactivarProfessor({ cursId, professor, motiu, actor }) {
   };
   if (E2E_AUTH_BYPASS) {
     desaE2E(professor.id, canvis);
+    actualitzarUsuarisE2E([professor.email], sessio);
     return { avisos: [] };
   }
   const batch = new BatchSplit();
   batch.update(doc(professorsRef(cursId), professor.id), { ...canvis, ...metadades(actor) });
   await batch.commit();
-  return efectes(cursId, { emails: [professor.email] });
+  return efectes(cursId, { emails: [professor.email], sessio });
 }
 
 // Torna a l'actiu. Si hi ha un substitut a la seva plaça, se'l pot desactivar i
 // retornar-li la planificació actual de la plaça.
-export async function reactivarProfessor({ cursId, professor, substitut = null, retornarPlaca = false, actor }) {
+export async function reactivarProfessor({ cursId, professor, substitut = null, retornarPlaca = false, actor, sessio = null }) {
+  if (substitut && retornarPlaca) comprovaAdministracioPropia(sessio, substitut, { ...substitut, eliminatDelFull: true });
   const canvis = {
     eliminatDelFull: false,
     desactivatAt: null,
@@ -281,6 +330,7 @@ export async function reactivarProfessor({ cursId, professor, substitut = null, 
   if (E2E_AUTH_BYPASS) {
     desaE2E(professor.id, canvis);
     if (canvisSubstitut) desaE2E(substitut.id, canvisSubstitut);
+    actualitzarUsuarisE2E([professor.email, canvisSubstitut ? substitut.email : ''], sessio);
     return { avisos: [] };
   }
   const batch = new BatchSplit();
@@ -291,12 +341,15 @@ export async function reactivarProfessor({ cursId, professor, substitut = null, 
     emails: [professor.email, canvisSubstitut ? substitut.email : ''],
     // El titular recupera les classes de la plaça.
     reanomenaments: canvisSubstitut ? [[substitut.nom, professor.nom]] : [],
+    sessio,
   });
 }
 
 // Alta d'un substitut a la plaça del titular, que passa a Anteriors.
-export async function substituirProfessor({ cursId, titular, form, traspassarPlaca = true, motiu = 'Baixa', actor }) {
+export async function substituirProfessor({ cursId, titular, form, traspassarPlaca = true, motiu = 'Baixa', actor, sessio = null }) {
   const fitxa = campsFitxa(form);
+  comprovaAdministracioPropia(sessio, titular, { ...titular, eliminatDelFull: true });
+  comprovaAdministracioPropia(sessio, null, { ...fitxa, eliminatDelFull: false });
   const ref = E2E_AUTH_BYPASS ? { id: `e2e-prof-${Date.now()}` } : doc(professorsRef(cursId));
   const substitut = {
     ...fitxa,
@@ -316,6 +369,7 @@ export async function substituirProfessor({ cursId, titular, form, traspassarPla
   if (E2E_AUTH_BYPASS) {
     desaE2E(ref.id, substitut, { nou: true });
     desaE2E(titular.id, canvisTitular);
+    actualitzarUsuarisE2E([titular.email, fitxa.email], sessio);
     return { id: ref.id, avisos: [] };
   }
   const batch = new BatchSplit();
@@ -326,6 +380,7 @@ export async function substituirProfessor({ cursId, titular, form, traspassarPla
     emails: [titular.email, fitxa.email],
     // El substitut fa l'horari de la plaça: n'hereta les classes assignades.
     reanomenaments: traspassarPlaca ? [[titular.nom, fitxa.nom]] : [],
+    sessio,
   });
   return { id: ref.id, ...resultat };
 }
@@ -363,30 +418,47 @@ export async function activarGestioQuota({ cursId, actor }) {
 }
 
 // Permisos de tot el professorat del curs: primer es calcula, després s'aplica.
-export async function revisarPermisos(cursId) {
+export async function revisarPermisos(cursId, sessio = null) {
   if (E2E_AUTH_BYPASS) {
     const estat = memoriaE2E();
-    return planPermisos(estat.professors, estat.preautoritzats);
+    return {
+      ...planPermisos(estat.professors, estat.preautoritzats),
+      usuaris: planUsuaris(estat.usuaris, estat.professors, { actorEmail: sessio?.email }),
+    };
   }
-  const [professors, permisos] = await Promise.all([llegirProfessors(cursId), getDocs(preautoritzatsRef())]);
+  const [professors, permisos, usuaris] = await Promise.all([
+    llegirProfessors(cursId), getDocs(preautoritzatsRef()), getDocs(usuarisRef()),
+  ]);
   if (!professors.some(esActiu)) throw new Error('El curs no té professorat actiu: no es toquen els permisos.');
-  return planPermisos(professors, permisos.docs.map(ambId));
+  return {
+    ...planPermisos(professors, permisos.docs.map(ambId)),
+    usuaris: planUsuaris(usuaris.docs.map(ambId), professors, { actorEmail: sessio?.email }),
+  };
+}
+
+// Fitxes d'usuari de qui ja ha entrat a Quota, per avisar si alguna té el rol desfasat.
+export async function llegirUsuaris() {
+  if (E2E_AUTH_BYPASS) return memoriaE2E().usuaris.map((usuari) => ({ ...usuari }));
+  return (await getDocs(usuarisRef())).docs.map(ambId);
 }
 
 export async function aplicarPermisos(cursId, pla) {
   if (!esCursVigent(cursId) && !E2E_AUTH_BYPASS) throw new Error('Només el curs vigent pot canviar els permisos d\'accés.');
+  const usuaris = pla.usuaris || [];
   if (E2E_AUTH_BYPASS) {
     const estat = memoriaE2E();
     estat.preautoritzats = [
       ...estat.preautoritzats.filter((p) => !pla.esborrar.includes(p.email) && !pla.escriure.some((n) => n.email === p.email)),
       ...pla.escriure.map((p) => ({ id: p.email, ...p })),
     ];
+    usuaris.forEach((canvi) => Object.assign(estat.usuaris.find((usuari) => usuari.id === canvi.uid) || {}, canvi.nou));
     notificaE2E();
     return;
   }
   const batch = new BatchSplit();
   pla.escriure.forEach((permis) => batch.set(doc(preautoritzatsRef(), permis.email), { ...permis, updatedAt: ara() }));
   pla.esborrar.forEach((email) => batch.delete(doc(preautoritzatsRef(), email)));
+  usuaris.forEach((canvi) => batch.update(doc(usuarisRef(), canvi.uid), { ...canvi.nou, updatedAt: ara() }));
   await batch.commit();
   await avisarGuardies(cursId);
 }

@@ -95,6 +95,49 @@ test.describe('Professorat', () => {
     expect(errors).toEqual([]);
   });
 
+  test('els comptes que ja han entrat prenen el rol de Professorat al moment', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.goto('/admin/professorat');
+    await page.getByRole('button', { name: 'Gestiona el professorat des de Quota' }).click();
+    await page.getByRole('button', { name: 'Fes el pas' }).click();
+
+    // Dos comptes amb el rol desfasat; l'administració afegida a mà no compta.
+    const avis = page.getByText("Els permisos d'accés no coincideixen");
+    await expect(avis).toContainText('2 comptes amb el rol desfasat');
+    await page.getByRole('button', { name: "Revisa'ls" }).click();
+    const revisio = page.getByText('Comptes que ja han entrat i canviaran de rol (2)').locator('..');
+    await expect(revisio).toContainText('maria.sureda@iesjosepsuredaiblanes.com · Maria Sureda · Professor/a → Cap de departament');
+    await expect(revisio).toContainText('antic.docent@iesjosepsuredaiblanes.com · Antic Docent · Cap de departament → sense accés');
+    await expect(revisio).not.toContainText('e2e.admin');
+    await page.getByRole('button', { name: 'Aplica', exact: true }).click();
+    await expect(avis).toHaveCount(0);
+
+    // Treure-li el rol de cap a la fitxa s'aplica al seu compte en el mateix moment.
+    const fitxa = page.getByTestId('fitxa-professor');
+    await fila(page, 'Maria Sureda').click();
+    await fitxa.getByText('Cap de departament', { exact: true }).click();
+    await fitxa.getByRole('button', { name: 'Desa', exact: true }).click();
+    await expect(avis).toContainText('0 comptes amb el rol desfasat');
+
+    // Ningú no es pot treure l'administració a si mateix.
+    await page.getByTestId('nou-professor').click();
+    await fitxa.getByPlaceholder('COGNOMS, NOM').fill('ADMIN, PROVA');
+    await fitxa.getByPlaceholder('usuari').fill('e2e.admin');
+    await fitxa.getByLabel('Afegeix un departament').selectOption('Catala');
+    await fitxa.getByText('Administració', { exact: true }).click();
+    await fitxa.getByRole('button', { name: 'Desa', exact: true }).click();
+    await expect(fila(page, 'ADMIN, PROVA')).toContainText('Administració');
+    await fila(page, 'ADMIN, PROVA').click();
+    await fitxa.getByText('Administració', { exact: true }).click();
+    await fitxa.getByRole('button', { name: 'Desa', exact: true }).click();
+    await expect(page.getByText("No et pots treure l'administració a tu mateix/a")).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(fila(page, 'ADMIN, PROVA')).toContainText('Administració');
+
+    expect(errors).toEqual([]);
+  });
+
   test('es veu bé en mode fosc', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('quota_theme', 'dark');

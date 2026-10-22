@@ -10,7 +10,9 @@ import {
   ordenarProfessors,
   planDepartaments,
   planPermisos,
+  planUsuaris,
   planificacioPlaca,
+  treuAdministracioPropia,
   validarFitxa,
 } from '../../src/utils/professorat.js';
 
@@ -120,4 +122,47 @@ test('substitució: el substitut hereta la plaça i la planificació; la còpia 
   assert.equal(copia.gpAssignades, 0);
   assert.deepEqual(copia.sdAssignacions, []);
   assert.equal(copia.codiUntis, 'ADEL');
+});
+
+test('la fitxa d\'usuari pren el rol de Professorat i perd l\'accés qui no hi és actiu', () => {
+  const professors = [
+    { ...fornes, email: 'mfornes@iesjosepsuredaiblanes.com' },
+    ortega,
+    { ...adell, rols: ['professor', 'admin'] },
+    { id: 'BAIX', nom: 'BAIXA, CAP', email: 'cap.baixa@iesjosepsuredaiblanes.com', rols: ['cap_departament'], departaments: ['Català'], eliminatDelFull: true },
+  ];
+  const usuaris = [
+    { id: 'u1', email: 'mfornes@iesjosepsuredaiblanes.com', rol: 'professor', departament: null, departaments: [] },
+    { id: 'u2', email: 'psc@iesjosepsuredaiblanes.com', rol: 'professor', departament: 'Orientació (EOSA)', departaments: ['Orientació (EOSA)'] },
+    { id: 'u3', email: 'cap.baixa@iesjosepsuredaiblanes.com', rol: 'cap_departament', departament: 'Català', departaments: ['Català'] },
+    { id: 'u4', email: 'antic@iesjosepsuredaiblanes.com', rol: 'cap_departament', departament: 'Música', departaments: ['Música'] },
+    { id: 'u5', email: 'manual.admin@iesjosepsuredaiblanes.com', rol: 'admin' },
+    { id: 'u6', email: 'madell@iesjosepsuredaiblanes.com', rol: 'professor', departament: 'Anglès', departaments: ['Anglès'] },
+    { id: 'u7', email: 'pendent@iesjosepsuredaiblanes.com', rol: null },
+  ];
+  const canvis = Object.fromEntries(planUsuaris(usuaris, professors).map((canvi) => [canvi.uid, canvi.nou]));
+  assert.deepEqual(canvis.u1, { rol: 'cap_departament', departament: 'Economia', departaments: ['Economia'] }, 'pren el rol de la fitxa activa');
+  assert.equal(canvis.u2, undefined, 'la PSC ja és professora: res a canviar');
+  assert.deepEqual(canvis.u3, { rol: null, departament: null, departaments: [] }, 'a Anteriors: sense accés');
+  assert.deepEqual(canvis.u4, { rol: null, departament: null, departaments: [] }, 'sense fitxa i sense ser administració: sense accés');
+  assert.equal(canvis.u5, undefined, 'l\'administració afegida a mà no es toca');
+  assert.equal(canvis.u6.rol, 'admin', 'també es pot donar l\'administració');
+  assert.equal(canvis.u7, undefined, 'qui no té fitxa ni rol continua igual');
+
+  const exAdmin = [{ id: 'u8', email: 'madell@iesjosepsuredaiblanes.com', rol: 'admin' }];
+  const senseAdmin = [{ ...adell, rols: ['professor'] }];
+  assert.equal(planUsuaris(exAdmin, senseAdmin)[0].nou.rol, 'professor', 'treure l\'administració a una altra persona funciona');
+  assert.deepEqual(planUsuaris(exAdmin, senseAdmin, { actorEmail: 'madell@iesjosepsuredaiblanes.com' }), [], 'però mai a qui fa el canvi');
+});
+
+test('ningú no es pot treure l\'administració a si mateix des de Professorat', () => {
+  const sessio = { email: 'madell@iesjosepsuredaiblanes.com', rol: 'admin' };
+  const jo = { ...adell, rols: ['professor', 'admin'] };
+  assert.equal(treuAdministracioPropia({ sessio, abans: jo, despres: { ...jo, rols: ['professor'] } }), true, 'treure\'s el rol');
+  assert.equal(treuAdministracioPropia({ sessio, abans: jo, despres: { ...jo, eliminatDelFull: true } }), true, 'passar-se a Anteriors');
+  assert.equal(treuAdministracioPropia({ sessio, abans: jo, despres: { ...jo, email: 'altre@iesjosepsuredaiblanes.com' } }), true, 'canviar-se el correu');
+  assert.equal(treuAdministracioPropia({ sessio, abans: jo, despres: { ...jo, nom: 'ADELL, MARINA' } }), false, 'canviar-se el nom sí');
+  assert.equal(treuAdministracioPropia({ sessio, abans: ortega, despres: { ...ortega, eliminatDelFull: true } }), false, 'tocar una altra fitxa sí');
+  assert.equal(treuAdministracioPropia({ sessio, abans: null, despres: { ...ortega, email: sessio.email } }), true, 'posar el meu correu a una fitxa sense administració');
+  assert.equal(treuAdministracioPropia({ sessio: { ...sessio, rol: 'cap_departament' }, abans: jo, despres: { ...jo, rols: ['professor'] } }), false, 'qui no és administració no en perd');
 });

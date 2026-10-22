@@ -219,6 +219,48 @@ export function planPermisos(professors, actuals = []) {
   return { escriure, esborrar };
 }
 
+// Còpia del rol a la fitxa d'usuari («usuaris»), la que fan servir Quota, Guàrdies,
+// Pantalles i les regles de Firestore. Professorat n'és la font: qui hi és actiu té el rol
+// de la seva fitxa i qui no hi és actiu no en té cap. Es deixen com estan l'administració
+// afegida a mà (sense cap fitxa al curs) i l'administració de qui fa el canvi, perquè
+// ningú no es pugui quedar fora.
+const accesUsuari = (dades = {}) => ({
+  rol: dades.rol || null,
+  departament: dades.departament || null,
+  departaments: Array.isArray(dades.departaments) ? [...dades.departaments] : [],
+});
+
+export function planUsuaris(usuaris, professors, { actorEmail = '' } = {}) {
+  const fitxesPerEmail = new Map();
+  professors.forEach((professor) => {
+    const email = completarEmail(professor.email);
+    if (email) fitxesPerEmail.set(email, [...(fitxesPerEmail.get(email) || []), professor]);
+  });
+  const actor = completarEmail(actorEmail);
+  return usuaris.flatMap((usuari) => {
+    const email = completarEmail(usuari.email);
+    if (!email) return [];
+    const fitxes = fitxesPerEmail.get(email) || [];
+    const activa = fitxes.find(esActiu);
+    const actual = accesUsuari(usuari);
+    if (!fitxes.length && actual.rol === 'admin') return [];
+    const nou = activa ? accesUsuari(permisDe(activa)) : accesUsuari();
+    if (email === actor && actual.rol === 'admin' && nou.rol !== 'admin') return [];
+    if (JSON.stringify(actual) === JSON.stringify(nou)) return [];
+    return [{ uid: usuari.id, email, nom: activa?.nom || usuari.nom || '', actual, nou }];
+  });
+}
+
+// Cap operació de Professorat no pot treure l'administració a qui la fa: ni canviant-li el
+// rol o el correu, ni passant-lo a Anteriors. «abans» i «despres» són la fitxa afectada.
+export function treuAdministracioPropia({ sessio, abans = null, despres = null }) {
+  const jo = completarEmail(sessio?.email);
+  if (!jo || sessio?.rol !== 'admin') return false;
+  if (completarEmail(abans?.email) !== jo && completarEmail(despres?.email) !== jo) return false;
+  if (!despres || !esActiu(despres) || completarEmail(despres.email) !== jo) return true;
+  return permisDe(despres).rol !== 'admin';
+}
+
 // Departaments que han d'existir segons el professorat actiu (com feia la sincronització).
 export function planDepartaments(professors, existents = []) {
   const desitjats = new Map();

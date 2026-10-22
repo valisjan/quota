@@ -111,8 +111,9 @@
     >
       <span>
         Els permisos d'accés no coincideixen amb aquesta llista:
-        <strong>{{ planPermisosViu.escriure.length }}</strong> per crear o actualitzar i
-        <strong>{{ planPermisosViu.esborrar.length }}</strong> per treure.
+        <strong>{{ planPermisosViu.escriure.length }}</strong> per crear o actualitzar,
+        <strong>{{ planPermisosViu.esborrar.length }}</strong> per treure i
+        <strong>{{ planUsuarisViu.length }}</strong> {{ planUsuarisViu.length === 1 ? 'compte' : 'comptes' }} amb el rol desfasat.
       </span>
       <button type="button" class="shrink-0 rounded-md border border-amber-400 bg-white px-3 py-1.5 font-semibold text-amber-900 hover:bg-amber-100" @click="revisarPermisosAra">
         Revisa'ls
@@ -516,14 +517,26 @@
             <ul class="mt-1 max-h-48 space-y-0.5 overflow-y-auto text-slate-700 dark:text-slate-300">
               <li v-for="email in planRevisat.esborrar" :key="email">{{ email }}</li>
             </ul>
-            <p class="mt-1 text-xs text-slate-500">Els comptes que ja hi han entrat conserven el rol que tenien; es gestionen a Usuaris.</p>
           </div>
-          <p v-if="!planRevisat.escriure.length && !planRevisat.esborrar.length" class="text-slate-700 dark:text-slate-300">Tot coincideix.</p>
+          <div v-if="planRevisat.usuaris?.length">
+            <p class="font-semibold text-slate-900 dark:text-white">Comptes que ja han entrat i canviaran de rol ({{ planRevisat.usuaris.length }})</p>
+            <ul class="mt-1 max-h-48 space-y-0.5 overflow-y-auto text-slate-700 dark:text-slate-300">
+              <li v-for="canvi in planRevisat.usuaris" :key="canvi.uid">
+                {{ canvi.email }}<template v-if="canvi.nom"> · {{ canvi.nom }}</template> ·
+                {{ etiquetaAcces(canvi.actual.rol) }} → <strong>{{ etiquetaAcces(canvi.nou.rol) }}</strong>
+              </li>
+            </ul>
+            <p class="mt-1 text-xs text-slate-500">
+              Es fa servir a Quota, Guàrdies i Pantalles. Qui no és actiu a Professorat es queda sense accés;
+              l'administració afegida a mà des d'Usuaris (sense cap fitxa aquí) no es toca.
+            </p>
+          </div>
+          <p v-if="!planRevisat.escriure.length && !planRevisat.esborrar.length && !planRevisat.usuaris?.length" class="text-slate-700 dark:text-slate-300">Tot coincideix.</p>
         </div>
         <div class="mt-6 flex justify-end gap-2">
           <button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200" @click="tancar">Tanca</button>
           <button
-            v-if="planRevisat && (planRevisat.escriure.length || planRevisat.esborrar.length)"
+            v-if="planRevisat && (planRevisat.escriure.length || planRevisat.esborrar.length || planRevisat.usuaris?.length)"
             type="button"
             :disabled="desant"
             class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
@@ -549,6 +562,7 @@ import {
   desactivarProfessor,
   desarProfessor,
   esCursVigent,
+  llegirUsuaris,
   reactivarProfessor,
   revisarPermisos,
   subscriureGestioProfessorat,
@@ -570,6 +584,7 @@ import {
   formulariSubstitut,
   ordenarProfessors,
   planPermisos,
+  planUsuaris,
   rolsDe,
   validarFitxa,
 } from '../utils/professorat';
@@ -582,6 +597,8 @@ const toast = useToastStore();
 
 const professors = ref([]);
 const permisos = ref([]);
+// Fitxes d'usuari (comptes que ja han entrat a Quota): la còpia del rol que fan servir les apps.
+const usuaris = ref([]);
 const gestioAQuota = ref(false);
 const carregat = ref(false);
 const vista = ref('actius');
@@ -609,6 +626,9 @@ const etiquetaRol = (rol) => ROLS_FITXA.find((item) => item.valor === rol)?.etiq
 const rolsVisibles = (professor) => rolsDe(professorAmbRols(professor));
 
 const actor = computed(() => authStore.usuari || authStore.email || 'admin');
+// Qui fa el canvi: ningú no es pot treure l'administració a si mateix.
+const sessio = computed(() => ({ email: authStore.email, rol: authStore.rol }));
+const etiquetaAcces = (rol) => (rol ? etiquetaRol(rol) : 'sense accés');
 const cursVigent = computed(() => E2E_AUTH_BYPASS || esCursVigent(cursStore.cursActiuId));
 const editable = computed(() => gestioAQuota.value && !cursStore.esBloqueig);
 
@@ -663,8 +683,18 @@ const riscosCritics = computed(() => riscosLlista.value.filter((risc) => risc.se
 const avisosLlista = computed(() => riscosLlista.value.filter((risc) => risc.severitat !== 'critic'));
 
 const planPermisosViu = computed(() => planPermisos(professors.value, permisos.value));
+const planUsuarisViu = computed(() => planUsuaris(usuaris.value, professors.value, { actorEmail: authStore.email }));
 const permisosPendents = computed(() => editable.value && cursVigent.value && carregat.value && actius.value.length > 0
-  && (planPermisosViu.value.escriure.length + planPermisosViu.value.esborrar.length) > 0);
+  && (planPermisosViu.value.escriure.length + planPermisosViu.value.esborrar.length + planUsuarisViu.value.length) > 0);
+
+async function refrescarUsuaris() {
+  try {
+    usuaris.value = await llegirUsuaris();
+  } catch (error) {
+    console.warn("No s'han pogut llegir els comptes:", error);
+  }
+}
+refrescarUsuaris();
 
 const cursosOrigen = computed(() => (cursStore.cursos || []).filter((curs) => curs.id !== cursStore.cursActiuId));
 
@@ -803,6 +833,7 @@ async function executar(accio) {
   desant.value = true;
   try {
     await accio();
+    if (modal.value !== 'permisos') refrescarUsuaris();
   } catch (error) {
     toast.error(`No s'ha pogut desar: ${error.message}`);
   } finally {
@@ -822,11 +853,12 @@ function desar() {
         traspassarPlaca: traspassarPlaca.value,
         motiu: motiu.value,
         actor: actor.value,
+        sessio: sessio.value,
       });
       informar(resultat, `${fitxaActual.value.nom} substitueix ${titular.nom}.`);
     } else {
       const professor = seleccionat.value;
-      const resultat = await desarProfessor({ cursId: cursStore.cursActiuId, professor, form: form.value, actor: actor.value });
+      const resultat = await desarProfessor({ cursId: cursStore.cursActiuId, professor, form: form.value, actor: actor.value, sessio: sessio.value });
       const classes = resultat.classesReanomenades ? ` ${resultat.classesReanomenades} classes amb el nom nou.` : '';
       informar(resultat, `${professor ? 'Fitxa desada' : 'Professor/a afegit'}: ${fitxaActual.value.nom}.${classes}`);
     }
@@ -838,7 +870,7 @@ function desar() {
 function confirmarDesactivar() {
   executar(async () => {
     const professor = seleccionat.value;
-    const resultat = await desactivarProfessor({ cursId: cursStore.cursActiuId, professor, motiu: motiu.value, actor: actor.value });
+    const resultat = await desactivarProfessor({ cursId: cursStore.cursActiuId, professor, motiu: motiu.value, actor: actor.value, sessio: sessio.value });
     informar(resultat, `${professor.nom} és a Anteriors.`);
     desant.value = false;
     tancar();
@@ -854,6 +886,7 @@ function confirmarReactivar() {
       substitut: substitutActiu.value,
       retornarPlaca: Boolean(substitutActiu.value && retornarPlaca.value),
       actor: actor.value,
+      sessio: sessio.value,
     });
     informar(resultat, `${professor.nom} torna a estar actiu.`);
     vista.value = 'actius';
@@ -873,7 +906,7 @@ function activarGestio() {
 
 function revisarPermisosAra() {
   executar(async () => {
-    planRevisat.value = await revisarPermisos(cursStore.cursActiuId);
+    planRevisat.value = await revisarPermisos(cursStore.cursActiuId, sessio.value);
     modal.value = 'permisos';
   });
 }
