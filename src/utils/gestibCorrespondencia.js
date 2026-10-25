@@ -51,7 +51,7 @@ export function cursMateriaGestib(materia = {}) {
   return majuscules(codisCurs(materia.cursDescripcio || '')[0] || materia.cursDescripcio);
 }
 
-const cursFila = (fila) => majuscules(codisCurs(fila.curs || '')[0] || fila.curs);
+export const cursFila = (fila) => majuscules(codisCurs(fila.curs || '')[0] || fila.curs);
 const grupsFila = (fila) => [...new Set(grupsClasse(fila).map(majuscules))];
 
 // ─── Semblança de noms ───────────────────────────────────────────────────────

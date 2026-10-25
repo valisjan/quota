@@ -7,6 +7,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   onSnapshot,
   setDoc,
@@ -15,6 +16,8 @@ import {
 import { db } from '../firebase';
 import { BatchSplit } from '../utils/firestoreBatch';
 import { classePerCopiar, novaClasse } from '../utils/quota';
+import { parseGestibXml } from './gestibMapper';
+import { carregarXmlGestibRemot, desarXmlGestibRemot } from './gestibXmlStorage';
 import { E2E_AUTH_BYPASS, getE2ECollection } from './e2e';
 
 const classesRef = (cursId) => collection(db, 'cursos', cursId, 'classes');
@@ -76,23 +79,25 @@ export function subscriureDepartaments(cursId, callback, onError = console.error
 
 const metadades = (actor) => ({ updatedAt: ara(), quotaPer: actor || 'admin' });
 
+// files: camps de cada fila; opcionalment amb «gestib» (la correspondència amb GestIB).
 export async function crearClasses({ cursId, departament, files, actor }) {
   if (!files.length) return { creades: 0 };
+  const nova = ({ gestib, ...camps }) => ({ ...novaClasse(camps, departament), ...(gestib ? { gestib } : {}) });
   if (E2E_AUTH_BYPASS) {
     const estat = memoriaE2E();
     files.forEach((camps) => {
       comptadorE2E += 1;
-      estat.classes.push({ id: `e2e-quota-${comptadorE2E}`, ...novaClasse(camps, departament) });
+      estat.classes.push({ id: `e2e-quota-${comptadorE2E}`, ...nova(camps) });
     });
     notificaE2E();
     return { creades: files.length };
   }
   if (files.length === 1) {
-    await addDoc(classesRef(cursId), { ...novaClasse(files[0], departament), ...metadades(actor) });
+    await addDoc(classesRef(cursId), { ...nova(files[0]), ...metadades(actor) });
     return { creades: 1 };
   }
   const batch = new BatchSplit();
-  files.forEach((camps) => batch.set(doc(classesRef(cursId)), { ...novaClasse(camps, departament), ...metadades(actor) }));
+  files.forEach((camps) => batch.set(doc(classesRef(cursId)), { ...nova(camps), ...metadades(actor) }));
   await batch.commit();
   return { creades: files.length };
 }
@@ -117,6 +122,45 @@ export async function esborrarClasse({ cursId, id }) {
     return;
   }
   await deleteDoc(doc(classesRef(cursId), id));
+}
+
+// Correspondències amb GestIB: [{ id, gestib }] (gestib null la treu).
+export async function desarCorrespondencies({ cursId, enllacos, actor }) {
+  if (!enllacos.length) return { desades: 0 };
+  if (E2E_AUTH_BYPASS) {
+    const estat = memoriaE2E();
+    enllacos.forEach(({ id, gestib }) => {
+      const index = estat.classes.findIndex((classe) => classe.id === id);
+      if (index < 0) return;
+      const { gestib: _anterior, ...resta } = estat.classes[index];
+      estat.classes[index] = gestib ? { ...resta, gestib } : resta;
+    });
+    notificaE2E();
+    return { desades: enllacos.length };
+  }
+  const batch = new BatchSplit();
+  enllacos.forEach(({ id, gestib }) => batch.update(doc(classesRef(cursId), id), { gestib: gestib || null, ...metadades(actor) }));
+  await batch.commit();
+  return { desades: enllacos.length };
+}
+
+// Catàleg de GestIB del curs (l'exportacioDadesHoraris): el mateix XML que fa servir Untis.
+export async function carregarCatalegGestib(cursId) {
+  const desat = await carregarXmlGestibRemot(cursId);
+  if (!desat?.text) return null;
+  return { info: desat, cataleg: parseGestibXml(desat.text) };
+}
+
+export async function desarCatalegGestib(cursId, { text, nom }) {
+  await desarXmlGestibRemot(cursId, { text, nom });
+  return carregarCatalegGestib(cursId);
+}
+
+// Correspondències manuals que es feien a la pàgina Untis (per proposar-les a les files).
+export async function llegirMapeigAntic(cursId) {
+  if (E2E_AUTH_BYPASS || !cursId) return null;
+  const snap = await getDoc(doc(db, 'cursos', cursId, 'config', 'untis_mapeig'));
+  return snap.exists() ? snap.data().overrides || null : null;
 }
 
 // «Desfés» d'un esborrat: la classe torna amb el mateix id i el professorat que tenia.

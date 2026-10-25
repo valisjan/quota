@@ -164,6 +164,8 @@ export function classePerCopiar(classe = {}) {
     professors: [],
     professorAssignat: '',
     participants: [],
+    // La correspondència amb GestIB passa al curs nou (es revisa si GestIB ha canviat codis).
+    ...(classe.gestib?.codis?.length ? { gestib: { tipus: classe.gestib.tipus, codis: [...classe.gestib.codis] } } : {}),
   };
 }
 

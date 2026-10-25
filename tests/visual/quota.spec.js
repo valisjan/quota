@@ -10,6 +10,20 @@ test.describe('Quota', () => {
     });
   });
 
+  // Catàleg de GestIB de prova per a les dades del mode de prova (Catala, Matematiques, Tecnologia).
+  const XML_E2E = `<?xml version="1.0" encoding="UTF-8"?>
+<CENTRE codi="PROVA001" any="2026"><CURSOS><CURS codi="62" descripcio="1r ESO"><GRUP codi="1" nom="A"/><GRUP codi="2" nom="B"/></CURS></CURSOS>
+<PLACES><PLACA codi="1" curta="MSUR"/><PLACA codi="2" curta="PBLA"/><PLACA codi="3" curta="JPON"/></PLACES>
+<MATERIES>
+<MATERIA codi="11" curs="62" descripcio="Llengua catalana i literatura-A-1E" curta="LCL-A-1E" departament=""/>
+<MATERIA codi="12" curs="62" descripcio="Llengua catalana i literatura-B-1E" curta="LCL-B-1E" departament=""/>
+<MATERIA codi="13" curs="62" descripcio="Taller de lectura-A-1E" curta="TL-A-1E" departament=""/>
+<MATERIA codi="14" curs="62" descripcio="Matemàtiques-A-1E" curta="MAT-A-1E" departament=""/>
+<MATERIA codi="15" curs="62" descripcio="Matemàtiques-B-1E" curta="MAT-B-1E" departament=""/>
+</MATERIES>
+<ACTIVITATS><ACTIVITAT codi="64" descripcio="*Dedicació a coordinació" curta="*Coordinació"/><ACTIVITAT codi="62" descripcio="*Tutoria" curta="*Tutoria"/></ACTIVITATS>
+</CENTRE>`;
+
   const targeta = (page, nom) => page.locator(`[data-departament="${nom}"]`);
   const fila = (page, materia) => page.locator('[data-classe]').filter({ has: page.locator(`input[value="${materia}"]`) });
   const navAdmin = (page, nom) => page.locator(`.admin-nav-item[title="${nom}"]`);
@@ -133,6 +147,60 @@ test.describe('Quota', () => {
     await expect(page.getByRole('button', { name: 'Tutories', exact: true })).toBeVisible();
     await page.goto('/admin/tancament');
     await expect(page).toHaveURL(/\/departament$/);
+
+    expect(errors).toEqual([]);
+  });
+
+  test('cada fila es relaciona amb el catàleg de GestIB del curs', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === 'chromium-mobile', 'El tauler és per a pantalla gran.');
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.goto('/admin/quota');
+
+    // Sense catàleg, el panell el demana. Es carrega l'XML de GestIB (com l'exportacioDadesHoraris).
+    const gestib = page.getByTestId('quota-gestib');
+    await expect(gestib).toContainText('Falta el catàleg de GestIB');
+    await page.getByTestId('xml-gestib').setInputFiles({ name: 'exportacioDadesHoraris.xml', mimeType: 'text/xml', buffer: Buffer.from(XML_E2E) });
+    await expect(gestib).toContainText('0 de 4 files amb correspondència');
+    await expect(page.locator('[data-estat-gestib="sense"]')).toHaveCount(4);
+
+    // Propostes de totes les files: les segures ja van marcades.
+    await page.getByRole('button', { name: 'Proposa correspondències (4)' }).click();
+    const revisio = page.getByTestId('revisio-gestib');
+    await expect(revisio).toContainText('Segures (4)');
+    await expect(revisio).toContainText('Taller de lectura-A-1E');
+    await expect(revisio).toContainText('*Dedicació a coordinació');
+    await revisio.getByRole('button', { name: 'Desa les marcades (4)' }).click();
+    await expect(gestib).toContainText('4 de 4 files amb correspondència');
+    await expect(page.locator('[data-estat-gestib="ok"]')).toHaveCount(4);
+
+    // Canviar el grup trenca la correspondència: es veu i es torna a triar a l'editor.
+    const catala = fila(page, 'Llengua catalana i literatura');
+    await catala.locator('[data-col="grup"]').fill('B');
+    await catala.locator('[data-col="grup"]').press('Tab');
+    await expect(catala.locator('[data-estat-gestib]')).toHaveAttribute('data-estat-gestib', 'trencat');
+    await expect(gestib).toContainText('1 per revisar');
+    await page.getByRole('checkbox', { name: 'Només les que falten' }).check();
+    await expect(page.locator('[data-classe]')).toHaveCount(1);
+    await catala.locator('[data-estat-gestib]').click();
+    const editor = page.getByTestId('editor-gestib');
+    await expect(editor).toContainText('Cap matèria enllaçada no és del grup B');
+    await editor.getByRole('button', { name: 'Fes-la servir' }).click();
+    await expect(editor.getByRole('checkbox', { name: /Llengua catalana i literatura-B-1E/ })).toBeChecked();
+    await editor.getByRole('button', { name: 'Desa', exact: true }).click();
+    await expect(gestib).toContainText('4 de 4 files amb correspondència');
+    // Ja no en falta cap: el filtre es treu sol i es tornen a veure totes les files.
+    await expect(page.getByRole('checkbox', { name: 'Només les que falten' })).toHaveCount(0);
+    await expect(page.locator('[data-classe]')).toHaveCount(4);
+
+    // Una fila nova amb un nom del catàleg ja surt enllaçada.
+    const nova = targeta(page, 'Matematiques').locator('[data-nova]');
+    await nova.getByPlaceholder('Curs').fill('1ESO');
+    await nova.getByPlaceholder('Grup').fill('B');
+    await nova.getByPlaceholder('Matèria nova').fill('Matemàtiques');
+    await nova.getByPlaceholder('h', { exact: true }).fill('4');
+    await nova.getByPlaceholder('h', { exact: true }).press('Enter');
+    await expect(gestib).toContainText('5 de 5 files amb correspondència');
 
     expect(errors).toEqual([]);
   });

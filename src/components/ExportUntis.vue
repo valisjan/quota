@@ -113,7 +113,8 @@
             </p>
             <div class="mt-0.5 flex items-center gap-3">
               <p class="text-xs text-slate-600 dark:text-slate-400">
-                Selecciona la matèria de GestIB per a les pendents. Es guarda automàticament.
+                La correspondència de cada fila es fa ara al panell <router-link to="/admin/quota" class="font-semibold text-primary hover:underline">Quota</router-link>
+                (columna G) i és la que mana. Aquest mapeig només s'aplica a les files que encara no en tenen.
               </p>
               <button
                 @click="confirmarEsborra = true"

@@ -8,7 +8,7 @@
       <p class="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
         Les fases es fan en aquest ordre a final de curs, per preparar el curs següent.
       </p>
-      <ol class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <ol class="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-5">
         <li
           v-for="(fase, index) in fasesCicle"
           :key="fase.id"
@@ -267,14 +267,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useCursStore } from '../stores/curs';
 import { useAuthStore } from '../stores/auth';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { copiarProfessoratDeCurs, esCursVigent } from '../services/professorat';
-import { copiarQuotaDeCurs } from '../services/quota';
+import { carregarCatalegGestib, copiarQuotaDeCurs } from '../services/quota';
 import { exclosaDelRepartiment, esCoordinacio } from '../utils/tipus';
 import { formatDecimal } from '../utils/quota';
+import { estatEnllac } from '../utils/gestibCorrespondencia';
 import { useToastStore } from '../stores/toast';
 import AdminSectionNav from './AdminSectionNav.vue';
 import {
@@ -342,13 +343,40 @@ const { items: professorsCurs } = useCursCollectionSnapshot({ colName: 'professo
 const { items: classesCurs } = useCursCollectionSnapshot({ colName: 'classes' });
 const { items: departamentsCurs } = useCursCollectionSnapshot({ colName: 'departaments' });
 
+// El catàleg de GestIB del curs (places, matèries i activitats): es prepara abans que res.
+const catalegCurs = ref(null);
+watch(() => cursStore.cursActiuId, async (cursId) => {
+  catalegCurs.value = null;
+  if (!cursId) return;
+  try {
+    const carregat = await carregarCatalegGestib(cursId);
+    if (cursStore.cursActiuId === cursId) catalegCurs.value = carregat?.cataleg || null;
+  } catch {
+    catalegCurs.value = null;
+  }
+}, { immediate: true });
+
 const fasesCicle = computed(() => {
   const hores = classesCurs.value.reduce((suma, classe) => suma + (Number(classe.hores) || 0), 0);
   const assignables = classesCurs.value.filter((c) => !exclosaDelRepartiment(c.tipus) && !esCoordinacio(c.tipus));
   const senseAssignar = assignables.filter((c) => !c.professorAssignat && !c.professors?.length).length;
   const comptables = departamentsCurs.value.filter((d) => !d.exclos);
   const tancats = comptables.filter((d) => d.tancat).length;
+  const cataleg = catalegCurs.value;
+  const senseCorrespondencia = cataleg
+    ? classesCurs.value.filter((classe) => estatEnllac(classe, cataleg).estat !== 'ok').length
+    : classesCurs.value.length;
   return [
+    {
+      id: 'gestib',
+      titol: 'GestIB',
+      fet: Boolean(cataleg),
+      detall: cataleg
+        ? `${cataleg.places.length} places, ${cataleg.materies.length} matèries i ${cataleg.activitats.length} activitats.`
+        : "Carrega l'XML de GestIB amb les places, matèries i activitats del curs.",
+      to: '/admin/quota',
+      accio: cataleg ? 'Obre la quota' : "Carrega l'XML",
+    },
     {
       id: 'professorat',
       titol: 'Professorat',
@@ -360,8 +388,9 @@ const fasesCicle = computed(() => {
     {
       id: 'quota',
       titol: 'Quota',
-      fet: classesCurs.value.length > 0,
-      detall: `${classesCurs.value.length} classes · ${formatDecimal(hores)} h.`,
+      fet: classesCurs.value.length > 0 && Boolean(cataleg) && senseCorrespondencia === 0,
+      detall: `${classesCurs.value.length} classes · ${formatDecimal(hores)} h`
+        + (cataleg && senseCorrespondencia ? ` · ${senseCorrespondencia} sense correspondència amb GestIB.` : '.'),
       to: '/admin/quota',
       accio: 'Obre la quota',
     },
