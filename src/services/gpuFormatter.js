@@ -1077,6 +1077,19 @@ function heretarEnllacGestib(virtuals, classesQuota) {
   });
 }
 
+// Si el professor té alguna cosa de la quota: classes assignades o planificació (guàrdies de pati,
+// convivència, PALIC, suports i desdoblaments divisibles).
+function teFeinaDeQuota(professor, classes) {
+  const nom = netejarText(professor.nom);
+  if (!nom) return false;
+  const assignat = classes.some((classe) => obtenirProfessorsClasse(classe).includes(nom)
+    || (classe.participants || []).map(netejarText).includes(nom));
+  const planificat = ['gpAssignades', 'gcAssignades', 'palicAssignades', 'sdAssignades', 'ddAssignades']
+    .some((camp) => Number(professor[camp]) > 0)
+    || Boolean(professor.sdAssignacions?.length || professor.ddAssignacions?.length);
+  return assignat || planificat;
+}
+
 function codiOrdreGrupLlico(classe) {
   return codisClasse(classe)[0] || (classe.curs || classe.grup ? `${classe.curs || ''}-${classe.grup || ''}` : 'ZZZ');
 }
@@ -1269,7 +1282,7 @@ function validarLimitsHoresGrupGpu002(text) {
     }));
 }
 
-function generarRevisio(pendents, totals) {
+function generarRevisio(pendents, totals, foraExportacio = []) {
   const linies = [
     'Exportacio Untis',
     `Generat: ${new Date().toLocaleString('ca-ES')}`,
@@ -1280,9 +1293,18 @@ function generarRevisio(pendents, totals) {
     `Lliçons exportades: ${totals.llicons}`,
     `Files pendents de revisar: ${pendents.length}`,
     '',
-    'Pendents:',
   ];
 
+  // Informatiu: no cal fer res (professorat de després de la quota, amb horari propi a Untis).
+  if (foraExportacio.length) {
+    linies.push(
+      `Professorat fora de l'exportacio (placa que no es a l'XML de GestIB i res de la quota; l'horari es fa a Untis): ${foraExportacio.length}`,
+      ...foraExportacio.map((professor) => `- ${professor.nom || 'Professor'} (${professor.codiUntis || 'sense placa'})`),
+      '',
+    );
+  }
+
+  linies.push('Pendents:');
   if (!pendents.length) {
     linies.push('Cap incidencia detectada.');
   } else {
@@ -1376,6 +1398,20 @@ export function generarExportUntis({ classes: classesCurs = [], professors: prof
   const referenciaGestib = referenciaGestibXmlText ? parseGestibXml(referenciaGestibXmlText) : null;
   let professors = professorsCurs.filter((p) => !p.eliminatDelFull);
   const rawClasses = classesCurs;
+  // Professorat incorporat després de la quota (reforços amb un horari propi, p. ex. ALS1): la
+  // seva plaça no és a l'XML de GestIB i no té res del repartiment. Queda fora de l'exportació
+  // sense aturar res: el seu horari es fa directament a Untis i Guàrdies el té en compte com sempre.
+  const foraExportacio = [];
+  if (!simular && referenciaGestib?.places?.length) {
+    const sensePlacaGestib = new Set(incidenciesCodisProfessorGestib(professors, referenciaGestib.places)
+      .filter(({ motiu }) => motiu !== 'codiUntis duplicat')
+      .map(({ professor }) => professor));
+    professors = professors.filter((professor) => {
+      if (!sensePlacaGestib.has(professor) || teFeinaDeQuota(professor, rawClasses)) return true;
+      foraExportacio.push(professor);
+      return false;
+    });
+  }
   const reunionsCoordinacio = prepararReunionsCoordinacioDocent(rawClasses, referenciaGestib);
   const ccp = simular
     ? {
@@ -1430,19 +1466,28 @@ export function generarExportUntis({ classes: classesCurs = [], professors: prof
     professors = professorsSimulacio;
     classes = simularAssignacions(classes, professorsSimulacio);
   }
+  // Qui té feina de la quota però una plaça que no és a GestIB s'exporta igualment i s'avisa.
+  // Una plaça repetida sí que atura l'exportació: Untis no sabria de qui és cada lliçó.
+  const pendentsProfessorat = [];
   if (!simular && referenciaGestib?.places?.length) {
     const incidenciesProfessors = incidenciesCodisProfessorGestib(professors, referenciaGestib.places);
-    if (incidenciesProfessors.length) {
-      const detall = incidenciesProfessors
+    const duplicats = incidenciesProfessors.filter(({ motiu }) => motiu === 'codiUntis duplicat');
+    if (duplicats.length) {
+      const detall = duplicats
         .slice(0, 10)
-        .map(({ professor, codi, motiu }) => `${professor.nom || 'Professor'} (${codi || 'sense codi'}: ${motiu})`)
+        .map(({ professor, codi }) => `${professor.nom || 'Professor'} (${codi})`)
         .join('; ');
-      const mes = incidenciesProfessors.length > 10 ? `; i ${incidenciesProfessors.length - 10} mes` : '';
+      const mes = duplicats.length > 10 ? `; i ${duplicats.length - 10} mes` : '';
       throw new Error(
-        `Revisa la plaça (codi Untis) d'aquests professors a la pàgina Professorat. ` +
-        `Cada codi ha de coincidir amb PLACA curta del XML GestIB: ${detall}${mes}.`
+        `Hi ha professorat actiu amb la mateixa plaça (codi Untis). Revisa-ho a la pàgina Professorat: ${detall}${mes}.`
       );
     }
+    incidenciesProfessors.forEach(({ professor, codi }) => {
+      pendentsProfessorat.push({
+        motiu: `Plaça ${codi || '(cap)'} que no és a l'XML de GestIB; s'exporta igualment perquè té feina de la quota`,
+        classe: { curs: '', grup: '', materia: professor.nom || 'Professor', hores: 0, professorAssignat: '' },
+      });
+    });
   }
   const { codisProfessors, codisMateries } = crearMapes(classes, professors, referenciaGestib);
   const classesText = generarClasses(classes);
@@ -1450,6 +1495,7 @@ export function generarExportUntis({ classes: classesCurs = [], professors: prof
   const materiesText = generarMateries(classes, codisMateries, referenciaGestib, overrides);
   const referenciesGpu002 = referenciaGpu002Text ? parseGpu002(referenciaGpu002Text) : [];
   const llicons = generarLlicons(classes, professors, codisProfessors, codisMateries, referenciesGpu002, referenciaGestib, overrides);
+  const pendentsExport = [...pendentsProfessorat, ...llicons.pendents];
   const totals = {
     professors: professors.length,
     classes: classesText ? classesText.split('\r\n').length : 0,
@@ -1465,7 +1511,7 @@ export function generarExportUntis({ classes: classesCurs = [], professors: prof
     {
       nom: 'GPU000_REVISIO_EXPORTACIO.TXT',
       descripcio: 'Incidencies i files no exportades com a llicons',
-      contingut: generarRevisio(llicons.pendents, totals),
+      contingut: generarRevisio(pendentsExport, totals, foraExportacio),
     },
   ];
   validarFitxersUntis(fitxers);
@@ -1483,7 +1529,8 @@ export function generarExportUntis({ classes: classesCurs = [], professors: prof
           aules: referenciaGestib.aules.length,
         }
       : null,
-    pendents: llicons.pendents,
+    pendents: pendentsExport,
+    professorsForaExportacio: foraExportacio.map((professor) => ({ nom: professor.nom || '', codiUntis: professor.codiUntis || '' })),
     vistaPrevia: llicons.vistaPrevia,
     ccp: simular ? ccp : ccp.resum,
     atencioFamilies: simular
@@ -1503,7 +1550,7 @@ export function generarExportUntis({ classes: classesCurs = [], professors: prof
       {
         nom: 'GPU000_REVISIO_EXPORTACIO.TXT',
         descripcio: 'Incidències i files no exportades com a lliçons',
-        contingut: generarRevisio(llicons.pendents, totals),
+        contingut: generarRevisio(pendentsExport, totals, foraExportacio),
       },
     ],
     fitxersOriginals: undefined,

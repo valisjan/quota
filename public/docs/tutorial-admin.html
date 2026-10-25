@@ -690,7 +690,7 @@
       <table>
         <thead><tr><th>A l'XML</th><th>Per a què serveix a Quota</th></tr></thead>
         <tbody>
-          <tr><td><code>PLACA</code> (curta: <code>MAT1</code>, <code>VICE</code>...)</td><td>La plaça de cada fitxa de Professorat. L'exportació s'atura si algú té una plaça que no hi és.</td></tr>
+          <tr><td><code>PLACA</code> (curta: <code>MAT1</code>, <code>VICE</code>...)</td><td>La plaça de cada fitxa de Professorat (el seu codi Untis).</td></tr>
           <tr><td><code>MATERIA</code> (curta: <code>MAT-A-1E</code>, <code>TFCR-BD-3E</code>...)</td><td>Les classes de la quota s'hi relacionen. Una matèria pot ser d'un grup (A) o d'un bloc (BD, ACE1).</td></tr>
           <tr><td><code>ACTIVITAT</code> (<code>*Tutoria</code>, <code>*Dedicació a coordinació</code>...)</td><td>Les files de càrrecs i reduccions. L'asterisc indica activitat lectiva.</td></tr>
         </tbody>
@@ -723,7 +723,7 @@
       </ul>
       <div class="callout callout-warning">
         <span class="callout-icon">⚠️</span>
-        <div>Abans de generar Untis, totes les places han d'existir a l'XML de GestIB. Una plaça nova (per exemple una vacant) s'ha de crear primer a GestIB.</div>
+        <div>El professorat de la quota ha de tenir una plaça de l'XML de GestIB. El que s'incorpora <strong>després de la quota</strong> (reforços amb un horari propi) pot tenir una plaça que no hi és: no afecta la quota ni Untis i a Guàrdies compta com sempre.</div>
       </div>
     </div>
   </div>
@@ -880,7 +880,11 @@
       </table>
       <div class="callout callout-danger">
         <span class="callout-icon">⛔</span>
-        <div>L'exportació <strong>s'atura</strong> si algun professor té una plaça que no existeix a l'XML o no en té cap. El missatge diu qui: corregeix la plaça a Professorat (o crea-la a GestIB) i torna a generar.</div>
+        <div>L'exportació <strong>s'atura</strong> només si dos professors actius tenen la <strong>mateixa plaça</strong>: corregeix-ho a Professorat i torna a generar.</div>
+      </div>
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <div><strong>Professorat de després de la quota.</strong> Si algú té una plaça que no és a l'XML de GestIB i no té res de la quota (cap classe ni guàrdia assignada), queda <strong>fora de l'exportació</strong> sense aturar res: el seu horari es fa directament a Untis. La pantalla i el fitxer de revisió ho diuen. Si sí que té feina de la quota, s'exporta igualment i surt un avís a <em>Pendents</em>.</div>
       </div>
       <div class="callout callout-info">
         <span class="callout-icon">ℹ️</span>
@@ -922,7 +926,7 @@
         <li><div class="step-dot"></div><div class="step-content"><strong>GestIB llest</strong> per al curs següent: places, matèries i activitats. Exporta l'XML <em>exportacioDadesHoraris</em>.</div></li>
         <li><div class="step-dot"></div><div class="step-content"><strong>Curs › Curs nou</strong>: crea'l partint del curs actual (professorat i quota).</div></li>
         <li><div class="step-dot"></div><div class="step-content"><strong>Quota › Carrega l'XML de GestIB</strong>. Comprova a <em>Curs › Estat del cicle</em> que GestIB surt com a fet, amb el nombre de places, matèries i activitats.</div></li>
-        <li><div class="step-dot"></div><div class="step-content"><strong>Professorat</strong>: altes, baixes i jornades del curs nou. Cada plaça ha d'existir a l'XML.</div></li>
+        <li><div class="step-dot"></div><div class="step-content"><strong>Professorat</strong>: altes, baixes i jornades del curs nou. La plaça de cada professor/a de la quota ha d'existir a l'XML.</div></li>
         <li><div class="step-dot"></div><div class="step-content"><strong>Quota</strong>: ajusta les classes (curs, grups, hores, tipus) i els departaments, amb la tira de balanç a la vista.</div></li>
         <li><div class="step-dot"></div><div class="step-content"><strong>Correspondència</strong>: <em>Proposa correspondències</em> › revisa › <em>Desa les marcades</em>. Resol a mà les que falten i les marcades amb <strong>!</strong> (canvis de GestIB). A <em>Estat del cicle</em>, Quota ha de dir «fet» (cap fila sense correspondència).</div></li>
         <li><div class="step-dot"></div><div class="step-content"><strong>Repartiment</strong>: els caps assignen i tanquen. Segueix-ho a <em>Informes › Seguiment</em>.</div></li>
@@ -945,7 +949,9 @@
       <table>
         <thead><tr><th>Missatge o situació</th><th>Què fer</th></tr></thead>
         <tbody>
-          <tr><td>«Revisa la plaça (codi Untis) d'aquests professors…»</td><td>A Professorat, posa a cada persona una plaça que existeixi a l'XML (o crea-la a GestIB i torna a carregar l'XML).</td></tr>
+          <tr><td>«Hi ha professorat actiu amb la mateixa plaça…»</td><td>A Professorat, cada persona activa ha de tenir la seva plaça. Corregeix-la i torna a generar.</td></tr>
+          <tr><td>«Plaça … que no és a l'XML de GestIB; s'exporta igualment…»</td><td>Algú amb feina de la quota té una plaça que GestIB no té. Revisa-la a Professorat o crea-la a GestIB.</td></tr>
+          <tr><td>«Fora de l'exportació (incorporats després de la quota…)»</td><td>Informatiu: professorat amb horari propi fet a Untis. No cal fer res.</td></tr>
           <tr><td>G amb <strong>!</strong> a moltes files després de carregar l'XML nou</td><td>GestIB ha canviat abreviatures (canvi de currículum). Obre la G de cada fila i tria la matèria nova.</td></tr>
           <tr><td>«Correspondència dubtosa» o «Sense correspondència desada» a Pendents</td><td>Aquesta fila no té correspondència i s'ha deduït. Fixa-la a la quota (columna G).</td></tr>
           <tr><td>Dues files d'optativa paral·lela amb el mateix bloc</td><td>Cada fila ha de tenir el seu bloc (<code>ACE1</code>, <code>ACE2</code>). Corregeix-ho a la G.</td></tr>

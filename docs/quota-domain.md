@@ -75,7 +75,9 @@ El mapeig antic de 2026-27 tenia `Cap d'estudis adjunta → *Preparació mòdul 
 - `prepararExportUntis(curs, opcions)` llegeix classes i professorat; `generarExportUntis({ classes, professors, referenciaGestibXmlText, … })` genera sense Firestore (es prova al navegador, `tests/visual/untis.spec.js`).
 - La matèria de cada línia: `trobarMateriaGestibAmbOverride` (`gestibMapper.js`) fa servir primer `fila.gestib` (`materiaEnllacada`). Sense enllaç, cau al mapeig i a la semblança antiga i ho apunta als pendents («Sense correspondència desada», «Correspondència dubtosa»).
 - Les files virtuals de suport i desdoblament divisible hereten l'enllaç de la fila de la quota del mateix curs, grup i matèria (`heretarEnllacGestib`). Les activitats generades (guàrdies, CCP, atenció a famílies, reunions) no en porten.
-- L'exportació s'atura si un professor actiu té una plaça que no és a l'XML (`incidenciesCodisProfessorGestib`).
+- Places (`incidenciesCodisProfessorGestib`):
+  - Una plaça repetida entre professorat actiu atura l'exportació.
+  - Una plaça que no és a l'XML (o cap plaça) no atura res. Si el professor no té res de la quota (`teFeinaDeQuota`: classes, participants, guàrdies de pati o de convivència, PALIC, suports o desdoblaments divisibles), queda fora de l'exportació (`professorsForaExportacio` i el fitxer de revisió). És el professorat incorporat després de la quota amb horari propi, que es fa a Untis i que Guàrdies tracta com sempre. Si en té, s'exporta i surt als pendents.
 - Fitxers:
   - `GPU002` (lliçons; camps 0 número, 1 hores, 2 hores de grup, 3 hores de professor, 4 grup, 5 professor, 6 matèria);
   - `GPU003` (grups), `GPU004` (professorat), `GPU006` (matèries);
@@ -108,4 +110,4 @@ No en canviïs la forma. Les regles de Firestore són a `firestore.rules` (proje
    - un professor amb hores comptades dues vegades.
 
    Esborra les còpies locals de dades personals en acabar.
-3. **Places**: a 2026-27, ALS1 i PAS1 no eren a l'XML i una fitxa no tenia plaça, i l'exportació s'aturava. Revisa-ho a Professorat abans de generar.
+3. **Places**: el professorat de la quota ha de tenir una plaça de l'XML. Els reforços de després de la quota (a 2026-27, ALS1 i PAS1, i una fitxa sense plaça) poden no tenir-ne: és normal i queden fora de l'exportació.

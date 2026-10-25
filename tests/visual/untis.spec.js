@@ -128,11 +128,32 @@ test.describe('Exportació a Untis', () => {
     expect(exportacio.pendents.filter((pendent) => pendent.startsWith('Correspondència') && pendent.endsWith(': Matemàtiques'))).toEqual([]);
   });
 
-  test("no genera res si un professor té una plaça que no és a l'XML de GestIB", async ({ page }) => {
-    const professors = PROFESSORS.map((professor) => (professor.codiUntis === 'TEC1' ? { ...professor, codiUntis: 'TEC9' } : professor));
-    const exportacio = await generar(page, { classes: CLASSES, professors, xml: GESTIB_XML });
-    expect(exportacio.error).toContain('pàgina Professorat');
-    expect(exportacio.error).toContain('DURAN MAS, DAVID (TEC9');
+  test('el professorat incorporat després de la quota, amb plaça fora de GestIB, no atura res', async ({ page }) => {
+    // Reforç de després de la quota: plaça que no és a l'XML i res del repartiment.
+    const reforc = { id: 'p-reforc', nom: 'EXTRA PONS, ELENA', codiUntis: 'ALS1', departament: 'Matemàtiques', departaments: ['Matemàtiques'], jornada: '' };
+    const senseExtra = await generar(page, { classes: CLASSES, professors: PROFESSORS, xml: GESTIB_XML });
+    const ambExtra = await generar(page, { classes: CLASSES, professors: [...PROFESSORS, reforc], xml: GESTIB_XML });
+    expect(ambExtra.error).toBeUndefined();
+    // Els fitxers per a Untis són exactament els mateixos: ni GPU004 ni activitats generades per a ell.
+    ['GPU002.TXT', 'GPU003.TXT', 'GPU004.TXT', 'GPU006.TXT'].forEach((nom) => {
+      expect(fitxer(ambExtra, nom)).toBe(fitxer(senseExtra, nom));
+    });
+    expect(ambExtra.pendents).toEqual(senseExtra.pendents);
+    // La revisió ho diu, com a informació.
+    expect(fitxer(ambExtra, 'GPU000_REVISIO_EXPORTACIO.TXT')).toContain('- EXTRA PONS, ELENA (ALS1)');
+  });
+
+  test("qui té feina de la quota amb una plaça que no és a GestIB s'exporta i s'avisa; una plaça repetida atura", async ({ page }) => {
+    const ambPlacaNova = PROFESSORS.map((professor) => (professor.codiUntis === 'TEC1' ? { ...professor, codiUntis: 'TEC9' } : professor));
+    const exportacio = await generar(page, { classes: CLASSES, professors: ambPlacaNova, xml: GESTIB_XML });
+    expect(exportacio.error).toBeUndefined();
+    expect(fitxer(exportacio, 'GPU002.TXT')).toContain('"TEC9"');
+    expect(exportacio.pendents).toContain("Plaça TEC9 que no és a l'XML de GestIB; s'exporta igualment perquè té feina de la quota: DURAN MAS, DAVID");
+
+    const repetida = PROFESSORS.map((professor) => (professor.codiUntis === 'TEC1' ? { ...professor, codiUntis: 'MAT1' } : professor));
+    const error = await generar(page, { classes: CLASSES, professors: repetida, xml: GESTIB_XML });
+    expect(error.error).toContain('mateixa plaça');
+    expect(error.error).toContain('DURAN MAS, DAVID (MAT1)');
   });
 
   test("sense l'XML de GestIB també genera els fitxers, amb codis de matèria provisionals", async ({ page }) => {

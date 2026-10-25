@@ -827,6 +827,10 @@
               {{ exportacio.referenciaGestibStats.places }} places ·
               {{ exportacio.referenciaGestibStats.aules }} aules
             </p>
+            <p v-if="exportacio.professorsForaExportacio?.length" class="mt-1 text-sm text-slate-600 dark:text-slate-400" data-testid="fora-exportacio">
+              Fora de l'exportació (incorporats després de la quota, amb horari propi a Untis):
+              {{ exportacio.professorsForaExportacio.map((professor) => `${professor.nom} (${professor.codiUntis || 'sense plaça'})`).join(', ') }}
+            </p>
           </div>
           <div class="flex flex-col gap-2 sm:flex-row">
             <button
