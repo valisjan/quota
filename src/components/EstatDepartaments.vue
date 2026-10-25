@@ -14,11 +14,11 @@
         </div>
 
         <div class="print-hide flex flex-wrap gap-2">
-          <router-link to="/admin/dades" class="rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-primary-dark">
+          <router-link to="/departament" class="rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-primary-dark">
             Revisar pendents
           </router-link>
-          <router-link to="/admin/dades" class="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
-            Sincronitzar
+          <router-link to="/admin/quota" class="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+            Quota
           </router-link>
           <router-link to="/admin/untis" class="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
             Preparar Untis
@@ -107,7 +107,7 @@
 
       <div v-else-if="!departamentsOrdenats.length" class="p-10 text-center">
         <p class="font-semibold text-slate-950">No hi ha departaments configurats.</p>
-        <p class="mt-1 text-sm text-slate-600">Sincronitza amb Google Sheets per crear-los.</p>
+        <p class="mt-1 text-sm text-slate-600">Es creen a partir del professorat del curs.</p>
       </div>
 
       <div v-else class="divide-y divide-slate-100">
@@ -329,7 +329,7 @@ const passos = computed(() => [
   {
     num: '1',
     titol: 'Sincronitzar',
-    text: stats.value.classesTotal ? 'Dades carregades' : 'Importa Google Sheets',
+    text: stats.value.classesTotal ? 'Dades carregades' : 'Fes la quota',
     actiu: !stats.value.classesTotal,
   },
   {

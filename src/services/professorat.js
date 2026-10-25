@@ -11,6 +11,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   where,
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -29,7 +30,6 @@ import {
   planificacioPlaca,
   treuAdministracioPropia,
 } from '../utils/professorat';
-import { subscribeAppSettings, updateAppSettings } from './appSettings';
 import { E2E_AUTH_BYPASS, getE2ECollection } from './e2e';
 
 const professorsRef = (cursId) => collection(db, 'cursos', cursId, 'professors');
@@ -61,7 +61,6 @@ function memoriaE2E() {
       preautoritzats: [],
       usuaris: getE2ECollection('usuaris'),
       departaments: getE2ECollection('departaments'),
-      gestioAQuota: false,
     };
   }
   return memoria;
@@ -106,12 +105,6 @@ export function subscriureProfessorat(cursId, callback, onError = console.error)
 export function subscriurePermisos(callback, onError = console.error) {
   if (E2E_AUTH_BYPASS) return subscriuE2E((estat) => estat.preautoritzats.map((p) => ({ ...p })), callback);
   return onSnapshot(preautoritzatsRef(), (snap) => callback(snap.docs.map(ambId)), onError);
-}
-
-// Si el professorat ja es gestiona des de Quota (i no des de la pestaña del full).
-export function subscriureGestioProfessorat(cursId, callback, onError = console.error) {
-  if (E2E_AUTH_BYPASS) return subscriuE2E((estat) => estat.gestioAQuota, callback);
-  return subscribeAppSettings(cursId, (settings) => callback(Boolean(settings.professoratAQuota)), onError);
 }
 
 // ---------------------------------------------------------------------------
@@ -385,38 +378,6 @@ export async function substituirProfessor({ cursId, titular, form, traspassarPla
   return { id: ref.id, ...resultat };
 }
 
-// Deixa de llegir la pestanya Professorat del full: a partir d'ara mana Quota. Les
-// fitxes sense rols els prenen dels permisos actuals (que venien de la columna ROL).
-export async function activarGestioQuota({ cursId, actor }) {
-  if (E2E_AUTH_BYPASS) {
-    memoriaE2E().gestioAQuota = true;
-    notificaE2E();
-    return { fitxesAmbRols: 0 };
-  }
-  const [professors, permisos] = await Promise.all([
-    llegirProfessors(cursId),
-    getDocs(preautoritzatsRef()),
-  ]);
-  const perEmail = new Map(permisos.docs.map((d) => [completarEmail(d.id), d.data()]));
-  const batch = new BatchSplit();
-  let fitxesAmbRols = 0;
-  professors.forEach((professor) => {
-    if (Array.isArray(professor.rols) && professor.rols.length) return;
-    const permis = perEmail.get(completarEmail(professor.email));
-    const rols = permis?.rols?.length ? permis.rols : [permis?.rol || 'professor'];
-    const fitxa = campsFitxa({ rols, departaments: [] });
-    batch.update(doc(professorsRef(cursId), professor.id), { rols: fitxa.rols, rol: fitxa.rol });
-    fitxesAmbRols += 1;
-  });
-  if (fitxesAmbRols) await batch.commit();
-  await updateAppSettings(cursId, {
-    professoratAQuota: true,
-    professoratAQuotaDes: ara().toISOString(),
-    professoratAQuotaPer: actor || 'admin',
-  });
-  return { fitxesAmbRols };
-}
-
 // Permisos de tot el professorat del curs: primer es calcula, després s'aplica.
 export async function revisarPermisos(cursId, sessio = null) {
   if (E2E_AUTH_BYPASS) {
@@ -434,6 +395,20 @@ export async function revisarPermisos(cursId, sessio = null) {
     ...planPermisos(professors, permisos.docs.map(ambId)),
     usuaris: planUsuaris(usuaris.docs.map(ambId), professors, { actorEmail: sessio?.email }),
   };
+}
+
+// Comptes sense fitxa (abans a «Usuaris»): l'administració hi pot donar o treure l'accés
+// d'administració. La resta de rols surten sempre de la fitxa de Professorat.
+export async function canviarAccesCompte({ uid, admin }) {
+  const acces = admin
+    ? { rol: 'admin', departament: null, departaments: [] }
+    : { rol: null, departament: null, departaments: [] };
+  if (E2E_AUTH_BYPASS) {
+    Object.assign(memoriaE2E().usuaris.find((usuari) => usuari.id === uid) || {}, acces);
+    notificaE2E();
+    return;
+  }
+  await updateDoc(doc(usuarisRef(), uid), { ...acces, updatedAt: ara() });
 }
 
 // Fitxes d'usuari de qui ja ha entrat a Quota, per avisar si alguna té el rol desfasat.
@@ -476,11 +451,6 @@ export async function copiarProfessoratDeCurs({ origen, desti, actor }) {
   await batch.commit();
   await actualitzarDepartaments(desti);
   await avisarGuardies(desti);
-  await updateAppSettings(desti, {
-    professoratAQuota: true,
-    professoratAQuotaDes: ara().toISOString(),
-    professoratAQuotaPer: actor || 'admin',
-  });
   return { copiats: actius.length };
 }
 

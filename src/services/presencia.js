@@ -70,7 +70,7 @@ export function etiquetaRolPresencia(rol) {
 export function etiquetaAreaPresencia(path = '') {
   if (path.startsWith('/admin')) return 'Administració';
   if (path.startsWith('/departament')) return 'Departament';
-  if (path.startsWith('/resums')) return 'Resums';
+  if (path.startsWith('/informes')) return 'Informes';
   if (path === '/') return 'Inici';
   return '';
 }

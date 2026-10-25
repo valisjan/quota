@@ -26,11 +26,6 @@
           </div>
 
           <template v-if="authStore.estaAutenticat">
-            <UsuarisConnectats
-              v-if="authStore.esAdmin()"
-              :limit="5"
-            />
-
             <button
               @click="authStore.tancarSessio()"
               class="mt-5 text-sm font-semibold text-slate-600 transition hover:text-slate-950 hover:underline"
@@ -86,7 +81,6 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import UsuarisConnectats from '../components/UsuarisConnectats.vue';
 
 const authStore = useAuthStore();
 const carregant = ref(false);

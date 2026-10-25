@@ -1,9 +1,10 @@
-// Rols del full «Professorat». «professor» és la base de tothom; la resta hi sumen
-// drets. Una cel·la en pot tenir diversos separats per comes, amb espais o sense:
-// «cap_departament, PSC», «admin,psc».
+// Rols del professorat. «professor» és la base de tothom; la resta hi sumen drets. Un
+// text en pot tenir diversos separats per comes, amb espais o sense: «cap_departament, PSC».
 
 // Rols que entén Quota, de més a menys drets.
-export const ROLS_QUOTA = ['admin', 'cap_departament', 'departament', 'professor'];
+export const ROLS_QUOTA = ['admin', 'cap_departament', 'professor'];
+// El «compte de departament» feia el mateix que cap de departament: s'hi ha fusionat.
+const SINONIMS = { departament: 'cap_departament' };
 // Rols d'altres aplicacions (Retards). A Quota i Guàrdies compten com a professor.
 export const ROLS_ALTRES_APPS = ['psc'];
 
@@ -18,11 +19,11 @@ function normalitzarRol(valor) {
     .replace(/[\s-]+/g, '_');
 }
 
-// Retorna els rols reconeguts (sense repetir, en l'ordre del full) i els que no ho són.
+// Retorna els rols reconeguts (sense repetir, en l'ordre escrit) i els que no ho són.
 export function llegirRols(raw) {
   const rols = [];
   const desconeguts = [];
-  String(raw || '').split(/[,;]/).map(normalitzarRol).filter(Boolean).forEach((rol) => {
+  String(raw || '').split(/[,;]/).map(normalitzarRol).filter(Boolean).map((rol) => SINONIMS[rol] || rol).forEach((rol) => {
     const llista = CONEGUTS.has(rol) ? rols : desconeguts;
     if (!llista.includes(rol)) llista.push(rol);
   });

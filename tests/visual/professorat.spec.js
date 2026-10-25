@@ -12,18 +12,18 @@ test.describe('Professorat', () => {
   // Taula a l'escriptori i targetes al mòbil: es compta només el que es veu.
   const files = (page) => page.locator('[data-professor]:visible');
   const fila = (page, nom) => page.locator(`[data-professor="${nom}"]:visible`);
+  // Al mòbil, els avisos ocupen tota l'amplada i poden tapar la fitxa: es tanquen com faria qualsevol.
+  const tancaAvisos = async (page) => {
+    for (const boto of await page.getByRole('button', { name: 'Tancar notificació' }).all()) await boto.click().catch(() => {});
+  };
 
   test('alta, edició, substitució, retorn i baixa del professorat', async ({ page }, testInfo) => {
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto('/admin/professorat');
 
-    // Mentre el professorat ve del full, la pàgina és de consulta.
     await expect(page.getByRole('heading', { name: /^Fitxes del curs/ })).toBeVisible();
     await expect(files(page)).toHaveCount(3);
-    await expect(page.getByTestId('nou-professor')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Gestiona el professorat des de Quota' }).click();
-    await page.getByRole('button', { name: 'Fes el pas' }).click();
     await expect(page.getByTestId('nou-professor')).toBeVisible();
 
     // Filtres.
@@ -49,6 +49,7 @@ test.describe('Professorat', () => {
     // Edició: jornada i rol.
     await fila(page, 'Joana Pons').click();
     await fitxa.getByRole('combobox').first().selectOption('M');
+    await tancaAvisos(page);
     await fitxa.getByText('Cap de departament', { exact: true }).click();
     await fitxa.getByRole('button', { name: 'Desa', exact: true }).click();
     await expect(fila(page, 'Joana Pons')).toContainText('Mitja jornada');
@@ -99,8 +100,6 @@ test.describe('Professorat', () => {
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto('/admin/professorat');
-    await page.getByRole('button', { name: 'Gestiona el professorat des de Quota' }).click();
-    await page.getByRole('button', { name: 'Fes el pas' }).click();
 
     // Dos comptes amb el rol desfasat; l'administració afegida a mà no compta.
     const avis = page.getByText("Els permisos d'accés no coincideixen");
@@ -116,6 +115,7 @@ test.describe('Professorat', () => {
     // Treure-li el rol de cap a la fitxa s'aplica al seu compte en el mateix moment.
     const fitxa = page.getByTestId('fitxa-professor');
     await fila(page, 'Maria Sureda').click();
+    await tancaAvisos(page);
     await fitxa.getByText('Cap de departament', { exact: true }).click();
     await fitxa.getByRole('button', { name: 'Desa', exact: true }).click();
     await expect(avis).toContainText('0 comptes amb el rol desfasat');
@@ -146,5 +146,35 @@ test.describe('Professorat', () => {
     await page.goto('/admin/professorat');
     await expect(page.locator('html')).toHaveClass(/dark/);
     await expect(files(page)).toHaveCount(3);
+  });
+
+  test("els comptes sense fitxa (abans a Usuaris) es veuen i se'n pot crear la fitxa", async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('dialog', (dialog) => dialog.accept());
+    // L'adreça antiga d'Usuaris porta a Professorat.
+    await page.goto('/admin/usuaris');
+    await expect(page).toHaveURL(/\/admin\/professorat$/);
+    const comptes = page.getByTestId('comptes-sense-fitxa');
+    await expect(comptes).toContainText('E2E Admin');
+    await expect(comptes).toContainText('Administració afegida a mà');
+    await expect(comptes).toContainText('Ets tu');
+    await expect(comptes).toContainText('Nou Docent');
+
+    // Qui ha entrat sense fitxa: se'n crea la fitxa amb el nom i el correu del compte.
+    await comptes.getByRole('button', { name: "Crea'n la fitxa" }).click();
+    const fitxa = page.getByTestId('fitxa-professor');
+    await expect(fitxa.getByPlaceholder('COGNOMS, NOM')).toHaveValue('Nou Docent');
+    await expect(fitxa.getByPlaceholder('usuari')).toHaveValue('nou.docent@iesjosepsuredaiblanes.com');
+    await fitxa.getByLabel('Afegeix un departament').selectOption('Catala');
+    await fitxa.getByRole('button', { name: 'Desa', exact: true }).click();
+    await expect(fila(page, 'Nou Docent')).toBeVisible();
+    await expect(comptes).not.toContainText('Nou Docent');
+
+    // El rol «compte de departament» ja no s'ofereix: és cap de departament.
+    await page.getByTestId('nou-professor').click();
+    await expect(fitxa.getByText('Compte de departament')).toHaveCount(0);
+
+    expect(errors).toEqual([]);
   });
 });

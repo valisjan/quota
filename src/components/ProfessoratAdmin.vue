@@ -30,26 +30,6 @@
       </div>
     </section>
 
-    <!-- Encara s'importa del full -->
-    <section
-      v-if="!gestioAQuota && professors.length"
-      class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100"
-    >
-      <p class="font-semibold">El professorat encara s'importa de la pestanya «Professorat» del full de Google Sheets.</p>
-      <p class="mt-1 text-sm">
-        Mentre sigui així, aquí només es pot consultar: un canvi fet aquí es perdria a la sincronització següent.
-        Quan facis el pas, Quota deixarà de llegir aquella pestanya i el professorat es gestionarà només des d'aquí.
-        Abans, fes una última sincronització a <em>Importació</em> perquè hi hagi les dades més noves.
-      </p>
-      <button
-        type="button"
-        class="mt-3 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700"
-        @click="modal = 'activar'"
-      >
-        Gestiona el professorat des de Quota
-      </button>
-    </section>
-
     <!-- Curs sense professorat -->
     <section v-if="carregat && !professors.length" class="card p-5 dark:border-slate-700 dark:bg-gray-800">
       <p class="font-semibold text-slate-900 dark:text-white">Aquest curs encara no té professorat.</p>
@@ -118,6 +98,47 @@
       <button type="button" class="shrink-0 rounded-md border border-amber-400 bg-white px-3 py-1.5 font-semibold text-amber-900 hover:bg-amber-100" @click="revisarPermisosAra">
         Revisa'ls
       </button>
+    </section>
+
+    <!-- Comptes sense fitxa (abans, la pàgina «Usuaris») -->
+    <section
+      v-if="editable && (adminsSenseFitxa.length || entradesSenseFitxa.length)"
+      class="card p-4 dark:border-slate-700 dark:bg-gray-800"
+      data-testid="comptes-sense-fitxa"
+    >
+      <p class="font-semibold text-slate-900 dark:text-white">Comptes sense fitxa</p>
+      <p class="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+        Qui entra a les aplicacions amb un compte que no és de cap professor/a actiu d'aquesta llista.
+        Els rols del professorat es donen a la seva fitxa.
+      </p>
+      <ul class="mt-3 divide-y divide-slate-100 text-sm dark:divide-slate-700">
+        <li v-for="compte in adminsSenseFitxa" :key="compte.id" class="flex flex-wrap items-center justify-between gap-2 py-2">
+          <span class="min-w-0">
+            <span class="font-semibold text-slate-900 dark:text-white">{{ compte.nom || compte.email }}</span>
+            <span class="ml-1 text-slate-500">{{ compte.email }}</span>
+            <span class="ml-1 rounded bg-violet-100 px-1.5 py-0.5 text-[11px] font-semibold text-violet-800">Administració afegida a mà</span>
+          </span>
+          <button
+            v-if="compte.email !== authStore.email"
+            type="button"
+            class="boto-fila"
+            :disabled="desant"
+            @click="canviarAcces(compte, false)"
+          >Treu l'accés</button>
+          <span v-else class="text-xs text-slate-500">Ets tu</span>
+        </li>
+        <li v-for="compte in entradesSenseFitxa" :key="compte.id" class="flex flex-wrap items-center justify-between gap-2 py-2">
+          <span class="min-w-0">
+            <span class="font-semibold text-slate-900 dark:text-white">{{ compte.nom || compte.email }}</span>
+            <span class="ml-1 text-slate-500">{{ compte.email }}</span>
+            <span class="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">Sense accés · {{ formatData(compte.darreraEntrada) }}</span>
+          </span>
+          <span class="flex gap-2">
+            <button type="button" class="boto-fila" @click="obrirNouDe(compte)">Crea'n la fitxa</button>
+            <button type="button" class="boto-fila" :disabled="desant" @click="canviarAcces(compte, true)">Fes-lo administrador</button>
+          </span>
+        </li>
+      </ul>
     </section>
 
     <!-- Filtres -->
@@ -480,24 +501,6 @@
       </div>
     </div>
 
-    <!-- Passar a gestionar des de Quota -->
-    <div v-if="modal === 'activar'" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="tancar">
-      <div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
-        <h4 class="text-lg font-semibold text-slate-950 dark:text-white">Gestiona el professorat des de Quota</h4>
-        <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700 dark:text-slate-300">
-          <li>La sincronització deixarà de llegir la pestanya <strong>Professorat</strong> del full (les classes continuen igual).</li>
-          <li>Les dades actuals es queden tal com són. Els rols de cada fitxa es prenen dels permisos d'accés actuals (columna ROL).</li>
-          <li>A partir d'ara, altes, canvis, substitucions i baixes es fan en aquesta pàgina.</li>
-        </ul>
-        <div class="mt-6 flex justify-end gap-2">
-          <button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200" @click="tancar">Cancel·la</button>
-          <button type="button" :disabled="desant" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-50" @click="activarGestio">
-            {{ desant ? 'Activant...' : 'Fes el pas' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Revisió de permisos -->
     <div v-if="modal === 'permisos'" class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4" @click.self="tancar">
       <div class="my-8 w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
@@ -556,8 +559,8 @@ import { useCursStore } from '../stores/curs';
 import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 import {
-  activarGestioQuota,
   aplicarPermisos,
+  canviarAccesCompte,
   copiarProfessoratDeCurs,
   desactivarProfessor,
   desarProfessor,
@@ -565,7 +568,6 @@ import {
   llegirUsuaris,
   reactivarProfessor,
   revisarPermisos,
-  subscriureGestioProfessorat,
   subscriurePermisos,
   subscriureProfessorat,
   substituirProfessor,
@@ -576,6 +578,7 @@ import {
   MOTIUS_BAIXA,
   ROLS_FITXA,
   campsFitxa,
+  completarEmail,
   departamentsDe,
   esActiu,
   etiquetaJornada,
@@ -599,7 +602,6 @@ const professors = ref([]);
 const permisos = ref([]);
 // Fitxes d'usuari (comptes que ja han entrat a Quota): la còpia del rol que fan servir les apps.
 const usuaris = ref([]);
-const gestioAQuota = ref(false);
 const carregat = ref(false);
 const vista = ref('actius');
 const filtres = reactive({ text: '', departament: '', rol: '', jornada: '*' });
@@ -619,7 +621,6 @@ const cursOrigen = ref('');
 const CLASSE_ROL = {
   admin: 'bg-violet-100 text-violet-800',
   cap_departament: 'bg-sky-100 text-sky-800',
-  departament: 'bg-teal-100 text-teal-800',
   psc: 'bg-amber-100 text-amber-800',
 };
 const etiquetaRol = (rol) => ROLS_FITXA.find((item) => item.valor === rol)?.etiqueta || (rol === 'professor' ? 'Professor/a' : rol);
@@ -630,9 +631,9 @@ const actor = computed(() => authStore.usuari || authStore.email || 'admin');
 const sessio = computed(() => ({ email: authStore.email, rol: authStore.rol }));
 const etiquetaAcces = (rol) => (rol ? etiquetaRol(rol) : 'sense accés');
 const cursVigent = computed(() => E2E_AUTH_BYPASS || esCursVigent(cursStore.cursActiuId));
-const editable = computed(() => gestioAQuota.value && !cursStore.esBloqueig);
+const editable = computed(() => !cursStore.esBloqueig);
 
-// Abans de fer el pas, els rols encara són als permisos (columna ROL del full).
+// Fitxes antigues sense rols: es prenen dels permisos d'accés actuals.
 const permisosPerEmail = computed(() => new Map(permisos.value.map((permis) => [permis.email || permis.id, permis])));
 function professorAmbRols(professor) {
   if (Array.isArray(professor.rols) && professor.rols.length) return professor;
@@ -696,6 +697,26 @@ async function refrescarUsuaris() {
 }
 refrescarUsuaris();
 
+// Comptes que han entrat i no són de cap fitxa activa: l'administració afegida a mà i,
+// dels darrers 60 dies, qui ha intentat entrar sense tenir-ne.
+const DIES_ENTRADES = 60;
+const dataDe = (valor) => (valor?.toDate ? valor.toDate() : valor ? new Date(valor) : null);
+const comptesSenseFitxa = computed(() => {
+  const ambFitxa = new Set(actius.value.map((professor) => completarEmail(professor.email)).filter(Boolean));
+  return usuaris.value
+    .filter((compte) => compte.email && !ambFitxa.has(completarEmail(compte.email)))
+    .map((compte) => ({ ...compte, darreraEntrada: dataDe(compte.lastLogin) || dataDe(compte.createdAt) }));
+});
+const adminsSenseFitxa = computed(() => comptesSenseFitxa.value
+  .filter((compte) => compte.rol === 'admin')
+  .sort((a, b) => (a.nom || a.email).localeCompare(b.nom || b.email, 'ca')));
+const entradesSenseFitxa = computed(() => {
+  const limit = Date.now() - DIES_ENTRADES * 24 * 60 * 60 * 1000;
+  return comptesSenseFitxa.value
+    .filter((compte) => !compte.rol && compte.darreraEntrada && compte.darreraEntrada.getTime() >= limit)
+    .sort((a, b) => b.darreraEntrada - a.darreraEntrada);
+});
+
 const cursosOrigen = computed(() => (cursStore.cursos || []).filter((curs) => curs.id !== cursStore.cursActiuId));
 
 const fitxaActual = computed(() => campsFitxa(form.value));
@@ -718,7 +739,6 @@ const errorsReactivar = computed(() => (seleccionat.value && modal.value === 're
 
 // --- Subscripcions -------------------------------------------------------------
 let desubscriureProfessorat = null;
-let desubscriureGestio = null;
 const desubscriurePermisos = subscriurePermisos(
   (llista) => { permisos.value = llista; },
   (error) => console.warn("No s'han pogut llegir els permisos:", error),
@@ -726,13 +746,11 @@ const desubscriurePermisos = subscriurePermisos(
 
 watch(() => cursStore.cursActiuId, (cursId) => {
   desubscriureProfessorat?.();
-  desubscriureGestio?.();
   carregat.value = false;
   desubscriureProfessorat = subscriureProfessorat(cursId, (llista) => {
     professors.value = llista;
     carregat.value = true;
   }, (error) => toast.error(`No s'ha pogut carregar el professorat: ${error.message}`));
-  desubscriureGestio = subscriureGestioProfessorat(cursId, (valor) => { gestioAQuota.value = valor; });
   cursOrigen.value = cursosOrigen.value[0]?.id || '';
 }, { immediate: true });
 
@@ -742,7 +760,6 @@ watch(cursosOrigen, (llista) => {
 
 onUnmounted(() => {
   desubscriureProfessorat?.();
-  desubscriureGestio?.();
   desubscriurePermisos?.();
 });
 
@@ -781,6 +798,22 @@ function obrirNou() {
   form.value = formulariDe({});
   nouDepartament.value = '';
   modal.value = 'fitxa';
+}
+
+function obrirNouDe(compte) {
+  obrirNou();
+  form.value = formulariDe({ nom: compte.nom || '', email: compte.email || '' });
+}
+
+function canviarAcces(compte, admin) {
+  const missatge = admin
+    ? `${compte.nom || compte.email} podrà administrar Quota, Guàrdies i Retards. Ho confirmes?`
+    : `${compte.nom || compte.email} deixarà de poder entrar a les aplicacions. Ho confirmes?`;
+  if (!window.confirm(missatge)) return;
+  executar(async () => {
+    await canviarAccesCompte({ uid: compte.id, admin });
+    toast.ok(admin ? `${compte.nom || compte.email} ja és administrador/a.` : `${compte.nom || compte.email} ja no té accés.`);
+  });
 }
 
 function obrirEdicio(professor) {
@@ -890,15 +923,6 @@ function confirmarReactivar() {
     });
     informar(resultat, `${professor.nom} torna a estar actiu.`);
     vista.value = 'actius';
-    desant.value = false;
-    tancar();
-  });
-}
-
-function activarGestio() {
-  executar(async () => {
-    const resultat = await activarGestioQuota({ cursId: cursStore.cursActiuId, actor: actor.value });
-    toast.ok(`El professorat ja es gestiona des de Quota.${resultat.fitxesAmbRols ? ` ${resultat.fitxesAmbRols} fitxes amb els rols del full.` : ''}`);
     desant.value = false;
     tancar();
   });

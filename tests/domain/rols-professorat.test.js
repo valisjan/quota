@@ -28,3 +28,9 @@ test('el rol de Quota és el de més drets; la PSC hi compta com a professora', 
   assert.equal(rolQuota(['professor', 'admin']), 'admin');
   assert.equal(rolQuota(llegirRols('departament, cap_departament').rols), 'cap_departament');
 });
+
+test('el compte de departament compta com a cap de departament', () => {
+  assert.deepEqual(llegirRols('departament').rols, ['cap_departament']);
+  assert.deepEqual(llegirRols('departament, cap_departament, psc').rols, ['cap_departament', 'psc']);
+  assert.equal(rolQuota(llegirRols('departament').rols), 'cap_departament');
+});

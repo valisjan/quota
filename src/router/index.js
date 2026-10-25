@@ -4,15 +4,10 @@ import { useAuthStore } from '../stores/auth';
 const Home = () => import('../views/Home.vue');
 const Admin = () => import('../views/Admin.vue');
 const Departament = () => import('../views/Departament.vue');
-const Resums = () => import('../views/Resums.vue');
-const DadesImportades = () => import('../components/DadesImportades.vue');
+const Informes = () => import('../views/Informes.vue');
 const ExportUntis = () => import('../components/ExportUntis.vue');
-const Tancament = () => import('../components/Tancament.vue');
-const UsuarisAdmin = () => import('../components/UsuarisAdmin.vue');
 const GestioCursos = () => import('../components/GestioCursos.vue');
 const Configuracio = () => import('../components/Configuracio.vue');
-const AdminSeguiment = () => import('../components/AdminSeguiment.vue');
-const ConsumPla = () => import('../components/ConsumPla.vue');
 const ProfessoratAdmin = () => import('../components/ProfessoratAdmin.vue');
 const QuotaPanell = () => import('../components/QuotaPanell.vue');
 
@@ -23,22 +18,23 @@ const routes = [
     component: Admin,
     meta: { requiresAdmin: true },
     children: [
-      { path: 'classes', redirect: '/admin/dades' },
-      { path: 'professors', redirect: '/admin/professorat' },
+      { path: 'cursos', component: GestioCursos },
       { path: 'professorat', component: ProfessoratAdmin },
       { path: 'quota', component: QuotaPanell },
-      { path: 'departaments', redirect: '/admin/dades' },
-      { path: 'dades', component: DadesImportades },
-      { path: 'sincronitzacio', redirect: '/admin/dades' },
       { path: 'untis', component: ExportUntis },
-      { path: 'tancament', component: Tancament },
       { path: 'parametres', component: Configuracio },
+      // Adreces d'abans de la reorganització (i del full de càlcul), perquè els enllaços guardats funcionin.
+      { path: 'professors', redirect: '/admin/professorat' },
+      { path: 'usuaris', redirect: '/admin/professorat' },
+      { path: 'classes', redirect: '/admin/quota' },
+      { path: 'departaments', redirect: '/admin/quota' },
+      { path: 'dades', redirect: '/admin/quota' },
+      { path: 'sincronitzacio', redirect: '/admin/quota' },
       { path: 'configuracio', redirect: '/admin/parametres' },
-      { path: 'seguiment', component: AdminSeguiment },
-      { path: 'consum', component: ConsumPla },
-      { path: 'estat', redirect: '/admin/seguiment' },
-      { path: 'cursos', component: GestioCursos },
-      { path: 'usuaris', component: UsuarisAdmin },
+      { path: 'consum', redirect: '/admin/cursos' },
+      { path: 'tancament', redirect: '/departament' },
+      { path: 'seguiment', redirect: '/informes' },
+      { path: 'estat', redirect: '/informes' },
       { path: '', redirect: '/admin/cursos' },
     ],
   },
@@ -48,10 +44,11 @@ const routes = [
     meta: { requiresCapDepartament: true },
   },
   {
-    path: '/resums',
-    component: Resums,
+    path: '/informes',
+    component: Informes,
     meta: { requiresAuth: true },
   },
+  { path: '/resums', redirect: '/informes' },
 ];
 
 const router = createRouter({
@@ -86,9 +83,9 @@ router.beforeEach(async (to) => {
   await authStore.waitForAuth();
 
   if (to.meta.requiresAdmin && !authStore.esAdmin()) {
-    return authStore.esCapDepartament() ? '/departament' : '/resums';
+    return authStore.esCapDepartament() ? '/departament' : '/informes';
   }
-  if (to.meta.requiresCapDepartament && !authStore.esCapDepartament()) return '/resums';
+  if (to.meta.requiresCapDepartament && !authStore.esCapDepartament()) return '/informes';
   if (to.meta.requiresAuth && !authStore.estaAutenticat) return '/';
   return true;
 });

@@ -123,11 +123,11 @@ function construirPreparacioUntis({
   const checks = [
     crearCheckUntis({
       id: 'dades',
-      title: 'Dades importades',
+      title: 'Quota',
       description: 'Hores, departaments i tipus han de ser coherents abans de generar fitxers.',
       items: dadesCritiques,
-      actionTo: '/admin/dades',
-      actionLabel: 'Revisa dades',
+      actionTo: '/admin/quota',
+      actionLabel: 'Revisa la quota',
     }),
     crearCheckUntis({
       id: 'assignacions',
@@ -142,7 +142,7 @@ function construirPreparacioUntis({
       title: 'Hores de grup',
       description: 'Cada grup ha de tenir totes les hores computables cobertes.',
       items: grupsIncomplets,
-      actionTo: '/resums',
+      actionTo: '/informes',
       actionLabel: 'Veure grups',
     }),
     crearCheckUntis({
@@ -168,7 +168,7 @@ function construirPreparacioUntis({
         ...tutoriesAsteriscDiferents,
       ],
       severity: 'warning',
-      actionTo: '/resums',
+      actionTo: '/informes',
       actionLabel: 'Veure tutories',
     }),
     crearCheckUntis({
@@ -180,7 +180,7 @@ function construirPreparacioUntis({
         ...avisosProfessorat,
       ],
       severity: critiquesProfessorat.length ? 'blocked' : 'warning',
-      actionTo: '/admin/seguiment',
+      actionTo: '/informes',
       actionLabel: 'Veure professorat',
     }),
     crearCheckUntis({

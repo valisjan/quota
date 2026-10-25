@@ -128,11 +128,13 @@ const syncHistory = [
 ];
 
 // Comptes que ja han entrat a Quota (col·lecció «usuaris»): l'administració de prova,
-// afegida a mà, una cap amb el rol desfasat i algú que ja no és al professorat.
+// afegida a mà, una cap amb el rol desfasat, algú que ja no és al professorat i algú
+// que ha entrat fa poc sense tenir fitxa.
 const usuaris = [
   { id: 'e2e-admin', email: 'e2e.admin@iesjosepsuredaiblanes.com', nom: 'E2E Admin', rol: 'admin', departament: 'Catala', departaments: ['Catala'] },
   { id: 'e2e-usuari-sureda', email: 'maria.sureda@iesjosepsuredaiblanes.com', nom: 'Maria Sureda', rol: 'professor', departament: 'Catala', departaments: ['Catala'] },
   { id: 'e2e-usuari-antic', email: 'antic.docent@iesjosepsuredaiblanes.com', nom: 'Antic Docent', rol: 'cap_departament', departament: 'Musica', departaments: ['Musica'] },
+  { id: 'e2e-usuari-nou', email: 'nou.docent@iesjosepsuredaiblanes.com', nom: 'Nou Docent', rol: null, departament: null, departaments: [], lastLogin: new Date().toISOString() },
 ];
 
 const collections = {

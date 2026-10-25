@@ -1,5 +1,5 @@
 // Escriptures del panell Quota: les classes de cada departament es creen, s'editen i
-// s'esborren aquí, en lloc de la pestanya «Quota» del full. Els documents de classe
+// s'esborren aquí. Els documents de classe
 // conserven l'id, de manera que les assignacions del repartiment no es perden.
 
 import {
@@ -15,7 +15,6 @@ import {
 import { db } from '../firebase';
 import { BatchSplit } from '../utils/firestoreBatch';
 import { classePerCopiar, novaClasse } from '../utils/quota';
-import { llegirAppSettings, subscribeAppSettings, updateAppSettings } from './appSettings';
 import { E2E_AUTH_BYPASS, getE2ECollection } from './e2e';
 
 const classesRef = (cursId) => collection(db, 'cursos', cursId, 'classes');
@@ -35,7 +34,6 @@ function memoriaE2E() {
     memoria = {
       classes: getE2ECollection('classes'),
       departaments: getE2ECollection('departaments'),
-      gestioAQuota: false,
     };
   }
   return memoria;
@@ -71,17 +69,6 @@ export function subscriureDepartaments(cursId, callback, onError = console.error
     return () => {};
   }
   return onSnapshot(departamentsRef(cursId), (snap) => callback(snap.docs.map(ambId)), onError);
-}
-
-// Si la quota ja es fa des de Quota (i la sincronització ja no llegeix el full).
-export function subscriureGestioClasses(cursId, callback, onError = console.error) {
-  if (E2E_AUTH_BYPASS) return subscriuE2E((estat) => estat.gestioAQuota, callback);
-  return subscribeAppSettings(cursId, (settings) => callback(Boolean(settings.classesAQuota)), onError);
-}
-
-export async function classesGestionadesAQuota(cursId) {
-  if (E2E_AUTH_BYPASS || !cursId) return false;
-  return Boolean((await llegirAppSettings(cursId)).classesAQuota);
 }
 
 // ---------------------------------------------------------------------------
@@ -143,20 +130,6 @@ export async function restaurarClasse({ cursId, classe }) {
   await setDoc(doc(classesRef(cursId), id), dades);
 }
 
-// Deixa de llegir la pestanya Classes del full: a partir d'ara la quota es fa aquí.
-export async function activarGestioClasses({ cursId, actor }) {
-  if (E2E_AUTH_BYPASS) {
-    memoriaE2E().gestioAQuota = true;
-    notificaE2E();
-    return;
-  }
-  await updateAppSettings(cursId, {
-    classesAQuota: true,
-    classesAQuotaDes: ara().toISOString(),
-    classesAQuotaPer: actor || 'admin',
-  });
-}
-
 // La quota d'un altre curs com a punt de partida (sense el repartiment del professorat).
 export async function copiarQuotaDeCurs({ origen, desti, actor }) {
   if (E2E_AUTH_BYPASS) return { copiades: 0 };
@@ -167,10 +140,5 @@ export async function copiarQuotaDeCurs({ origen, desti, actor }) {
     batch.set(doc(classesRef(desti)), { ...classePerCopiar(d.data()), ...metadades(actor) });
   });
   await batch.commit();
-  await updateAppSettings(desti, {
-    classesAQuota: true,
-    classesAQuotaDes: ara().toISOString(),
-    classesAQuotaPer: actor || 'admin',
-  });
   return { copiades: deOrigen.size };
 }

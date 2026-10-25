@@ -1384,7 +1384,7 @@ export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', r
         .join('; ');
       const mes = incidenciesProfessors.length > 10 ? `; i ${incidenciesProfessors.length - 10} mes` : '';
       throw new Error(
-        `Revisa la columna codiUntis del full Professorat i torna a sincronitzar. ` +
+        `Revisa la plaça (codi Untis) d'aquests professors a la pàgina Professorat. ` +
         `Cada codi ha de coincidir amb PLACA curta del XML GestIB: ${detall}${mes}.`
       );
     }

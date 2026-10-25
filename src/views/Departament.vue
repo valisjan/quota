@@ -110,10 +110,22 @@
 
       <div
         v-if="departamentTancat"
-        class="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-slate-800"
+        class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-slate-800"
       >
-        Departament tancat. Consulta disponible; edició bloquejada.
-        <span v-if="settings.missatgeTancament" class="ml-1 font-normal">{{ settings.missatgeTancament }}</span>
+        <span>
+          Departament tancat. Consulta disponible; edició bloquejada.
+          <span v-if="departamentActual?.tancatPer" class="font-normal">
+            Tancat per {{ departamentActual.tancatPer }}<template v-if="departamentActual.tancatAt"> el {{ formatDataTancament(departamentActual.tancatAt) }}</template>.
+          </span>
+        </span>
+        <button
+          v-if="authStore.esAdmin()"
+          type="button"
+          class="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+          @click="reobrirDepartament"
+        >
+          Reobre el departament
+        </button>
       </div>
 
       <div
@@ -142,6 +154,15 @@
         </div>
         <div class="flex items-center gap-3">
           <span class="text-xs text-slate-400">{{ lastUpdate }}</span>
+          <button
+            v-if="authStore.esAdmin() && departamentActual?.id"
+            type="button"
+            class="rounded-md border border-border-soft bg-surface px-3 py-1.5 text-sm font-medium text-text-secondary transition hover:bg-surface-hover"
+            :title="departamentActual?.exclos ? 'Torna a comptar aquest departament als informes i al seguiment' : 'Treu aquest departament dels recomptes (p. ex. si no reparteix hores)'"
+            @click="alternarExclos"
+          >
+            {{ departamentActual?.exclos ? 'Inclou al recompte' : 'Exclou del recompte' }}
+          </button>
           <button
             v-if="!departamentTancat && !solsLectura"
             type="button"
@@ -1602,6 +1623,39 @@ async function tancarDepartament() {
     console.error('Error tancant departament:', error);
     toast.error("No s'ha pogut tancar el departament. Revisa els permisos.");
   }
+}
+
+// Només l'administració reobre un departament tancat (abans es feia a «Tancament»).
+async function reobrirDepartament() {
+  if (!authStore.esAdmin() || !departamentActual.value?.id) return;
+  try {
+    await updateDoc(cursStore.docRef('departaments', departamentActual.value.id), {
+      tancat: false,
+      tancatPer: '',
+      tancatAt: '',
+    });
+    toast.ok(`${departamentSeleccionat.value} torna a estar obert.`);
+  } catch (error) {
+    console.error('Error reobrint departament:', error);
+    toast.error("No s'ha pogut reobrir el departament.");
+  }
+}
+
+async function alternarExclos() {
+  if (!authStore.esAdmin() || !departamentActual.value?.id) return;
+  const exclos = !departamentActual.value.exclos;
+  try {
+    await updateDoc(cursStore.docRef('departaments', departamentActual.value.id), { exclos });
+    toast.ok(`${departamentSeleccionat.value} ${exclos ? 'queda fora dels recomptes' : 'torna als recomptes'}.`);
+  } catch (error) {
+    console.error('Error actualitzant exclos:', error);
+    toast.error("No s'ha pogut actualitzar el departament.");
+  }
+}
+
+function formatDataTancament(valor) {
+  const data = new Date(valor);
+  return Number.isNaN(data.getTime()) ? '' : data.toLocaleDateString('ca-ES');
 }
 
 // Print

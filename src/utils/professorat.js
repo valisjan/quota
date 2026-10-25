@@ -1,4 +1,4 @@
-// Gestió del professorat des de Quota (substitueix la pestanya «Professorat» del full).
+// Gestió del professorat a Quota.
 // Funcions pures: preparar i validar fitxes, filtrar i ordenar, i calcular què cal
 // actualitzar als permisos d'accés, als departaments i a les classes.
 
@@ -18,7 +18,6 @@ export const JORNADES = [
 export const ROLS_FITXA = [
   { valor: 'admin', etiqueta: 'Administració', ajuda: 'Gestiona Quota, Guàrdies i Retards.' },
   { valor: 'cap_departament', etiqueta: 'Cap de departament', ajuda: 'Reparteix les hores del seu departament.' },
-  { valor: 'departament', etiqueta: 'Compte de departament', ajuda: 'Accés del departament sense ser-ne cap.' },
   { valor: 'psc', etiqueta: 'PSC', ajuda: 'Entra a Retards. A Quota i Guàrdies compta com a professor/a.' },
 ];
 

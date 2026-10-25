@@ -1,9 +1,12 @@
 import { expect, test } from '@playwright/test';
 
 const routes = [
-  { name: 'resums', path: '/resums', marker: 'Grups', markerRole: 'button' },
-  { name: 'dades-importades', path: '/admin/dades', marker: 'Classes' },
-  { name: 'departament', path: '/departament', marker: 'Repartiment' },
+  { name: 'informes', path: '/informes', marker: 'Grups', markerRole: 'button' },
+  { name: 'curs', path: '/admin/cursos', marker: 'Les fases es fan en aquest ordre' },
+  { name: 'professorat', path: '/admin/professorat', marker: 'Fitxes del curs' },
+  { name: 'quota', path: '/admin/quota', marker: 'Pantalla completa', markerRole: 'button' },
+  { name: 'untis', path: '/admin/untis', marker: 'Flux de treball Untis' },
+  { name: 'departament', path: '/departament', marker: 'Tria un departament' },
 ];
 
 test.beforeEach(async ({ page }) => {

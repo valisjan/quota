@@ -12,39 +12,36 @@
           </div>
         </div>
 
-        <nav class="admin-nav" aria-label="Flux de treball d'administració">
-          <button
-            v-for="(tab, index) in navegacioAdmin"
-            :key="tab.path"
-            type="button"
-            class="admin-nav-item relative"
-            :class="{
-              'admin-nav-item-active': isActive(tab),
-              'admin-nav-item-warning': tab.estat === 'warning',
-            }"
-            :title="tab.nom"
-            @click="anarAdmin(tab.path)"
-          >
-            <span class="admin-nav-number">{{ index + 1 }}</span>
-            <span class="admin-nav-icon">
-              <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" :d="tab.icon" />
-              </svg>
-            </span>
-            <span class="min-w-0 hidden lg:block lg:flex-1">
-              <span class="admin-nav-label">{{ tab.nom }}</span>
-              <span class="admin-nav-help">{{ tab.workflowHelp || tab.help }}</span>
-            </span>
-            <span v-if="tab.badge" class="admin-nav-badge hidden lg:inline-flex" :class="tab.badgeClass">
-              {{ tab.badge }}
-            </span>
-            <span
-              v-if="tab.path === '/admin/dades' && mostrarAvisDesactualitzat"
-              class="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-amber-300 ring-primary ring-slate-950 lg:right-3 lg:top-3"
-              title="Canvis pendents a Google Sheets"
-              aria-hidden="true"
-            ></span>
-          </button>
+        <nav class="admin-nav" aria-label="Administració de Quota">
+          <template v-for="grup in navegacioAdmin" :key="grup.titol">
+            <p class="admin-nav-grup hidden lg:block">{{ grup.titol }}</p>
+            <button
+              v-for="tab in grup.tabs"
+              :key="tab.path"
+              type="button"
+              class="admin-nav-item relative"
+              :class="{
+                'admin-nav-item-active': isActive(tab),
+                'admin-nav-item-warning': tab.estat === 'warning',
+              }"
+              :title="tab.nom"
+              @click="anarAdmin(tab.path)"
+            >
+              <span v-if="tab.pas" class="admin-nav-number">{{ tab.pas }}</span>
+              <span class="admin-nav-icon">
+                <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" :d="tab.icon" />
+                </svg>
+              </span>
+              <span class="min-w-0 hidden lg:block lg:flex-1">
+                <span class="admin-nav-label">{{ tab.nom }}</span>
+                <span class="admin-nav-help">{{ tab.help }}</span>
+              </span>
+              <span v-if="tab.badge" class="admin-nav-badge hidden lg:inline-flex" :class="tab.badgeClass">
+                {{ tab.badge }}
+              </span>
+            </button>
+          </template>
         </nav>
 
         <!-- Compact user area visible only on mobile -->
@@ -65,7 +62,7 @@
           <p class="truncate text-sm font-bold">
             {{ authStore.usuari || authStore.email || 'Usuari' }}
           </p>
-          <p class="truncate text-xs font-semibold">{{ etiquetaRol }}</p>
+          <p class="truncate text-xs font-semibold">Administració</p>
         </div>
         <button
           type="button"
@@ -85,71 +82,13 @@
             Administració
           </p>
           <h2 class="mt-1 text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
-            {{ pestanyaActual?.nom || 'Centre de control' }}
+            {{ pestanyaActual?.nom || 'Quota' }}
           </h2>
           <p class="mt-1 text-sm text-slate-600">
             {{ pestanyaActual?.descripcio || '' }}
           </p>
         </div>
-
-        <UsuarisConnectats
-          v-if="authStore.esAdmin()"
-          :limit="4"
-          compact
-        />
       </header>
-
-      <section
-        v-if="mostrarAvisDesactualitzat"
-        role="status"
-        aria-live="polite"
-        class="sticky top-[5rem] z-40 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm"
-      >
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex min-w-0 gap-3">
-            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-100 text-lg font-black text-amber-800">
-              !
-            </div>
-            <div class="min-w-0">
-              <p class="font-semibold">{{ titolAvisActualitzacio }}</p>
-              <p class="mt-0.5 text-sm font-medium text-amber-900">
-                {{ detallAvisActualitzacio }}
-              </p>
-              <ul
-                v-if="detallsAvisActualitzacio.length"
-                class="mt-2 space-y-1 text-sm text-amber-950"
-              >
-                <li
-                  v-for="(canvi, index) in detallsAvisActualitzacio"
-                  :key="`${canvi.tipus}-${index}-${canvi.resum}`"
-                  class="rounded-md border border-amber-200/80 bg-white/70 px-2.5 py-1.5"
-                >
-                  <span
-                    class="mr-2 inline-flex rounded px-1.5 py-0.5 text-xs font-bold"
-                    :class="classeCanviAvis(canvi.tipus)"
-                  >
-                    {{ etiquetaCanviAvis(canvi.tipus) }}
-                  </span>
-                  <span class="font-semibold">{{ canvi.resum }}</span>
-                  <span v-if="canvi.detall" class="mt-0.5 block text-xs font-medium text-amber-800">
-                    {{ canvi.detall }}
-                  </span>
-                </li>
-              </ul>
-              <p v-if="ultimaSyncSheets" class="mt-1 text-xs font-medium text-amber-800">
-                Última sincronització: {{ formatDataHora(ultimaSyncSheets) }}.
-              </p>
-            </div>
-          </div>
-          <router-link
-            v-if="mostrarBotoAvisSincronitzar"
-            to="/admin/dades"
-            class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-dark"
-          >
-            Ves a sincronització
-          </router-link>
-        </div>
-      </section>
 
       <main class="admin-content">
         <router-view />
@@ -159,55 +98,24 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { useCursStore } from '../stores/curs';
-import UsuarisConnectats from '../components/UsuarisConnectats.vue';
-import { DEFAULT_APP_SETTINGS, subscribeAppSettings } from '../services/appSettings';
-import {
-  comprovarEstatActualitzacioSheets,
-  sincronitzar,
-  subscribeEstatSincronitzacio,
-} from '../services/sincronitzacio.js';
-import { useToastStore } from '../stores/toast';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { exclosaDelRepartiment, esCoordinacio } from '../utils/tipus';
+import { formatDecimal } from '../utils/quota';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const cursStore = useCursStore();
-const toast = useToastStore();
 
-const CHECK_INTERVAL_MS = 60 * 1000;
-const ACTIVITY_DELAY_MS = 900;
-const AUTO_SYNC_COOLDOWN_MS = 30 * 1000;
-const ACTIVITY_EVENTS = ['pointerdown', 'keydown'];
-
-const settings = ref({ ...DEFAULT_APP_SETTINGS });
-const syncState = ref(null);
-const estatActualitzacio = ref('idle');
-const estatAutoSync = ref('idle');
-const actualitzacioSheets = ref(null);
-const errorActualitzacio = ref('');
-const errorAutoSync = ref('');
-const settingsReady = ref(false);
-
-let settingsUnsubscribe = null;
-let syncStateUnsubscribe = null;
-let activityTimer = null;
-let lastCheckAt = 0;
-let lastAutoSyncAt = 0;
-let lastAutoSyncSignature = '';
-let checkPromise = null;
-let autoSyncPromise = null;
-
-// ─── Stats live per al workflow ────────────────────────────────────────────────
+// ─── Xifres per a les etiquetes del menú ───────────────────────────────────────
 
 const { items: classesLive } = useCursCollectionSnapshot({ colName: 'classes' });
-const { items: departamentsLive } = useCursCollectionSnapshot({ colName: 'departaments' });
 
+const horesQuota = computed(() => classesLive.value.reduce((suma, classe) => suma + (Number(classe.hores) || 0), 0));
 const classesAssignables = computed(() =>
   classesLive.value.filter((c) => !exclosaDelRepartiment(c.tipus) && !esCoordinacio(c.tipus))
 );
@@ -219,272 +127,97 @@ const percentAssignat = computed(() => {
   if (!total) return null;
   return Math.round(((total - classesSenseAssignar.value) / total) * 100);
 });
-const departamentsTancats = computed(() => departamentsLive.value.filter((d) => d.tancat).length);
-const totalDepartaments = computed(() => departamentsLive.value.length);
 
-// ──────────────────────────────────────────────────────────────────────────────
+// ─── Apartats: el cicle del curs (en l'ordre en què es fa) i la resta ──────────
 
-const tabs = [
+const CICLE = [
   {
     path: '/admin/cursos',
-    nom: 'Curs acadèmic',
+    nom: 'Curs',
     icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5',
-    help: 'Curs actiu',
-    descripcio: 'Crea cursos acadèmics, bloqueja els tancats i canvia el curs actiu.',
-  },
-  {
-    path: '/admin/dades',
-    nom: 'Importació',
-    icon: 'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3',
-    help: 'Sync Sheets',
-    descripcio: 'Importa classes i professors des de Google Sheets i valida les dades.',
-    aliases: ['/admin/classes', '/admin/departaments'],
+    help: 'Curs actiu, curs nou i estat del cicle.',
+    descripcio: 'Crea el curs nou a partir de l\'anterior, tria el curs actiu i segueix en quin punt és cada fase.',
   },
   {
     path: '/admin/professorat',
     nom: 'Professorat',
     icon: 'M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z',
-    help: 'Fitxes',
-    descripcio: 'Altes, canvis, substitucions i baixes del professorat, amb els rols i els permisos d\'accés.',
-    aliases: ['/admin/professors'],
+    help: 'Fitxes, rols i accessos.',
+    descripcio: 'Altes, canvis, substitucions i baixes del professorat, amb els rols i qui pot entrar a les aplicacions.',
+    aliases: ['/admin/professors', '/admin/usuaris'],
   },
   {
     path: '/admin/quota',
     nom: 'Quota',
     icon: 'M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z',
-    help: 'Panell',
+    help: 'Classes i hores de cada departament.',
     descripcio: 'Les classes de cada departament amb les hores i el tipus, i el balanç amb el professorat.',
-  },
-  {
-    path: '/admin/parametres',
-    nom: 'Paràmetres',
-    icon: 'M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.36.78.757.943.097.04.193.08.287.126.38.184.828.139 1.17-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.247.342-.292.79-.108 1.17.046.094.086.19.126.287.163.397.519.687.943.757l.894.149c.542.09.94.56.94 1.11v1.093c0 .55-.398 1.02-.94 1.11l-.894.149c-.424.07-.78.36-.943.757-.04.097-.08.193-.126.287-.184.38-.139.828.108 1.17l.527.737c.32.448.27 1.061-.12 1.45l-.773.774a1.125 1.125 0 0 1-1.45.12l-.737-.527c-.342-.247-.79-.292-1.17-.108a6.52 6.52 0 0 1-.287.126c-.397.163-.687.519-.757.943l-.149.894c-.09.542-.56.94-1.11.94h-1.093c-.55 0-1.02-.398-1.11-.94l-.149-.894c-.07-.424-.36-.78-.757-.943a6.52 6.52 0 0 1-.287-.126c-.38-.184-.828-.139-1.17.108l-.737.527a1.125 1.125 0 0 1-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.247-.342.292-.79.108-1.17a6.52 6.52 0 0 1-.126-.287c-.163-.397-.519-.687-.943-.757l-.894-.149a1.125 1.125 0 0 1-.94-1.11v-1.093c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.78-.36.943-.757.04-.097.08-.193.126-.287.184-.38.139-.828-.108-1.17l-.527-.737a1.125 1.125 0 0 1 .12-1.45l.773-.774a1.125 1.125 0 0 1 1.45-.12l.737.527c.342.247.79.292 1.17.108.094-.046.19-.086.287-.126.397-.163.687-.519.757-.943l.149-.894ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
-    help: 'Distribució',
-    descripcio: 'Configura paràmetres generals de la distribució del curs.',
-  },
-  {
-    path: '/admin/usuaris',
-    nom: 'Usuaris',
-    icon: 'M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z',
-    help: 'Accessos',
-    descripcio: 'Gestiona rols i permisos dels comptes Google autoritzats.',
+    aliases: ['/admin/dades', '/admin/classes', '/admin/departaments'],
   },
   {
     path: '/departament',
     nom: 'Repartiment',
     icon: 'M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z',
-    help: 'Assignació',
+    help: 'Els departaments reparteixen les hores.',
     descripcio: 'Caps de departament assignen les hores entre el professorat.',
-  },
-  {
-    path: '/admin/tancament',
-    nom: 'Tancament',
-    icon: 'M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z',
-    help: 'Bloquejos',
-    descripcio: 'Controla quan els departaments queden tancats o desbloquejats.',
   },
   {
     path: '/admin/untis',
     nom: 'Untis',
     icon: 'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5',
-    help: 'Exportació',
-    descripcio: 'Prepara i revisa fitxers per importar les assignacions a Untis.',
-  },
-  {
-    path: '/admin/seguiment',
-    nom: 'Seguiment',
-    icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 0 1 9.75 19.875V8.625ZM16.5 4.125C16.5 3.504 17.004 3 17.625 3h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z',
-    help: 'Validació',
-    descripcio: 'Revisa estat global, validació final i informes interns de la distribució.',
-  },
-  {
-    path: '/admin/consum',
-    nom: 'Consum',
-    icon: 'M3 13.5h2.25l2.25-7.5 4.5 15 3-10.5 1.5 3H21',
-    help: 'Quotes',
-    descripcio: 'Controla marge de Firebase, Firestore i Netlify per evitar sorpreses del pla gratuït.',
+    help: 'Fitxers per importar el repartiment.',
+    descripcio: 'Prepara, revisa i descarrega els fitxers per importar el repartiment a Untis.',
   },
 ];
 
+const ALTRES = [
+  {
+    path: '/informes',
+    nom: 'Informes',
+    icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 0 1 9.75 19.875V8.625ZM16.5 4.125C16.5 3.504 17.004 3 17.625 3h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z',
+    help: 'Seguiment, validació i resums.',
+  },
+  {
+    path: '/admin/parametres',
+    nom: 'Paràmetres',
+    icon: 'M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.36.78.757.943.097.04.193.08.287.126.38.184.828.139 1.17-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.247.342-.292.79-.108 1.17.046.094.086.19.126.287.163.397.519.687.943.757l.894.149c.542.09.94.56.94 1.11v1.093c0 .55-.398 1.02-.94 1.11l-.894.149c-.424.07-.78.36-.943.757-.04.097-.08.193-.126.287-.184.38-.139.828.108 1.17l.527.737c.32.448.27 1.061-.12 1.45l-.773.774a1.125 1.125 0 0 1-1.45.12l-.737-.527c-.342-.247-.79-.292-1.17-.108a6.52 6.52 0 0 1-.287.126c-.397.163-.687.519-.757.943l-.149.894c-.09.542-.56.94-1.11.94h-1.093c-.55 0-1.02-.398-1.11-.94l-.149-.894c-.07-.424-.36-.78-.757-.943a6.52 6.52 0 0 1-.287-.126c-.38-.184-.828-.139-1.17.108l-.737.527a1.125 1.125 0 0 1-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.247-.342.292-.79.108-1.17a6.52 6.52 0 0 1-.126-.287c-.163-.397-.519-.687-.943-.757l-.894-.149a1.125 1.125 0 0 1-.94-1.11v-1.093c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.78-.36.943-.757.04-.097.08-.193.126-.287.184-.38.139-.828-.108-1.17l-.527-.737a1.125 1.125 0 0 1 .12-1.45l.773-.774a1.125 1.125 0 0 1 1.45-.12l.737.527c.342.247.79.292 1.17.108.094-.046.19-.086.287-.126.397-.163.687-.519.757-.943l.149-.894ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
+    help: 'Guàrdies i regles del repartiment.',
+    descripcio: 'Configura les guàrdies de pati per departament i les guàrdies del professorat.',
+  },
+];
+
+const tabs = [...CICLE, ...ALTRES];
 const pestanyaActual = computed(() => tabs.find((tab) => isActive(tab)) || null);
-const mostrarAvisDesactualitzat = computed(() => actualitzacioSheets.value?.desactualitzat === true);
-const mostrarBotoAvisSincronitzar = computed(() =>
-  mostrarAvisDesactualitzat.value && route.path !== '/admin/dades' && estatAutoSync.value !== 'sincronitzant'
-);
-const ultimaSyncSheets = computed(() => actualitzacioSheets.value?.ultimaSync || syncState.value?.syncedAt || '');
-const riscosCriticsSheets = computed(() => actualitzacioSheets.value?.riscosCritics || []);
-const titolAvisActualitzacio = computed(() =>
-  estatAutoSync.value === 'sincronitzant'
-    ? 'Sincronització automàtica en curs'
-    : riscosCriticsSheets.value.length
-    ? 'El full té errors: no s\'ha sincronitzat'
-    : actualitzacioSheets.value?.autoSyncPausada
-    ? 'Sincronització automàtica en pausa'
-    : estatAutoSync.value === 'error'
-    ? 'No s\'ha pogut sincronitzar automàticament'
-    : actualitzacioSheets.value?.senseReferencia ? 'Cal sincronitzar Google Sheets' : 'Canvis pendents a Google Sheets'
-);
-const detallAvisActualitzacio = computed(() => {
-  if (estatAutoSync.value === 'sincronitzant') {
-    return "S'han detectat canvis al full i s'estan aplicant automàticament.";
-  }
-  if (riscosCriticsSheets.value.length) {
-    const primers = riscosCriticsSheets.value.slice(0, 3).map((risc) => risc.resum).join('; ');
-    const total = riscosCriticsSheets.value.length;
-    return `${total} ${total === 1 ? 'problema greu' : 'problemes greus'} al full (${primers}${total > 3 ? '…' : ''}). Corregeix-los al full o revisa'ls a Dades importades.`;
-  }
-  if (actualitzacioSheets.value?.autoSyncPausada) {
-    return "Després de desfer una sincronització, els canvis del full no s'apliquen sols. Revisa'ls i sincronitza a Dades importades.";
-  }
-  if (estatAutoSync.value === 'error') {
-    return errorAutoSync.value || "Revisa la sincronització manualment.";
-  }
-  if (actualitzacioSheets.value?.senseReferencia) {
-    return "Encara no hi ha una referència de sincronització per a aquest curs. Sincronitza una vegada per activar l'avís automàtic.";
-  }
-  if (actualitzacioSheets.value?.origenCanviat) {
-    return 'Ha canviat el full de Google Sheets configurat. Cal sincronitzar abans de continuar.';
-  }
-  const classes = actualitzacioSheets.value?.totalClasses ?? 0;
-  const canvisClasses = actualitzacioSheets.value?.canvisClasses;
-  const canvisProfessors = actualitzacioSheets.value?.canvisProfessors;
-  const totalCanvis = (canvisClasses?.totalCanvis || 0) + (canvisProfessors?.totalCanvis || 0);
-  if (totalCanvis) {
-    const verb = totalCanvis === 1 ? "S'ha detectat" : "S'han detectat";
-    const total = totalCanvis === 1 ? '1 canvi' : `${totalCanvis} canvis`;
-    const parts = [];
-    if (canvisClasses?.totalCanvis) parts.push(`Classes: ${resumRecompteCanvis(canvisClasses)}`);
-    if (canvisProfessors?.totalCanvis) parts.push(`Professorat: ${resumRecompteCanvis(canvisProfessors)}`);
-    return `${verb} ${total} a Google Sheets (${parts.join(' · ')}).`;
-  }
-  return `Google Sheets té canvis pendents a Classes (${classes} files). Sincronitza abans de distribuir o exportar.`;
-});
 
-const detallsAvisActualitzacio = computed(() => {
-  const canvis = actualitzacioSheets.value?.canvisClasses;
-  if (!canvis?.detalls?.length || canvis.totalCanvis >= 10) return [];
-  return canvis.detalls;
-});
-
-const etiquetaRol = computed(() => {
+const navegacioAdmin = computed(() => {
+  const pct = percentAssignat.value;
+  const sense = classesSenseAssignar.value;
   const etiquetes = {
-    admin: 'Administració',
-    cap_departament: 'Cap de departament',
-    departament: 'Cap de departament',
-    professor: 'Professorat',
+    '/admin/cursos': cursStore.cursActiuId
+      ? { badge: cursStore.cursActiu?.nom || cursStore.cursActiuId, badgeClass: 'admin-nav-badge-ok' }
+      : { badge: 'Pendent', badgeClass: 'admin-nav-badge-warning', estat: 'warning' },
+    '/admin/quota': classesLive.value.length
+      ? { badge: `${formatDecimal(horesQuota.value)} h`, badgeClass: 'admin-nav-badge-info' }
+      : { badge: 'Buida', badgeClass: 'admin-nav-badge-muted' },
+    '/departament': pct === null
+      ? { badge: 'Sense dades', badgeClass: 'admin-nav-badge-muted' }
+      : pct === 100
+        ? { badge: 'Complet', badgeClass: 'admin-nav-badge-ok' }
+        : { badge: `${pct}%`, badgeClass: pct >= 80 ? 'admin-nav-badge-info' : 'admin-nav-badge-warning', estat: 'warning' },
+    '/admin/untis': sense === 0
+      ? { badge: 'Llest', badgeClass: pct === 100 ? 'admin-nav-badge-ok' : 'admin-nav-badge-muted' }
+      : { badge: `${sense} pend.`, badgeClass: 'admin-nav-badge-warning' },
   };
-  return etiquetes[authStore.rolActiu] || authStore.rolActiu || 'Sense rol';
+  const amb = (tab, pas) => ({ ...tab, pas, ...(etiquetes[tab.path] || {}) });
+  return [
+    { titol: 'Cicle del curs', tabs: CICLE.map((tab, index) => amb(tab, index + 1)) },
+    { titol: 'Altres', tabs: ALTRES.map((tab) => amb(tab, 0)) },
+  ];
 });
 
 const inicialUsuari = computed(() =>
   (authStore.usuari || authStore.email || authStore.rolActiu || 'U').toString().trim().charAt(0).toUpperCase()
 );
-const etiquetaCursActiu = computed(() =>
-  cursStore.cursActiu?.nom || cursStore.cursActiu?.id || cursStore.cursActiuId || 'Sense curs actiu'
-);
-const navegacioAdmin = computed(() => {
-  const pct = percentAssignat.value;
-  const tancats = departamentsTancats.value;
-  const total = totalDepartaments.value;
-  const sense = classesSenseAssignar.value;
-
-  const badgeRepartiment = pct === null
-    ? { text: 'Sense dades', cls: 'admin-nav-badge-muted' }
-    : pct === 100
-      ? { text: 'Complet', cls: 'admin-nav-badge-ok' }
-      : { text: `${pct}%`, cls: pct >= 80 ? 'admin-nav-badge-info' : 'admin-nav-badge-warning' };
-
-  const badgeTancament = !total
-    ? { text: 'Sense depts.', cls: 'admin-nav-badge-muted' }
-    : tancats === total
-      ? { text: 'Tot tancat', cls: 'admin-nav-badge-ok' }
-      : { text: `${tancats}/${total}`, cls: 'admin-nav-badge-info' };
-
-  const badgeUntis = sense === 0
-    ? { text: 'Llest', cls: pct === 100 ? 'admin-nav-badge-ok' : 'admin-nav-badge-muted' }
-    : { text: `${sense} pend.`, cls: 'admin-nav-badge-warning' };
-
-  const meta = new Map([
-    ['/admin/cursos', {
-      workflowHelp: 'Tria o crea el curs acadèmic actiu.',
-      estat: cursStore.cursActiuId ? 'ready' : 'warning',
-      badge: cursStore.cursActiuId ? etiquetaCursActiu.value : 'Pendent',
-      badgeClass: cursStore.cursActiuId ? 'admin-nav-badge-ok' : 'admin-nav-badge-warning',
-    }],
-    ['/admin/dades', settings.value.classesAQuota
-      ? {
-          workflowHelp: 'Consulta les dades. Ja no es llegeix Google Sheets.',
-          estat: 'ready',
-          badge: 'Dades',
-          badgeClass: 'admin-nav-badge-muted',
-        }
-      : {
-          workflowHelp: 'Importa i valida les dades des de Google Sheets.',
-          estat: mostrarAvisDesactualitzat.value ? 'warning' : 'ready',
-          badge: mostrarAvisDesactualitzat.value ? 'Revisar' : 'Al dia',
-          badgeClass: mostrarAvisDesactualitzat.value ? 'admin-nav-badge-warning' : 'admin-nav-badge-ok',
-        }],
-    ['/admin/professorat', {
-      workflowHelp: 'Altes, canvis, substitucions i baixes del professorat.',
-      estat: 'ready',
-      badge: 'Fitxes',
-      badgeClass: 'admin-nav-badge-info',
-    }],
-    ['/admin/quota', {
-      workflowHelp: 'La quota de cada departament.',
-      estat: 'ready',
-      badge: settings.value.classesAQuota ? 'Panell' : 'Del full',
-      badgeClass: settings.value.classesAQuota ? 'admin-nav-badge-info' : 'admin-nav-badge-muted',
-    }],
-    ['/admin/parametres', {
-      workflowHelp: 'Ajusta regles i paràmetres generals.',
-      estat: 'ready',
-      badge: 'Regles',
-      badgeClass: 'admin-nav-badge-info',
-    }],
-    ['/admin/usuaris', {
-      workflowHelp: 'Gestiona accessos i rols.',
-      estat: 'ready',
-      badge: 'Rols',
-      badgeClass: 'admin-nav-badge-info',
-    }],
-    ['/departament', {
-      workflowHelp: 'Assigna les hores amb els departaments.',
-      estat: pct !== null && pct < 100 ? 'warning' : 'ready',
-      badge: badgeRepartiment.text,
-      badgeClass: badgeRepartiment.cls,
-    }],
-    ['/admin/tancament', {
-      workflowHelp: 'Tanca departaments i bloqueja administració.',
-      estat: 'ready',
-      badge: badgeTancament.text,
-      badgeClass: badgeTancament.cls,
-    }],
-    ['/admin/untis', {
-      workflowHelp: 'Exporta i revisa fitxers Untis.',
-      estat: sense > 0 ? 'warning' : 'ready',
-      badge: badgeUntis.text,
-      badgeClass: badgeUntis.cls,
-    }],
-    ['/admin/seguiment', {
-      workflowHelp: 'Revisa validació final i informes.',
-      estat: sense > 0 ? 'warning' : 'ready',
-      badge: sense > 0 ? 'Pendent' : 'OK',
-      badgeClass: sense > 0 ? 'admin-nav-badge-warning' : 'admin-nav-badge-ok',
-    }],
-    ['/admin/consum', {
-      workflowHelp: 'Vigila consum i crèdits del pla gratuït.',
-      estat: 'ready',
-      badge: 'Quotes',
-      badgeClass: 'admin-nav-badge-info',
-    }],
-  ]);
-
-  return tabs.map((tab) => ({
-    ...tab,
-    ...(meta.get(tab.path) || {}),
-  }));
-});
 
 function isActive(tab) {
   return route.path === tab.path || tab.aliases?.includes(route.path);
@@ -494,318 +227,6 @@ function anarAdmin(path) {
   if (!path || route.path === path) return;
   router.push(path);
 }
-
-
-function formatDataHora(ts) {
-  if (!ts) return '';
-  return new Date(ts).toLocaleString('ca-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function resumRecompteCanvis(canvis) {
-  const parts = [];
-  if (canvis.noves) parts.push(`${canvis.noves} ${canvis.noves === 1 ? 'nova' : 'noves'}`);
-  if (canvis.modificades) parts.push(`${canvis.modificades} ${canvis.modificades === 1 ? 'modificada' : 'modificades'}`);
-  if (canvis.migracions) parts.push(`${canvis.migracions} ${canvis.migracions === 1 ? 'migració' : 'migracions'}`);
-  if (canvis.eliminades) parts.push(`${canvis.eliminades} ${canvis.eliminades === 1 ? 'eliminada' : 'eliminades'}`);
-  return parts.join(', ') || '0 canvis';
-}
-
-function formatRecompteSincronitzacio(parts) {
-  return parts.filter((part) => part.valor > 0).map((part) => `${part.valor} ${part.text}`).join(', ');
-}
-
-function resumToastSincronitzacio(result) {
-  const classes = formatRecompteSincronitzacio([
-    { valor: result.afegides || 0, text: 'classes afegides' },
-    { valor: result.actualitzades || 0, text: 'classes actualitzades' },
-    { valor: result.eliminades || 0, text: 'classes eliminades' },
-  ]);
-  const professors = formatRecompteSincronitzacio([
-    { valor: result.profsAfegits || 0, text: 'professors afegits' },
-    { valor: result.profsMigrats || 0, text: 'professors migrats' },
-    { valor: result.profsEliminats || 0, text: 'professors marcats com a fora del full' },
-  ]);
-  const departaments = formatRecompteSincronitzacio([
-    { valor: result.depsAfegits || 0, text: 'departaments afegits' },
-    { valor: result.depsEliminats || 0, text: 'departaments eliminats' },
-  ]);
-  return [
-    classes ? `Classes: ${classes}` : '',
-    professors ? `Professorat: ${professors}` : '',
-    departaments ? `Departaments: ${departaments}` : '',
-  ].filter(Boolean).join(' · ') || 'sense canvis aplicats';
-}
-
-function etiquetaCanviAvis(tipus) {
-  const etiquetes = {
-    nova: 'Nova',
-    modificada: 'Modificada',
-    eliminada: 'Eliminada',
-  };
-  return etiquetes[tipus] || 'Canvi';
-}
-
-function classeCanviAvis(tipus) {
-  if (tipus === 'nova') return 'bg-green-100 text-green-800';
-  if (tipus === 'eliminada') return 'bg-orange-100 text-orange-800';
-  return 'bg-blue-100 text-blue-800';
-}
-
-function reconciliarAvisAmbEstatGuardat() {
-  if (!actualitzacioSheets.value || !syncState.value) return;
-  const mateixOrigen =
-    !syncState.value.sheetsId || syncState.value.sheetsId === (settings.value.sheetsId || DEFAULT_APP_SETTINGS.sheetsId);
-  const signaturaActual =
-    actualitzacioSheets.value.signaturaCompletaActual || actualitzacioSheets.value.signaturaActual;
-  const signaturaGuardada =
-    syncState.value.sourceSignature || syncState.value.classesSignature;
-  if (mateixOrigen && signaturaActual && signaturaActual === signaturaGuardada) {
-    actualitzacioSheets.value = {
-      ...actualitzacioSheets.value,
-      desactualitzat: false,
-      senseReferencia: false,
-      ultimaSync: syncState.value.syncedAt || actualitzacioSheets.value.ultimaSync,
-    };
-    estatActualitzacio.value = 'ok';
-  }
-}
-
-function marcarAvisComSincronitzat(estatGuardat) {
-  if (!estatGuardat?.classesSignature && !estatGuardat?.sourceSignature) return;
-  if (estatAutoSync.value !== 'sincronitzant') estatAutoSync.value = 'idle';
-  errorAutoSync.value = '';
-  const signaturaCompleta = estatGuardat.sourceSignature || estatGuardat.classesSignature;
-  const signaturaClasses = estatGuardat.classesSignature || signaturaCompleta;
-  actualitzacioSheets.value = {
-    ...(actualitzacioSheets.value || {}),
-    desactualitzat: false,
-    senseReferencia: false,
-    origenCanviat: false,
-    sheetsCanviat: false,
-    signaturaActual: signaturaClasses,
-    signaturaGuardada: signaturaClasses,
-    signaturaCompletaActual: signaturaCompleta,
-    signaturaCompletaGuardada: signaturaCompleta,
-    signaturaProfessorsActual: estatGuardat.professorsSignature || actualitzacioSheets.value?.signaturaProfessorsActual || '',
-    signaturaProfessorsGuardada: estatGuardat.professorsSignature || actualitzacioSheets.value?.signaturaProfessorsGuardada || '',
-    sheetsId: estatGuardat.sheetsId || settings.value.sheetsId,
-    sheetsIdGuardat: estatGuardat.sheetsId || settings.value.sheetsId,
-    totalClasses: estatGuardat.totalClasses ?? actualitzacioSheets.value?.totalClasses ?? 0,
-    totalProfessors: estatGuardat.totalProfessors ?? actualitzacioSheets.value?.totalProfessors ?? 0,
-    ultimaSync: estatGuardat.syncedAt || actualitzacioSheets.value?.ultimaSync || '',
-    checkedAt: estatGuardat.checkedAt || estatGuardat.syncedAt || new Date().toISOString(),
-  };
-  estatActualitzacio.value = 'ok';
-  lastCheckAt = Date.now();
-}
-
-function potSincronitzarAutomaticament(result) {
-  if (!result?.desactualitzat) return false;
-  if (result.senseReferencia || result.origenCanviat) return false;
-  // Errors greus al full o pausa després de desfer: cal que un administrador ho revisi.
-  if (result.riscosCritics?.length || result.autoSyncPausada) return false;
-  if (settings.value.tancamentAdmin || cursStore.esBloqueig) return false;
-  if (!cursStore.cursActiuId || !settingsReady.value) return false;
-  return true;
-}
-
-async function sincronitzarAutomaticament(result) {
-  if (!potSincronitzarAutomaticament(result)) return null;
-
-  const signatura = [
-    cursStore.cursActiuId,
-    result.sheetsId,
-    result.signaturaCompletaActual || result.signaturaActual,
-  ].join('|');
-  const ara = Date.now();
-  if (autoSyncPromise) return autoSyncPromise;
-  if (signatura === lastAutoSyncSignature && ara - lastAutoSyncAt < AUTO_SYNC_COOLDOWN_MS) return null;
-
-  const cursIdSincronitzat = cursStore.cursActiuId;
-  const sheetsIdSincronitzat = settings.value.sheetsId;
-  lastAutoSyncSignature = signatura;
-  lastAutoSyncAt = ara;
-  estatAutoSync.value = 'sincronitzant';
-  errorAutoSync.value = '';
-
-  autoSyncPromise = sincronitzar(cursIdSincronitzat, {
-    actor: `auto · ${authStore.usuari || authStore.email || authStore.rol || 'admin'}`,
-    sheetsId: sheetsIdSincronitzat,
-  })
-    .then((syncResult) => {
-      if (syncResult?.estatFontGuardat === false) {
-        errorAutoSync.value = syncResult.errorEstatFont || "La sincronització s'ha aplicat, però no s'ha pogut guardar l'estat de referència.";
-        estatAutoSync.value = 'error';
-        toast.error(`Error en la sincronització automàtica: ${errorAutoSync.value}`);
-        return syncResult;
-      }
-      if (
-        cursStore.cursActiuId === cursIdSincronitzat &&
-        settings.value.sheetsId === sheetsIdSincronitzat
-      ) {
-        estatAutoSync.value = 'ok';
-        marcarAvisComSincronitzat({
-          sourceSignature: result.signaturaCompletaActual || result.signaturaActual,
-          classesSignature: result.signaturaActual,
-          professorsSignature: result.signaturaProfessorsActual,
-          sheetsId: sheetsIdSincronitzat,
-          totalClasses: syncResult.total,
-          totalProfessors: syncResult.totalProfs,
-          syncedAt: syncResult.timestamp,
-          checkedAt: syncResult.timestamp,
-        });
-        toast.ok(`Google Sheets sincronitzat automàticament. ${resumToastSincronitzacio(syncResult)}.`);
-      }
-      return syncResult;
-    })
-    .catch((error) => {
-      errorAutoSync.value = error.message || "No s'ha pogut sincronitzar automàticament.";
-      estatAutoSync.value = 'error';
-      toast.error(`Error en la sincronització automàtica: ${errorAutoSync.value}`);
-      return null;
-    })
-    .finally(() => {
-      autoSyncPromise = null;
-    });
-
-  return autoSyncPromise;
-}
-
-function programarComprovacio(delay = ACTIVITY_DELAY_MS, force = false) {
-  if (!cursStore.cursActiuId) return;
-  if (!settingsReady.value) return;
-  // La quota ja es fa al panell Quota: no hi ha cap full per vigilar.
-  if (settings.value.classesAQuota) {
-    actualitzacioSheets.value = null;
-    return;
-  }
-  if (typeof document !== 'undefined' && document.hidden && !force) return;
-  clearTimeout(activityTimer);
-  activityTimer = setTimeout(() => {
-    comprovarActualitzacioAutomatica({ force });
-  }, delay);
-}
-
-async function comprovarActualitzacioAutomatica({ force = false } = {}) {
-  if (!cursStore.cursActiuId) return null;
-  if (!settingsReady.value) return null;
-
-  const ara = Date.now();
-  if (!force && ara - lastCheckAt < CHECK_INTERVAL_MS) return null;
-  if (checkPromise && !force) return checkPromise;
-
-  const cursIdComprovat = cursStore.cursActiuId;
-  const sheetsIdComprovat = settings.value.sheetsId;
-  lastCheckAt = ara;
-  estatActualitzacio.value = 'comprovant';
-  errorActualitzacio.value = '';
-
-  const currentPromise = comprovarEstatActualitzacioSheets(cursIdComprovat, {
-    sheetsId: sheetsIdComprovat,
-  })
-    .then((result) => {
-      if (
-        cursStore.cursActiuId !== cursIdComprovat ||
-        settings.value.sheetsId !== sheetsIdComprovat
-      ) {
-        return null;
-      }
-
-      const estatGuardatActual = syncState.value;
-      const mateixaSignatura =
-        (estatGuardatActual?.sourceSignature || estatGuardatActual?.classesSignature)
-        && (result.signaturaCompletaActual || result.signaturaActual) === (estatGuardatActual.sourceSignature || estatGuardatActual.classesSignature)
-        && (!estatGuardatActual.sheetsId || estatGuardatActual.sheetsId === result.sheetsId);
-
-      actualitzacioSheets.value = mateixaSignatura
-        ? {
-            ...result,
-            desactualitzat: false,
-            senseReferencia: false,
-            ultimaSync: estatGuardatActual.syncedAt || result.ultimaSync,
-          }
-        : result;
-      estatActualitzacio.value = actualitzacioSheets.value.desactualitzat ? 'desactualitzat' : 'ok';
-      reconciliarAvisAmbEstatGuardat();
-      sincronitzarAutomaticament(actualitzacioSheets.value);
-      return result;
-    })
-    .catch((error) => {
-      errorActualitzacio.value = error.message || "No s'ha pogut comprovar Google Sheets.";
-      estatActualitzacio.value = 'error';
-      return null;
-    })
-    .finally(() => {
-      if (checkPromise === currentPromise) checkPromise = null;
-    });
-
-  checkPromise = currentPromise;
-  return checkPromise;
-}
-
-function registrarActivitatAdmin() {
-  programarComprovacio();
-}
-
-function onVisibilityChange() {
-  if (!document.hidden) programarComprovacio(0, true);
-}
-
-function setupAdminSubscriptions(cursId) {
-  settingsUnsubscribe?.();
-  syncStateUnsubscribe?.();
-  settingsUnsubscribe = null;
-  syncStateUnsubscribe = null;
-  settings.value = { ...DEFAULT_APP_SETTINGS };
-  syncState.value = null;
-  actualitzacioSheets.value = null;
-  settingsReady.value = false;
-  lastCheckAt = 0;
-  lastAutoSyncAt = 0;
-  lastAutoSyncSignature = '';
-  estatAutoSync.value = 'idle';
-  errorAutoSync.value = '';
-
-  if (!cursId) return;
-
-  settingsUnsubscribe = subscribeAppSettings(cursId, (value) => {
-    settings.value = value;
-    settingsReady.value = true;
-    programarComprovacio(0, true);
-  });
-  syncStateUnsubscribe = subscribeEstatSincronitzacio(cursId, (value) => {
-    syncState.value = value;
-    marcarAvisComSincronitzat(value);
-  });
-}
-
-watch(() => cursStore.cursActiuId, setupAdminSubscriptions, { immediate: true });
-watch(() => route.fullPath, () => programarComprovacio(0, true));
-
-onMounted(() => {
-  ACTIVITY_EVENTS.forEach((eventName) => {
-    window.addEventListener(eventName, registrarActivitatAdmin, { capture: true, passive: true });
-  });
-  window.addEventListener('focus', registrarActivitatAdmin);
-  document.addEventListener('visibilitychange', onVisibilityChange);
-});
-
-onUnmounted(() => {
-  clearTimeout(activityTimer);
-  settingsUnsubscribe?.();
-  syncStateUnsubscribe?.();
-  ACTIVITY_EVENTS.forEach((eventName) => {
-    window.removeEventListener(eventName, registrarActivitatAdmin, true);
-  });
-  window.removeEventListener('focus', registrarActivitatAdmin);
-  document.removeEventListener('visibilitychange', onVisibilityChange);
-});
 
 async function tancarSessio() {
   await authStore.tancarSessio();

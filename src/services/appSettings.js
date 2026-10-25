@@ -2,19 +2,10 @@ import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/fires
 import { db } from '../firebase';
 import { E2E_AUTH_BYPASS } from './e2e';
 
-export const DEFAULT_SHEETS_ID = '1uKYDn_2-KyHVJrlfLAHWvZ-YvPIRpv2SlSDUhdQfnA0';
-
 export const DEFAULT_APP_SETTINGS = {
-  tancamentAdmin: false,
-  departamentsTancats: {},
-  missatgeTancament: '',
   totalGuardiesPati: 30,
-  sheetsId: DEFAULT_SHEETS_ID,
-  sheetsIdAnterior: '',
   gpExclusions: null,  // null = usar exclusions hardcoded; [] o array = configuració admin
   gpReductions: {},    // { 'Departament': N } — membres efectius menys N
-  professoratAQuota: false, // true = el professorat es gestiona a Quota i no es llegeix la pestanya del full
-  classesAQuota: false, // true = la quota (classes) es fa al panell Quota i el full ja no es llegeix
 };
 
 const noop = () => {};

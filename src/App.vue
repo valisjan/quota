@@ -367,8 +367,8 @@ const links = computed(() => {
     { href: appLinks.retards, label: 'Retards' },
   ];
   if (admin) visibles.push({ to: '/admin', label: 'Administració' });
-  if (authStore.esCapDepartament()) visibles.push({ to: '/departament', label: 'Departaments' });
-  if (authStore.estaAutenticat) visibles.push({ to: '/resums', label: 'Resums' });
+  if (authStore.esCapDepartament()) visibles.push({ to: '/departament', label: 'Repartiment' });
+  if (authStore.estaAutenticat) visibles.push({ to: '/informes', label: 'Informes' });
   if (admin) visibles.push({ href: appLinks.pantalles, label: 'Pantalles' });
   return visibles;
 });
@@ -450,7 +450,7 @@ function canviarVistaRol(nouRol) {
     nouRol === 'professor' &&
     (route.path === '/' || route.path.startsWith('/admin') || route.path.startsWith('/departament'))
   ) {
-    router.push('/resums');
+    router.push('/informes');
   }
 }
 

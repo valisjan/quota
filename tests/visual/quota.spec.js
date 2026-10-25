@@ -21,25 +21,10 @@ test.describe('Quota', () => {
     page.on('dialog', (dialog) => dialog.accept());
     await page.goto('/admin/quota');
 
-    // Mentre les classes vénen del full, el panell és de consulta.
     await expect(page.getByRole('heading', { name: /^Quota del curs/ })).toBeVisible();
     await expect(page.locator('[data-departament]')).toHaveCount(3);
     await expect(targeta(page, 'Catala')).toContainText('5 h');
     await expect(targeta(page, 'Catala')).toContainText('Sobren 13 h');
-    await expect(page.locator('[data-nova]')).toHaveCount(0);
-    await expect(fila(page, 'Taller de lectura').locator('[data-col="hores"]')).toBeDisabled();
-
-    // El pas demana tenir abans el professorat a Quota.
-    await page.getByRole('button', { name: 'Fes la quota des de Quota' }).click();
-    await expect(page.getByText('Primer cal gestionar el professorat des de Quota')).toBeVisible();
-    await page.getByRole('button', { name: 'Cancel·la' }).click();
-    await navAdmin(page, 'Professorat').click();
-    await page.getByRole('button', { name: 'Gestiona el professorat des de Quota' }).click();
-    await page.getByRole('button', { name: 'Fes el pas' }).click();
-    await expect(page.getByTestId('nou-professor')).toBeVisible();
-    await navAdmin(page, 'Quota').click();
-    await page.getByRole('button', { name: 'Fes la quota des de Quota' }).click();
-    await page.getByRole('button', { name: 'Fes el pas' }).click();
     await expect(page.locator('[data-nova]')).toHaveCount(3);
 
     // Fila nova amb Enter, com en un full de càlcul: el grup es normalitza.
@@ -115,6 +100,39 @@ test.describe('Quota', () => {
     await page.keyboard.press('Escape');
     await expect(page.locator('.quota-panell-complet')).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath('quota.png'), fullPage: true });
+
+    expect(errors).toEqual([]);
+  });
+
+  test("el menú d'administració segueix el cicle del curs i les adreces antigues porten al lloc nou", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === 'chromium-mobile', 'Els textos del menú lateral només es veuen a pantalla gran.');
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+
+    // Importació (el full) ja no hi és: porta a la quota.
+    await page.goto('/admin/dades');
+    await expect(page).toHaveURL(/\/admin\/quota$/);
+    const etiquetes = await page.locator('.admin-nav-item .admin-nav-label').allTextContents();
+    expect(etiquetes).toEqual(['Curs', 'Professorat', 'Quota', 'Repartiment', 'Untis', 'Informes', 'Paràmetres']);
+
+    // Curs: l'estat de cada fase del cicle.
+    await navAdmin(page, 'Curs').click();
+    const cicle = page.getByTestId('estat-cicle');
+    await expect(cicle).toContainText('3 professors actius.');
+    await expect(cicle).toContainText('4 classes');
+    await expect(cicle.getByRole('link', { name: 'Prepara Untis' })).toBeVisible();
+
+    // Untis segueix al seu lloc.
+    await navAdmin(page, 'Untis').click();
+    await expect(page.getByText('Flux de treball Untis')).toBeVisible();
+
+    // Seguiment i Resums són ara Informes; l'administració hi veu també el seguiment.
+    await page.goto('/admin/seguiment');
+    await expect(page).toHaveURL(/\/informes$/);
+    await expect(page.getByRole('button', { name: 'Validació final', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Tutories', exact: true })).toBeVisible();
+    await page.goto('/admin/tancament');
+    await expect(page).toHaveURL(/\/departament$/);
 
     expect(errors).toEqual([]);
   });

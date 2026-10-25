@@ -525,6 +525,11 @@
     color: #8a6415;
   }
 
+  .admin-nav-grup {
+    @apply px-1 pt-2 text-xs font-bold uppercase tracking-wide first:pt-0;
+    color: var(--text-muted);
+  }
+
   .admin-nav-item-active {
     @apply shadow-sm;
     background:

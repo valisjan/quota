@@ -47,26 +47,6 @@
       </div>
     </section>
 
-    <!-- Encara s'importa del full -->
-    <section
-      v-if="carregat && !gestioAQuota && classes.length"
-      class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100"
-    >
-      <p class="font-semibold">La quota encara s'importa de la pestanya «Classes» del full de Google Sheets.</p>
-      <p class="mt-1 text-sm">
-        Mentre sigui així, aquí només es pot consultar: un canvi fet aquí es perdria a la sincronització següent.
-        Quan facis el pas, Quota deixarà de llegir el full i la quota de cada departament es farà en aquest panell.
-      </p>
-      <button
-        v-if="!cursStore.esBloqueig"
-        type="button"
-        class="mt-3 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700"
-        @click="modal = 'activar'"
-      >
-        Fes la quota des de Quota
-      </button>
-    </section>
-
     <!-- Curs sense classes -->
     <section v-if="carregat && !classes.length" class="card p-5 dark:border-slate-700 dark:bg-gray-800">
       <p class="font-semibold text-slate-900 dark:text-white">Aquest curs encara no té quota.</p>
@@ -92,7 +72,7 @@
     </section>
 
     <p
-      v-if="gestioAQuota && cursStore.esBloqueig"
+      v-if="cursStore.esBloqueig"
       class="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200"
     >
       El curs està bloquejat: la quota només es pot consultar.
@@ -322,37 +302,6 @@
       </div>
     </div>
 
-    <!-- Passar a fer la quota des de Quota -->
-    <div v-if="modal === 'activar'" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4" @click.self="modal = ''">
-      <div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
-        <h4 class="text-lg font-semibold text-slate-950 dark:text-white">Fes la quota des de Quota</h4>
-        <template v-if="professoratAQuota">
-          <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700 dark:text-slate-300">
-            <li>Quota deixarà de llegir el full de Google Sheets: ni la pestanya <strong>Classes</strong> ni la sincronització automàtica.</li>
-            <li>Les classes actuals es queden tal com són, amb el professorat que tenen assignat.</li>
-            <li>A partir d'ara, les files de cada departament s'afegeixen, es canvien i s'esborren en aquest panell.</li>
-          </ul>
-          <p class="mt-3 text-sm text-slate-600 dark:text-slate-400">
-            Abans, fes una última sincronització a <em>Importació</em> perquè hi hagi les dades més noves del full.
-          </p>
-        </template>
-        <p v-else class="mt-2 text-sm text-slate-700 dark:text-slate-300">
-          Primer cal gestionar el professorat des de Quota (pàgina <strong>Professorat</strong>): després el full ja no es farà servir per a res.
-        </p>
-        <div class="mt-6 flex justify-end gap-2">
-          <button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200" @click="modal = ''">Cancel·la</button>
-          <button
-            v-if="professoratAQuota"
-            type="button"
-            :disabled="desant > 0"
-            class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
-            @click="activarGestio"
-          >
-            Fes el pas
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -361,9 +310,8 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from
 import { useCursStore } from '../stores/curs';
 import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
-import { subscriureGestioProfessorat, subscriureProfessorat } from '../services/professorat';
+import { subscriureProfessorat } from '../services/professorat';
 import {
-  activarGestioClasses,
   actualitzarClasse,
   copiarQuotaDeCurs,
   crearClasses,
@@ -371,7 +319,6 @@ import {
   restaurarClasse,
   subscriureClasses,
   subscriureDepartaments,
-  subscriureGestioClasses,
 } from '../services/quota';
 import {
   HORES_PLACA,
@@ -416,8 +363,6 @@ function desarLocal(clau, valor) {
 const classes = ref([]);
 const professors = ref([]);
 const departaments = ref([]);
-const gestioAQuota = ref(false);
-const professoratAQuota = ref(false);
 const carregat = ref(false);
 const cerca = ref('');
 const seleccio = ref(llegirLocal(CLAU_SELECCIO, []));
@@ -427,13 +372,12 @@ const menu = ref(null);
 const arrossegant = ref(null);
 const destiArrossegament = ref('');
 const darrerEsborrat = ref(null);
-const modal = ref('');
 const desant = ref(0);
 const cursOrigen = ref('');
 let temporitzadorDesfer = null;
 
 const actor = computed(() => authStore.usuari || authStore.email || 'admin');
-const editable = computed(() => gestioAQuota.value && !cursStore.esBloqueig);
+const editable = computed(() => !cursStore.esBloqueig);
 const cursosOrigen = computed(() => (cursStore.cursos || []).filter((curs) => curs.id !== cursStore.cursActiuId));
 
 const resums = computed(() => resumDepartaments(
@@ -500,7 +444,7 @@ const esMulticurs = (classe) => Boolean(classe.subclasses?.length);
 
 function opcionsTipus(actual) {
   if (!actual || TIPUS_QUOTA.some((tipus) => tipus.codi === actual)) return TIPUS_QUOTA;
-  return [...TIPUS_QUOTA, { codi: actual, etiqueta: 'Tipus del full' }];
+  return [...TIPUS_QUOTA, { codi: actual, etiqueta: 'Tipus antic' }];
 }
 
 // --- Subscripcions -------------------------------------------------------------------
@@ -518,8 +462,6 @@ watch(() => cursStore.cursActiuId, (cursId) => {
     }, error('les classes')),
     subscriureDepartaments(cursId, (llista) => { departaments.value = llista; }, error('els departaments')),
     subscriureProfessorat(cursId, (llista) => { professors.value = llista; }, error('el professorat')),
-    subscriureGestioClasses(cursId, (valor) => { gestioAQuota.value = valor; }),
-    subscriureGestioProfessorat(cursId, (valor) => { professoratAQuota.value = valor; }),
   ];
   cursOrigen.value = cursosOrigen.value[0]?.id || '';
 }, { immediate: true });
@@ -531,7 +473,6 @@ watch(cursosOrigen, (llista) => {
 function teclaGlobal(event) {
   if (event.key !== 'Escape') return;
   if (menu.value) menu.value = null;
-  else if (modal.value) modal.value = '';
   else if (pantallaCompleta.value) pantallaCompleta.value = false;
 }
 
@@ -706,14 +647,6 @@ function deixarA(nom) {
 function acabarArrossegament() {
   arrossegant.value = null;
   destiArrossegament.value = '';
-}
-
-function activarGestio() {
-  executar(async () => {
-    await activarGestioClasses({ cursId: cursStore.cursActiuId, actor: actor.value });
-    modal.value = '';
-    toast.ok('La quota ja es fa des de Quota. El full de Google Sheets ja no es llegeix.');
-  });
 }
 
 function copiarCurs() {
