@@ -12,6 +12,7 @@ import { agruparClassesPerLlicoExport } from './lessonBuilder';
 import { comptaPerGrupPerTipus, esDesdoblamentDivisible, esSuportDivisible } from '../utils/tipus';
 import { guardesQueTocaFer } from '../utils/guardes';
 import { crearClassesDesdoblamentDivisible, crearClassesSuportDivisible } from '../utils/suportDivisible';
+import { E2E_AUTH_BYPASS, getE2ECollection } from './e2e';
 
 function cc(cursId, nom) { return collection(db, 'cursos', cursId, nom); }
 
@@ -1312,15 +1313,32 @@ function simularAssignacions(classes, professorsSimulacio) {
   });
 }
 
-export async function prepararExportUntis(cursId, { referenciaGpu002Text = '', referenciaGestibXmlText = '', simular = false, overrides = null } = {}) {
+// Classes i professorat del curs (en mode de prova, les dades en memòria).
+async function llegirDadesCurs(cursId) {
+  if (E2E_AUTH_BYPASS) {
+    return { classes: getE2ECollection('classes'), professors: getE2ECollection('professors') };
+  }
   const [snapClasses, snapProfessors] = await Promise.all([
     getDocs(cc(cursId, 'classes')),
     getDocs(cc(cursId, 'professors')),
   ]);
+  return {
+    classes: snapClasses.docs.map((d) => ({ id: d.id, ...d.data() })),
+    professors: snapProfessors.docs.map((d) => ({ id: d.id, ...d.data() })),
+  };
+}
 
+export async function prepararExportUntis(cursId, opcions = {}) {
+  const dades = await llegirDadesCurs(cursId);
+  return generarExportUntis({ ...dades, ...opcions });
+}
+
+// Genera els fitxers per a Untis a partir de les classes i el professorat d'un curs, sense
+// llegir res de Firestore (així es pot provar amb un curs complet inventat).
+export function generarExportUntis({ classes: classesCurs = [], professors: professorsCurs = [], referenciaGpu002Text = '', referenciaGestibXmlText = '', simular = false, overrides = null } = {}) {
   const referenciaGestib = referenciaGestibXmlText ? parseGestibXml(referenciaGestibXmlText) : null;
-  let professors = snapProfessors.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => !p.eliminatDelFull);
-  const rawClasses = snapClasses.docs.map((d) => ({ id: d.id, ...d.data() }));
+  let professors = professorsCurs.filter((p) => !p.eliminatDelFull);
+  const rawClasses = classesCurs;
   const reunionsCoordinacio = prepararReunionsCoordinacioDocent(rawClasses, referenciaGestib);
   const ccp = simular
     ? {
