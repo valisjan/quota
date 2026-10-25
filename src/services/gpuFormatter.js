@@ -1007,18 +1007,23 @@ function componentsLlico(classe, professors, codisProfessors, codisMateries, ref
 
   files.forEach((fila) => {
     const materiaGestib = trobarMateriaGestibAmbOverride(fila, referenciaGestib, overrides);
+    const teEnllac = Boolean(fila.gestib?.codis?.length);
     if (referenciaGestib && !materiaGestib) {
       pendents.push({
-        motiu: "Matèria no trobada a l'XML GestIB; exportada amb codi provisional",
+        motiu: teEnllac
+          ? 'La correspondència amb GestIB desada a la quota ja no encaixa (codi desaparegut o grup canviat); exportada amb codi provisional'
+          : "Matèria no trobada a l'XML GestIB; exportada amb codi provisional",
         classe: fila,
       });
-    } else if (referenciaGestib) {
-      // Una matèria triada només pel curs i el grup (sense cap semblança de nom) pot ser una
-      // altra: s'exporta igual, però s'avisa perquè es revisi o es posi a mà al mapeig.
+    } else if (referenciaGestib && !teEnllac && !esActivitatGeneradaExport(fila)) {
+      // Sense correspondència desada a la quota, el codi es dedueix (mapeig o semblança): s'exporta
+      // igual però s'avisa. Si només coincideixen el curs i el grup, pot ser una altra matèria.
       const correspondencia = explicarCorrespondenciaGestib(fila, referenciaGestib, overrides);
-      if (correspondencia.dubtosa && correspondencia.resultat) {
+      if (correspondencia.font !== 'manual') {
         pendents.push({
-          motiu: `Correspondència dubtosa (només coincideixen curs i grup): exportada com a ${correspondencia.resultat.codiUntis} · ${correspondencia.resultat.descripcio}`,
+          motiu: correspondencia.dubtosa
+            ? `Correspondència dubtosa (només coincideixen curs i grup): exportada com a ${materiaGestib.codiUntis} · ${materiaGestib.descripcio}`
+            : `Sense correspondència desada a la quota: exportada com a ${materiaGestib.codiUntis} per semblança`,
           classe: fila,
         });
       }
@@ -1048,6 +1053,28 @@ function componentsLlico(classe, professors, codisProfessors, codisMateries, ref
   });
 
   return components;
+}
+
+// Activitats que crea l'exportació (no són files de la quota): no porten correspondència desada.
+function esActivitatGeneradaExport(fila) {
+  return Boolean(fila._generadaGuardia || fila._generadaGuardiaPati || fila._atencioFamilies
+    || fila._reunioDepartament || fila._reunioCoordinacioDocent || fila._ccpCapsDepartament
+    || fila._descripcioSenseMateria);
+}
+
+// Les classes virtuals de suport i desdoblament divisible (fetes a partir de les assignacions
+// del professorat) hereten la correspondència de la fila de la quota del mateix curs, grup i matèria.
+function heretarEnllacGestib(virtuals, classesQuota) {
+  const ambEnllac = classesQuota.filter((classe) => classe.gestib?.codis?.length);
+  return virtuals.map((virtual) => {
+    if (virtual.gestib?.codis?.length) return virtual;
+    const grups = grupsClasse(virtual);
+    const origen = ambEnllac.find((classe) =>
+      normalitzar(classe.curs) === normalitzar(virtual.curs)
+      && normalitzar(classe.materia) === normalitzar(virtual.materia)
+      && grups.every((grup) => grupsClasse(classe).includes(grup)));
+    return origen ? { ...virtual, gestib: origen.gestib } : virtual;
+  });
 }
 
 function codiOrdreGrupLlico(classe) {
@@ -1387,8 +1414,8 @@ export function generarExportUntis({ classes: classesCurs = [], professors: prof
     : prepararReunionsDepartament(professors, referenciaGestib);
   const rawClassesExport = simular ? rawClasses : ccp.classes;
   const rawClassesSenseDivisibles = rawClassesExport.filter((classe) => !esSuportDivisible(classe.tipus) && !esDesdoblamentDivisible(classe.tipus));
-  const classesSuportDivisible = crearClassesSuportDivisible(professors, rawClassesExport);
-  const classesDesdoblamentDivisible = crearClassesDesdoblamentDivisible(professors, rawClassesExport);
+  const classesSuportDivisible = heretarEnllacGestib(crearClassesSuportDivisible(professors, rawClassesExport), rawClassesExport);
+  const classesDesdoblamentDivisible = heretarEnllacGestib(crearClassesDesdoblamentDivisible(professors, rawClassesExport), rawClassesExport);
   let classes = [
     ...afegirGuardiesPatiCalculades(rawClassesSenseDivisibles, professors),
     ...crearClassesGuardiesNormals(professors, rawClassesSenseDivisibles),

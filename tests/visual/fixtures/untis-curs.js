@@ -16,7 +16,8 @@ const BERNAT = 'BOSCH PONS, BERNAT';
 const CLARA = 'COLL VIDAL, CLARA';
 const DAVID = 'DURAN MAS, DAVID';
 
-const classe = (id, camps, professors = []) => ({
+// gestib: la correspondència amb el catàleg de GestIB desada a la fila.
+const classe = (id, camps, professors = [], gestib = null) => ({
   id,
   curs: '',
   grup: '',
@@ -27,21 +28,22 @@ const classe = (id, camps, professors = []) => ({
   ...camps,
   professors,
   professorAssignat: professors[0] || '',
+  ...(gestib ? { gestib } : {}),
 });
 
 export const CLASSES = [
-  classe('mat-a', { curs: '1ESO', grup: 'A', materia: 'Matemàtiques', hores: 4, departament: 'Matemàtiques' }, [ANNA]),
-  classe('mat-b', { curs: '1ESO', grup: 'B', materia: 'Matemàtiques', hores: 4, departament: 'Matemàtiques' }, [BERNAT]),
+  classe('mat-a', { curs: '1ESO', grup: 'A', materia: 'Matemàtiques', hores: 4, departament: 'Matemàtiques' }, [ANNA], { tipus: 'materia', codis: ['MAT-A-1E'] }),
+  classe('mat-b', { curs: '1ESO', grup: 'B', materia: 'Matemàtiques', hores: 4, departament: 'Matemàtiques' }, [BERNAT], { tipus: 'materia', codis: ['MAT-B-1E'] }),
   // Desdoblament: una de les hores de 1r A el grup es parteix i hi entra un segon professor.
-  classe('mat-d', { curs: '1ESO', grup: 'A', materia: 'Matemàtiques', hores: 1, tipus: 'D', departament: 'Matemàtiques' }, [BERNAT]),
-  classe('cat-a', { curs: '1ESO', grup: 'A', materia: 'Llengua catalana i literatura', hores: 3, departament: 'Llengua catalana' }, [CLARA]),
+  classe('mat-d', { curs: '1ESO', grup: 'A', materia: 'Matemàtiques', hores: 1, tipus: 'D', departament: 'Matemàtiques' }, [BERNAT], { tipus: 'materia', codis: ['MAT-A-1E'] }),
+  classe('cat-a', { curs: '1ESO', grup: 'A', materia: 'Llengua catalana i literatura', hores: 3, departament: 'Llengua catalana' }, [CLARA], { tipus: 'materia', codis: ['LCL-A-1E'] }),
   // Sense professor: no s'exporta i surt a la revisió.
-  classe('cat-b', { curs: '1ESO', grup: 'B', materia: 'Llengua catalana i literatura', hores: 3, departament: 'Llengua catalana' }),
-  classe('tec-ab', { curs: '1ESO', grup: 'A+B', materia: 'Tecnologia', hores: 2, departament: 'Tecnologia' }, [DAVID]),
+  classe('cat-b', { curs: '1ESO', grup: 'B', materia: 'Llengua catalana i literatura', hores: 3, departament: 'Llengua catalana' }, [], { tipus: 'materia', codis: ['LCL-B-1E'] }),
+  classe('tec-ab', { curs: '1ESO', grup: 'A+B', materia: 'Tecnologia', hores: 2, departament: 'Tecnologia' }, [DAVID], { tipus: 'materia', codis: ['TEC-AB-1E'] }),
   // Hores de càrrec i coordinació.
-  classe('cap-cat', { materia: 'Cap de departament', hores: 3, departament: 'Llengua catalana' }, [CLARA]),
+  classe('cap-cat', { materia: 'Cap de departament', hores: 3, departament: 'Llengua catalana' }, [CLARA], { tipus: 'activitat', codis: ['3'] }),
   classe('coord-tic', { materia: 'Coordinació TIC', hores: 2, tipus: 'C', departament: 'Tecnologia' }, [DAVID]),
-  classe('tut-a', { curs: '1ESO', materia: '*Tutoria 1ESOA', hores: 1, departament: 'Matemàtiques' }, [ANNA]),
+  classe('tut-a', { curs: '1ESO', materia: '*Tutoria 1ESOA', hores: 1, departament: 'Matemàtiques' }, [ANNA], { tipus: 'activitat', codis: ['62'] }),
 ];
 
 export const GESTIB_XML = `<?xml version="1.0" encoding="UTF-8"?>

@@ -4,6 +4,7 @@ import {
   netejarText, senseAccents, normalitzar, codiBase, codiUnic,
   grupsClasse, codisClasse, codisCurs, compactarGrup, grupSenseCurs, parseGpu002, expandirClassePerGrups,
 } from './untisUtils';
+import { resoldreEnllac } from '../utils/gestibCorrespondencia.js';
 
 function cc(cursId, nom) { return collection(db, 'cursos', cursId, nom); }
 
@@ -295,8 +296,24 @@ function scorarCandidatsGestib(classe, gestib) {
   });
 }
 
+// La correspondència desada a la fila de la quota (camp «gestib»), amb la forma que fa servir
+// l'exportació. undefined: la fila no en té; null: en té però ja no encaixa amb GestIB.
+export function materiaEnllacada(classe, gestib) {
+  if (!classe?.gestib?.codis?.length || !gestib) return undefined;
+  const element = resoldreEnllac(classe, gestib);
+  if (!element) return null;
+  if (classe.gestib.tipus !== 'activitat') return element;
+  return {
+    codiUntis: element.codiUntis,
+    descripcio: element.etiqueta || element.descripcio.replace(/^\*/, '').trim(),
+    cursDescripcio: '',
+  };
+}
+
 export function trobarMateriaGestib(classe, referenciaGestib) {
   if (!referenciaGestib) return null;
+  const enllacada = materiaEnllacada(classe, referenciaGestib);
+  if (enllacada !== undefined) return enllacada;
   const candidates = scorarCandidatsGestib(classe, referenciaGestib)
     .filter((item) => item.score >= 180)
     .sort((a, b) => b.score - a.score);
@@ -346,6 +363,9 @@ function trobarActivitatGestib(classe, gestib) {
 }
 
 export function trobarMateriaGestibAmbOverride(classe, gestib, overrides) {
+  // La correspondència desada a la fila mana sobre el mapeig i sobre qualsevol suposició.
+  const enllacada = materiaEnllacada(classe, gestib);
+  if (enllacada !== undefined) return enllacada;
   const senseAmbdos = !classe.curs && !classe.grup;
   const esActivitatPerMateria = (classe.materia || '').startsWith('*');
   if (overrides) {
@@ -376,6 +396,12 @@ export function trobarMateriaGestibAmbOverride(classe, gestib, overrides) {
 // d'exportar). font: 'manual' | 'materia' | 'activitat' | null; dubtosa: cal mirar-ho.
 export function explicarCorrespondenciaGestib(classe, gestib, overrides) {
   if (!gestib) return { resultat: null, font: null, dubtosa: false, motiu: 'Sense XML de GestIB' };
+  if (classe?.gestib?.codis?.length) {
+    const enllacada = materiaEnllacada(classe, gestib);
+    return enllacada
+      ? { resultat: enllacada, font: 'enllac', dubtosa: false, motiu: 'Correspondència desada a la quota' }
+      : { resultat: null, font: 'enllac', dubtosa: true, motiu: 'La correspondència desada ja no encaixa amb GestIB' };
+  }
   const resultat = trobarMateriaGestibAmbOverride(classe, gestib, overrides);
   if (overrides?.[clauOverride(classe)] && resultat) {
     return { resultat, font: 'manual', dubtosa: false, motiu: 'Correspondència manual' };
