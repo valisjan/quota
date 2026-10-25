@@ -7,20 +7,28 @@
           Sincronització amb Google Sheets
         </h3>
         <p class="mt-1 text-base text-slate-700">
-          <template v-if="settings.professoratAQuota">
+          <template v-if="settings.classesAQuota">
+            Ja no es fa servir: les classes es gestionen al panell <strong>Quota</strong> i el professorat a <strong>Professorat</strong>.
+          </template>
+          <template v-else-if="settings.professoratAQuota">
             Llegeix la pestanya <strong>Classes</strong>. El professorat es gestiona a la pàgina <strong>Professorat</strong>.
           </template>
           <template v-else>
             Llegeix les pestanyes <strong>Classes</strong> i <strong>Professorat</strong>.
           </template>
         </p>
-        <p class="mt-2 text-sm font-medium text-slate-600">
+        <p v-if="!settings.classesAQuota" class="mt-2 text-sm font-medium text-slate-600">
           L'administració comprova Google Sheets en segon pla i sincronitza automàticament quan detecta canvis al full configurat,
           tret que el full tingui errors greus (codis desplaçats, correus creuats...): llavors cal revisar-los aquí.
         </p>
       </div>
 
-      <div class="space-y-3 p-5">
+      <div v-if="settings.classesAQuota" class="p-5 text-sm text-slate-700 dark:text-slate-300">
+        Quota ja no llegeix el full de Google Sheets ni n'espera canvis. L'historial de sota recull les sincronitzacions que s'hi van fer.
+        <router-link to="/admin/quota" class="ml-1 font-semibold text-primary hover:underline">Ves al panell Quota</router-link>
+      </div>
+
+      <div v-else class="space-y-3 p-5">
         <div class="flex gap-3">
           <button
             @click="comprovar"

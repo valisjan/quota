@@ -9,6 +9,7 @@ import { esGuio, planificarProfessors } from '../utils/professorsSync';
 import { validarProfessorat } from '../utils/validacioProfessorat';
 import { llegirAppSettings } from './appSettings';
 import { reanomenarAClasses } from './professorat';
+import { classesGestionadesAQuota } from './quota';
 
 const APPS_SCRIPT_URL =
   'https://script.google.com/macros/s/AKfycbykQQXn6_oZ1iTtkASuHSA1P1kr5eSqGlIEdm5IBfuxSvr0wDh2I6Ec_yjILnHCXDKe/exec';
@@ -404,6 +405,15 @@ async function llegirSheets(nomPestanya, sheetsId = DEFAULT_SHEETS_ID) {
 export async function professoratGestionatAQuota(cursId) {
   if (E2E_AUTH_BYPASS || !cursId) return false;
   return Boolean((await llegirAppSettings(cursId)).professoratAQuota);
+}
+
+// Amb la quota feta al panell Quota, el full ja no es llegeix per a res.
+async function assegurarFullEnUs(cursId) {
+  if (await classesGestionadesAQuota(cursId)) {
+    const error = new Error('Les classes ja es gestionen al panell Quota: el full de Google Sheets ja no es llegeix.');
+    error.code = 'classes_a_quota';
+    throw error;
+  }
 }
 
 export async function llegirEstatFontSheets(sheetsId = DEFAULT_SHEETS_ID, { ambProfessorat = true } = {}) {
@@ -921,6 +931,17 @@ export async function comprovarEstatActualitzacioSheets(cursId, options = {}) {
     };
   }
 
+  if (await classesGestionadesAQuota(cursId)) {
+    return {
+      desactualitzat: false,
+      senseReferencia: false,
+      origenCanviat: false,
+      sheetsCanviat: false,
+      gestionatAQuota: true,
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
   const sheetsId = options.sheetsId || DEFAULT_SHEETS_ID;
   const ambProfessorat = !(await professoratGestionatAQuota(cursId));
   const [stateSnap, estatFont] = await Promise.all([
@@ -1064,6 +1085,7 @@ export async function comprovarDiscrepancies(cursId, options = {}) {
   if (!cursId) {
     throw new Error('No hi ha cap curs actiu per comprovar la sincronització.');
   }
+  await assegurarFullEnUs(cursId);
   const sheetsId = options.sheetsId || DEFAULT_SHEETS_ID;
   const ambProfessorat = !(await professoratGestionatAQuota(cursId));
   const estatFont = await llegirEstatFontSheets(sheetsId, { ambProfessorat });
@@ -1162,6 +1184,7 @@ export async function sincronitzar(cursId, options = {}) {
       estatFontGuardat: true,
     };
   }
+  await assegurarFullEnUs(cursId);
   const sheetsId = options.sheetsId || DEFAULT_SHEETS_ID;
 
   // 1. Activar Apps Script (per si ha de recalcular el full)

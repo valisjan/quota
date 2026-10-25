@@ -422,6 +422,9 @@ const tutorialUrl = computed(() => {
 const mainClass = computed(() =>
   route.path === '/'
     ? 'min-h-[calc(100vh-4.125rem)]'
+    // El panell Quota aprofita tota l'amplada per veure el màxim de departaments.
+    : route.path === '/admin/quota'
+    ? 'px-3 py-4 sm:px-4 sm:py-6'
     : 'mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-6 lg:px-8'
 );
 

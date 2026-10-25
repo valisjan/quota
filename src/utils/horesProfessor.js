@@ -1,4 +1,4 @@
-import { classeRequereixDosProfessors, exclosaDelRepartiment } from './tipus';
+import { classeRequereixDosProfessors, exclosaDelRepartiment } from './tipus.js';
 
 export function professorsClasse(classe) {
   if (Array.isArray(classe.professors) && classe.professors.length > 0)

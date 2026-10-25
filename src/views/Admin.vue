@@ -249,6 +249,13 @@ const tabs = [
     aliases: ['/admin/professors'],
   },
   {
+    path: '/admin/quota',
+    nom: 'Quota',
+    icon: 'M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z',
+    help: 'Panell',
+    descripcio: 'Les classes de cada departament amb les hores i el tipus, i el balanç amb el professorat.',
+  },
+  {
     path: '/admin/parametres',
     nom: 'Paràmetres',
     icon: 'M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.36.78.757.943.097.04.193.08.287.126.38.184.828.139 1.17-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.247.342-.292.79-.108 1.17.046.094.086.19.126.287.163.397.519.687.943.757l.894.149c.542.09.94.56.94 1.11v1.093c0 .55-.398 1.02-.94 1.11l-.894.149c-.424.07-.78.36-.943.757-.04.097-.08.193-.126.287-.184.38-.139.828.108 1.17l.527.737c.32.448.27 1.061-.12 1.45l-.773.774a1.125 1.125 0 0 1-1.45.12l-.737-.527c-.342-.247-.79-.292-1.17-.108a6.52 6.52 0 0 1-.287.126c-.397.163-.687.519-.757.943l-.149.894c-.09.542-.56.94-1.11.94h-1.093c-.55 0-1.02-.398-1.11-.94l-.149-.894c-.07-.424-.36-.78-.757-.943a6.52 6.52 0 0 1-.287-.126c-.38-.184-.828-.139-1.17.108l-.737.527a1.125 1.125 0 0 1-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.247-.342.292-.79.108-1.17a6.52 6.52 0 0 1-.126-.287c-.163-.397-.519-.687-.943-.757l-.894-.149a1.125 1.125 0 0 1-.94-1.11v-1.093c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.78-.36.943-.757.04-.097.08-.193.126-.287.184-.38.139-.828-.108-1.17l-.527-.737a1.125 1.125 0 0 1 .12-1.45l.773-.774a1.125 1.125 0 0 1 1.45-.12l.737.527c.342.247.79.292 1.17.108.094-.046.19-.086.287-.126.397-.163.687-.519.757-.943l.149-.894ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
@@ -404,17 +411,30 @@ const navegacioAdmin = computed(() => {
       badge: cursStore.cursActiuId ? etiquetaCursActiu.value : 'Pendent',
       badgeClass: cursStore.cursActiuId ? 'admin-nav-badge-ok' : 'admin-nav-badge-warning',
     }],
-    ['/admin/dades', {
-      workflowHelp: 'Importa i valida les dades des de Google Sheets.',
-      estat: mostrarAvisDesactualitzat.value ? 'warning' : 'ready',
-      badge: mostrarAvisDesactualitzat.value ? 'Revisar' : 'Al dia',
-      badgeClass: mostrarAvisDesactualitzat.value ? 'admin-nav-badge-warning' : 'admin-nav-badge-ok',
-    }],
+    ['/admin/dades', settings.value.classesAQuota
+      ? {
+          workflowHelp: 'Consulta les dades. Ja no es llegeix Google Sheets.',
+          estat: 'ready',
+          badge: 'Dades',
+          badgeClass: 'admin-nav-badge-muted',
+        }
+      : {
+          workflowHelp: 'Importa i valida les dades des de Google Sheets.',
+          estat: mostrarAvisDesactualitzat.value ? 'warning' : 'ready',
+          badge: mostrarAvisDesactualitzat.value ? 'Revisar' : 'Al dia',
+          badgeClass: mostrarAvisDesactualitzat.value ? 'admin-nav-badge-warning' : 'admin-nav-badge-ok',
+        }],
     ['/admin/professorat', {
       workflowHelp: 'Altes, canvis, substitucions i baixes del professorat.',
       estat: 'ready',
       badge: 'Fitxes',
       badgeClass: 'admin-nav-badge-info',
+    }],
+    ['/admin/quota', {
+      workflowHelp: 'La quota de cada departament.',
+      estat: 'ready',
+      badge: settings.value.classesAQuota ? 'Panell' : 'Del full',
+      badgeClass: settings.value.classesAQuota ? 'admin-nav-badge-info' : 'admin-nav-badge-muted',
     }],
     ['/admin/parametres', {
       workflowHelp: 'Ajusta regles i paràmetres generals.',
@@ -660,6 +680,11 @@ async function sincronitzarAutomaticament(result) {
 function programarComprovacio(delay = ACTIVITY_DELAY_MS, force = false) {
   if (!cursStore.cursActiuId) return;
   if (!settingsReady.value) return;
+  // La quota ja es fa al panell Quota: no hi ha cap full per vigilar.
+  if (settings.value.classesAQuota) {
+    actualitzacioSheets.value = null;
+    return;
+  }
   if (typeof document !== 'undefined' && document.hidden && !force) return;
   clearTimeout(activityTimer);
   activityTimer = setTimeout(() => {

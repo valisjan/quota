@@ -14,6 +14,7 @@ export const DEFAULT_APP_SETTINGS = {
   gpExclusions: null,  // null = usar exclusions hardcoded; [] o array = configuració admin
   gpReductions: {},    // { 'Departament': N } — membres efectius menys N
   professoratAQuota: false, // true = el professorat es gestiona a Quota i no es llegeix la pestanya del full
+  classesAQuota: false, // true = la quota (classes) es fa al panell Quota i el full ja no es llegeix
 };
 
 const noop = () => {};
