@@ -114,6 +114,20 @@ test.describe('Exportació a Untis', () => {
     expect(fitxer(exportacio, 'GPU000_REVISIO_EXPORTACIO.TXT')).toContain('Sense professor assignat: 1ESO | B | Llengua catalana i literatura | 3h');
   });
 
+  test('avisa quan una matèria només es tradueix pel curs i el grup, sense semblança de nom', async ({ page }) => {
+    const classes = [...CLASSES, {
+      id: 'llati', curs: '1ESO', grup: 'A', materia: 'Llatí de prova', hores: 2, tipus: '', departament: 'Matemàtiques',
+      departaments: ['Matemàtiques'], subclasses: [], participants: [], professors: ['ARNAU ROS, ANNA'], professorAssignat: 'ARNAU ROS, ANNA',
+    }];
+    const exportacio = await generar(page, { classes, professors: PROFESSORS, xml: GESTIB_XML });
+    expect(exportacio.error).toBeUndefined();
+    const dubtoses = exportacio.pendents.filter((pendent) => pendent.startsWith('Correspondència dubtosa'));
+    expect(dubtoses).toHaveLength(1);
+    expect(dubtoses[0]).toMatch(/exportada com a [A-Z]+-A-1E .*: Llatí de prova$/);
+    // Les que coincideixen pel nom no avisen.
+    expect(exportacio.pendents.filter((pendent) => pendent.startsWith('Correspondència') && pendent.endsWith(': Matemàtiques'))).toEqual([]);
+  });
+
   test("no genera res si un professor té una plaça que no és a l'XML de GestIB", async ({ page }) => {
     const professors = PROFESSORS.map((professor) => (professor.codiUntis === 'TEC1' ? { ...professor, codiUntis: 'TEC9' } : professor));
     const exportacio = await generar(page, { classes: CLASSES, professors, xml: GESTIB_XML });

@@ -258,6 +258,7 @@ function scorarCandidatsGestib(classe, gestib) {
 
   return pool.map((materia) => {
     let score = tenimCurs ? 100 : 40;
+    let puntsNom = 0;
     const grupMat = materia.grup;
     const baseNorm = normalitzar(materia.base);
     const descNorm = normalitzar(materia.descripcio);
@@ -278,18 +279,19 @@ function scorarCandidatsGestib(classe, gestib) {
       // a qualsevol matèria del curs - la descripció serà el criteri decisiu
     }
 
-    if (baseNorm === materiaNorm) score += 140;
-    else if (baseNorm.length >= 2 && materiaNorm.length >= 2 && (baseNorm.includes(materiaNorm) || materiaNorm.includes(baseNorm))) score += 80;
-    else if (materiaNorm.length >= 5 && descNorm.includes(materiaNorm)) score += 90;
-    else if (descNorm.includes(materiaNorm) || curtaNorm.includes(materiaNorm)) score += 55;
+    // Punts pel nom: sense cap coincidència de nom, curs i grup sols no diuen quina matèria és.
+    if (baseNorm === materiaNorm) puntsNom += 140;
+    else if (baseNorm.length >= 2 && materiaNorm.length >= 2 && (baseNorm.includes(materiaNorm) || materiaNorm.includes(baseNorm))) puntsNom += 80;
+    else if (materiaNorm.length >= 5 && descNorm.includes(materiaNorm)) puntsNom += 90;
+    else if (descNorm.includes(materiaNorm) || curtaNorm.includes(materiaNorm)) puntsNom += 55;
 
     const abreviatures = ABREVIATURES_MATERIA.get(materiaNorm);
     if (abreviatures) {
       const codi = normalitzar((materia.curta || '').split('-')[0]);
-      if (abreviatures.includes(codi)) score += 130;
+      if (abreviatures.includes(codi)) puntsNom += 130;
     }
 
-    return { materia, score };
+    return { materia, score: score + puntsNom, puntsNom };
   });
 }
 
@@ -368,6 +370,33 @@ export function trobarMateriaGestibAmbOverride(classe, gestib, overrides) {
   }
   if (!classe.grup || esActivitatPerMateria) return trobarActivitatGestib(classe, gestib);
   return null;
+}
+
+// Per què una fila de la quota ha acabat amb un codi GestIB o un altre (per revisar-ho abans
+// d'exportar). font: 'manual' | 'materia' | 'activitat' | null; dubtosa: cal mirar-ho.
+export function explicarCorrespondenciaGestib(classe, gestib, overrides) {
+  if (!gestib) return { resultat: null, font: null, dubtosa: false, motiu: 'Sense XML de GestIB' };
+  const resultat = trobarMateriaGestibAmbOverride(classe, gestib, overrides);
+  if (overrides?.[clauOverride(classe)] && resultat) {
+    return { resultat, font: 'manual', dubtosa: false, motiu: 'Correspondència manual' };
+  }
+  const senseAmbdos = !classe.curs && !classe.grup;
+  const esActivitatPerMateria = (classe.materia || '').startsWith('*');
+  if (!senseAmbdos && !esActivitatPerMateria) {
+    const millor = scorarCandidatsGestib(classe, gestib).sort((a, b) => b.score - a.score)[0];
+    if (resultat && millor?.materia === resultat) {
+      return {
+        resultat,
+        font: 'materia',
+        dubtosa: millor.puntsNom === 0,
+        motiu: millor.puntsNom === 0 ? 'Només coincideixen el curs i el grup, no el nom' : 'Coincideix el nom',
+        punts: millor.score,
+        puntsNom: millor.puntsNom,
+      };
+    }
+  }
+  if (resultat) return { resultat, font: 'activitat', dubtosa: false, motiu: 'Activitat de GestIB' };
+  return { resultat: null, font: null, dubtosa: true, motiu: "No es troba a l'XML de GestIB" };
 }
 
 export function clauOverride(classe) {

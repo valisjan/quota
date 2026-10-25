@@ -7,7 +7,7 @@ import {
   parseGpu002, parseCsvLine, limitsJornada, obtenirProfessorsClasse, descarregarText, expandirClassePerGrups,
   compararAbreviaturaUntis, dividirCodisGrupUntis, prepararComponentsGpu002,
 } from './untisUtils';
-import { parseGestibXml, trobarMateriaGestib, trobarMateriaGestibAmbOverride } from './gestibMapper';
+import { explicarCorrespondenciaGestib, parseGestibXml, trobarMateriaGestib, trobarMateriaGestibAmbOverride } from './gestibMapper';
 import { agruparClassesPerLlicoExport } from './lessonBuilder';
 import { comptaPerGrupPerTipus, esDesdoblamentDivisible, esSuportDivisible } from '../utils/tipus';
 import { guardesQueTocaFer } from '../utils/guardes';
@@ -1012,6 +1012,16 @@ function componentsLlico(classe, professors, codisProfessors, codisMateries, ref
         motiu: "Matèria no trobada a l'XML GestIB; exportada amb codi provisional",
         classe: fila,
       });
+    } else if (referenciaGestib) {
+      // Una matèria triada només pel curs i el grup (sense cap semblança de nom) pot ser una
+      // altra: s'exporta igual, però s'avisa perquè es revisi o es posi a mà al mapeig.
+      const correspondencia = explicarCorrespondenciaGestib(fila, referenciaGestib, overrides);
+      if (correspondencia.dubtosa && correspondencia.resultat) {
+        pendents.push({
+          motiu: `Correspondència dubtosa (només coincideixen curs i grup): exportada com a ${correspondencia.resultat.codiUntis} · ${correspondencia.resultat.descripcio}`,
+          classe: fila,
+        });
+      }
     }
 
     const codiMateria = codiMateriaClasse(fila, materiaGestib, codisMateries);
