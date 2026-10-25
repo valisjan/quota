@@ -524,15 +524,18 @@
 
   <div class="sidebar-section">Continguts</div>
 
-  <a href="#inici" class="tutorial-link"><span class="num">→</span> Accés i inici de sessió</a>
-  <a href="#s1" class="tutorial-link"><span class="num">1</span> Curs acadèmic</a>
-  <a href="#s2" class="tutorial-link"><span class="num">2</span> Importació des de Sheets</a>
-  <a href="#s3" class="tutorial-link"><span class="num">3</span> Paràmetres de guàrdies</a>
-  <a href="#s4" class="tutorial-link"><span class="num">4</span> Gestió d'usuaris</a>
-  <a href="#s5" class="tutorial-link"><span class="num">5</span> Repartiment d'hores</a>
-  <a href="#s6" class="tutorial-link"><span class="num">6</span> Tancament</a>
-  <a href="#s7" class="tutorial-link"><span class="num">7</span> Exportació a Untis</a>
-  <a href="#s8" class="tutorial-link"><span class="num">8</span> Seguiment i resums</a>
+  <a href="#inici" class="tutorial-link"><span class="num">→</span> Accés</a>
+  <a href="#cicle" class="tutorial-link"><span class="num">↻</span> El cicle del curs</a>
+  <a href="#s1" class="tutorial-link"><span class="num">1</span> Curs</a>
+  <a href="#s2" class="tutorial-link"><span class="num">2</span> Catàleg de GestIB</a>
+  <a href="#s3" class="tutorial-link"><span class="num">3</span> Professorat</a>
+  <a href="#s4" class="tutorial-link"><span class="num">4</span> Quota</a>
+  <a href="#s5" class="tutorial-link"><span class="num">5</span> Correspondència amb GestIB</a>
+  <a href="#s6" class="tutorial-link"><span class="num">6</span> Repartiment</a>
+  <a href="#s7" class="tutorial-link"><span class="num">7</span> Untis</a>
+  <a href="#s8" class="tutorial-link"><span class="num">8</span> Informes i paràmetres</a>
+  <a href="#canvi-de-curs" class="tutorial-link"><span class="num">✓</span> Llista del canvi de curs</a>
+  <a href="#problemes" class="tutorial-link"><span class="num">?</span> Problemes freqüents</a>
 
   <div class="sidebar-section">Altres recursos</div>
   <a href="tutorial-caps.html" class="tutorial-link"><span class="num">↗</span> Tutorial caps de dept.</a>
@@ -544,11 +547,11 @@
   <!-- Hero -->
   <div class="hero" id="inici">
     <h1>Guia de l'Administrador</h1>
-    <p>Guia completa per gestionar el procés de distribució d'hores del professorat a l'IES Josep Sureda i Blanes, des de la creació del curs fins a l'exportació a Untis.</p>
+    <p>Com es prepara el curs següent a Quota: del catàleg de GestIB a la quota de cada departament, el repartiment del professorat i els fitxers per importar a Untis.</p>
     <div class="hero-meta">
       <div class="hero-meta-item"><div class="hero-meta-dot"></div> Rol: <strong>admin</strong></div>
-      <div class="hero-meta-item"><div class="hero-meta-dot"></div> 8 passos seqüencials</div>
-      <div class="hero-meta-item"><div class="hero-meta-dot"></div> Google Sheets → Quota → Untis</div>
+      <div class="hero-meta-item"><div class="hero-meta-dot"></div> Es fa a final de curs (juny)</div>
+      <div class="hero-meta-item"><div class="hero-meta-dot"></div> GestIB → Quota → Untis</div>
     </div>
   </div>
 
@@ -556,451 +559,294 @@
   <div class="steps-bar">
     <div class="step-pill"><span class="n">1</span> Curs</div>
     <div class="step-arrow">→</div>
-    <div class="step-pill"><span class="n">2</span> Importació</div>
+    <div class="step-pill"><span class="n">2</span> GestIB</div>
     <div class="step-arrow">→</div>
-    <div class="step-pill"><span class="n">3</span> Paràmetres</div>
+    <div class="step-pill"><span class="n">3</span> Professorat</div>
     <div class="step-arrow">→</div>
-    <div class="step-pill"><span class="n">4</span> Usuaris</div>
+    <div class="step-pill"><span class="n">4</span> Quota</div>
     <div class="step-arrow">→</div>
     <div class="step-pill"><span class="n">5</span> Repartiment</div>
     <div class="step-arrow">→</div>
-    <div class="step-pill"><span class="n">6</span> Tancament</div>
-    <div class="step-arrow">→</div>
-    <div class="step-pill"><span class="n">7</span> Untis</div>
-    <div class="step-arrow">→</div>
-    <div class="step-pill"><span class="n">8</span> Seguiment</div>
+    <div class="step-pill"><span class="n">6</span> Untis</div>
   </div>
 
   <!-- Quick ref -->
   <div class="quick-ref">
     <div class="quick-ref-title">Accés ràpid</div>
     <div class="quick-ref-grid">
-      <div class="quick-ref-item"><span class="icon">🔐</span> Login: compte Google <code>@iesjosepsuredaiblanes.com</code></div>
-      <div class="quick-ref-item"><span class="icon">⚙️</span> Centre d'administració: <code>/admin</code></div>
+      <div class="quick-ref-item"><span class="icon">🔐</span> Entrada: compte Google <code>@iesjosepsuredaiblanes.com</code></div>
+      <div class="quick-ref-item"><span class="icon">⚙️</span> Administració: <code>/admin</code> (comença a <em>Curs</em>)</div>
       <div class="quick-ref-item"><span class="icon">📊</span> Repartiment: <code>/departament</code></div>
-      <div class="quick-ref-item"><span class="icon">📋</span> Resums imprimibles: <code>/resums</code></div>
+      <div class="quick-ref-item"><span class="icon">📋</span> Informes: <code>/informes</code></div>
     </div>
   </div>
 
-  <!-- Inici de sessió -->
+  <!-- Accés -->
   <div class="section">
     <div class="section-header">
       <div class="section-num" style="background: var(--brand-blue);">→</div>
       <div>
         <div class="section-title">Accés a l'aplicació</div>
-        <div class="section-subtitle">Autenticació amb Google</div>
+        <div class="section-subtitle">Compte de Google del centre</div>
       </div>
     </div>
     <div class="section-body">
       <ol class="steps">
-        <li>
-          <div class="step-dot"></div>
-          <div class="step-content">Obre el navegador i accedeix a <strong>quota.iessureda.com</strong>.</div>
-        </li>
-        <li>
-          <div class="step-dot"></div>
-          <div class="step-content">Fes clic al botó <strong>"Inicia sessió amb Google"</strong>. S'obrirà la finestra de Google per seleccionar el compte.</div>
-        </li>
-        <li>
-          <div class="step-dot"></div>
-          <div class="step-content">Selecciona el teu compte <strong>@iesjosepsuredaiblanes.com</strong>. Altres dominis no estan autoritzats.</div>
-        </li>
-        <li>
-          <div class="step-dot"></div>
-          <div class="step-content">Un cop identificat com a administrador, accediràs directament al <strong>centre d'administració</strong> (<code>/admin</code>).</div>
-        </li>
+        <li><div class="step-dot"></div><div class="step-content">Entra a <strong>quota.iessureda.com</strong> i prem <strong>Entrar amb Google</strong> amb el compte <strong>@iesjosepsuredaiblanes.com</strong>.</div></li>
+        <li><div class="step-dot"></div><div class="step-content">Amb el rol d'administració, el menú <strong>Administració</strong> obre el centre de control. Al menú lateral hi ha les fases del cicle numerades (Curs, Professorat, Quota, Repartiment, Untis) i, a sota, <strong>Informes</strong> i <strong>Paràmetres</strong>.</div></li>
       </ol>
-
       <div class="callout callout-info">
         <span class="callout-icon">ℹ️</span>
-        <div>Si un professor entra per primera vegada i no té rol assignat, veurà la pantalla d'espera. L'admin ha d'assignar-li el rol des de la secció <strong>Usuaris</strong>.</div>
+        <div>Qui pot entrar i amb quin rol es decideix a <strong>Professorat</strong>: cada fitxa porta el correu i els rols. Ja no hi ha pàgina d'Usuaris ni full de càlcul.</div>
       </div>
     </div>
   </div>
 
-  <!-- Pas 1: Curs acadèmic -->
+  <!-- El cicle -->
+  <div class="section" id="cicle">
+    <div class="section-header">
+      <div class="section-num" style="background: var(--green);">↻</div>
+      <div>
+        <div class="section-title">El cicle del curs</div>
+        <div class="section-subtitle">Què es fa, en quin ordre i on</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">La quota del curs següent es prepara a final de curs. L'ordre importa: cada fase fa servir el que ha deixat l'anterior.</p>
+      <table>
+        <thead><tr><th>Fase</th><th>Qui</th><th>Què</th></tr></thead>
+        <tbody>
+          <tr><td><strong>0. GestIB</strong> (fora de Quota)</td><td>Cap d'estudis</td><td>Es prepara GestIB del curs següent: les <strong>places</strong> (les cadires, no les persones), totes les <strong>matèries</strong> i les <strong>activitats</strong> que s'impartiran. Se n'exporta l'XML <em>exportacioDadesHoraris</em>.</td></tr>
+          <tr><td><strong>1. Curs</strong></td><td>Admin</td><td>Es crea el curs nou partint de l'actual: professorat i quota copiats, sense repartiment.</td></tr>
+          <tr><td><strong>2. Catàleg GestIB</strong></td><td>Admin</td><td>Es carrega l'XML al curs nou (panell Quota).</td></tr>
+          <tr><td><strong>3. Professorat</strong></td><td>Admin</td><td>Altes, baixes, jornades i la <strong>plaça</strong> de cada professor/a, que ha de ser una plaça de l'XML.</td></tr>
+          <tr><td><strong>4. Quota</strong></td><td>Cap d'estudis</td><td>Les classes de cada departament amb hores i tipus, i la <strong>correspondència de cada fila amb GestIB</strong>.</td></tr>
+          <tr><td><strong>5. Repartiment</strong></td><td>Caps de departament</td><td>Assignen les classes al professorat i tanquen el departament.</td></tr>
+          <tr><td><strong>6. Untis</strong></td><td>Admin</td><td>Es generen els fitxers GPU i s'importen a Untis.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <div>La pantalla <strong>Curs › Estat del cicle</strong> diu en quin punt és cada fase (fet o pendent) i porta a la pàgina on es fa. Convé fer un <strong>assaig a la primavera</strong>: crear un curs de prova, passar per totes les fases i esborrar-lo. Així qualsevol problema surt al maig i no al juny.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pas 1: Curs -->
   <div class="section" id="s1">
     <div class="section-header">
       <div class="section-num">1</div>
       <div>
-        <div class="section-title">Curs acadèmic</div>
-        <div class="section-subtitle">Crear i gestionar els cursos</div>
+        <div class="section-title">Curs</div>
+        <div class="section-subtitle">Curs nou, curs actiu i estat del cicle</div>
+        <div class="section-route">/admin/cursos</div>
       </div>
-      <div class="section-route">/admin/cursos</div>
     </div>
     <div class="section-body">
-      <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">Cada any acadèmic és un <em>curs</em> independent. El curs actiu és el que veuen els caps de departament. Tots els altres cursos queden arxivats.</p>
-
       <div class="subsection">
-        <div class="subsection-title">Crear un nou curs</div>
+        <div class="subsection-title">Crear el curs següent</div>
         <ol class="steps">
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">A la pantalla del Curs acadèmic, el sistema ja proposa automàticament el nom del curs següent (per exemple <code>2025-2026</code>).</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Confirma el nom (o modifica'l si cal) i fes clic a <strong>"Crear curs"</strong>.</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Un cop creat, fes clic a <strong>"Establir com a actiu"</strong> per activar-lo. El sistema marcarà l'anterior com a inactiu.</div>
-          </li>
+          <li><div class="step-dot"></div><div class="step-content">A <strong>Curs nou</strong> l'aplicació proposa el curs següent (per exemple <code>2027/2028</code>).</div></li>
+          <li><div class="step-dot"></div><div class="step-content">Deixa marcat <strong>«Parteix de …»</strong>: es copien el professorat actiu i la quota (classes, hores, tipus i correspondència amb GestIB) <strong>sense el repartiment</strong>.</div></li>
+          <li><div class="step-dot"></div><div class="step-content">Prem <strong>Crea</strong>. El curs nou queda com a curs actiu i obre l'<strong>Estat del cicle</strong>.</div></li>
         </ol>
-        <div class="callout callout-warning">
-          <span class="callout-icon">⚠️</span>
-          <div>Assegura't d'activar el nou curs <strong>abans</strong> de fer la sincronització des de Google Sheets. Les dades sempre s'importen al curs actiu.</div>
-        </div>
       </div>
-
       <div class="subsection">
-        <div class="subsection-title">Altres accions del curs</div>
-        <table>
-          <thead>
-            <tr><th>Acció</th><th>Quan usar-la</th><th>Reversible?</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Bloquejar / Desbloquejar</strong></td>
-              <td>Impedeix qualsevol modificació d'un curs tancat. Útil per arxivar anys anteriors.</td>
-              <td><span class="badge badge-green">Sí</span></td>
-            </tr>
-            <tr>
-              <td><strong>Esborrar assignacions</strong></td>
-              <td>Reseteja totes les assignacions de professors, tutories, coordinacions i guàrdies, sense eliminar les classes importades.</td>
-              <td><span class="badge badge-red">No</span></td>
-            </tr>
-            <tr>
-              <td><strong>Eliminar curs</strong></td>
-              <td>Esborra el curs i totes les seves dades. Requereix confirmar escrivint el nom exacte del curs.</td>
-              <td><span class="badge badge-red">No</span></td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="callout callout-danger">
-          <span class="callout-icon">🛑</span>
-          <div><strong>Esborrar assignacions</strong> i <strong>Eliminar curs</strong> són accions permanents. El sistema demanarà confirmació escrivint una frase de seguretat.</div>
-        </div>
+        <div class="subsection-title">Curs actiu i bloqueig</div>
+        <p>A <strong>Curs acadèmic</strong> es tria el curs actiu (el selector de dalt fa el mateix) i es pot <strong>bloquejar</strong> un curs tancat: tot hi queda de consulta.</p>
+      </div>
+      <div class="callout callout-warning">
+        <span class="callout-icon">⚠️</span>
+        <div><strong>Permisos d'accés.</strong> Només el <strong>curs vigent</strong> (el del calendari escolar) canvia qui pot entrar a les aplicacions. Preparar el curs següent al juny no treu ni dona accés a ningú fins al setembre.</div>
+      </div>
+      <div class="callout callout-danger">
+        <span class="callout-icon">⛔</span>
+        <div><strong>Borrat total</strong> elimina un curs sencer. No es pot fer amb el curs vigent (Guàrdies, Pantalles i Retards en fan servir les dades). Fes-lo servir només per a cursos de prova. La casella de treure també els permisos d'accés va desmarcada.</div>
+      </div>
+      <div class="subsection">
+        <div class="subsection-title">Neteja d'assignacions</div>
+        <p>Buida el repartiment del curs actiu (professorat assignat, guàrdies de pati, PALIC, suports i desdoblaments divisibles) sense tocar la quota ni el professorat. Demana escriure <code>ESBORRAR ASSIGNACIONS</code>.</p>
       </div>
     </div>
   </div>
 
-  <!-- Pas 2: Importació -->
+  <!-- Pas 2: GestIB -->
   <div class="section" id="s2">
     <div class="section-header">
       <div class="section-num">2</div>
       <div>
-        <div class="section-title">Importació des de Google Sheets</div>
-        <div class="section-subtitle">Sincronitzar classes i professorat</div>
+        <div class="section-title">Catàleg de GestIB</div>
+        <div class="section-subtitle">L'XML amb les places, matèries i activitats del curs</div>
+        <div class="section-route">/admin/quota</div>
       </div>
-      <div class="section-route">/admin/dades</div>
     </div>
     <div class="section-body">
-      <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">Les dades provenen del full de càlcul de Google Sheets. L'aplicació comprova el full en segon pla i, si detecta canvis al full configurat, els sincronitza automàticament.</p>
-
-      <div class="subsection">
-        <div class="subsection-title">Estructura del Google Sheet requerida</div>
-        <table>
-          <thead>
-            <tr><th>Pestanya</th><th>Columnes</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Resultado</strong></td>
-              <td><code>CURS</code> · <code>GRUP</code> · <code>MATERIA</code> · <code>HORES</code> · <code>DEPARTAMENT</code> · <code>TIPUS</code></td>
-            </tr>
-            <tr>
-              <td><strong>Professorat</strong></td>
-              <td><code>NOM</code> · <code>DEPARTAMENT</code> · (opcional: <code>EMAIL</code> · <code>ROL</code>)</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-title">Comprovació automàtica</div>
-        <ol class="steps">
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Quan un administrador entra a l'àrea d'administració, el sistema consulta el Sheet configurat i el compara amb la base de dades actual.</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">La comprovació detecta canvis tant a <strong>Classes</strong> com a <strong>Professorat</strong>: altes, modificacions, baixes i migracions de codi Untis.</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Si hi ha canvis, la sincronització s'executa automàticament i queda registrada a l'historial.</div>
-          </li>
-        </ol>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-title">Sincronització manual</div>
-        <ol class="steps">
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">El botó <strong>"Comprovar canvis"</strong> continua disponible per veure el resum abans d'aplicar res manualment.</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">El botó <strong>"Sincronitzar"</strong> serveix per forçar una sincronització puntual si cal.</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">El sistema importa classes, professorat i departaments. Les assignacions existents es <strong>conserven</strong> quan la classe es pot emparellar amb el full.</div>
-          </li>
-        </ol>
-        <div class="callout callout-tip">
-          <span class="callout-icon">✅</span>
-          <div>La sincronització automàtica no s'executa si el curs està bloquejat, si l'administració està tancada o si ha canviat l'ID del Google Sheet. En aquests casos es manté l'avís perquè un administrador ho revisi.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-title">Visualitzar les dades importades</div>
-        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">A <code>/admin/dades</code> pots revisar tot el que s'ha importat, amb filtres per departament, tipus i professor.</p>
-        <table>
-          <thead>
-            <tr><th>Pestanya</th><th>Conté</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Classes</strong></td>
-              <td>Totes les classes amb curs, grup, matèria, hores, tipus i professor assignat. Filtrable per departament, curs, tipus i professor.</td>
-            </tr>
-            <tr>
-              <td><strong>Professorat</strong></td>
-              <td>Llista de professors amb departament, jornada (sencera / mitja / reducció), preferència horària i comentaris.</td>
-            </tr>
-            <tr>
-              <td><strong>Departaments</strong></td>
-              <td>Departaments detectats automàticament amb el nombre de professors de cadascun.</td>
-            </tr>
-          </tbody>
-        </table>
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">GestIB es prepara abans que la quota. El seu XML és el vocabulari de tot el procés: les places del professorat, les matèries (per grup o per bloc de grups) i les activitats (càrrecs, coordinacions, reduccions...).</p>
+      <ol class="steps">
+        <li><div class="step-dot"></div><div class="step-content">A GestIB, exporta les dades d'horaris del curs següent: fitxer <code>exportacioDadesHoraris … .xml</code>.</div></li>
+        <li><div class="step-dot"></div><div class="step-content">A Quota, amb el curs nou actiu, obre <strong>Quota</strong>. Si el curs no té catàleg, el panell ho diu: prem <strong>Carrega l'XML de GestIB</strong> i tria el fitxer.</div></li>
+        <li><div class="step-dot"></div><div class="step-content">L'XML queda desat al curs. La pàgina <strong>Untis</strong> fa servir el mateix. Si GestIB canvia, torna'l a carregar amb <strong>Canvia l'XML</strong>.</div></li>
+      </ol>
+      <table>
+        <thead><tr><th>A l'XML</th><th>Per a què serveix a Quota</th></tr></thead>
+        <tbody>
+          <tr><td><code>PLACA</code> (curta: <code>MAT1</code>, <code>VICE</code>...)</td><td>La plaça de cada fitxa de Professorat. L'exportació s'atura si algú té una plaça que no hi és.</td></tr>
+          <tr><td><code>MATERIA</code> (curta: <code>MAT-A-1E</code>, <code>TFCR-BD-3E</code>...)</td><td>Les classes de la quota s'hi relacionen. Una matèria pot ser d'un grup (A) o d'un bloc (BD, ACE1).</td></tr>
+          <tr><td><code>ACTIVITAT</code> (<code>*Tutoria</code>, <code>*Dedicació a coordinació</code>...)</td><td>Les files de càrrecs i reduccions. L'asterisc indica activitat lectiva.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <div>Les abreviatures de les matèries es mantenen d'un curs a l'altre. Si GestIB les canvia (canvi de currículum), les files afectades sortiran marcades amb <strong>!</strong> a la quota.</div>
       </div>
     </div>
   </div>
 
-  <!-- Pas 3: Paràmetres -->
+  <!-- Pas 3: Professorat -->
   <div class="section" id="s3">
     <div class="section-header">
       <div class="section-num">3</div>
       <div>
-        <div class="section-title">Paràmetres de guàrdies</div>
-        <div class="section-subtitle">Configurar guàrdies de pati i passadís</div>
+        <div class="section-title">Professorat</div>
+        <div class="section-subtitle">Fitxes, rols i accés a les aplicacions</div>
+        <div class="section-route">/admin/professorat</div>
       </div>
-      <div class="section-route">/admin/parametres</div>
     </div>
     <div class="section-body">
-
-      <div class="subsection">
-        <div class="subsection-title">Guàrdies de pati (GP)</div>
-        <ol class="steps">
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Introdueix el <strong>total de guàrdies de pati</strong> a distribuir entre tots els departaments.</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Indica quins departaments participen i si algun té reducció del nombre de membres comptats.</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">El sistema calcula automàticament la <strong>quota per departament</strong> proporcional al nombre de membres efectius.</div>
-          </li>
-        </ol>
-        <div class="callout callout-info">
-          <span class="callout-icon">ℹ️</span>
-          <div>Els departaments d'<strong>Agrobiojardineria</strong> i de cicles d'Alimentació estan exclosos automàticament de les guàrdies de pati.</div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-title">Guàrdies de passadís (GC)</div>
-        <table>
-          <thead>
-            <tr><th>Criteri</th><th>Valor per defecte</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Guàrdies per professor</td><td>4 (2 si és tutor)</td></tr>
-            <tr><td>Reducció per comissió</td><td>−1 guàrdia</td></tr>
-            <tr><td>Reducció per guàrdia de pati</td><td>−1 guàrdia</td></tr>
-            <tr><td>Reducció per guàrdia passadís addicional</td><td>−1 guàrdia</td></tr>
-          </tbody>
-        </table>
-        <p style="color: var(--text-secondary); font-size: 0.87rem; margin-top: 0.75rem;">Pots marcar professors individuals com a <strong>exempts</strong> i ajustar reduccions manualment des d'aquesta pantalla.</p>
+      <ul style="margin-left: 1.25rem; line-height: 1.8;">
+        <li><strong>Nou professor/a</strong>: nom (COGNOMS, NOM), correu, departaments (el primer és el principal), jornada, <strong>plaça</strong> (codi Untis = <code>PLACA</code> curta de GestIB) i rols.</li>
+        <li><strong>Rols</strong>: Administració, Cap de departament i PSC (Retards). Tothom és professor/a. L'antic «compte de departament» ara és cap de departament.</li>
+        <li><strong>Substitueix</strong>: el substitut ocupa la mateixa plaça i hereta les classes; el titular passa a <em>Anteriors</em> i es pot reactivar.</li>
+        <li><strong>Desactiva</strong>: no s'esborra; passa a Anteriors i, al curs vigent, perd l'accés.</li>
+        <li><strong>Comptes sense fitxa</strong>: l'administració afegida a mà i qui ha intentat entrar sense ser a la llista (amb <em>Crea'n la fitxa</em>).</li>
+        <li>Si surt l'avís <strong>«Els permisos d'accés no coincideixen»</strong>, prem <em>Revisa'ls</em> › <em>Aplica</em>.</li>
+      </ul>
+      <div class="callout callout-warning">
+        <span class="callout-icon">⚠️</span>
+        <div>Abans de generar Untis, totes les places han d'existir a l'XML de GestIB. Una plaça nova (per exemple una vacant) s'ha de crear primer a GestIB.</div>
       </div>
     </div>
   </div>
 
-  <!-- Pas 4: Usuaris -->
+  <!-- Pas 4: Quota -->
   <div class="section" id="s4">
     <div class="section-header">
       <div class="section-num">4</div>
       <div>
-        <div class="section-title">Gestió d'usuaris</div>
-        <div class="section-subtitle">Assignar rols i departaments al professorat</div>
+        <div class="section-title">Quota</div>
+        <div class="section-subtitle">Les classes de cada departament, en un sol tauler</div>
+        <div class="section-route">/admin/quota</div>
       </div>
-      <div class="section-route">/admin/usuaris</div>
     </div>
     <div class="section-body">
-      <div class="subsection">
-        <div class="subsection-title">Rols disponibles</div>
-        <div class="role-grid">
-          <div class="role-card" style="border-color: #bfdbfe;">
-            <div class="role-card-title">🔑 admin</div>
-            <div class="role-card-desc">Accés complet al centre d'administració i a tots els departaments.</div>
-          </div>
-          <div class="role-card" style="border-color: #bbf7d0;">
-            <div class="role-card-title">🏢 cap_departament</div>
-            <div class="role-card-desc">Pot distribuir hores al seu departament i tancar-lo.</div>
-          </div>
-          <div class="role-card" style="border-color: #fde68a;">
-            <div class="role-card-title">👤 professor</div>
-            <div class="role-card-desc">Accés de només lectura als resums i distribució.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-title">Pre-autoritzar professors des de Google Sheets</div>
-        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">El mètode més eficient és afegir dues columnes al full <strong>Professorat</strong>:</p>
-        <table>
-          <thead>
-            <tr><th>Columna F</th><th>Columna G</th><th>Resultat</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><code>EMAIL</code></td>
-              <td><code>ROL</code></td>
-              <td>Al primer login, el rol s'assigna automàticament.</td>
-            </tr>
-            <tr>
-              <td>joan@iesjosepsuredaiblanes.com</td>
-              <td>cap_departament</td>
-              <td>Joan entrarà directament com a cap de departament.</td>
-            </tr>
-            <tr>
-              <td>maria@iesjosepsuredaiblanes.com</td>
-              <td>professor</td>
-              <td>Maria entrarà en mode lectura.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-title">Aprovar usuaris pendents</div>
-        <ol class="steps">
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">A la secció <strong>"Pendents d'aprovació"</strong> veuràs els professors que han fet login però no tenen rol.</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Per cada usuari, fes clic al rol corresponent: <strong>Admin</strong>, <strong>Cap de departament</strong> (selecciona el dept.) o <strong>Professor</strong>.</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Si l'usuari no hauria de tenir accés, fes clic a <strong>"Rebutjar"</strong> per eliminar-lo.</div>
-          </li>
-        </ol>
-        <div class="callout callout-warning">
-          <span class="callout-icon">⚠️</span>
-          <div>Un admin no pot canviar el seu propi rol. Per evitar quedar-se sense accés, assegura't que sempre hi ha almenys un altre compte admin.</div>
-        </div>
-      </div>
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">Cada departament és una targeta amb les seves files: curs, grup, matèria, hores i tipus. A dalt, la tira de departaments resumeix hores, places (hores/18) i el balanç amb el professorat: <span class="badge badge-red">Falten</span> <span class="badge badge-blue">Sobren</span> <span class="badge badge-green">Quadra</span>.</p>
+      <ul style="margin-left: 1.25rem; line-height: 1.8;">
+        <li><strong>Editar</strong>: com un full de càlcul. Enter baixa a la fila següent. La fila de baix de cada targeta n'afegeix una de nova (els noms del catàleg de GestIB surten com a suggeriment).</li>
+        <li><strong>Grups</strong>: <code>BDF</code> es desa com <code>B+D+F</code>. Una fila de diversos grups suma les hores de tots (Matemàtiques 1r A+C+E de 12 h = 4 h per grup).</li>
+        <li><strong>Moure</strong> una fila a un altre departament: arrossega-la per la nansa (⋮⋮) a la targeta o a la tira, o fes servir el menú ⋯.</li>
+        <li><strong>Comparar</strong>: toca dos o tres departaments a la tira per veure'ls de costat (intercanvis d'hores).</li>
+        <li><strong>Enganxar</strong> files copiades d'un full de càlcul (curs, grup, matèria, hores, tipus) les afegeix al departament.</li>
+        <li><strong>Esborrar</strong> es pot desfer. Una fila amb professorat assignat demana confirmació.</li>
+        <li><strong>Pantalla completa</strong> per veure més departaments alhora.</li>
+      </ul>
+      <table>
+        <thead><tr><th>Tipus</th><th>Significat</th></tr></thead>
+        <tbody>
+          <tr><td>(cap)</td><td>Classe normal</td></tr>
+          <tr><td>O, O1–O4</td><td>Optativa (i franja)</td></tr>
+          <tr><td>T</td><td>Optativa compartida (dos departaments)</td></tr>
+          <tr><td>A1</td><td>Autodesdoblament</td></tr>
+          <tr><td>D / DD</td><td>Desdoblament / desdoblament divisible</td></tr>
+          <tr><td>CD</td><td>Codocència</td></tr>
+          <tr><td>F</td><td>Flexible</td></tr>
+          <tr><td>S / SD</td><td>Suport / suport divisible</td></tr>
+          <tr><td>C / CO</td><td>Coordinació (amb membres / sense) · no va a Untis</td></tr>
+          <tr><td>PALIC</td><td>Hores de PALIC</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <!-- Pas 5: Repartiment -->
+  <!-- Pas 5: Correspondència -->
   <div class="section" id="s5">
     <div class="section-header">
       <div class="section-num">5</div>
       <div>
-        <div class="section-title">Repartiment d'hores</div>
-        <div class="section-subtitle">Supervisió del procés de distribució</div>
+        <div class="section-title">Correspondència amb GestIB</div>
+        <div class="section-subtitle">A quina matèria o activitat de GestIB correspon cada fila</div>
+        <div class="section-route">/admin/quota · columna G</div>
       </div>
-      <div class="section-route">/departament</div>
     </div>
     <div class="section-body">
-      <p style="color: var(--text-secondary); margin-bottom: 1rem;">Com a administrador, tens accés a <strong>tots</strong> els departaments, igual que els caps. Pots distribuir hores en qualsevol departament i resoldre incidències.</p>
-
-      <div class="callout callout-info">
-        <span class="callout-icon">ℹ️</span>
-        <div>El flux detallat del repartiment d'hores es descriu al <a href="tutorial-caps.html" style="color: var(--primary); font-weight: 600;">Tutorial de Caps de Departament</a>. Com a admin, funciona exactament igual però tens accés a tots els departaments.</div>
-      </div>
-
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">És el que després va a Untis. Es tria una vegada, es desa a la fila i es copia al curs següent. L'exportació no endevina res: fa servir aquesta correspondència.</p>
+      <table>
+        <thead><tr><th>Columna G</th><th>Vol dir</th></tr></thead>
+        <tbody>
+          <tr><td><strong style="color:#15803d;">✓</strong></td><td>Correspondència desada i vàlida.</td></tr>
+          <tr><td><strong style="color:#be123c;">!</strong></td><td>Desada però ja no encaixa: el codi ja no és a GestIB o s'ha canviat el grup de la fila.</td></tr>
+          <tr><td><strong>·</strong></td><td>Sense correspondència.</td></tr>
+        </tbody>
+      </table>
+      <ol class="steps">
+        <li><div class="step-dot"></div><div class="step-content">Prem <strong>Proposa correspondències</strong>. L'aplicació proposa una correspondència per a cada fila que no en té: les <strong>segures</strong> ja van marcades; les <strong>per revisar</strong>, mira-les.</div></li>
+        <li><div class="step-dot"></div><div class="step-content">Prem <strong>Desa les marcades</strong>.</div></li>
+        <li><div class="step-dot"></div><div class="step-content">Per a les que falten, activa <strong>Només les que falten</strong> i clica la <strong>G</strong> de cada fila: s'obre el catàleg (matèries del curs de la fila o activitats). Una fila de diversos grups pot tenir diverses matèries (una per grup) o una de bloc.</div></li>
+      </ol>
       <div class="subsection">
-        <div class="subsection-title">Indicadors de l'estat de cada departament</div>
+        <div class="subsection-title">Com proposa l'aplicació</div>
+        <ul style="margin-left: 1.25rem; line-height: 1.8;">
+          <li><strong>Nom</strong>: el mateix nom o un nom que el conté («Francès» → «Segona llengua estrangera - Francès»), sigles (AE, EPVA, FOPP, IPO) i errades de GestIB («consum reponsable»).</li>
+          <li><strong>Grups i blocs</strong>: una fila de 3r B+D va al bloc <code>…-BD-3E</code> si existeix; si no, a una matèria per grup.</li>
+          <li><strong>Departament</strong>: si GestIB separa la matèria per departament (<code>TE-AB-FQ-1B</code> i <code>TE-AB-BIO-1B</code>), cada fila va a la del seu.</li>
+          <li><strong>Blocs paral·lels</strong> (<code>ACE1</code> i <code>ACE2</code>): es reparteixen entre les files en ordre i surten <em>per revisar</em>: confirma quina fila va amb cada bloc.</li>
+          <li>Les correspondències manuals que es feien abans a la pàgina Untis (Mapeig) es fan servir com a proposta.</li>
+        </ul>
+      </div>
+      <div class="subsection">
+        <div class="subsection-title">Activitats: regles del centre</div>
         <table>
-          <thead>
-            <tr><th>Badge</th><th>Significat</th></tr>
-          </thead>
+          <thead><tr><th>Fila de la quota</th><th>Activitat de GestIB</th></tr></thead>
           <tbody>
-            <tr><td><span class="badge badge-green">Complet</span></td><td>Totes les hores assignades i sense errors.</td></tr>
-            <tr><td><span class="badge badge-blue">Pendent</span></td><td>Hi ha classes sense assignar.</td></tr>
-            <tr><td><span class="badge badge-red">Excés</span></td><td>Algun professor supera el màxim d'hores.</td></tr>
-            <tr><td><span class="badge badge-gray">Tancat</span></td><td>El cap ha tancat el departament.</td></tr>
-            <tr><td><span class="badge badge-orange">Sense dades</span></td><td>No hi ha classes importades per a aquest departament.</td></tr>
-            <tr><td><span class="badge badge-purple">Exclòs</span></td><td>El departament no compta per als totals globals.</td></tr>
+            <tr><td>&gt;55 (qualsevol nom)</td><td>*Majors de 55 anys</td></tr>
+            <tr><td>Cap de departament</td><td>*Dedicació a cap de departament</td></tr>
+            <tr><td>Cap de subdepartament</td><td>*Dedicació a subdepartament</td></tr>
+            <tr><td>Cap d'estudis, cap d'estudis adjunt/a, CE adjunta</td><td>*Dedicació a prefectura d'estudis</td></tr>
+            <tr><td>Director/a · Secretari/ària</td><td>*Dedicació a direcció · *Dedicació a secretaria</td></tr>
+            <tr><td>Orientador/a, PSC</td><td>*Dedicació a orientació</td></tr>
+            <tr><td>FEMPO, FCT</td><td>*Tutoria formació en empresa (la presencial, no la «no presencial»)</td></tr>
+            <tr><td>*Tutoria …</td><td>*Tutoria</td></tr>
+            <tr><td>PALIC / PALE</td><td>*Hores de docència al PALIC</td></tr>
+            <tr><td>Desdoblament CFGB / CFGM</td><td>*Hores dedicades a reforç i ampliació</td></tr>
+            <tr><td>Altres desdoblaments · Suport</td><td>*Hores desdoblaments de grups · *Hores de reforç (per revisar)</td></tr>
+            <tr><td>Coord… / Coordinació …</td><td>*Dedicació a coordinació (PROA+ → *Dedicació a PROA+)</td></tr>
+            <tr><td>Tipus GP</td><td>Guàrdia de pati</td></tr>
           </tbody>
         </table>
+      </div>
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <div>Si canvies el curs o el grup d'una fila, revisa'n la G: si la matèria enllaçada ja no és d'aquell grup, surt <strong>!</strong>.</div>
       </div>
     </div>
   </div>
 
-  <!-- Pas 6: Tancament -->
+  <!-- Pas 6: Repartiment -->
   <div class="section" id="s6">
     <div class="section-header">
       <div class="section-num">6</div>
       <div>
-        <div class="section-title">Tancament</div>
-        <div class="section-subtitle">Bloquejar la distribució per revisió</div>
+        <div class="section-title">Repartiment</div>
+        <div class="section-subtitle">Els caps assignen les classes al professorat</div>
+        <div class="section-route">/departament</div>
       </div>
-      <div class="section-route">/admin/tancament</div>
     </div>
     <div class="section-body">
-
-      <div class="subsection">
-        <div class="subsection-title">Bloqueig d'administració</div>
-        <ol class="steps">
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Marca la casella <strong>"Bloquejar l'administració"</strong> per impedir que ningú pugui fer canvis a la distribució.</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Opcionalment, escriu un <strong>missatge de tancament</strong> que veuran tots els usuaris (per exemple: <em>"Distribució bloquejada pendent de validació final"</em>).</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Per reobrire, desmarca la casella des d'aquesta mateixa pantalla. Només l'admin té accés a desbloquejar.</div>
-          </li>
-        </ol>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-title">Gestió per departament</div>
-        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">Els caps de departament poden <em>tancar</em> el seu departament en acabar. L'admin pot:</p>
-        <table>
-          <thead>
-            <tr><th>Acció</th><th>Efecte</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Incloure / Excloure</strong></td>
-              <td>Un departament exclòs no compta per als percentatges globals. Útil per a departaments sense dades o especials.</td>
-            </tr>
-            <tr>
-              <td><strong>Tancar / Reobrire</strong></td>
-              <td>Tanca o reobre la distribució d'un departament. Sols l'admin pot reobrire un departament tancat pel cap.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <ul style="margin-left: 1.25rem; line-height: 1.8;">
+        <li>Cada cap veu el seu departament: <strong>Distribució</strong> (assignar classes, guàrdies de pati, PALIC, suports i desdoblaments divisibles), <strong>Full</strong> (vista per imprimir) i <strong>Proposta</strong> (repartiments automàtics que compleixen els requisits).</li>
+        <li>Quan acaba, el cap prem <strong>Tancar departament</strong>. Un departament tancat ja no es pot editar.</li>
+        <li>L'administració, dins el departament, pot <strong>Reobrir el departament</strong> i <strong>Excloure'l del recompte</strong> (si no reparteix hores).</li>
+        <li>Amb el selector <em>Vista</em> de dalt, l'administració veu l'aplicació com un cap o com un professor.</li>
+      </ul>
     </div>
   </div>
 
@@ -1009,133 +855,104 @@
     <div class="section-header">
       <div class="section-num">7</div>
       <div>
-        <div class="section-title">Exportació a Untis</div>
-        <div class="section-subtitle">Generar el fitxer GPU002.TXT</div>
+        <div class="section-title">Untis</div>
+        <div class="section-subtitle">Fitxers per importar el repartiment</div>
+        <div class="section-route">/admin/untis</div>
       </div>
-      <div class="section-route">/admin/untis</div>
     </div>
     <div class="section-body">
-      <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">Un cop la distribució és completa, exporta les dades al format que Untis necessita per construir l'horari.</p>
-
       <ol class="steps">
-        <li>
-          <div class="step-dot"></div>
-          <div class="step-content"><strong>Puja el XML de GestIB</strong>: Carrega l'exportació XML del GestIB (horari del centre) perquè el sistema pugui creuar les matèries.</div>
-        </li>
-        <li>
-          <div class="step-dot"></div>
-          <div class="step-content"><strong>Càrrega opcional del GPU002 anterior</strong>: Si tens l'exportació de l'any passat, pujar-la permet que el sistema numeri els registres de manera consistent.</div>
-        </li>
-        <li>
-          <div class="step-dot"></div>
-          <div class="step-content"><strong>Revisa les assignacions pendents</strong>: La pantalla mostra en tres pestanyes — Totes, Resoltes, Pendents — les classes que necessiten mapatge amb el codi GestIB corresponent.</div>
-        </li>
-        <li>
-          <div class="step-dot"></div>
-          <div class="step-content"><strong>Mapeja les matèries</strong>: Per a cada classe pendent, selecciona la matèria GestIB equivalent amb el cercador desplegable.</div>
-        </li>
-        <li>
-          <div class="step-dot"></div>
-          <div class="step-content"><strong>Genera i descarrega</strong>: Fes clic a <strong>"Generar GPU002.TXT"</strong> i descarrega el fitxer. Importa'l directament a Untis.</div>
-        </li>
+        <li><div class="step-dot"></div><div class="step-content">A <strong>Untis</strong>, importa primer l'XML de GestIB (professorat, grups i matèries de GestIB).</div></li>
+        <li><div class="step-dot"></div><div class="step-content">A Quota › <strong>Untis</strong>, l'XML del curs ja hi és (és el del catàleg). Prem <strong>Genera GPU002</strong>.</div></li>
+        <li><div class="step-dot"></div><div class="step-content">Revisa <strong>Pendents</strong>: classes sense professor, files sense correspondència, codis que no encaixen, grups que superen les hores. Ha de quedar buit (o només el que sàpigues que és correcte).</div></li>
+        <li><div class="step-dot"></div><div class="step-content">A <strong>Fitxers</strong> descarrega <code>GPU002.TXT</code> (lliçons) i, si cal, <code>GPU003</code> (grups), <code>GPU004</code> (professorat) i <code>GPU006</code> (matèries). <code>GPU000_REVISIO_EXPORTACIO.TXT</code> és l'informe de revisió.</div></li>
+        <li><div class="step-dot"></div><div class="step-content">A Untis, importa <code>GPU002.TXT</code>.</div></li>
       </ol>
-
-      <div class="callout callout-tip">
-        <span class="callout-icon">✅</span>
-        <div>Pots usar el <strong>Mode simulació</strong> per previsualitzar el fitxer que es generaria sense desar cap canvi. Molt útil per verificar el resultat abans de l'exportació final.</div>
+      <table>
+        <thead><tr><th>L'exportació afegeix sola</th><th>A partir de</th></tr></thead>
+        <tbody>
+          <tr><td>Guàrdies i guàrdies de pati</td><td>Les assignades al repartiment i les que toquen a cada professor</td></tr>
+          <tr><td>Assistència a CCP</td><td>Els caps de departament</td></tr>
+          <tr><td>Atenció a famílies (1 h)</td><td>Tot el professorat</td></tr>
+          <tr><td>Reunió de departament</td><td>Cada departament</td></tr>
+          <tr><td>Reunions d'equip docent</td><td>Grups d'ESO</td></tr>
+        </tbody>
+      </table>
+      <div class="callout callout-danger">
+        <span class="callout-icon">⛔</span>
+        <div>L'exportació <strong>s'atura</strong> si algun professor té una plaça que no existeix a l'XML o no en té cap. El missatge diu qui: corregeix la plaça a Professorat (o crea-la a GestIB) i torna a generar.</div>
+      </div>
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <div><strong>Simulació</strong> genera els fitxers posant places de l'XML a totes les classes, sense desar res, per comprovar el format abans del repartiment real. <strong>Mapeig</strong> és l'antiga correspondència manual: només s'aplica a les files sense correspondència a la quota.</div>
       </div>
     </div>
   </div>
 
-  <!-- Pas 8: Seguiment -->
+  <!-- Pas 8: Informes i paràmetres -->
   <div class="section" id="s8">
     <div class="section-header">
       <div class="section-num">8</div>
       <div>
-        <div class="section-title">Seguiment i resums</div>
-        <div class="section-subtitle">Monitorar l'estat global de la distribució</div>
+        <div class="section-title">Informes i paràmetres</div>
+        <div class="section-subtitle">Seguiment, resums i regles de guàrdies</div>
+        <div class="section-route">/informes · /admin/parametres</div>
       </div>
-      <div class="section-route">/admin/seguiment · /resums</div>
     </div>
     <div class="section-body">
+      <ul style="margin-left: 1.25rem; line-height: 1.8;">
+        <li><strong>Informes › Seguiment</strong> (només administració): estat global, validació final, departaments, professors, guàrdies, poca càrrega i majors de 55.</li>
+        <li><strong>Informes › Resums</strong> (tothom, per transparència): grups, caps de departament, coordinacions i tutories. Tots es poden imprimir o desar en PDF.</li>
+        <li><strong>Paràmetres</strong>: quotes de guàrdies de pati per departament i guàrdies del professorat (exempts, convivència).</li>
+      </ul>
+    </div>
+  </div>
 
-      <div class="subsection">
-        <div class="subsection-title">Seguiment (admin)</div>
-        <table>
-          <thead>
-            <tr><th>Pestanya</th><th>Contingut</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Estat global</strong></td>
-              <td>Progrés total de tots els departaments en percentatge i hores.</td>
-            </tr>
-            <tr>
-              <td><strong>Validació final</strong></td>
-              <td>Errors crítics (bloquegen el tancament) i advertiments a revisar.</td>
-            </tr>
-            <tr>
-              <td><strong>Departaments</strong></td>
-              <td>Resum per departament: hores assignades, total, percentatge, estat.</td>
-            </tr>
-            <tr>
-              <td><strong>Professors</strong></td>
-              <td>Hores per professor: lectives, GP, PALIC, total i comparació amb l'ideal.</td>
-            </tr>
-            <tr>
-              <td><strong>Guàrdies</strong></td>
-              <td>Distribució de guàrdies de passadís, pati i convivència per departament i professor.</td>
-            </tr>
-            <tr>
-              <td><strong>Poca càrrega</strong></td>
-              <td>Professors amb menys de 18h assignades (o el seu límit individual).</td>
-            </tr>
-            <tr>
-              <td><strong>>55 anys</strong></td>
-              <td>Professors majors de 55 anys amb informació de jornada i preferències.</td>
-            </tr>
-          </tbody>
-        </table>
+  <!-- Llista del canvi de curs -->
+  <div class="section" id="canvi-de-curs">
+    <div class="section-header">
+      <div class="section-num" style="background: var(--green);">✓</div>
+      <div>
+        <div class="section-title">Llista del canvi de curs</div>
+        <div class="section-subtitle">Per fer-la de dalt a baix al juny</div>
       </div>
+    </div>
+    <div class="section-body">
+      <ol class="steps">
+        <li><div class="step-dot"></div><div class="step-content"><strong>GestIB llest</strong> per al curs següent: places, matèries i activitats. Exporta l'XML <em>exportacioDadesHoraris</em>.</div></li>
+        <li><div class="step-dot"></div><div class="step-content"><strong>Curs › Curs nou</strong>: crea'l partint del curs actual (professorat i quota).</div></li>
+        <li><div class="step-dot"></div><div class="step-content"><strong>Quota › Carrega l'XML de GestIB</strong>. Comprova a <em>Curs › Estat del cicle</em> que GestIB surt com a fet, amb el nombre de places, matèries i activitats.</div></li>
+        <li><div class="step-dot"></div><div class="step-content"><strong>Professorat</strong>: altes, baixes i jornades del curs nou. Cada plaça ha d'existir a l'XML.</div></li>
+        <li><div class="step-dot"></div><div class="step-content"><strong>Quota</strong>: ajusta les classes (curs, grups, hores, tipus) i els departaments, amb la tira de balanç a la vista.</div></li>
+        <li><div class="step-dot"></div><div class="step-content"><strong>Correspondència</strong>: <em>Proposa correspondències</em> › revisa › <em>Desa les marcades</em>. Resol a mà les que falten i les marcades amb <strong>!</strong> (canvis de GestIB). A <em>Estat del cicle</em>, Quota ha de dir «fet» (cap fila sense correspondència).</div></li>
+        <li><div class="step-dot"></div><div class="step-content"><strong>Repartiment</strong>: els caps assignen i tanquen. Segueix-ho a <em>Informes › Seguiment</em>.</div></li>
+        <li><div class="step-dot"></div><div class="step-content"><strong>Untis</strong>: genera, deixa <em>Pendents</em> buit, descarrega i importa.</div></li>
+        <li><div class="step-dot"></div><div class="step-content">Al setembre, quan el curs nou és el vigent, revisa a <strong>Professorat</strong> l'avís de permisos d'accés i aplica'l. Bloqueja el curs anterior a <em>Curs acadèmic</em>.</div></li>
+      </ol>
+    </div>
+  </div>
 
-      <div class="callout callout-tip">
-        <span class="callout-icon">✅</span>
-        <div>La pantalla de <strong>Seguiment</strong> té botó <strong>Imprimir</strong>. En imprimir o desar com a PDF s'amaguen filtres i controls, s'afegeix una capçalera amb data i, a l'Estat global, es mostren automàticament els elements pendents de cada departament.</div>
+  <!-- Problemes freqüents -->
+  <div class="section" id="problemes">
+    <div class="section-header">
+      <div class="section-num" style="background: var(--orange);">?</div>
+      <div>
+        <div class="section-title">Problemes freqüents</div>
+        <div class="section-subtitle">Què vol dir i què cal fer</div>
       </div>
-
-      <div class="subsection">
-        <div class="subsection-title">Resums generals</div>
-        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">Accessibles des de <code>/resums</code> per tots els usuaris autenticats:</p>
-        <table>
-          <thead>
-            <tr><th>Pestanya</th><th>Contingut</th></tr>
-          </thead>
-          <tbody>
-            <tr><td><strong>Grups</strong></td><td>Estat d'assignació de cada grup (1r ESO A, etc.) amb totes les matèries.</td></tr>
-            <tr><td><strong>Caps de departament</strong></td><td>Llista de caps per departament.</td></tr>
-            <tr><td><strong>Coordinacions</strong></td><td>Comissions i coordinadores actives.</td></tr>
-            <tr><td><strong>Tutories</strong></td><td>Llistat de tutors per grup.</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="subsection">
-        <div class="subsection-title">Imprimir o exportar a PDF</div>
-        <ol class="steps">
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Obre <code>/admin/seguiment</code> o <code>/resums</code> i selecciona la pestanya que vols lliurar o arxivar.</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Prem <strong>Imprimir</strong>. El document elimina menús, filtres i botons, i manté taules i targetes amb format compacte.</div>
-          </li>
-          <li>
-            <div class="step-dot"></div>
-            <div class="step-content">Al diàleg del navegador tria la impressora o <strong>Desa com a PDF</strong>. Per als resums llargs, revisa la previsualització abans de desar.</div>
-          </li>
-        </ol>
-      </div>
+    </div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Missatge o situació</th><th>Què fer</th></tr></thead>
+        <tbody>
+          <tr><td>«Revisa la plaça (codi Untis) d'aquests professors…»</td><td>A Professorat, posa a cada persona una plaça que existeixi a l'XML (o crea-la a GestIB i torna a carregar l'XML).</td></tr>
+          <tr><td>G amb <strong>!</strong> a moltes files després de carregar l'XML nou</td><td>GestIB ha canviat abreviatures (canvi de currículum). Obre la G de cada fila i tria la matèria nova.</td></tr>
+          <tr><td>«Correspondència dubtosa» o «Sense correspondència desada» a Pendents</td><td>Aquesta fila no té correspondència i s'ha deduït. Fixa-la a la quota (columna G).</td></tr>
+          <tr><td>Dues files d'optativa paral·lela amb el mateix bloc</td><td>Cada fila ha de tenir el seu bloc (<code>ACE1</code>, <code>ACE2</code>). Corregeix-ho a la G.</td></tr>
+          <tr><td>Un departament no pot editar</td><td>Està tancat. L'administració el pot reobrir des del seu repartiment.</td></tr>
+          <tr><td>Algú no pot entrar</td><td>Comprova a Professorat que té fitxa activa amb el correu correcte, o mira «Comptes sense fitxa».</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 

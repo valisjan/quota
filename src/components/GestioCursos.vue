@@ -7,6 +7,9 @@
       <h3 class="font-bold text-slate-950 dark:text-white">Cicle del curs {{ etiquetaCursActiu }}</h3>
       <p class="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
         Les fases es fan en aquest ordre a final de curs, per preparar el curs següent.
+        <a href="/docs/tutorial-admin.html#canvi-de-curs" target="_blank" rel="noopener" class="ml-1 font-semibold text-primary hover:underline">
+          Guia del canvi de curs ↗
+        </a>
       </p>
       <ol class="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-5">
         <li

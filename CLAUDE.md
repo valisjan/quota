@@ -4,60 +4,50 @@ Tengo una app en Vue 3 + Vite + Firebase (Firestore + Auth) + Pinia + Tailwind C
 
 ## QUÉ HACE LA APP
 
-Gestiona la distribución de horas del profesorado. El admin importa la quota desde Google Sheets, los jefes de departamento reparten las horas entre sus profesores, y al final se exporta a Untis. Soporta múltiples cursos académicos.
+Prepara cada curso la quota del centro y el repartimiento de horas del profesorado, y genera los ficheros para importarlo en Untis. Además es la fuente del profesorado y de los accesos de Guàrdies, Pantalles y Retards.
+
+Ciclo anual (a final de curso, para el curso siguiente): **GestIB** (catálogo de plazas, materias y actividades) → **Curs** → **Professorat** → **Quota** → **Repartiment** → **Untis**. Desde octubre de 2026 no hay hoja de Google Sheets: todo se gestiona en la app.
+
+Documentación:
+- `docs/quota-domain.md`: dominio, datos, correspondencia con GestIB, exportación a Untis y comprobaciones antes del cambio de curso.
+- `public/docs/tutorial-admin.html`: guía de uso para la administración (enlazada desde el «?» de la barra), con la lista del cambio de curso.
+- `public/docs/tutorial-caps.html`: guía para los caps de departamento.
 
 ## STACK
 
-- Vue 3 + Vite
-- Firebase Firestore (tiempo real) + Firebase Auth (Google OAuth)
-- Pinia (estado global)
-- Tailwind CSS
-- Desplegada en Netlify
+- Vue 3 + Vite, Pinia, Tailwind CSS
+- Firebase Firestore (tiempo real) + Firebase Auth (Google OAuth), proyecto `quota-e1424`
+- Netlify (despliega al hacer push a `main`)
 
 ## ESTRUCTURA FIRESTORE
 
-Las colecciones de datos están anidadas bajo el curs activo:
+Bajo cada curso (`cursos/{cursId}`, con `nom` y `bloqueig`):
 
-- `cursos/{cursId}` → año académico (nom, bloqueig, createdAt)
-  - `cursos/{cursId}/classes` → asignaciones (curs, grup, materia, hores, departament, departaments[], tipus, professors[], professorAssignat, participants[])
-  - `cursos/{cursId}/professors` → (nom, departament, preferencia, jornada, motiuAllegat, comentaris, gpAssignades, palicAssignades)
-  - `cursos/{cursId}/departaments` → (nom, tancat, tancatPer, tancatAt)
+- `classes` → filas de la quota: curs, grup (`A+C+E`), materia, hores, departament, departaments[], tipus, subclasses[], professors[], professorAssignat, participants[] y **`gestib`** (`{ tipus: 'materia' | 'activitat', codis: [...] }`, la correspondencia con el catálogo de GestIB).
+- `professors` → fichas: nom, email, codiUntis (= plaza `PLACA` de GestIB), departaments[], jornada, rols[], eliminatDelFull (Anteriors) y la planificación (gpAssignades, palicAssignades, sdAssignacions, ddAssignacions…).
+- `departaments` → nom, tancat, tancatPer, tancatAt, exclos.
+- `untis/gestib_xml` → el XML de GestIB del curso (catálogo).
+- `config/app_settings` → solo cuotas de guardias de patio (totalGuardiesPati, gpExclusions, gpReductions).
+- `config/untis_mapeig` → mapeo manual antiguo de la página Untis (solo para filas sin `gestib`).
+- `guardies*`, `config/guardies-*` → datos de Guàrdies (no tocar desde Quota).
 
-Colecciones globales (fuera de cursos):
+Globales: `usuaris/{uid}` (rol que leen las reglas y las otras apps), `preautoritzats/{email}` (accesos derivados de Professorat), `pantalles`, `guardiesCorreus`, `retards*`.
 
-- `usuaris/{uid}` → usuarios autenticados (email, nom, photoURL, rol, departament, createdAt)
-- `preautoritzats/{email}` → pre-autorizaciones antes del primer login (rol, departament)
-- `config/app_settings` → ajustes globales (tancamentAdmin, departamentsTancats, missatgeTancament)
-- `presence/{departament_sessionId}` → presencia en tiempo real en /departament
+El store `cursStore` (src/stores/curs.js) proporciona `col()`, `docRef()`, `nouDoc()` sobre el curso activo.
 
-El store `cursStore` (src/stores/curs.js) proporciona helpers `col()`, `docRef()`, `nouDoc()` que apuntan al curs activo. Siempre usar estos helpers en lugar de rutas Firestore hardcodeadas.
+## AUTENTICACIÓN Y ROLES
 
-## AUTENTICACIÓN
+- Google OAuth restringido a `@iesjosepsuredaiblanes.com`. Al entrar se crea o actualiza `usuaris/{uid}` con el rol de `preautoritzats/{email}`.
+- Los roles se dan en **Professorat** (ficha): `admin`, `cap_departament`, `psc` (Retards). Todos son `professor`. El antiguo `departament` (compte de departament) se lee como `cap_departament`.
+- Solo el **curso vigente** (el del calendario) cambia los permisos de acceso.
+- `admin` → `/admin`, `/departament`, `/informes`; `cap_departament` → `/departament`, `/informes`; profesorado → `/informes`.
 
-- Google OAuth restringido al dominio `@iesjosepsuredaiblanes.com`
-- Al hacer login, se busca el usuario en `usuaris/{uid}`. Si no existe, se crea con el rol de `preautoritzats/{email}` si lo hay, o sin rol (pendent).
-- `authReady` + `waitForAuth()` en auth store garantizan que el router guard espera a que Firebase resuelva la sesión antes de evaluar permisos.
-- `main.js` inicializa Pinia antes del router para evitar que `useAuthStore()` falle en el guard.
+## RUTAS (src/router/index.js)
 
-## ROLES
-
-- `admin` → acceso a `/admin`, `/departament`, `/resums`
-- `cap_departament` / `departament` → acceso a `/departament` y `/resums` (equivalentes)
-- `professor` → acceso a `/departament` y `/resums` en modo solo lectura (`solsLectura`)
-- Sin rol (pendent) → solo pantalla de inicio
-
-## RUTAS Y GUARDS (src/router/index.js)
-
-- `/` → público (Home.vue — login Google)
-- `/admin` → `requiresAdmin` (solo `admin`)
-  - `/admin/cursos` → GestioCursos
-  - `/admin/sincronitzacio` → Sincronitzacio
-  - `/admin/dades` → DadesImportades
-  - `/admin/tancament` → Tancament
-  - `/admin/untis` → ExportUntis
-  - `/admin/usuaris` → UsuarisAdmin (gestión de roles Google)
-- `/departament` → `requiresCapDepartament` (`admin`, `cap_departament`, `departament`)
-- `/resums` → `requiresAuth` (cualquier rol)
+- `/` → Home (login)
+- `/admin` (solo admin): `cursos` (GestioCursos: estado del ciclo, curso nuevo, borrados), `professorat` (ProfessoratAdmin, incluye cuentas sin ficha), `quota` (QuotaPanell), `untis` (ExportUntis), `parametres` (Configuracio). Las rutas antiguas (`dades`, `usuaris`, `tancament`, `seguiment`, `consum`…) redirigen.
+- `/departament` → repartimiento (caps y admin; el admin reabre o excluye departamentos aquí)
+- `/informes` → Informes (Seguimiento para admin + Resúmenes para todos). `/resums` redirige.
 
 ## REGLAS DE NEGOCIO - TIPUS
 
@@ -66,7 +56,7 @@ El store `cursStore` (src/stores/curs.js) proporciona helpers `col()`, `docRef()
 - O, O1, O2... (Optativa): 1 sola vez por franja para el grupo ✅, profesor ✅
 - F (Flexible): grupo ❌, profesor ✅
 - S (Suport): co-docencia misma aula → grupo ❌, profesor ✅
-- C (Coordinació): tipo especial con `participants[]`. No cuenta para horas lectivas.
+- C / CO (Coordinació): no cuenta para horas lectivas y no se exporta a Untis. C tiene `participants[]`.
 - T (Optativa compartida): las horas se reparten entre los profesores asignados (hores/numProfessors)
 - GP (Guàrdia de Pati): grupo ❌, no cuenta para las 18h lectivas. Pool por departamento, asignado 1 a 1 por profesor via `gpAssignades`
 - PALIC: grupo ❌, profesor ✅. Pool por departamento, asignado 1 a 1 via `palicAssignades`
@@ -76,44 +66,37 @@ El store `cursStore` (src/stores/curs.js) proporciona helpers `col()`, `docRef()
 ## GRUPOS COMBINADOS
 
 - ACE → A+C+E (función `normalitzarGrup`)
-- El profesor toma el bloque completo; las horas se repiten para cada grupo individual
+- Una fila de varios grupos suma las horas de todos: Matemàtiques 1ESO A+C+E 12 h = 4 h por grupo.
+- En GestIB algunas materias son por grupo (`MAT-A-1E`) y otras por bloque (`TFCR-BD-3E`, `EDM-ACE1-1E`): la correspondencia de la fila lo recoge.
 
 ## HORAS LECTIVAS PROFESOR
 
-- Ideal: 18h (o según `jornada`)
+- Ideal: 18h (13 con reducción de 1/3, 9 media jornada)
 - PALIC cuenta para las horas lectivas; GP no
-- `limitsHoresProfessor()` en `src/utils/horesProfessor.js` calcula ideal y máximo según preferencia/jornada
-
-## SINCRONIZACIÓN GOOGLE SHEETS
-
-- URL Apps Script: https://script.google.com/macros/s/AKfycbykQQXn6_oZ1iTtkASuHSA1P1kr5eSqGlIEdm5IBfuxSvr0wDh2I6Ec_yjILnHCXDKe/exec
-- Sheet ID: 1uKYDn_2-KyHVJrlfLAHWvZ-YvPIRpv2SlSDUhdQfnA0
-- Pestaña "Resultado": CURS|GRUP|MATERIA|HORES|DEPARTAMENT|TIPUS
-- Pestaña "Professorat": NOM|DEPARTAMENT
-- La sincronización conserva professors[], gpAssignades, palicAssignades del documento existente
-
-## FUNCIONALIDADES CLAVE
-
-- **Presencia en tiempo real**: `/departament` muestra quién está conectado (colección `presence`, heartbeat cada 10s, TTL 30s)
-- **Tancament de departament**: los caps pueden cerrar su departamento; solo el admin puede reabrirlo
-- **App settings**: `config/app_settings` controla `tancamentAdmin` y `missatgeTancament`
-- **Multi-curs**: cada año académico es un `cursId`. El `cursStore` gestiona el activo y provee helpers Firestore.
-- **Exportación Untis**: `src/services/untisExport.js` + `src/components/ExportUntis.vue`
-- **Resums**: múltiples componentes de resumen (ResumGrups, ResumProfessors, ResumDepartaments, ResumCoordinacions, ResumTutories, ResumCapsDepartament, ResumMajors55, ResumValidacioFinal, ResumTracabilitatProfessor, ResumPocesHores)
+- `limitsHoresProfessor()` en `src/utils/horesProfessor.js`
 
 ## ARCHIVOS CLAVE
 
-- `src/main.js` — bootstrap: Pinia antes que router
-- `src/router/index.js` — rutas y guards
-- `src/stores/auth.js` — Firebase Auth + roles + waitForAuth()
-- `src/stores/curs.js` — curs activo + helpers Firestore
-- `src/services/appSettings.js` — settings globales
-- `src/services/sincronitzacio.js` — importación desde Sheets
-- `src/views/Home.vue` — login Google
-- `src/views/Admin.vue` — shell admin con sidebar
-- `src/views/Departament.vue` — repartimiento de horas (lógica principal)
-- `src/views/Resums.vue` — vista de resúmenes
-- `src/components/RepartimentHores.vue` — asignación drag/drop de clases a profesor
-- `src/components/departament/ProfessorCard.vue` — tarjeta por profesor
-- `src/components/UsuarisAdmin.vue` — gestión de usuarios Google
-- `src/utils/horesProfessor.js` — cálculo de límites de horas
+- `src/views/Admin.vue` — menú de administración por el ciclo del curso
+- `src/components/QuotaPanell.vue` — panel Quota (departamentos, balance, correspondencia GestIB)
+- `src/utils/quota.js` — lógica pura de la quota
+- `src/utils/gestibCorrespondencia.js` — propuestas y resolución de la correspondencia con GestIB (reglas del centro incluidas)
+- `src/services/gestibMapper.js` — lectura del XML de GestIB y resolución para la exportación
+- `src/services/gpuFormatter.js` — exportación a Untis (`generarExportUntis`, sin Firestore)
+- `src/services/lessonBuilder.js` — agrupación de filas en lecciones de Untis
+- `src/components/ProfessoratAdmin.vue`, `src/services/professorat.js`, `src/utils/professorat.js` — profesorado y accesos
+- `src/views/Departament.vue` — repartimiento (lógica principal de los caps)
+- `src/views/Informes.vue` — informes
+- `src/stores/auth.js`, `src/stores/curs.js`
+
+## PRUEBAS
+
+- `npm run test:domain` (node:test, lógica pura)
+- `npm run test:visual` (Playwright en modo E2E con datos en memoria: `VITE_E2E_AUTH_BYPASS=true`)
+- `npm run verify:untis` (verificación de la exportación con los ficheros locales de `src/assets`, que no se suben al repositorio)
+
+## REGLAS DE TRABAJO
+
+- Nunca romper la forma de los datos que leen Guàrdies, Pantalles y Retards (ver `docs/quota-domain.md`).
+- No escribir en Firestore de producción sin confirmación. Las reglas (`firestore.rules`) se despliegan aparte.
+- `src/assets/GPU001.TXT` y el XML de GestIB locales contienen datos personales: no se suben.
