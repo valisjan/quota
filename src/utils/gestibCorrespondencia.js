@@ -140,19 +140,24 @@ export function esFilaActivitat(fila = {}) {
 }
 
 // Regles per a les activitats més habituals de la quota. La primera que encaixa mana; es
-// prefereix la versió lectiva (amb asterisc) de l'activitat.
+// prefereix la versió lectiva (amb asterisc) de l'activitat. L'activitat es cerca per la
+// descripció de GestIB (l'abreviatura pot ser la mateixa per a dues activitats).
+// Decisions del centre (octubre 2026): cap d'estudis adjunt/a → prefectura d'estudis;
+// desdoblaments de cicles formatius (CFGB, CFGM) → hores de reforç; FEMPO/FCT → tutoria de
+// formació en empresa presencial (no la «no presencial»).
 const REGLES_ACTIVITAT = [
   { fila: /^>\s*55|majors de 55/i, activitat: /majors de 55/i },
   { fila: /^cap de subdepartament/i, activitat: /subdepartament/i },
   { fila: /^cap de departament/i, activitat: /dedicaci[oó] a cap de departament|dedicaci[oó] al departament/i },
-  { fila: /^(cap d'estudis|ce adjunt)/i, activitat: /prefectura/i },
+  { fila: /^(cap d['’]estudis|ce adjunt)/i, activitat: /prefectura/i },
   { fila: /^director/i, activitat: /direcci[oó]/i },
   { fila: /^secretari/i, activitat: /secretaria/i },
   { fila: /^(orientador|psc\d*$)/i, activitat: /orientaci[oó]/i },
-  { fila: /^(fempo|fct)\b|formaci[oó] en empresa/i, activitat: /tutoria formaci[oó] en empresa/i },
+  { fila: /^(fempo|fct)\b|formaci[oó] en empresa/i, activitat: /^tutoria formaci[oó] en empresa$/i },
   { fila: /tutoria/i, activitat: /^\*?tutoria$/i },
   { fila: /^(pale|palic)\b/i, activitat: /palic/i },
   { fila: /^(suport|refor)/i, activitat: /refor[cç]/i, confianca: 'probable' },
+  { fila: /^desdoblament\s+cf/i, activitat: /refor[cç]/i },
   { fila: /desdoblament/i, activitat: /desdoblaments de grups/i, confianca: 'probable' },
   { fila: /proa/i, activitat: /proa/i },
   { fila: /^coord/i, activitat: /^\*?(dedicaci[oó] a )?coordinaci[oó]$/i },
@@ -169,13 +174,12 @@ function proposarActivitat(fila, cataleg) {
 
   if ((fila.tipus || '').toUpperCase() === 'GP') {
     const pati = activitats.find((activitat) => /guàrdia de pati|guardia de pati/i.test(textActivitat(activitat)));
-    if (pati) return { tipus: 'activitat', codis: [codiActivitat(pati)], confianca: 'segura', motiu: 'Guàrdia de pati' };
+    if (pati) return { tipus: 'activitat', codis: [codiActivitat(pati)], confianca: 'segura', motiu: 'Guàrdia de pati', perRegla: true };
   }
   const regla = REGLES_ACTIVITAT.find((item) => item.fila.test(nom));
   if (regla) {
-    const activitat = lectives(activitats.filter((item) => regla.activitat.test(item.descripcio.replace(/^\*/, '').trim())
-      || regla.activitat.test((item.curta || '').replace(/^\*/, '').trim())))[0];
-    if (activitat) return { tipus: 'activitat', codis: [codiActivitat(activitat)], confianca: regla.confianca || 'segura', motiu: 'Regla per a aquesta activitat' };
+    const activitat = lectives(activitats.filter((item) => regla.activitat.test((item.descripcio || item.curta || '').replace(/^\*/, '').trim())))[0];
+    if (activitat) return { tipus: 'activitat', codis: [codiActivitat(activitat)], confianca: regla.confianca || 'segura', motiu: 'Regla per a aquesta activitat', perRegla: true };
   }
   const millor = lectives(activitats)
     .map((activitat) => ({ activitat, semblanca: Math.max(semblancaNom(nom, activitat.descripcio), semblancaNom(nom, activitat.curta)) }))
@@ -279,11 +283,17 @@ function proposarDesMapeig(fila, cataleg, mapeig) {
 }
 
 // Proposta per a una fila sense enllaç. usats: curtes ja enllaçades a altres files.
+// Activitats: una regla segura del centre mana sobre el mapeig antic de la pàgina Untis (que
+// tenia alguna decisió revisada); després el mapeig i, si no, el nom. Matèries: el mapeig
+// antic i, si no, el nom i els grups.
 export function proposarCorrespondencia(fila, cataleg, { mapeig = null, usats = new Set() } = {}) {
   const manual = proposarDesMapeig(fila, cataleg, mapeig);
-  if (manual) return manual;
-  if (esFilaActivitat(fila) || (fila.tipus || '').toUpperCase() === 'GP') return proposarActivitat(fila, cataleg);
-  return proposarMateria(fila, cataleg, usats) || null;
+  if (esFilaActivitat(fila) || (fila.tipus || '').toUpperCase() === 'GP') {
+    const perNom = proposarActivitat(fila, cataleg);
+    if (perNom?.perRegla && perNom.confianca === 'segura') return perNom;
+    return manual || perNom;
+  }
+  return manual || proposarMateria(fila, cataleg, usats) || null;
 }
 
 // Propostes per a totes les files sense enllaç, de manera que dues files no es quedin el

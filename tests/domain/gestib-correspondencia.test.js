@@ -117,6 +117,37 @@ test('les activitats de la quota es tradueixen per regla, sense correspondèncie
   assert.equal(codi('Guàrdia de pati', { tipus: 'GP' }), 'Guàrdia de pati');
 });
 
+test('decisions del centre: prefectura, reforç dels cicles i tutoria FCT presencial, encara que el mapeig antic digui una altra cosa', () => {
+  const cataleg = {
+    materies: [],
+    activitats: [
+      { codiGestib: '10', curta: "*Dedicació prefectura d'estudis", descripcio: "*Dedicació a prefectura d'estudis", teAsterisc: true, codiUntis: 'ADEDICACIOPREF' },
+      { codiGestib: '79', curta: '*Preparació mòdul en anglès (FP)', descripcio: '*Preparació de mòdul impartit en anglès (FP)', teAsterisc: true, codiUntis: 'APREPARACIOMOD' },
+      { codiGestib: '2', curta: "*Hores de reforç a l'alumnat", descripcio: '*Hores dedicades a reforç i ampliació', teAsterisc: true, codiUntis: 'AHORESDEREFORC' },
+      { codiGestib: '56', curta: '*Hores desdoblaments de grups', descripcio: '*Hores desdoblaments de grups', teAsterisc: true, codiUntis: 'AHORESDESDOBLA' },
+      { codiGestib: '72', curta: 'Tutoria formació en empresa', descripcio: 'Tutoria formació en empresa', teAsterisc: false, codiUntis: 'TUTORIAFORMACI' },
+      // Mateixa abreviatura per a la tutoria FCT presencial i la no presencial.
+      { codiGestib: '45', curta: '*Tutoria formació en empresa', descripcio: '*Tutoria formació en empresa', teAsterisc: true, codiUntis: 'ATUTORIAFORMAC' },
+      { codiGestib: '155', curta: '*Tutoria formació en empresa', descripcio: '*Tutoria formació en empresa (no presencial)', teAsterisc: true, codiUntis: 'ATUTORIAFORMA2' },
+    ],
+  };
+  // El mapeig que hi havia guardat a 2026-27.
+  const mapeig = {
+    "Cap d'estudis adjunta||||": 'APREPARACIOMOD',
+    'Desdoblament CFGM||||': 'AHORESDEREFORC',
+    'FEMPO||||': 'ATUTORIAFORMA2',
+  };
+  const codi = (materiaQuota) => proposarCorrespondencia(fila({ materia: materiaQuota }), cataleg, { mapeig })?.codis[0];
+  assert.equal(codi("Cap d'estudis adjunta"), '10');
+  assert.equal(codi('Cap d’estudis adjunt'), '10');
+  assert.equal(codi('Desdoblament CFGM'), '2');
+  assert.equal(codi('Desdoblament  CFGB'), '2');
+  assert.equal(codi('FEMPO'), '45');
+  assert.equal(codi('FCT'), '45');
+  // Un desdoblament que no és de cicles es proposa com a desdoblament, però per revisar.
+  assert.equal(proposarCorrespondencia(fila({ materia: 'Desdoblament laboratori' }), cataleg).confianca, 'probable');
+});
+
 test("el mapeig manual d'abans es fa servir com a proposta segura", () => {
   const mapeig = {
     'ERASMUS||||': 'ADEDICACIOALDE',
