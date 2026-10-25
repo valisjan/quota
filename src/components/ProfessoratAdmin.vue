@@ -939,6 +939,7 @@ function copiarCurs() {
   white-space: nowrap;
 }
 .boto-fila:hover { background: rgb(241 245 249); }
-:global(.dark) .boto-fila { border-color: rgb(71 85 105); color: rgb(226 232 240); }
-:global(.dark) .boto-fila:hover { background: rgb(55 65 81); }
+/* «:global(.dark) .boto-fila» es compilava com «.dark» i pintava tota l'aplicació. */
+:global(.dark .boto-fila) { border-color: rgb(71 85 105); color: rgb(226 232 240); }
+:global(.dark .boto-fila:hover) { background: rgb(55 65 81); }
 </style>
