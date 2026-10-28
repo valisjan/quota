@@ -455,10 +455,12 @@ service cloud.firestore {
         ])
         && request.resource.data.courseId is string
         && request.resource.data.kind in ['alliberat', 'pati', 'prova']
-        && request.resource.data.template in ['alliberat', 'pati']
+        // «combinat»: la prova d'un correu amb dos avisos del mateix dia.
+        && (request.resource.data.template in ['alliberat', 'pati']
+          || (request.resource.data.kind == 'prova' && request.resource.data.template == 'combinat'))
         && request.resource.data.status == 'pendent'
         && request.resource.data.email is string
-        && request.resource.data.email.matches('[a-z0-9._%+-]+@iesjosepsuredaiblanes[.]com')
+        && request.resource.data.email.matches('[a-z0-9._%+-]+@(iesjosepsuredaiblanes|iessureda)[.]com')
         && request.resource.data.fields is map
         && request.resource.data.check is map
         && request.resource.data.sendAfter is timestamp
