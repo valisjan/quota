@@ -1,13 +1,23 @@
 const DEPTS_EXEMPTS_FP = ['agraria', 'industries alimentaries'];
 
+// Els mateixos noms es comparen milers de vegades (cada professor amb cada classe): la
+// forma normalitzada es guarda en lloc de tornar-la a calcular.
+const normalitzats = new Map();
+
 function normalitzarText(text) {
-  return (text || '')
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim();
+  const valor = (text || '').toString();
+  let normalitzat = normalitzats.get(valor);
+  if (normalitzat === undefined) {
+    normalitzat = valor
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (normalitzats.size > 5000) normalitzats.clear();
+    normalitzats.set(valor, normalitzat);
+  }
+  return normalitzat;
 }
 
 function normalitzarTipus(tipus) {

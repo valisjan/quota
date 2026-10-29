@@ -1,4 +1,4 @@
-import { ref, watchEffect, onUnmounted, toValue } from 'vue';
+import { ref, shallowRef, watchEffect, onUnmounted, toValue } from 'vue';
 import { onSnapshot } from 'firebase/firestore';
 import { useCursStore } from '../stores/curs';
 import { E2E_AUTH_BYPASS, getE2ECollection } from '../services/e2e';
@@ -42,7 +42,10 @@ export function useCursCollectionSnapshot({
   enabled = true,
 } = {}) {
   const cursStore = useCursStore();
-  const items = ref([]);
+  // shallowRef: la llista es substitueix sencera a cada canvi de Firestore, però els
+  // documents no es tornen reactius un a un. Amb centenars de classes, llegir camps a
+  // través dels proxies de Vue feia que els resums tardessin segons a sortir.
+  const items = shallowRef([]);
   const error = ref(null);
   const isConnected = ref(true);
   const lastUpdate = ref(horaActual());

@@ -65,7 +65,7 @@
  <span v-if="p.jornada" class="ml-1.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-800">{{ textJornada(p) }}</span>
  </div>
  <div v-if="getClassesProfessor(p.nom).length" class="mt-1 text-xs leading-5 text-slate-500">
- {{ sortClasses(getClassesProfessor(p.nom)).map(c => c.materia + (c.grup ? ' ' + c.grup : '')).join(' · ') }}
+ {{ resum(p.nom).classesOrdenades.map(c => c.materia + (c.grup ? ' ' + c.grup : '')).join(' · ') }}
  </div>
  <div v-if="p.motiuAllegat || p.comentaris" class="mt-1 text-xs italic text-slate-500">
  {{ [p.motiuAllegat, p.comentaris].filter(Boolean).join(' - ') }}
@@ -107,7 +107,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
-import { limitsHoresProfessor, textJornada, professorsClasse, classeAssignadaA, horesComputablesClasse, esMajorDe55Classe } from '../utils/horesProfessor';
+import { limitsHoresProfessor, textJornada, professorsClasse, horesComputablesClasse, esMajorDe55Classe } from '../utils/horesProfessor';
 import { comptarDDAssignacions, comptarSDAssignacions, normalitzarDDAssignacions, normalitzarSDAssignacions } from '../utils/suportDivisible';
 import { departamentsProfessor, professorPertanyDepartament } from '../utils/departaments';
 
@@ -133,10 +133,19 @@ function normalitzar(text) {
  return (text || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
-function getProfessorsDepartament(dept) {
- return professors.value
+// Professors de cada departament, per ordre alfabètic.
+const professorsPerDepartament = computed(() => {
+ const map = new Map();
+ for (const dept of departamentsOrdenats.value) {
+ map.set(dept, professors.value
  .filter((p) => professorPertanyDepartament(p, dept))
- .sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'ca'));
+ .sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'ca')));
+ }
+ return map;
+});
+
+function getProfessorsDepartament(dept) {
+ return professorsPerDepartament.value.get(dept) || [];
 }
 
 function professorsMostrats(dept) {
@@ -152,60 +161,111 @@ function totalHoresDept(dept) {
  return getProfessorsDepartament(dept).reduce((sum, p) => sum + calcularHoresTotalsProfessor(p.nom), 0);
 }
 
-function getClassesProfessor(nom) {
- return classes.value.filter((c) => classeAssignadaA(c, nom));
-}
+// Classes de cada professor (per ordre de la col·lecció), en una sola passada.
+const classesPerProfessor = computed(() => {
+ const map = new Map();
+ for (const c of classes.value) {
+ for (const nom of new Set(professorsClasse(c))) {
+ if (!map.has(nom)) map.set(nom, []);
+ map.get(nom).push(c);
+ }
+ }
+ return map;
+});
 
-function calcularHoresProfessor(nom) {
- return getClassesProfessor(nom)
+// Tot el que mostra la fila de cada professor, calculat una sola vegada per canvi de
+// dades. Abans la plantilla recorria totes les classes desenes de vegades per fila i,
+// amb el volum real, el resum bloquejava la pàgina uns segons.
+const resumPerProfessor = computed(() => {
+ const map = new Map();
+ for (const professor of professors.value) {
+ if (map.has(professor.nom)) continue;
+ map.set(professor.nom, resumProfessor(professor));
+ }
+ return map;
+});
+
+function resumProfessor(professor) {
+ const classesProfessor = classesPerProfessor.value.get(professor.nom) || [];
+ const lectives = classesProfessor
  .filter((c) => !['GP', 'PALIC', 'SD', 'DD'].includes((c.tipus || '').toString().toUpperCase().trim()))
  .reduce((sum, c) => sum + horesComputablesClasse(c), 0);
+ const classePalic = classesProfessor.find((c) => c.tipus === 'PALIC');
+ const palic = professor.palicAssignades ? Number(professor.palicAssignades) : (classePalic ? Number(classePalic.hores) : 0);
+ const sd = comptarSDAssignacions(professor);
+ const dd = comptarDDAssignacions(professor);
+ const total = lectives + palic + sd + dd;
+ const limits = limitsHoresProfessor(professor);
+ const tutories = classesProfessor.filter(
+ (c) => normalitzar(c.materia || '').includes('tutoria') && !(c.materia || '').startsWith('*')
+ );
+ const avisos = [];
+ if (total > limits.maxim) avisos.push(`Supera el màxim (${total}/${limits.maxim}h)`);
+ else if (total < limits.ideal && total > 0) avisos.push(`Per sota de l'ideal (${total}/${limits.ideal}h)`);
+ if (classesProfessor.length === 0) avisos.push('Sense classes assignades');
+ if (tutories.length > 1) avisos.push(`${tutories.length} tutories assignades`);
+ if (professor.preferencia && !professor.motiuAllegat) avisos.push('Preferència sense motiu al·legat');
+ let badge = 'bg-blue-200 text-blue-900';
+ if (total > limits.maxim) badge = 'bg-red-200 text-red-900';
+ else if (total > limits.ideal) badge = 'bg-amber-200 text-amber-900';
+ else if (total === limits.ideal) badge = 'bg-green-200 text-green-900';
+ return {
+ classes: classesProfessor,
+ classesOrdenades: sortClasses(classesProfessor),
+ total,
+ gp: Number(professor.gpAssignades || 0),
+ palic,
+ sd,
+ dd,
+ grupsSD: normalitzarSDAssignacions(professor.sdAssignacions, professor.sdAssignades)
+ .map((assignacio, index) => assignacio.grup || `hora ${index + 1} sense grup`)
+ .join(', '),
+ grupsDD: normalitzarDDAssignacions(professor.ddAssignacions, professor.ddAssignades)
+ .map((assignacio, index) => assignacio.grup || `hora ${index + 1} sense grup`)
+ .join(', '),
+ major55: professor.major55 === true || classesProfessor.some((c) => esMajorDe55Classe(c)),
+ avisos,
+ badge,
+ };
+}
+
+const BUIT = { classes: [], classesOrdenades: [], total: 0, gp: 0, palic: 0, sd: 0, dd: 0, grupsSD: '', grupsDD: '', major55: false, avisos: [], badge: 'bg-blue-200 text-blue-900' };
+const resum = (nom) => resumPerProfessor.value.get(nom) || BUIT;
+
+function getClassesProfessor(nom) {
+ return resum(nom).classes;
 }
 
 function calcularHoresTotalsProfessor(nom) {
- return calcularHoresProfessor(nom) + getHoresPALIC(nom) + getHoresSD(nom) + getHoresDD(nom);
+ return resum(nom).total;
 }
 
 function getHoresGP(nom) {
- const professor = professors.value.find((p) => p.nom === nom);
- return Number(professor?.gpAssignades || 0);
+ return resum(nom).gp;
 }
 
 function getHoresPALIC(nom) {
- const professor = professors.value.find((p) => p.nom === nom);
- if (professor?.palicAssignades) return Number(professor.palicAssignades);
- const c = classes.value.find((c) => classeAssignadaA(c, nom) && c.tipus === 'PALIC');
- return c ? Number(c.hores) : 0;
+ return resum(nom).palic;
 }
 
 function getHoresSD(nom) {
- const professor = professors.value.find((p) => p.nom === nom);
- return professor ? comptarSDAssignacions(professor) : 0;
+ return resum(nom).sd;
 }
 
 function getGrupsSD(nom) {
- const professor = professors.value.find((p) => p.nom === nom);
- return normalitzarSDAssignacions(professor?.sdAssignacions, professor?.sdAssignades)
- .map((assignacio, index) => assignacio.grup || `hora ${index + 1} sense grup`)
- .join(', ');
+ return resum(nom).grupsSD;
 }
 
 function getHoresDD(nom) {
- const professor = professors.value.find((p) => p.nom === nom);
- return professor ? comptarDDAssignacions(professor) : 0;
+ return resum(nom).dd;
 }
 
 function getGrupsDD(nom) {
- const professor = professors.value.find((p) => p.nom === nom);
- return normalitzarDDAssignacions(professor?.ddAssignacions, professor?.ddAssignades)
- .map((assignacio, index) => assignacio.grup || `hora ${index + 1} sense grup`)
- .join(', ');
+ return resum(nom).grupsDD;
 }
 
 function esMajor55(nom) {
- const prof = professors.value.find((p) => p.nom === nom);
- return prof?.major55 === true ||
- getClassesProfessor(nom).some((c) => esMajorDe55Classe(c));
+ return resum(nom).major55;
 }
 
 function getPreferenciaText(pref) {
@@ -213,28 +273,11 @@ function getPreferenciaText(pref) {
 }
 
 function getAvisos(professor) {
- const lectives = calcularHoresTotalsProfessor(professor.nom);
- const limits = limitsHoresProfessor(professor);
- const classesProfessor = getClassesProfessor(professor.nom);
- const tutories = classesProfessor.filter(
- (c) => normalitzar(c.materia || '').includes('tutoria') && !(c.materia || '').startsWith('*')
- );
- const avisos = [];
- if (lectives > limits.maxim) avisos.push(`Supera el màxim (${lectives}/${limits.maxim}h)`);
- else if (lectives < limits.ideal && lectives > 0) avisos.push(`Per sota de l'ideal (${lectives}/${limits.ideal}h)`);
- if (classesProfessor.length === 0) avisos.push('Sense classes assignades');
- if (tutories.length > 1) avisos.push(`${tutories.length} tutories assignades`);
- if (professor.preferencia && !professor.motiuAllegat) avisos.push('Preferència sense motiu al·legat');
- return avisos;
+ return resum(professor.nom).avisos;
 }
 
 function horesBadgeClass(professor) {
- const lectives = calcularHoresTotalsProfessor(professor.nom);
- const limits = limitsHoresProfessor(professor);
- if (lectives > limits.maxim) return 'bg-red-200 text-red-900';
- if (lectives > limits.ideal) return 'bg-amber-200 text-amber-900';
- if (lectives === limits.ideal) return 'bg-green-200 text-green-900';
- return 'bg-blue-200 text-blue-900';
+ return resum(professor.nom).badge;
 }
 
 function sortClasses(list) {
@@ -273,7 +316,7 @@ async function exportarExcel() {
  const filesAssig = [];
  for (const dept of departamentsOrdenats.value) {
  for (const p of getProfessorsDepartament(dept)) {
- for (const c of sortClasses(getClassesProfessor(p.nom))) {
+ for (const c of resum(p.nom).classesOrdenades) {
  filesAssig.push([dept, p.nom, c.materia, c.curs || '', c.grup || '', c.tipus || '', horesComputablesClasse(c)]);
  }
  for (const sd of normalitzarSDAssignacions(p.sdAssignacions, p.sdAssignades)) {

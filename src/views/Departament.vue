@@ -1809,31 +1809,21 @@ watch(
   }
 }
 
+/* Només s'anima l'entrada: amb «out-in», animar també la sortida feia esperar mig segon
+   a cada canvi de departament abans de veure la pantalla nova. */
 .departament-slide-forward-enter-active,
-.departament-slide-forward-leave-active,
-.departament-slide-back-enter-active,
-.departament-slide-back-leave-active {
-  transition: opacity 220ms ease, transform 260ms ease;
+.departament-slide-back-enter-active {
+  transition: opacity 160ms ease, transform 180ms ease;
 }
 
 .departament-slide-forward-enter-from {
   opacity: 0;
-  transform: translateX(3rem);
-}
-
-.departament-slide-forward-leave-to {
-  opacity: 0;
-  transform: translateX(-3rem);
+  transform: translateX(1.5rem);
 }
 
 .departament-slide-back-enter-from {
   opacity: 0;
-  transform: translateX(-3rem);
-}
-
-.departament-slide-back-leave-to {
-  opacity: 0;
-  transform: translateX(3rem);
+  transform: translateX(-1.5rem);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1842,16 +1832,12 @@ watch(
   }
 
   .departament-slide-forward-enter-active,
-  .departament-slide-forward-leave-active,
-  .departament-slide-back-enter-active,
-  .departament-slide-back-leave-active {
+  .departament-slide-back-enter-active {
     transition: opacity 120ms ease;
   }
 
   .departament-slide-forward-enter-from,
-  .departament-slide-forward-leave-to,
-  .departament-slide-back-enter-from,
-  .departament-slide-back-leave-to {
+  .departament-slide-back-enter-from {
     transform: none;
   }
 }
