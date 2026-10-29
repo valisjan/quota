@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import pkg from './package.json' with { type: 'json' }
-import { resolve } from 'node:path'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -12,10 +11,6 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      input: {
-        quota: resolve(__dirname, 'index.html'),
-        pantalles: resolve(__dirname, 'labs/pantalles/index.html'),
-      },
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;

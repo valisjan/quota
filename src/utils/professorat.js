@@ -300,10 +300,6 @@ export function planificacioBuida() {
   return planificacioPlaca({});
 }
 
-export function tePlanificacio(professor = {}) {
-  return CAMPS_PLACA.some((camp) => (Array.isArray(professor[camp]) ? professor[camp].length : Number(professor[camp] || 0)) > 0);
-}
-
 // Fitxa nova per a un substitut: hereta la plaça (codi), els departaments i la jornada.
 export function formulariSubstitut(titular = {}) {
   return {

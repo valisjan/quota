@@ -368,7 +368,6 @@
 <script setup>
 import { computed, nextTick } from 'vue';
 import { limitsHoresProfessor, resumCapacitatProfessorat } from '../../utils/horesProfessor';
-import { descarregarExcel } from '../../utils/exportExcel';
 import { classeCompletamentAssignada } from '../../utils/assignacions';
 import { exclosaDelRepartiment } from '../../utils/tipus';
 
@@ -514,7 +513,9 @@ async function imprimir() {
   setTimeout(() => window.print(), 150);
 }
 
-function exportarExcel() {
+async function exportarExcel() {
+  // La llibreria d'Excel només es baixa quan s'exporta.
+  const { descarregarExcel } = await import('../../utils/exportExcel');
   const data = new Date().toLocaleDateString('ca-ES');
   const nomFitxer = `distribucio_${props.departament}_${new Date().toISOString().slice(0, 10)}`;
 

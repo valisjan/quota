@@ -108,7 +108,6 @@
 import { ref, computed } from 'vue';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
 import { limitsHoresProfessor, textJornada, professorsClasse, classeAssignadaA, horesComputablesClasse, esMajorDe55Classe } from '../utils/horesProfessor';
-import { descarregarExcel } from '../utils/exportExcel';
 import { comptarDDAssignacions, comptarSDAssignacions, normalitzarDDAssignacions, normalitzarSDAssignacions } from '../utils/suportDivisible';
 import { departamentsProfessor, professorPertanyDepartament } from '../utils/departaments';
 
@@ -246,7 +245,9 @@ function sortClasses(list) {
  });
 }
 
-function exportarExcel() {
+async function exportarExcel() {
+ // La llibreria d'Excel només es baixa quan s'exporta.
+ const { descarregarExcel } = await import('../utils/exportExcel');
  const data = new Date().toLocaleDateString('ca-ES');
  const cap = ['Departament', 'Professor', 'Total hores', 'GP', 'PALIC', 'Suport divisible', 'Grups SD', 'Desdoblament divisible', 'Grups DD', 'Jornada', 'Preferència', 'Avisos'];
  const files = [];

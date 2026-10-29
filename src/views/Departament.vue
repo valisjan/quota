@@ -145,12 +145,6 @@
             <div class="h-2 w-2 rounded-full bg-red-500"></div>
             Desconnectat
           </div>
-          <div v-if="usuarisActius.length > 0"
-            class="app-chip flex items-center gap-1.5 text-sm"
-          >
-            <div class="h-1.5 w-1.5 rounded-full bg-green-500"></div>
-            {{ usuarisActius.join(', ') }}
-          </div>
         </div>
         <div class="flex items-center gap-3">
           <span class="text-xs text-slate-400">{{ lastUpdate }}</span>
@@ -614,7 +608,6 @@ import { useToastStore } from '../stores/toast';
 import { useAuthStore } from '../stores/auth';
 import { useCursStore } from '../stores/curs';
 import { useCursCollectionSnapshot } from '../composables/useColSnapshot';
-import { usePresenceDepartament } from '../composables/usePresenceDepartament';
 
 const departamentSeleccionat = ref('');
 const route = useRoute();
@@ -630,7 +623,6 @@ const focusClassId = ref('');
 const mostrarSelectorDepartaments = ref(true);
 const transicioPantallaDepartament = ref('departament-slide-forward');
 const settings = ref({ ...DEFAULT_APP_SETTINGS });
-const sessionId = ref(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
 const esVistaCapDepartament = computed(() =>
   ['cap_departament', 'departament'].includes(authStore.rolActiu) && !authStore.esAdmin()
@@ -709,14 +701,6 @@ watch([classesError, profsError, deptsError], ([ce, pe, de]) => {
   if (ce) { errorMsg.value = "No s'han pogut carregar les classes."; return; }
   if (pe) { errorMsg.value = "No s'ha pogut carregar el professorat."; return; }
   if (de) { errorMsg.value = "No s'han pogut carregar els departaments."; }
-});
-
-// Presència en temps real
-const { activeUsers, usuarisActius } = usePresenceDepartament({
-  departamentSeleccionat,
-  authStore,
-  cursStore,
-  sessionId,
 });
 
 // Settings

@@ -1,4 +1,4 @@
-import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { E2E_AUTH_BYPASS } from './e2e';
 
@@ -30,12 +30,6 @@ export function subscribeAppSettings(cursId, callback, onError = console.error) 
     },
     onError
   );
-}
-
-export async function llegirAppSettings(cursId) {
-  if (E2E_AUTH_BYPASS || !cursId) return { ...DEFAULT_APP_SETTINGS };
-  const snapshot = await getDoc(settingsRef(cursId));
-  return { ...DEFAULT_APP_SETTINGS, ...(snapshot.exists() ? snapshot.data() : {}) };
 }
 
 export async function updateAppSettings(cursId, settings) {

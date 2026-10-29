@@ -14,7 +14,3 @@ export function professorPrincipalClasse(classe) {
 export function professorSecundariClasse(classe) {
   return professorsClasse(classe)[1] || '';
 }
-
-export function normalitzarProfessorsAssignats(classe) {
-  return [...new Set(professorsClasse(classe).filter(Boolean))];
-}

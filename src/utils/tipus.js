@@ -63,10 +63,6 @@ export function esCoordinacioAmbMembres(tipus) {
   return esTipus(tipus, TIPUS.COORDINACIO);
 }
 
-export function esCoordinacioIndividual(tipus) {
-  return esTipus(tipus, TIPUS.COORDINACIO_INDIVIDUAL);
-}
-
 export function esOptativa(tipus) {
   const normal = normalitzarTipus(tipus);
   return normal.startsWith('O') || normal.startsWith('T');

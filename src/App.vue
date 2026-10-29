@@ -323,7 +323,6 @@ import { ref, computed, watch, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 import { useCursStore } from './stores/curs';
-import { iniciarPresenciaGlobal } from './services/presencia';
 import { useCursCollectionSnapshot } from './composables/useColSnapshot';
 import { useTheme } from './composables/useTheme';
 import ToastContainer from './components/ToastContainer.vue';
@@ -341,7 +340,6 @@ const appLinks = {
   retards: netlifyMode ? 'https://spontaneous-gecko-a2703a.netlify.app/' : 'https://retards.iessureda.com/',
 };
 const { isDark, themeLabel, themeAriaLabel, toggleTheme } = useTheme();
-let stopPresenciaGlobal = null;
 
 const { items: departamentsVista } = useCursCollectionSnapshot({
   colName: 'departaments',
@@ -457,40 +455,6 @@ function canviarVistaRol(nouRol) {
 watch(() => route.path, () => { mobileMenuOpen.value = false; });
 
 watch(
-  () => [
-    authStore.estaAutenticat,
-    authStore.uid,
-    authStore.usuari,
-    authStore.email,
-    authStore.photoURL,
-    authStore.rolActiu,
-    authStore.departamentActiu,
-    cursStore.cursActiuId,
-    route.fullPath,
-  ],
-  () => {
-    stopPresenciaGlobal?.();
-    stopPresenciaGlobal = null;
-
-    if (!authStore.estaAutenticat || !authStore.uid || !cursStore.cursActiuId) return;
-
-    stopPresenciaGlobal = iniciarPresenciaGlobal({
-      cursId: cursStore.cursActiuId,
-      user: {
-        uid: authStore.uid,
-        usuari: authStore.usuari,
-        email: authStore.email,
-        photoURL: authStore.photoURL,
-        rol: authStore.rolActiu,
-        departament: authStore.departamentActiu,
-      },
-      getPath: () => route.fullPath,
-    });
-  },
-  { immediate: true }
-);
-
-watch(
   [mostraDepartamentVista, departamentsVistaOrdenats],
   ([mostra, departaments]) => {
     if (!mostra || !departaments.length) return;
@@ -520,7 +484,4 @@ function tancarSessio() {
   router.push('/');
 }
 
-onUnmounted(() => {
-  stopPresenciaGlobal?.();
-});
 </script>

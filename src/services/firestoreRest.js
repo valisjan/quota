@@ -70,18 +70,3 @@ export async function getRestDocument(path) {
   if (!response.ok) throw restError(response.status, payload);
   return documentSnapshot(payload, path);
 }
-
-export async function getRestCollection(path) {
-  const documents = [];
-  let pageToken = '';
-  do {
-    const query = new URLSearchParams({ pageSize: '1000' });
-    if (pageToken) query.set('pageToken', pageToken);
-    const response = await authenticatedFetch(`${DOCUMENTS_URL}/${encodedPath(path)}?${query}`);
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw restError(response.status, payload);
-    documents.push(...(payload.documents || []).map((document) => documentSnapshot(document)));
-    pageToken = payload.nextPageToken || '';
-  } while (pageToken);
-  return { docs: documents };
-}
