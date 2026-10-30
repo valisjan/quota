@@ -447,7 +447,9 @@ service cloud.firestore {
     // (funció programada de Netlify, amb un compte de servei) els envia i en marca
     // l'estat. Les dades no surten de la gestió.
     match /guardiesCorreus/{id} {
-      allow read: if esAdmin();
+      // Cada docent pot consultar els avisos adreçats a ell («Les meves guàrdies»).
+      allow read: if esAdmin()
+        || (autenticat() && resource.data.email == request.auth.token.email.lower());
       allow create, update: if esAdmin()
         && request.resource.data.keys().hasOnly([
           'courseId', 'kind', 'template', 'date', 'teacherId', 'email', 'fields',
