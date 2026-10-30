@@ -27,6 +27,8 @@ export const useAuthStore = defineStore('auth', () => {
   const photoURL = ref('');
   const departament = ref('');
   const departaments = ref([]);
+  // Rols extra de Professorat (p. ex. «psc» per a Retards), del document «preautoritzats».
+  const rols = ref([]);
   const uid = ref('');
   const authReady = ref(false);
   const rolVista = ref(null);
@@ -81,6 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
           usuari.value = data.nom || firebaseUser.displayName || userEmail;
           photoURL.value = firebaseUser.photoURL || data.photoURL || '';
           rol.value = data.rol || null;
+          rols.value = Array.isArray(pre?.rols) ? pre.rols : [];
           departament.value = data.departament || '';
           departaments.value = normalitzarDepartamentsUsuari(data);
           estaAutenticat.value = !!data.rol;
@@ -110,6 +113,7 @@ export const useAuthStore = defineStore('auth', () => {
           usuari.value = firebaseUser.displayName || userEmail;
           photoURL.value = firebaseUser.photoURL || '';
           rol.value = pre?.rol || null;
+          rols.value = Array.isArray(pre?.rols) ? pre.rols : [];
           departament.value = pre?.departament || preDepartaments[0] || '';
           departaments.value = preDepartaments;
           estaAutenticat.value = !!pre?.rol;
@@ -143,6 +147,7 @@ export const useAuthStore = defineStore('auth', () => {
     photoURL.value = '';
     departament.value = '';
     departaments.value = [];
+    rols.value = [];
     departamentVista.value = '';
     uid.value = '';
   }
@@ -238,6 +243,11 @@ export const useAuthStore = defineStore('auth', () => {
     return estaAutenticat.value;
   }
 
+  // Retards: administració i PSC.
+  function potRetards() {
+    return esAdminReal() || (estaAutenticat.value && rols.value.includes('psc'));
+  }
+
   // Stubs for backward compat
   async function inicialitzarContrasenya() {}
   function verificarSessio() { return estaAutenticat.value; }
@@ -248,6 +258,8 @@ export const useAuthStore = defineStore('auth', () => {
     esPendent,
     rol,
     rolActiu,
+    rols,
+    potRetards,
     rolVista,
     usuari,
     email,

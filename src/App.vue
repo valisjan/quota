@@ -351,6 +351,8 @@ const departamentsVistaOrdenats = computed(() =>
 );
 
 const links = computed(() => {
+  // Sense sessió no es mostra cap menú: només la pantalla d'entrada.
+  if (!authStore.estaAutenticat) return [];
   const admin = authStore.esAdmin();
   const guardiesQuery = new URLSearchParams();
   if (cursStore.cursActiuId) guardiesQuery.set('curs', cursStore.cursActiuId);
@@ -362,8 +364,8 @@ const links = computed(() => {
       href: `${appLinks.guardies}${guardiesSuffix ? `?${guardiesSuffix}` : ''}`,
       label: admin ? 'Guàrdies' : 'Professorat',
     },
-    { href: appLinks.retards, label: 'Retards' },
   ];
+  if (authStore.potRetards()) visibles.push({ href: appLinks.retards, label: 'Retards' });
   if (admin) visibles.push({ to: '/admin', label: 'Administració' });
   if (authStore.esCapDepartament()) visibles.push({ to: '/departament', label: 'Repartiment' });
   if (authStore.estaAutenticat) visibles.push({ to: '/informes', label: 'Informes' });
