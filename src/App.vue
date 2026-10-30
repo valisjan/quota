@@ -18,37 +18,13 @@
 
           <div class="hidden min-w-0 flex-1 items-center justify-between gap-4 xl:flex">
             <div class="flex min-w-0 items-center gap-2">
-              <div v-if="altresApps.length" ref="appsMenu" class="relative shrink-0">
-                <button
-                  type="button"
-                  class="app-nav-button inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm font-semibold transition"
-                  aria-haspopup="true"
-                  :aria-expanded="appsOpen"
-                  aria-controls="quota-apps-menu"
-                  @click="appsOpen = !appsOpen"
-                >
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-                  </svg>
-                  <span>Apps</span>
-                </button>
-                <div
-                  v-if="appsOpen"
-                  id="quota-apps-menu"
-                  class="absolute left-0 top-[calc(100%+8px)] z-[110] grid w-64 gap-0.5 rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-gray-800"
-                >
-                  <a
-                    v-for="app in altresApps"
-                    :key="app.href"
-                    :href="app.href"
-                    class="grid gap-0.5 rounded-md px-3 py-2 text-slate-900 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-gray-700"
-                    @click="appsOpen = false"
-                  >
-                    <strong class="text-sm">{{ app.label }}</strong>
-                    <small class="text-xs text-slate-600 dark:text-slate-400">{{ app.descripcio }}</small>
-                  </a>
-                </div>
-              </div>
+              <AppsMenu
+                current="quota"
+                :signed-in="authStore.estaAutenticat"
+                :is-admin="authStore.esAdmin()"
+                :can-retards="authStore.potRetards()"
+                :course-id="cursStore.cursActiuId || ''"
+              />
               <div class="app-nav-tabs flex min-w-0 items-center gap-1 overflow-x-auto rounded-md p-1" style="scrollbar-width: none" aria-label="Navegació principal">
                 <router-link
                   v-for="link in seccions"
@@ -176,7 +152,7 @@
 
         <div v-if="mobileMenuOpen" class="app-mobile-menu border-t pb-4 pt-2 xl:hidden">
           <div class="space-y-0.5" role="menu" aria-label="Navegació principal">
-            <template v-for="link in links" :key="link.to || link.href">
+            <template v-for="link in mobileLinks" :key="link.to || link.href">
               <a
                 v-if="link.href"
                 :href="link.href"
@@ -319,26 +295,21 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 import { useCursStore } from './stores/curs';
 import { useCursCollectionSnapshot } from './composables/useColSnapshot';
 import { useTheme } from './composables/useTheme';
 import ToastContainer from './components/ToastContainer.vue';
+import AppsMenu from './shared/AppsMenu.vue';
+import { centreApps } from './shared/apps';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const cursStore = useCursStore();
 const mobileMenuOpen = ref(false);
-const netlifyMode = window.location.hostname.endsWith('.netlify.app');
-const appLinks = {
-  quota: netlifyMode ? 'https://chic-tartufo-68ee9c.netlify.app/' : 'https://quota.iessureda.com/',
-  guardies: netlifyMode ? 'https://guardies.netlify.app/' : 'https://guardies.iessureda.com/',
-  pantalles: netlifyMode ? 'https://pantalles.netlify.app/?gestio=1&pantalla=sala-professorat' : 'https://pantalles.iessureda.com/?gestio=1&pantalla=sala-professorat',
-  retards: netlifyMode ? 'https://spontaneous-gecko-a2703a.netlify.app/' : 'https://retards.iessureda.com/',
-};
 const { isDark, themeLabel, themeAriaLabel, toggleTheme } = useTheme();
 
 const { items: departamentsVista } = useCursCollectionSnapshot({
@@ -350,55 +321,28 @@ const departamentsVistaOrdenats = computed(() =>
   [...departamentsVista.value].sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'ca'))
 );
 
+// Seccions de Quota. Les altres aplicacions surten al menú «Apps» comú (src/shared/).
 const links = computed(() => {
   // Sense sessió no es mostra cap menú: només la pantalla d'entrada.
   if (!authStore.estaAutenticat) return [];
-  const admin = authStore.esAdmin();
-  const guardiesQuery = new URLSearchParams();
-  if (cursStore.cursActiuId) guardiesQuery.set('curs', cursStore.cursActiuId);
-  if (!admin) guardiesQuery.set('vista', 'professor');
-  const guardiesSuffix = guardiesQuery.toString();
-  const visibles = [
-    { to: '/', label: 'Quota' },
-    {
-      href: `${appLinks.guardies}${guardiesSuffix ? `?${guardiesSuffix}` : ''}`,
-      label: admin ? 'Guàrdies' : 'Professorat',
-    },
-  ];
-  if (authStore.potRetards()) visibles.push({ href: appLinks.retards, label: 'Retards' });
-  if (admin) visibles.push({ to: '/admin', label: 'Administració' });
+  const visibles = [{ to: '/', label: 'Quota' }];
+  if (authStore.esAdmin()) visibles.push({ to: '/admin', label: 'Administració' });
   if (authStore.esCapDepartament()) visibles.push({ to: '/departament', label: 'Repartiment' });
-  if (authStore.estaAutenticat) visibles.push({ to: '/informes', label: 'Informes' });
-  if (admin) visibles.push({ href: appLinks.pantalles, label: 'Pantalles' });
+  visibles.push({ to: '/informes', label: 'Informes' });
   return visibles;
 });
 
-const DESCRIPCIONS_APPS = {
-  Guàrdies: 'Full de guàrdies del dia',
-  Professorat: 'Les teves guàrdies',
-  Retards: "Retards de l'alumnat",
-  Pantalles: 'Pantalles del centre',
-};
-const seccions = computed(() => links.value.filter((link) => link.to));
-const altresApps = computed(() => links.value
-  .filter((link) => link.href)
-  .map((link) => ({ ...link, descripcio: DESCRIPCIONS_APPS[link.label] || '' })));
-
-// Menú «Apps»: es tanca en triar, en clicar fora o amb Escape.
-const appsOpen = ref(false);
-const appsMenu = ref(null);
-function tancarAppsFora(event) {
-  if (appsMenu.value && !appsMenu.value.contains(event.target)) appsOpen.value = false;
-}
-function tancarAppsEscape(event) {
-  if (event.key === 'Escape') appsOpen.value = false;
-}
-document.addEventListener('click', tancarAppsFora);
-document.addEventListener('keydown', tancarAppsEscape);
-onUnmounted(() => {
-  document.removeEventListener('click', tancarAppsFora);
-  document.removeEventListener('keydown', tancarAppsEscape);
-});
+const seccions = computed(() => links.value);
+// Al mòbil, les seccions i, a sota, les altres aplicacions amb les mateixes regles que el menú «Apps».
+const mobileLinks = computed(() => [
+  ...links.value,
+  ...centreApps({
+    signedIn: authStore.estaAutenticat,
+    isAdmin: authStore.esAdmin(),
+    canRetards: authStore.potRetards(),
+    courseId: cursStore.cursActiuId || '',
+  }).filter((app) => app.key !== 'quota').map((app) => ({ href: app.href, label: app.name })),
+]);
 
 const vistaRolSeleccionada = computed(() => authStore.rolVista || 'admin');
 const mostraDepartamentVista = computed(() =>
