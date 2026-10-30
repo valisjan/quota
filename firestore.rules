@@ -466,7 +466,15 @@ service cloud.firestore {
         && request.resource.data.sendAfter is timestamp
         && request.resource.data.createdAt == request.time
         && request.resource.data.createdBy is string;
-      allow delete: if false;
+      // La gestió pot aturar a mà un correu que encara no ha sortit…
+      allow update: if esAdmin()
+        && resource.data.status == 'pendent'
+        && request.resource.data.status == 'cancel·lat'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reason'])
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() <= 200;
+      // …i treure'n qualsevol del registre, menys el que el servei està enviant ara mateix.
+      allow delete: if esAdmin() && resource.data.status != 'enviant';
     }
 
     // ---- Retards (alumnat que arriba tard) -------------------------------------
