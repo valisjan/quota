@@ -371,7 +371,7 @@ service cloud.firestore {
         allow create, update: if esAdmin()
           && request.resource.data.keys().hasOnly([
             'schemaVersion', 'courseId', 'date', 'status', 'revision',
-            'publishedAt', 'clientUpdatedAt', 'hours', 'groupsOut', 'updatedAt'
+            'publishedAt', 'clientUpdatedAt', 'hours', 'groupsOut', 'notice', 'updatedAt'
           ])
           && request.resource.data.schemaVersion == 1
           && request.resource.data.courseId == cursId
@@ -379,6 +379,9 @@ service cloud.firestore {
           && request.resource.data.status in ['published', 'closed']
           && request.resource.data.hours is list
           && request.resource.data.groupsOut is list
+          // Avís general del dia (cap d'estudis): el veuen el professorat i Pantalles.
+          && (!('notice' in request.resource.data)
+            || (request.resource.data.notice is string && request.resource.data.notice.size() <= 2000))
           && request.resource.data.updatedAt == request.time;
         allow delete: if esAdmin();
       }
